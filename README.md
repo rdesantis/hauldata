@@ -5,6 +5,8 @@ DBPA - Database Process Automation
 
 Java-based, it works with any database that has a JDBC driver.  Used extensively with MS SQL Server.  Tested with MySQL.
 
+Full documentation coming soon at [hauldata.com](http://www.hauldata.com).
+
 What's It Do?
 -------------
 
@@ -22,7 +24,7 @@ Writes and reads common file formats:
 
 - CSV (write and read)
 - XLSX (currently write only)
-- Tabbed separated values (write only)
+- Tab separated values (write only)
 - TXT plain text (write and read)
 
 Easily runs multiple tasks in parallel.
