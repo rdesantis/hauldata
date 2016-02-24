@@ -17,14 +17,16 @@
 package com.hauldata.dbpa.loader;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.file.Path;
 
 import javax.naming.NamingException;
 
 import com.hauldata.dbpa.process.DbProcess;
+import com.hauldata.dbpa.process.Files;
 
 public class FileLoader implements Loader {
 
@@ -37,9 +39,9 @@ public class FileLoader implements Loader {
 	@Override
 	public DbProcess load(String name) throws IOException, NamingException {
 
-		String processFileName = name + "." + processFileExt; 
-		File processFile = new File(processPath, processFileName);
-		Reader reader = new BufferedReader(new FileReader(processFile));
+		String processFileName = name + "." + processFileExt;
+		Path path = Files.getPath(processPath, processFileName);
+		Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(path.toString())));
 		return DbProcess.parse(reader);
 	}
 

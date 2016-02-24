@@ -57,11 +57,8 @@ public class ContextProperties {
 		connectionProps = null;
 		sessionProps = null;
 		ftpProps = null;
-		pathProps = null;
+		pathProps = getDefaultPathsProperties();
 		logProps = null;
-
-		dataPath = null;
-		processPath = null;
 	}
 
 	private static final ContextProperties nullContextProperties = new ContextProperties();
@@ -144,19 +141,23 @@ public class ContextProperties {
 		return props;
 	}
 
+	private Properties getDefaultPathsProperties() {
+
+		Properties props = new Properties();
+		props.setProperty("data", ".");
+		props.setProperty("process", ".");
+		return props;
+	}
+
 	private String[] getPaths(Properties pathProps) {
 
-		String dataPath = null;
-		String processPath = null;
+		if (pathProps == null) {
+			// Defensive: This path should never execute because of how ContextProperties() default constructor is defined.
+			pathProps = getDefaultPathsProperties();
+		}
 
-		if (pathProps != null) {
-			dataPath = pathProps.getProperty("data");
-			processPath = pathProps.getProperty("process");
-		}
-		else {
-			dataPath = ".";
-			processPath = ".";
-		}
+		String dataPath = pathProps.getProperty("data");
+		String processPath = pathProps.getProperty("process");
 
 		return new String[] { dataPath, processPath };
 	}
