@@ -189,7 +189,7 @@ public class DbProcessTest {
 				"TASK ShowDateFromParts AFTER ForLoop COMPLETES LOG '2/29/2016 from parts = ' + FORMAT(DATEFROMPARTS(2016, 2, 29), 'M/d/yyyy') END TASK \n" +
 				"TASK MkDir AFTER ShowDateFromParts MAKE DIRECTORY 'where this goes' END TASK \n" +
 				"TASK RunScript AFTER MkDir COMPLETES RUN SCRIPT 'inserter.sql' END TASK \n" +
-				"TASK ZipWildcards AFTER RunScript ZIP 'properties\\*.properties', 'process\\*.*' TO 'wildcarded.zip' END TASK \n" +
+				"TASK ZipWildcards AFTER RunScript ZIP 'C:\\code\\dbpa\\*.properties', 'process\\*.*' TO 'wildcarded.zip' END TASK \n" +
 				"TASK CopyWildcards AFTER ZipWildcards COPY 'written*.*', '*.sql' TO 'trash' END TASK \n" +
 				"TASK DeleteWildcards AFTER UnZipper AND CopyWildcards DELETE 'trash\\*Framework*', 'trash\\5CD2-11-Schemata-2006-01.pdf' END TASK \n" +
 				"TASK Async1 AFTER DeleteWildcards PROCESS ASYNC 'asyncproc1' WITH 'my butt', 1 END TASK \n" +

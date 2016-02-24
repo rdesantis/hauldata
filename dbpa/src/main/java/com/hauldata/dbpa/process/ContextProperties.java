@@ -16,7 +16,6 @@
 
 package com.hauldata.dbpa.process;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.util.Properties;
@@ -42,6 +41,14 @@ public class ContextProperties {
 
 	private String dataPath;
 	private String processPath;
+
+	private static final String dbpaHomeName = "DBPA_HOME";
+	private static final String dbpaHome;
+
+	static {
+		String dbpaHomeValue = System.getenv(dbpaHomeName);
+		dbpaHome = (dbpaHomeValue != null) ? dbpaHomeValue : ".";
+	}
 
 	private ContextProperties() {
 
@@ -122,15 +129,16 @@ public class ContextProperties {
 		Properties props = (defaults != null) ? new Properties(defaults) : new Properties();
 
 		String fileName = contextName + "." + usage + ".properties";
-		if ((new File(fileName)).exists()) {
-			try {
-				FileInputStream in = new FileInputStream(fileName);
-				props.load(in);
-				in.close();
-			}
-			catch (Exception ex) {
-				throw new RuntimeException("Error reading " + usage + " properties from file \"" + fileName + "\": " + ex.getMessage(), ex);
-			}
+		Path path = Files.getPath(dbpaHome, fileName); 
+
+		try {
+			FileInputStream in = new FileInputStream(path.toString());
+			props.load(in);
+			in.close();
+		}
+		catch (Exception ex) {
+			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
+			throw new RuntimeException("Error reading " + usage + " properties from file \"" + fileName + "\": " + message, ex);
 		}
 
 		return props;
@@ -186,7 +194,8 @@ public class ContextProperties {
 			return log;
 		}
 		catch (Exception ex) {
-			throw new RuntimeException("Failed attempting to set up log : " + ex.getMessage(), ex);
+			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
+			throw new RuntimeException("Failed attempting to set up log : " + message, ex);
 		}
 	}
 	
