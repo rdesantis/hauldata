@@ -16,18 +16,11 @@
 
 package com.hauldata.dbpa.log;
 
-public interface Logger {
+import java.time.LocalDateTime;
 
-	enum Level { info, warn, error, message };
+public interface Appender {
 
-	void info(String taskId, String message);
-	void warn(String taskId, String message);
-	void error(String taskId, String message);
-	void message(String taskId, String message);
-
-	Logger nestTask(String nestedTaskId);
-
-	Logger nestProcess(String nestedProcessId);
+	void log(String processId, String taskId, LocalDateTime datetime, int level, String message);
 
 	void close();
 }

@@ -95,24 +95,24 @@ public class DbProcess extends TaskSet {
 	public void run(String[] args, Context context) throws Exception {
 
 		try {
-			context.log.write(process, "Starting process");
+			context.logger.info(process, "Starting process");
 
 			setParameters(args);
 			runTasks(context);
 
-			context.log.write(process, "Process completed");
+			context.logger.info(process, "Process completed");
 		}
 		catch (InterruptedException ex) {
 			String message = "Process terminated";
 
-			context.log.write(process, message);
+			context.logger.error(process, message);
 
 			throw new RuntimeException(message);
 		}
 		catch (Exception ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 
-			context.log.write(process, "Process failed: " + message);
+			context.logger.error(process, "Process failed: " + message);
 
 			throw new RuntimeException(message);
 		}

@@ -16,18 +16,17 @@
 
 package com.hauldata.dbpa.log;
 
-public interface Logger {
+import java.util.List;
 
-	enum Level { info, warn, error, message };
+public class NestedLogger extends LoggerBase {
 
-	void info(String taskId, String message);
-	void warn(String taskId, String message);
-	void error(String taskId, String message);
-	void message(String taskId, String message);
+	/**
+	 * This is only intended to be called by Log.nestTask(String) and Log.nestProcess(String)
+	 */
+	public NestedLogger(String processId, String taskPrefix, Level level, List<Appender> appenders) {
+		super(processId, taskPrefix, level, appenders);
+	}
 
-	Logger nestTask(String nestedTaskId);
-
-	Logger nestProcess(String nestedProcessId);
-
-	void close();
+	@Override
+	public void close() {}
 }

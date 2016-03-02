@@ -33,7 +33,7 @@ public abstract class ScheduleTask extends Task {
 	protected void execute(Context context, ScheduleSet schedules) {
 		
 		Context nestedContext = context.cloneContext();
-		nestedContext.log = context.log.nestTask(getName());
+		nestedContext.logger = context.logger.nestTask(getName());
 		
 		try {
 			if (schedules.isImmediate()) {

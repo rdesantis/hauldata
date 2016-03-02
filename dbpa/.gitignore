@@ -9,3 +9,4 @@ release.properties
 .settings/
 .classpath
 .project
+/bin/

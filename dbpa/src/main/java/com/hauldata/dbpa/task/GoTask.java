@@ -33,6 +33,6 @@ public class GoTask extends LogTask {
 		if (goMessage == null) {
 			goMessage = "Continuing"; 
 		}
-		context.log.write(getName(), goMessage);
+		context.logger.message(getName(), goMessage);
 	}
 }

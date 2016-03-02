@@ -82,7 +82,7 @@ abstract class TaskSet {
 							for (ListIterator<Task> waitingIterator = waiting.listIterator(); waitingIterator.hasNext(); ) {
 								Task waiter = waitingIterator.next();
 								if (waiter.getResult() == Task.Result.orphaned) {
-									context.log.write(waiter.getName(), "Task orphaned");
+									context.logger.warn(waiter.getName(), "Task orphaned");
 									waitingIterator.remove();
 								}
 							}
@@ -106,7 +106,7 @@ abstract class TaskSet {
 		catch (InterruptedException iex) {
 			// This thread was interrupted.  Cancel all tasks. 
 
-			context.log.write("process", "Process interrupted");
+			context.logger.error("process", "Process interrupted");
 
 			executor.terminateAll();
 
@@ -114,12 +114,12 @@ abstract class TaskSet {
 				Task task = executor.getCompleted();
 
 				if (task.getResult() == Task.Result.waiting) {
-					context.log.write(task.getName(), "Task cancelled");
+					context.logger.error(task.getName(), "Task cancelled");
 				}
 			}
 			
 			for (Task waiter : waiting) {
-				context.log.write(waiter.getName(), "Task orphaned");
+				context.logger.warn(waiter.getName(), "Task orphaned");
 			}
 			
 			throw iex;

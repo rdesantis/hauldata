@@ -50,7 +50,7 @@ public class SyncProcessTask extends ProcessTask {
 		}
 		
 		Context nestedContext = context.nestContext();
-		nestedContext.log = context.log.nestProcess(processName);
+		nestedContext.logger = context.logger.nestProcess(processName);
 		try {
 			DbProcess process = context.loader.load(processName);
 			process.run(args, nestedContext);

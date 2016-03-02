@@ -46,7 +46,7 @@ public class ForStatementTask extends UpdateVariablesTask {
 	protected void execute(Context context) {
 	
 		Context nestedContext = context.cloneContext();
-		nestedContext.log = context.log.nestTask(getName());
+		nestedContext.logger = context.logger.nestTask(getName());
 
 		Connection conn = null;
 		Statement stmt = null;

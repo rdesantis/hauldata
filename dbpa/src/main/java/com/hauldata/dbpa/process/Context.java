@@ -29,8 +29,8 @@ import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 
 import com.hauldata.dbpa.loader.Loader;
-import com.hauldata.dbpa.log.Log;
-import com.hauldata.dbpa.log.NullLog;
+import com.hauldata.dbpa.log.Logger;
+import com.hauldata.dbpa.log.NullLogger;
 
 /**
  * Context in which a task will run.
@@ -42,7 +42,7 @@ public class Context {
 	public Properties ftpProps;
 	public String dataPath;
 	public Loader loader;
-	public Log log;
+	public Logger logger;
 	public TaskExecutor executor;
 	public TaskExecutor rootExecutor;
 
@@ -79,7 +79,7 @@ public class Context {
 	 * In addition, the following public data member should be set BY THE CALLER AFTER the context has been constructed.
 	 * If not set by the caller, it remains as set by the constructor to a null log that discards all logging.
 	 * The log is set separately from the context constructor because the log's constructor may take the context as an argument.  
-	 * - log is the log where task status messages can be written
+	 * - logger is the log where task status messages can be written
 	 * 
 	 * The above are all exposed as public data members.  In addition, the following public data members
 	 * are instantiated by the constructor:
@@ -94,7 +94,7 @@ public class Context {
 		this.dataPath = dataPath;
 		this.loader = loader;
 
-		log = NullLog.log;
+		logger = NullLogger.logger;
 
 		files = new Files();
 
@@ -112,7 +112,7 @@ public class Context {
 	public void close() {
 		try { executor.close(); } catch (Exception ex) {}
 		try { files.assureAllClosed(); } catch (Exception ex) {}
-		try { log.close(); } catch (Exception ex) {}
+		try { logger.close(); } catch (Exception ex) {}
 		try { assureConnectionClosed(); } catch (Exception ex) {}
 	}
 
@@ -139,7 +139,7 @@ public class Context {
 	public void closeNested() {
 		try { executor.close(); } catch (Exception ex) {}
 		try { files.assureAllClosed(); } catch (Exception ex) {}
-		try { log.close(); } catch (Exception ex) {}
+		try { logger.close(); } catch (Exception ex) {}
 	}
 
 	/**
@@ -152,7 +152,7 @@ public class Context {
 		
 		Context context = new Context(connectionProps, sessionProps, ftpProps, dataPath, loader);
 
-		context.log = log;
+		context.logger = logger;
 		context.files = files;
 
 		context.executor = new TaskExecutor();

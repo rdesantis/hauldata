@@ -16,18 +16,20 @@
 
 package com.hauldata.dbpa.log;
 
-public interface Logger {
+import java.time.LocalDateTime;
 
-	enum Level { info, warn, error, message };
+/**
+ * Console logging of process status messages
+ */
+public class ConsoleAppender implements Appender {
 
-	void info(String taskId, String message);
-	void warn(String taskId, String message);
-	void error(String taskId, String message);
-	void message(String taskId, String message);
+	public ConsoleAppender() {}
 
-	Logger nestTask(String nestedTaskId);
+	@Override
+	public void log(String processId, String taskId, LocalDateTime datetime, int level, String message) {
+		System.out.println(processId + "," + taskId + "," + datetime.toString() + "," + String.valueOf(level) + ",\"" + message + "\"");
+	}
 
-	Logger nestProcess(String nestedProcessId);
-
-	void close();
+	@Override
+	public void close() {}
 }

@@ -24,8 +24,9 @@ import java.util.Properties;
 import javax.naming.NamingException;
 
 import com.hauldata.dbpa.loader.Loader;
-import com.hauldata.dbpa.log.ConsoleLogger;
-import com.hauldata.dbpa.log.RootLog;
+import com.hauldata.dbpa.log.ConsoleAppender;
+import com.hauldata.dbpa.log.Logger;
+import com.hauldata.dbpa.log.RootLogger;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.DbProcess;
 
@@ -98,9 +99,9 @@ public class DbProcessTest {
 
 		context = new Context(connProps, mailProps, ftpProps, dataPath, new TestLoader());
 
-		RootLog log = new RootLog("DBPATest");
-		log.add(new ConsoleLogger());
-		context.log = log;
+		RootLogger logger = new RootLogger("DBPATest", Logger.Level.info);
+		logger.add(new ConsoleAppender());
+		context.logger = logger;
 
 		// Now ready to run scripts.
 /*
@@ -409,7 +410,7 @@ public class DbProcessTest {
 		@Override
 		public DbProcess load(String name) throws IOException, NamingException {
 
-			context.log.write("TestLoader", "Loading " + name);
+			context.logger.message("TestLoader", "Loading " + name);
 
 			final String script =
 					"PARAMETERS text VARCHAR, number INTEGER END PARAMETERS \n" +

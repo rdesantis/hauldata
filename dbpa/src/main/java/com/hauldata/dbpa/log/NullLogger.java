@@ -16,18 +16,30 @@
 
 package com.hauldata.dbpa.log;
 
-public interface Logger {
+public class NullLogger implements Logger {
+	
+	public static NullLogger logger = new NullLogger();
 
-	enum Level { info, warn, error, message };
+	private NullLogger() {}
 
-	void info(String taskId, String message);
-	void warn(String taskId, String message);
-	void error(String taskId, String message);
-	void message(String taskId, String message);
+	@Override
+	public void info(String taskId, String message) {}
 
-	Logger nestTask(String nestedTaskId);
+	@Override
+	public void warn(String taskId, String message) {}
 
-	Logger nestProcess(String nestedProcessId);
+	@Override
+	public void error(String taskId, String message) {}
+		
+	@Override
+	public void message(String taskId, String message) {}
 
-	void close();
+	@Override
+	public Logger nestTask(String nestedTaskId) { return this; }
+
+	@Override
+	public Logger nestProcess(String nestedProcessId) { return this; }
+
+	@Override
+	public void close() {}
 }

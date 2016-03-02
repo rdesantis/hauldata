@@ -34,7 +34,7 @@ public class LogTask extends Task {
 		if (messageValue == null) {
 			throw new RuntimeException("Message evaluates to NULL");
 		}
-		context.log.write(getName(), messageValue);
+		context.logger.message(getName(), messageValue);
 	}
 
 	protected Expression<String> message;

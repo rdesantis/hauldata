@@ -22,12 +22,12 @@ import java.util.Properties;
 
 import com.hauldata.dbpa.loader.FileLoader;
 import com.hauldata.dbpa.loader.Loader;
-import com.hauldata.dbpa.log.ConsoleLogger;
-import com.hauldata.dbpa.log.FileLogger;
-import com.hauldata.dbpa.log.Log;
-import com.hauldata.dbpa.log.NullLog;
-import com.hauldata.dbpa.log.RootLog;
-import com.hauldata.dbpa.log.TableLogger;
+import com.hauldata.dbpa.log.ConsoleAppender;
+import com.hauldata.dbpa.log.FileAppender;
+import com.hauldata.dbpa.log.Logger;
+import com.hauldata.dbpa.log.NullLogger;
+import com.hauldata.dbpa.log.RootLogger;
+import com.hauldata.dbpa.log.TableAppender;
 
 public class ContextProperties {
 
@@ -41,6 +41,7 @@ public class ContextProperties {
 
 	private String dataPath;
 	private String processPath;
+	private String logPath;
 
 	private static final String dbpaHomeName = "DBPA_HOME";
 	private static final String dbpaHome;
@@ -80,6 +81,7 @@ public class ContextProperties {
 		String[] paths = getPaths(pathProps);
 		dataPath = paths[0];
 		processPath = paths[1];
+		logPath = paths[2];
 	}
 
 	public Context createContext(String processId) {
@@ -97,7 +99,7 @@ public class ContextProperties {
 			
 			context = new Context(connectionProps, sessionProps, ftpProps, dataPath, loader);
 			
-			context.log = (parentContext == null) ? setupLog(processId, context) : parentContext.log.nestProcess(processId);
+			context.logger = (parentContext == null) ? setupLog(processId, context) : parentContext.logger.nestProcess(processId);
 		}
 		catch (Exception ex) {
 			try { if (context != null) context.close(); }
@@ -146,6 +148,7 @@ public class ContextProperties {
 		Properties props = new Properties();
 		props.setProperty("data", ".");
 		props.setProperty("process", ".");
+		props.setProperty("log", ".");
 		return props;
 	}
 
@@ -158,20 +161,23 @@ public class ContextProperties {
 
 		String dataPath = pathProps.getProperty("data");
 		String processPath = pathProps.getProperty("process");
+		String logPath = pathProps.getProperty("log");
 
-		return new String[] { dataPath, processPath };
+		return new String[] { dataPath, processPath, logPath };
 	}
 
-	private Log setupLog(String processID, Context context) {
+	private Logger setupLog(String processID, Context context) {
 		
 		String logTypeList = (logProps != null) ? logProps.getProperty("type") : null; 
-
 		if ((logTypeList == null) || logTypeList.equals("null")) {
-			return NullLog.log;
+			return NullLogger.logger;
 		}
 
 		try {
-			RootLog log = new RootLog(processID);
+			String loggerLevelName = (logProps != null) ? logProps.getProperty("level") : null;
+			Logger.Level level = (loggerLevelName != null) ? Logger.Level.valueOf(loggerLevelName) : Logger.Level.values()[0];
+			
+			RootLogger log = new RootLogger(processID, level);
 
 			String[] logTypes = logTypeList.split(",");
 			for (String logType : logTypes) {
@@ -179,13 +185,13 @@ public class ContextProperties {
 					// Do nothing.
 				}
 				else if (logType.equals("console")) {
-					log.add(new ConsoleLogger());
+					log.add(new ConsoleAppender());
 				}
 				else if (logType.equals("file")) {
-					log.add(new FileLogger(logProps.getProperty("fileName")));
+					log.add(new FileAppender(Files.getPath(logPath, logProps.getProperty("fileName")).toString()));
 				}
 				else if (logType.equals("table")) {
-					log.add(new TableLogger(context, logProps.getProperty("tableName")));
+					log.add(new TableAppender(context, logProps.getProperty("tableName")));
 				}
 				else {
 					throw new RuntimeException("Unrecognized type \"" + logType + "\"");

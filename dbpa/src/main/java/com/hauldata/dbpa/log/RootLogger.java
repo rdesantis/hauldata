@@ -16,18 +16,26 @@
 
 package com.hauldata.dbpa.log;
 
-public interface Logger {
+import java.util.LinkedList;
 
-	enum Level { info, warn, error, message };
+/**
+ * Log for process status messages
+ * 
+ * Concrete subclass constructors must pass processId string to Log constructor
+ */
+public class RootLogger extends LoggerBase {
 
-	void info(String taskId, String message);
-	void warn(String taskId, String message);
-	void error(String taskId, String message);
-	void message(String taskId, String message);
+	public RootLogger(String processId, Level level) {
 
-	Logger nestTask(String nestedTaskId);
+		super(processId, null, level, new LinkedList<Appender>());
+	}
 
-	Logger nestProcess(String nestedProcessId);
+	public void add(Appender appender) {
+		addAppender(appender);
+	}
 
-	void close();
+	@Override
+	public void close() {
+		closeAppenders();
+	}
 }

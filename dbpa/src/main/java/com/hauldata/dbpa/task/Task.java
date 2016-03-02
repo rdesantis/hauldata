@@ -107,7 +107,7 @@ public abstract class Task {
 
 				boolean isLogTask = this instanceof LogTask;
 				if (!isLogTask) {
-					context.log.write(name, "Starting task");
+					context.logger.info(name, "Starting task");
 				}
 
 				result = Result.running;
@@ -115,24 +115,24 @@ public abstract class Task {
 				execute(context);
 
 				if (!isLogTask) {
-					context.log.write(name, "Task succeeded");
+					context.logger.info(name, "Task succeeded");
 				}
 			}
 			else {
-				context.log.write(name, "Skipping task; run conditions not met");
+				context.logger.info(name, "Skipping task; run conditions not met");
 			}
 			result = Result.success;
 		}
 		catch (InterruptedException ex) {
-			context.log.write(name, "Task terminated");
+			context.logger.error(name, "Task terminated");
 
 			result = Result.terminated;
 		}
 		catch (Exception ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 
-			context.log.write(name, message);
-			context.log.write(name, "Task failed");
+			context.logger.error(name, message);
+			context.logger.error(name, "Task failed");
 
 			result = Result.failure;
 		}
