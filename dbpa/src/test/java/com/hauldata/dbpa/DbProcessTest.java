@@ -102,7 +102,7 @@ public class DbProcessTest {
 
 		RootLogger logger = new RootLogger("DBPATest", Logger.Level.info);
 		logger.add(new ConsoleAppender());
-		logger.add(new FileAppender("test %d{yyyy-MM-dd} at hour %d{HH}.log"));
+		logger.add(new FileAppender("test %d{yyyy-MM-dd} at hour %d{HH-mm-ss}.log", "Daily every 2 seconds"));
 		context.logger = logger;
 
 		// Now ready to run scripts.

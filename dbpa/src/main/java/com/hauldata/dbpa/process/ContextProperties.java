@@ -188,7 +188,10 @@ public class ContextProperties {
 					log.add(new ConsoleAppender());
 				}
 				else if (logType.equals("file")) {
-					log.add(new FileAppender(Files.getPath(logPath, logProps.getProperty("fileName")).toString()));
+					String fileName = Files.getPath(logPath, logProps.getProperty("fileName")).toString();
+					String rolloverSchedule = logProps.getProperty("fileRollover");
+
+					log.add(new FileAppender(fileName, rolloverSchedule));
 				}
 				else if (logType.equals("table")) {
 					log.add(new TableAppender(context, logProps.getProperty("tableName")));

@@ -25,16 +25,30 @@ import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.hauldata.util.schedule.ScheduleSet;
+
 public class FileAppender implements Appender {
 
-	public FileAppender(String fileName) throws IOException {
+	private String fileName;
+	private BufferedWriter writer;
+
+	private ScheduleSet rollover;
+	private Thread rolloverThread; 
+
+	public FileAppender(String fileName, String rolloverSchedule) throws IOException {
+		this.fileName = fileName;
+
+		openFile(LocalDateTime.now());
+		setupRollover(rolloverSchedule);
+	}
+
+	private void openFile(LocalDateTime now) throws IOException {
 
 		// Replace each incidence of %d{pattern} in fileName with current date/time formatted to the pattern.
-		
+
 		final String regex = "%d\\{(.+?)\\}";
 		final Pattern pattern = Pattern.compile(regex);
 
-		LocalDateTime now = LocalDateTime.now();
 		StringBuffer stampedName = new StringBuffer();
 
 		Matcher matcher = pattern.matcher(fileName);
@@ -49,18 +63,7 @@ public class FileAppender implements Appender {
 		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(stampedName.toString(), true)));
 	}
 
-	@Override
-	public void log(String processId, String taskId, LocalDateTime datetime, int level, String message) {
-		try {
-			writer.write(processId + "," + taskId + "," + datetime.toString() + "," + String.valueOf(level) + ",\"" + message + "\"" + String.format("%n"));
-		}
-		catch (Exception ex) {
-			// No good choice but to ignore the exception.  Don't want to crash the process just because logging is broken.
-		}
-	}
-
-	@Override
-	public void close() {
+	private void closeFile() {
 		try {
 			writer.close();
 		}
@@ -68,5 +71,66 @@ public class FileAppender implements Appender {
 		}
 	}
 
-	private BufferedWriter writer;
+	@Override
+	public void log(String processId, String taskId, LocalDateTime datetime, int level, String message) {
+		try {
+			synchronized (writer) {
+				writer.write(processId + "," + taskId + "," + datetime.toString() + "," + String.valueOf(level) + ",\"" + message + "\"" + String.format("%n"));
+				writer.flush();
+			}
+		}
+		catch (Exception ex) {
+			// No good choice but to ignore the exception.  Don't want to crash the process just because logging is broken.
+		}
+	}
+
+	private void setupRollover(String rolloverSchedule) throws IOException {
+
+		rollover = null;
+		rolloverThread = null; 
+
+		if (rolloverSchedule == null || rolloverSchedule.isEmpty() || rolloverSchedule.equalsIgnoreCase("no") || rolloverSchedule.equalsIgnoreCase("none")) {
+			return;
+		}
+
+		rollover = ScheduleSet.parse(rolloverSchedule);
+		rolloverThread = new Thread(new RolloverThread()); 
+
+		rolloverThread.start();
+	}
+
+	private class RolloverThread implements Runnable {
+
+		@Override
+		public void run() {
+			try {
+				while (!Thread.currentThread().isInterrupted()) {
+					LocalDateTime rolloverTime = rollover.nextFrom(LocalDateTime.now());
+
+					rollover.sleepUntilNext();
+
+					synchronized (writer) {
+						closeFile();
+						openFile(rolloverTime);
+					}
+				}
+			}
+			catch (Exception ex) {
+				// Expect InterruptedException when thread is terminated by cleanupRollover().
+				// Terminate for any other exception as well.
+			}
+		}
+	}
+
+	private void cleanupRollover() {
+		if (rolloverThread != null) {
+			rolloverThread.interrupt();
+		}
+	}
+	
+	@Override
+	public void close() {
+		cleanupRollover();
+		closeFile();
+	}
 }
