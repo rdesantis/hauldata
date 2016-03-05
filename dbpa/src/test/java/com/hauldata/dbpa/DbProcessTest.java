@@ -25,6 +25,7 @@ import javax.naming.NamingException;
 
 import com.hauldata.dbpa.loader.Loader;
 import com.hauldata.dbpa.log.ConsoleAppender;
+import com.hauldata.dbpa.log.FileAppender;
 import com.hauldata.dbpa.log.Logger;
 import com.hauldata.dbpa.log.RootLogger;
 import com.hauldata.dbpa.process.Context;
@@ -101,6 +102,7 @@ public class DbProcessTest {
 
 		RootLogger logger = new RootLogger("DBPATest", Logger.Level.info);
 		logger.add(new ConsoleAppender());
+		logger.add(new FileAppender("test %d{yyyy-MM-dd} at hour %d{HH}.log"));
 		context.logger = logger;
 
 		// Now ready to run scripts.

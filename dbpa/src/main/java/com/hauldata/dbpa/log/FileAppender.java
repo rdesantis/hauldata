@@ -21,12 +21,32 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class FileAppender implements Appender {
 
 	public FileAppender(String fileName) throws IOException {
 
-		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName, true)));
+		// Replace each incidence of %d{pattern} in fileName with current date/time formatted to the pattern.
+		
+		final String regex = "%d\\{(.+?)\\}";
+		final Pattern pattern = Pattern.compile(regex);
+
+		LocalDateTime now = LocalDateTime.now();
+		StringBuffer stampedName = new StringBuffer();
+
+		Matcher matcher = pattern.matcher(fileName);
+		while (matcher.find()) {
+			String stamp = now.format(DateTimeFormatter.ofPattern(matcher.group(1)));
+			matcher.appendReplacement(stampedName, stamp);
+		}
+		matcher.appendTail(stampedName);
+
+		// Open the log file, appending to existing if file name is not stamped or stamp has not changed.
+
+		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(stampedName.toString(), true)));
 	}
 
 	@Override
