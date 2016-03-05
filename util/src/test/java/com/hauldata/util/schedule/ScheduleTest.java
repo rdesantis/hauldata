@@ -28,6 +28,7 @@ import com.hauldata.util.schedule.TimeSchedule;
 
 public class ScheduleTest {
 
+	static LocalTime midnight = LocalTime.MIDNIGHT;
 	static LocalTime nineAm = LocalTime.of(9, 0);
 	static LocalTime tenAm = LocalTime.of(10, 0);
 	static LocalTime tenThirtyAm = LocalTime.of(10, 30);
@@ -46,6 +47,7 @@ public class ScheduleTest {
 	static LocalDate friday1113 = LocalDate.of(2015, 11, 13);
 	static LocalDate sunday1115 = LocalDate.of(2015, 11, 15);
 	static LocalDate monday1116 = LocalDate.of(2015, 11, 16);
+	static LocalDate tuesday1201 = LocalDate.of(2015, 12, 01);
 
 	public static void main(String[] args) {
 
@@ -163,6 +165,51 @@ public class ScheduleTest {
 		assert(schedules.nextFrom(LocalDateTime.of(friday1113, ninePm)).equals(LocalDateTime.of(monday1116, fourPm)));
 		assert(schedules.nextFrom(LocalDateTime.of(monday1116, ninePm)) == null);
 
+		try {
+			schedules = ScheduleSet.parse("Daily");
+		}
+		catch (Exception e) {
+			throw new RuntimeException();
+		}
+
+		assert(schedules.nextFrom(LocalDateTime.of(sunday1108, ninePm)).equals(LocalDateTime.of(monday1109, midnight)));
+
+		try {
+			schedules = ScheduleSet.parse("Weekly");
+		}
+		catch (Exception e) {
+			throw new RuntimeException();
+		}
+
+		assert(schedules.nextFrom(LocalDateTime.of(monday1109, noon)).equals(LocalDateTime.of(sunday1115, midnight)));
+
+		try {
+			schedules = ScheduleSet.parse("Monthly");
+		}
+		catch (Exception e) {
+			throw new RuntimeException();
+		}
+
+		assert(schedules.nextFrom(LocalDateTime.of(monday1109, threeFifteenPm)).equals(LocalDateTime.of(tuesday1201, midnight)));
+
+		try {
+			schedules = ScheduleSet.parse("Hourly");
+		}
+		catch (Exception e) {
+			throw new RuntimeException();
+		}
+
+		assert(schedules.nextFrom(LocalDateTime.of(monday1109, threeFifteenPm)).equals(LocalDateTime.of(monday1109, fourPm)));
+
+		try {
+			schedules = ScheduleSet.parse("Daily every 10 seconds");
+		}
+		catch (Exception e) {
+			throw new RuntimeException();
+		}
+
+		assert(schedules.nextFrom(LocalDateTime.of(monday1109, LocalTime.of(15, 15, 6))).equals(LocalDateTime.of(monday1109, LocalTime.of(15, 15, 10))));
+
 		System.out.println("Parse tests pass");
 	}
 
@@ -173,9 +220,9 @@ public class ScheduleTest {
 		int cycles = 3;
 		LocalTime endTime = startTime.plusSeconds(frequency * (cycles - 1));
 
-		ScheduleSet everyFiveSeconds = new ScheduleSet();
+		ScheduleSet everyTwoSeconds = new ScheduleSet();
 
-		everyFiveSeconds.add(new Schedule(
+		everyTwoSeconds.add(new Schedule(
 				DateSchedule.onetime(LocalDate.now()),
 				TimeSchedule.recurring(ChronoUnit.SECONDS, frequency, startTime, endTime)));
 
@@ -183,7 +230,7 @@ public class ScheduleTest {
 		System.out.println("start time " + startTime);
 		try {
 			int count = 0;
-			while (everyFiveSeconds.sleepUntilNext()) {
+			while (everyTwoSeconds.sleepUntilNext()) {
 				System.out.println(String.valueOf(++count) + " start at " + LocalTime.now());
 			}
 		}

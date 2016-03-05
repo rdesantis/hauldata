@@ -92,6 +92,10 @@ class ScheduleParser {
 	private static final String HOUR = "HOUR";
 	private static final String MINUTE = "MINUTE";
 	private static final String SECOND = "SECOND";
+	private static final String DAILY = "DAILY";
+	private static final String WEEKLY = "WEEKLY";
+	private static final String MONTHLY = "MONTHLY";
+	private static final String HOURLY = "HOURLY";
 	private static final String ON = "ON";
 	private static final String FIRST = "FIRST";
 	private static final String THIRD = "THIRD";
@@ -121,33 +125,45 @@ class ScheduleParser {
 			return parseDateSchedule(LocalDate.now());
 		}
 		else if (tokenizer.skipWordIgnoreCase(WEEKDAY + "S")) {
-			return parseWeeklySchedule(1, weekdays);
+			return parseWeeklySchedule(1, weekdays, false);
 		}
 		else if (hasNextDayOfWeekIgnoreCase()) {
-			return parseWeeklySchedule(1);
+			return parseWeeklySchedule(1, false, false);
 		}
 		else if (tokenizer.skipWordIgnoreCase(EVERY)) {
 
 			if (tokenizer.skipWordIgnoreCase(WEEKDAY)) {
-				return parseWeeklySchedule(1, weekdays);
+				return parseWeeklySchedule(1, weekdays, false);
 			}
 			else if (hasNextDayOfWeekIgnoreCase()) {
-				return parseWeeklySchedule(1);
+				return parseWeeklySchedule(1, false, false);
 			}
 
 			UnitFrequency unitFrequency = parseUnitFrequency(false);
 			if (unitFrequency.unit == ChronoUnit.DAYS) {
-				return parseDailySchedule(unitFrequency.frequency);
+				return parseDailySchedule(unitFrequency.frequency, false);
 			}
 			else if (unitFrequency.unit == ChronoUnit.WEEKS) {
-				return parseWeeklySchedule(unitFrequency.frequency);
+				return parseWeeklySchedule(unitFrequency.frequency, false, false);
 			}
 			else if (unitFrequency.unit == ChronoUnit.MONTHS) {
-				return parseMonthlySchedule(unitFrequency.frequency);
+				return parseMonthlySchedule(unitFrequency.frequency, false, false);
 			}
 			else {
 				throw new InputMismatchException("Unsupported calendar unit for date schedule");
 			}
+		}
+		else if (tokenizer.skipWordIgnoreCase(DAILY)) {
+			return parseDailySchedule(1, true);
+		}
+		else if (tokenizer.skipWordIgnoreCase(WEEKLY)) {
+			return parseWeeklySchedule(1, true, true);
+		}
+		else if (tokenizer.skipWordIgnoreCase(MONTHLY)) {
+			return parseMonthlySchedule(1, true, true);
+		}
+		else if (tokenizer.skipWordIgnoreCase(HOURLY)) {
+			return parseHourlySchedule();
 		}
 		else {
 			throw new InputMismatchException("Invalid date schedule syntax");
@@ -170,77 +186,98 @@ class ScheduleParser {
 	
 	private Schedule parseDateSchedule(LocalDate date) throws IOException {
 
-		TimeSchedule timeSchedule = parseTimeSchedule();
+		TimeSchedule timeSchedule = parseTimeSchedule(false);
 		return new Schedule(
 				DateSchedule.onetime(date),
 				timeSchedule);
 	}
 	
-	private Schedule parseDailySchedule(int frequency) throws IOException {
+	private Schedule parseDailySchedule(int frequency, boolean isTimeOptional) throws IOException {
 
 		DateRange range = parseDateRange();
-		TimeSchedule timeSchedule = parseTimeSchedule();
+		TimeSchedule timeSchedule = parseTimeSchedule(isTimeOptional);
 		return new Schedule(
 				DateSchedule.recurring(ChronoUnit.DAYS, frequency, range.startDate, range.endDate),
 				timeSchedule);
 	}
 
-	private Schedule parseWeeklySchedule(int frequency) throws IOException {
+	private Schedule parseWeeklySchedule(int frequency, boolean isDayOfWeekOptional, boolean isTimeOptional) throws IOException {
 
 		tokenizer.skipWordIgnoreCase(ON);
-		Set<DayOfWeek> days = parseDayOfWeekSet();
-		return parseWeeklySchedule(frequency, days);
+		Set<DayOfWeek> days = parseDayOfWeekSet(isDayOfWeekOptional);
+		return parseWeeklySchedule(frequency, days, isTimeOptional);
 	}
 
-	private Schedule parseWeeklySchedule(int frequency, Set<DayOfWeek> days) throws IOException {
+	private Schedule parseWeeklySchedule(int frequency, Set<DayOfWeek> days, boolean isTimeOptional) throws IOException {
 
 		DateRange range = parseDateRange();
-		TimeSchedule timeSchedule = parseTimeSchedule();
+		TimeSchedule timeSchedule = parseTimeSchedule(isTimeOptional);
 		return new Schedule(
 				DateSchedule.daysOfWeek(frequency, days, range.startDate, range.endDate),
 				timeSchedule);
 	}
 
-	private Schedule parseMonthlySchedule(int frequency) throws IOException {
+	private Schedule parseMonthlySchedule(int frequency, boolean isDayOptional, boolean isTimeOptional) throws IOException {
 
 		tokenizer.skipWordIgnoreCase(ON);
 		if (tokenizer.skipWordIgnoreCase(DAY)) {
-			return parseOrdinalDayOfMonthSchedule(frequency);
+			return parseOrdinalDayOfMonthSchedule(frequency, isTimeOptional);
 		}
 		else {
-			return parseLogicalDayOfMonthSchedule(frequency);
+			return parseLogicalDayOfMonthSchedule(frequency, isDayOptional, isTimeOptional);
 		}
 	}
 
-	private Schedule parseOrdinalDayOfMonthSchedule(int frequency) throws IOException {
+	private Schedule parseOrdinalDayOfMonthSchedule(int frequency, boolean isTimeOptional) throws IOException {
 
 		int ordinal = tokenizer.nextInt();
-		return parseOrdinalDayOfMonthSchedule(frequency, ordinal);
+		return parseOrdinalDayOfMonthSchedule(frequency, ordinal, isTimeOptional);
 	}
 
-	private Schedule parseOrdinalDayOfMonthSchedule(int frequency, int ordinal) throws IOException {
+	private Schedule parseOrdinalDayOfMonthSchedule(int frequency, int ordinal, boolean isTimeOptional) throws IOException {
 
 		DateRange range = parseDateRange();
-		TimeSchedule timeSchedule = parseTimeSchedule();
+		TimeSchedule timeSchedule = parseTimeSchedule(isTimeOptional);
 		return new Schedule(
 				DateSchedule.ordinalDayOfMonth(frequency, ordinal, range.startDate, range.endDate),
 				timeSchedule);
 	}
 
-	private Schedule parseLogicalDayOfMonthSchedule(int frequency) throws IOException {
+	private Schedule parseLogicalDayOfMonthSchedule(int frequency, boolean isDayOptional, boolean isTimeOptional) throws IOException {
 
-		int ordinal = parseOrdinal();
-		LogicalDay logicalDay = parseLogicalDay();
+		int ordinal = parseOrdinal(isDayOptional);
+
+		LogicalDay logicalDay;
+		if (0 <= ordinal) {
+			logicalDay = parseLogicalDay();
+		}
+		else {
+			ordinal = 1;
+			logicalDay = LogicalDay.DAY;
+		}
 
 		if ((0 < ordinal) && (logicalDay == LogicalDay.DAY)) {
-			return parseOrdinalDayOfMonthSchedule(frequency, ordinal);
+			return parseOrdinalDayOfMonthSchedule(frequency, ordinal, isTimeOptional);
 		}
 
 		DateRange range = parseDateRange();
-		TimeSchedule timeSchedule = parseTimeSchedule();
+		TimeSchedule timeSchedule = parseTimeSchedule(isTimeOptional);
 		return new Schedule(
 				DateSchedule.logicalDayOfMonth(frequency, ordinal, logicalDay, range.startDate, range.endDate),
 				timeSchedule);
+	}
+
+	private Schedule parseHourlySchedule() throws IOException {
+
+		LocalDate startDate = LocalDate.now();
+		LocalDate endDate = null;
+
+		LocalTime startTime = LocalTime.MIN;
+		LocalTime endTime = LocalTime.MAX;
+
+		return new Schedule(
+				DateSchedule.recurring(ChronoUnit.DAYS, 1, startDate, endDate),
+				TimeSchedule.recurring(ChronoUnit.HOURS, 1, startTime, endTime));
 	}
 
 	private class DateRange {
@@ -266,7 +303,7 @@ class ScheduleParser {
 		return new DateRange(startDate, endDate);
 	}
 
-	private TimeSchedule parseTimeSchedule() throws InputMismatchException, NoSuchElementException, IOException {
+	private TimeSchedule parseTimeSchedule(boolean isTimeOptional) throws InputMismatchException, NoSuchElementException, IOException {
 		
 		if (tokenizer.skipWordIgnoreCase(AT)) {
 			return TimeSchedule.onetime(nextQuotedTime());
@@ -276,6 +313,9 @@ class ScheduleParser {
 			TimeRange range = parseTimeRange();
 
 			return TimeSchedule.recurring(unitFrequency.unit, unitFrequency.frequency, range.startTime, range.endTime);
+		}
+		else if (isTimeOptional) {
+			return TimeSchedule.onetime(LocalTime.of(0, 0, 0));
 		}
 		else {
 			throw new InputMismatchException("Invalid time schedule syntax");
@@ -365,18 +405,23 @@ class ScheduleParser {
 		return new UnitFrequency(unit, frequency);
 	}
 
-	private Set<DayOfWeek> parseDayOfWeekSet() throws IOException {
+	private Set<DayOfWeek> parseDayOfWeekSet(boolean isDayOfWeekOptional) throws IOException {
 
 		Set<DayOfWeek> result = new HashSet<DayOfWeek>();
 
-		do {
-			result.add(DayOfWeek.valueOf(tokenizer.nextWordUpperCase()));
-		} while (tokenizer.hasNextDelimiter(","));
+		if (isDayOfWeekOptional && !hasNextDayOfWeekIgnoreCase()) {
+			result.add(DayOfWeek.SUNDAY);
+		}
+		else {
+			do {
+				result.add(DayOfWeek.valueOf(tokenizer.nextWordUpperCase()));
+			} while (tokenizer.hasNextDelimiter(","));
+		}
 
 		return result;
 	}
 
-	private int parseOrdinal() throws IOException {
+	private int parseOrdinal(boolean isOptional) throws IOException {
 
 		int ordinal;
 		if (tokenizer.skipWordIgnoreCase(FIRST)) {
@@ -393,6 +438,9 @@ class ScheduleParser {
 		}
 		else if (tokenizer.skipWordIgnoreCase(LAST)) {
 			ordinal = 0;
+		}
+		else if (isOptional) {
+			ordinal = -1;
 		}
 		else {
 			throw new InputMismatchException("Invalid day of month ordinal");
@@ -434,7 +482,7 @@ class ScheduleParser {
 		try {
 			DayOfWeek.valueOf(tokenizer.nextWordUpperCase());
 		}
-		catch (IllegalArgumentException ex) {
+		catch (NoSuchElementException | IllegalArgumentException ex) {	// NoSuchElementException catches InputMismatchException 
 			result = false;
 		}
 		finally {
@@ -443,7 +491,7 @@ class ScheduleParser {
 
 		return result;
 	}
-	
+
 	/**
      * Scans the next token of the input as quoted text containing a date.
      *
