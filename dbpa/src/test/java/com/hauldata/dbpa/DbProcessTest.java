@@ -102,7 +102,7 @@ public class DbProcessTest {
 
 		RootLogger logger = new RootLogger("DBPATest", Logger.Level.info);
 		logger.add(new ConsoleAppender());
-		logger.add(new FileAppender("test %d{yyyy-MM-dd} at hour %d{HH-mm-ss}.log", "Daily every 2 seconds"));
+		logger.add(new FileAppender("test %d{yyyy-MM-dd} at time %d{HH-mm-ss}.log", "Daily every 10 seconds"));
 		context.logger = logger;
 
 		// Now ready to run scripts.
@@ -213,6 +213,8 @@ public class DbProcessTest {
 				"END TASK \n" +
 /*mail*///		"TASK EmailAgain AFTER DeleteWildcards EMAIL FROM 'rdesantis@cmtnyc.com' TO 'rdesantis@comcast.net' SUBJECT 'From DBPA again' BODY 'Re-using email session' END TASK \n" +
 //				"TASK FailTheProcess AFTER ShowDateFromParts FAIL 'This should fail the process' END TASK \n" +
+				"TASK AFTER Scheduler3 LOG 'Scheduled tasks are done' END TASK \n" +
+				"TASK LOG 'Early anonymous task' END TASK \n" +
 				"";
 //*/
 /*

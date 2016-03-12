@@ -201,6 +201,11 @@ public class Context {
 
 				String driver = connectionProps.getProperty("driver");
 				String url = connectionProps.getProperty("url");
+
+				if (driver == null || url == null) {
+					throw new RuntimeException("Required database connection properties are not set");
+				}
+
 				try {
 					Class.forName(driver);
 					resources.conn = DriverManager.getConnection(url, connectionProps);
@@ -318,6 +323,10 @@ public class Context {
 				String user = sessionProps.getProperty("user");
 				String password = sessionProps.getProperty("password");
 				
+				if (user == null || password == null) {
+					throw new RuntimeException("Required email credential properties are not set");
+				}
+
 				try {
 					resources.session = Session.getInstance(sessionProps, new PasswordAuthenticator(user, password));
 				}

@@ -69,6 +69,10 @@ public abstract class Task {
 		return name;
 	}
 
+	public void setAnonymousIndex(int taskIndex) {
+		this.name = String.valueOf(taskIndex);
+	}
+
 	public enum Result { waiting, running, success, failure, completed, terminated, orphaned };
 
 	/**

@@ -233,10 +233,16 @@ abstract class TaskSetParser {
 
 		tasks = new HashMap<String, Task>();
 
+		int taskIndex = 1;
 		while (tokenizer.hasNextWordIgnoreCase(RW.TASK.name())) {
 
 			Task task = parseTask();
+			if (task.getName() == null) {
+				task.setAnonymousIndex(taskIndex);
+			}
 			tasks.put(task.getName(), task);
+			
+			++taskIndex;
 		}
 
 		determineSuccessors();
@@ -351,12 +357,16 @@ abstract class TaskSetParser {
 			throw new InputMismatchException(section + " not found where expected");
 		}
 
+		BacktrackingTokenizerMark nameMark = tokenizer.mark();
+		
 		String name = tokenizer.nextWordUpperCase();
 		if (tasks.containsKey(name)) {
 			throw new NameAlreadyBoundException("Duplicate " + RW.TASK.name() + " name: " + name);
 		}
 		else if (reservedWords.contains(name)) {
-			throw new NameAlreadyBoundException("Cannot use reserved word as a " + RW.TASK.name() + " name: " + name);
+			// If token is a reserved word, task is anonymous.
+			name = null;
+			tokenizer.reset(nameMark);
 		}
 
 		Map<Task, Task.Result> predecessors = new HashMap<Task, Task.Result>();

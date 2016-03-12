@@ -17,6 +17,7 @@
 package com.hauldata.dbpa.process;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.util.Properties;
 
@@ -130,14 +131,21 @@ public class ContextProperties {
 		String fileName = contextName + "." + usage + ".properties";
 		Path path = Files.getPath(dbpaHome, fileName); 
 
+		FileInputStream in = null;
 		try {
-			FileInputStream in = new FileInputStream(path.toString());
+			in = new FileInputStream(path.toString());
 			props.load(in);
-			in.close();
+		}
+		catch (FileNotFoundException ex) {
+			// Ignore this; default properties will be used.
 		}
 		catch (Exception ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 			throw new RuntimeException("Error reading " + usage + " properties from file \"" + fileName + "\": " + message, ex);
+		}
+		finally {
+			try { if (in != null) in.close(); }
+			catch (Exception ex) {}
 		}
 
 		return props;
