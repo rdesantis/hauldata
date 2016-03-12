@@ -45,7 +45,9 @@ public class RunDbp {
 			context = contextProps.createContext(processID);
 
 			DbProcess process = context.loader.load(processID);
-			
+
+			hookProgramExit();
+
 			process.run(processArgs, context);
 		}
 		catch (Exception ex) {
@@ -54,7 +56,37 @@ public class RunDbp {
 		}
 		finally {
 			try { if (context != null) context.close(); } catch (Exception ex) {}
-			
+
+			exitProgram(status);
+		}
+	}
+
+	private static Thread processThread;
+	private static boolean isProcessInterrupted;
+	private static Thread hookThread;
+
+	private static void hookProgramExit() {
+		processThread = Thread.currentThread();
+		isProcessInterrupted = false;
+
+		hookThread = new Thread() {
+			public void run() {
+				isProcessInterrupted = true;
+				processThread.interrupt();
+				try {
+					processThread.join();
+				}
+				catch (InterruptedException ex) {}
+			}
+		};
+
+		Runtime.getRuntime().addShutdownHook(hookThread);
+	}
+	
+	private static void exitProgram(int status) {
+		if (!isProcessInterrupted) {
+			Runtime.getRuntime().removeShutdownHook(hookThread);
+
 			System.exit(status);
 		}
 	}
