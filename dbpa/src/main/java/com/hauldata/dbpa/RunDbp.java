@@ -32,6 +32,8 @@ public class RunDbp {
 	
 	public static void main(String[] args) {
 
+		hookProgramExit();
+
 		ContextProperties contextProps = null;
 		Context context = null;
 
@@ -45,8 +47,6 @@ public class RunDbp {
 			context = contextProps.createContext(processID);
 
 			DbProcess process = context.loader.load(processID);
-
-			hookProgramExit();
 
 			process.run(processArgs, context);
 		}
