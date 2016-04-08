@@ -89,7 +89,7 @@ public class ForReadTask extends FileTask {
 		}
 	}
 
-	private boolean readRowIntoVariables(ReadPage page, Columns columns, ArrayList<VariableBase> variables) throws IOException {
+	private boolean readRowIntoVariables(ReadPage page, Columns columns, ArrayList<VariableBase> variables) throws IOException, InterruptedException {
 
 		if (!page.hasRow()) {
 			return false;

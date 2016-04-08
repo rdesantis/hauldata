@@ -19,22 +19,35 @@ package com.hauldata.dbpa.task;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
 
-public class GoTask extends LogTask {
+public abstract class WaitforTask extends Task {
 
-	public GoTask(
+	private Expression<String> delayOrTime;
+
+	public WaitforTask(
 			Prologue prologue,
-			Expression<String> message) {
-		super(prologue, message);
+			Expression<String> delayOrTime) {
+
+		super(prologue);
+		this.delayOrTime = delayOrTime;
 	}
 
 	@Override
-	protected void execute(Context context) {
-		if (message != null) {
-			super.execute(context);
+	protected void execute(Context context) throws Exception {
+
+		String delayOrTime = this.delayOrTime.evaluate();
+		long millis = sleepMillis(delayOrTime);
+
+		try {
+			boolean longSleep = context.prepareToSleep(millis);
+
+			Thread.sleep(millis);
+
+			context.wakeFromSleep(longSleep);
 		}
-		else {
-			String messageValue = "Continuing";
-			context.logger.info(getName(), messageValue);
+		catch (InterruptedException ex) {
+			throw new RuntimeException("Wait terminated due to interruption");
 		}
 	}
+
+	protected abstract long sleepMillis(String delayOrTime);
 }

@@ -214,6 +214,8 @@ public class DbProcessTest {
 /*mail*///		"TASK EmailAgain AFTER DeleteWildcards EMAIL FROM 'rdesantis@cmtnyc.com' TO 'rdesantis@comcast.net' SUBJECT 'From DBPA again' BODY 'Re-using email session' END TASK \n" +
 //				"TASK FailTheProcess AFTER ShowDateFromParts FAIL 'This should fail the process' END TASK \n" +
 				"TASK AFTER Scheduler3 LOG 'Scheduled tasks are done' END TASK \n" +
+				"TASK WaitforDelay3 AFTER Scheduler3 WAITFOR DELAY '0:0:3' END TASK \n" +
+				"TASK WaitforTime3 AFTER Scheduler3 WAITFOR TIME FORMAT(DATEADD(SECOND, 3, GETDATE()), 'HH:mm:ss') END TASK \n" +
 				"TASK LOG 'Early anonymous task' END TASK \n" +
 				"";
 //*/

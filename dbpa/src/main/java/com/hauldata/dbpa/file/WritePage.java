@@ -64,10 +64,17 @@ public abstract class WritePage {
 		node.writeColumn(columnIndex, object);
 	}
 
+	private boolean hasNext(ResultSet rs) throws SQLException, InterruptedException {
+		if (Thread.interrupted()) {
+			throw new InterruptedException();
+		}
+		return rs.next();
+	}
+
 	/**
 	 * Write result set to the page
 	 */
-	public void write(ResultSet rs) throws SQLException {
+	public void write(ResultSet rs) throws SQLException, InterruptedException {
 
 		boolean hasAnyRows = false;
 		boolean hasRightNumberOfColumns = false;
@@ -91,14 +98,14 @@ public abstract class WritePage {
 			}
 
 			if (
-					(hasAnyRows = rs.next()) &&
+					(hasAnyRows = hasNext(rs)) &&
 					(hasRightNumberOfColumns = (resultColumnCount == headers.getColumnCount()))) {
 
 				do {
 					for (int columnIndex = 1; columnIndex <= headers.getColumnCount(); ++columnIndex) {
 						node.writeColumn(columnIndex, rs.getObject(columnIndex));
 					}
-				} while (rs.next());
+				} while (hasNext(rs));
 			}
 		}
 		catch (IOException ex) {

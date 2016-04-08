@@ -137,6 +137,9 @@ abstract class TaskSetParser {
 		FOR,
 		ON,
 		SCHEDULE,
+		WAITFOR,
+		DELAY,
+		TIME,
 
 		// Task subtypes
 
@@ -318,6 +321,7 @@ abstract class TaskSetParser {
 		taskParsers.put(RW.DO.name(), new DoTaskParser());
 		taskParsers.put(RW.FOR.name(), new ForTaskParser());
 		taskParsers.put(RW.ON.name(), new OnTaskParser());
+		taskParsers.put(RW.WAITFOR.name(), new WaitforTaskParser());
 
 		CsvFile.registerHandler(RW.CSV.name());
 		TsvFile.registerHandler(RW.TSV.name());
@@ -1117,6 +1121,37 @@ abstract class TaskSetParser {
 			NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
 
 			return new OnTask(prologue, schedules, taskSet);
+		}
+	}
+
+	class WaitforTaskParser implements TaskParser {
+
+		public Task parse(Task.Prologue prologue)
+				throws InputMismatchException, NoSuchElementException, IOException, NamingException {
+
+			if (tokenizer.skipWordIgnoreCase(RW.DELAY.name())) {
+				return parseWaitforDelay(prologue);
+			}
+			if (tokenizer.skipWordIgnoreCase(RW.TIME.name())) {
+				return parseWaitforTime(prologue);
+			}
+			else {
+				throw new InputMismatchException("Invalid argument in " + RW.WAITFOR.name() + " " + RW.TASK.name());
+			}
+		}
+
+		private Task parseWaitforDelay(Task.Prologue prologue) throws IOException, NamingException {
+
+			Expression<String> delay = parseStringExpression();
+
+			return new WaitforDelayTask(prologue, delay);
+		}
+
+		private Task parseWaitforTime(Task.Prologue prologue) throws IOException, NamingException {
+
+			Expression<String> time = parseStringExpression();
+
+			return new WaitforTimeTask(prologue, time);
 		}
 	}
 

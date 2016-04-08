@@ -29,8 +29,9 @@ public class StringFromInteger extends Expression<String> {
 	@Override
 	public String evaluate() {
 		Integer value = term.evaluate();
+		String format = this.format.evaluate();
 
-		if (value == null) {
+		if (value == null || format == null) {
 			return null;
 		}
 

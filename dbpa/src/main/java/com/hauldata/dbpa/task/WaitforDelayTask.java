@@ -16,25 +16,33 @@
 
 package com.hauldata.dbpa.task;
 
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
+
 import com.hauldata.dbpa.expression.Expression;
-import com.hauldata.dbpa.process.Context;
 
-public class GoTask extends LogTask {
+public class WaitforDelayTask extends WaitforTask {
 
-	public GoTask(
+	public WaitforDelayTask(
 			Prologue prologue,
-			Expression<String> message) {
-		super(prologue, message);
+			Expression<String> delay) {
+		super(prologue, delay);
 	}
 
-	@Override
-	protected void execute(Context context) {
-		if (message != null) {
-			super.execute(context);
+	protected long sleepMillis(String delay) {
+
+		final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("H:m[:s]");
+
+		LocalTime pseudoTime;
+		try {
+			pseudoTime = LocalTime.parse(delay, formatter);
 		}
-		else {
-			String messageValue = "Continuing";
-			context.logger.info(getName(), messageValue);
+		catch (DateTimeParseException ex) {
+			throw new RuntimeException("Invalid delay expression: " + delay);
 		}
+
+		return LocalTime.MIN.until(pseudoTime, ChronoUnit.MILLIS);
 	}
 }

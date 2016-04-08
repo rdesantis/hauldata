@@ -66,9 +66,13 @@ public abstract class ReadPage {
 	}
 
 	/**
+	 * @throws InterruptedException
 	 * @see PageNode#hasRow()
 	 */
-	public boolean hasRow() throws IOException {
+	public boolean hasRow() throws IOException, InterruptedException {
+		if (Thread.interrupted()) {
+			throw new InterruptedException();
+		}
 		return node.hasRow();
 	}
 
@@ -78,8 +82,9 @@ public abstract class ReadPage {
 
 	/**
 	 * Read selected columns from page to prepared statement
+	 * @throws InterruptedException
 	 */
-	public void read(Columns columns, PreparedStatement stmt) throws SQLException {
+	public void read(Columns columns, PreparedStatement stmt) throws SQLException, InterruptedException {
 
 		// See http://stackoverflow.com/questions/12012592/jdbc-insert-multiple-rows
 		// and http://www.java2s.com/Code/JavaAPI/java.sql/PreparedStatementaddBatch.htm
@@ -99,7 +104,7 @@ public abstract class ReadPage {
 
 			if (!(hasWrongNumberOfColumns = (parameterCount > 0) && (columns.size() > 0) && (parameterCount != columns.size()))) {
 
-				while (node.hasRow()) {
+				while (hasRow()) {
 					int sourceColumnIndex = 1;
 					for (Object value = null; (value = node.readColumn(sourceColumnIndex)) != EndOfLine.value; ++sourceColumnIndex) {
 						int[] targetColumnIndexes = columns.getTargetColumnIndexes(sourceColumnIndex);

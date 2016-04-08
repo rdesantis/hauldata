@@ -353,8 +353,6 @@ public abstract class BaseTokenizer {
 
 			int intChar = nextChar();
 
-			image.append((char)intChar);
-
 			int digit = intChar - (int)'0';
 			
 			if ((value > maxDiv10) || ((value == maxDiv10) && (digit >= maxMod10))) {
@@ -362,6 +360,8 @@ public abstract class BaseTokenizer {
 				return parseLong(image, value, negate);
 			}
 			
+			image.append((char)intChar);
+
 			value = value * 10 + digit;
 		}
 
@@ -394,8 +394,6 @@ public abstract class BaseTokenizer {
 
 			int intChar = nextChar();
 
-			image.append((char)intChar);
-
 			int digit = intChar - (int)'0';
 			
 			if ((value > maxDiv10) || ((value == maxDiv10) && (digit >= maxMod10))) {
@@ -403,6 +401,8 @@ public abstract class BaseTokenizer {
 				return parseBigInteger(image, value, negate);
 			}
 			
+			image.append((char)intChar);
+
 			value = value * 10 + digit;
 		}
 
@@ -432,10 +432,10 @@ public abstract class BaseTokenizer {
 
 			int intChar = nextChar();
 
-			image.append((char)intChar);
-
 			int digit = intChar - (int)'0';
 			
+			image.append((char)intChar);
+
 			value = value.multiply(BigInteger.TEN).add(BigInteger.valueOf(digit));
 		}
 
@@ -473,10 +473,10 @@ public abstract class BaseTokenizer {
 
 			int intChar = nextChar();
 
-			image.append((char)intChar);
-
 			int digit = intChar - (int)'0';
 			
+			image.append((char)intChar);
+
 			value = value.add(BigDecimal.valueOf(digit, decimalPlaces));
 		}
 

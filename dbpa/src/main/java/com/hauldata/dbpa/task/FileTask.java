@@ -56,7 +56,7 @@ public abstract class FileTask extends DatabaseTask {
 			throwDatabaseExecutionFailed(ex);
 		}
 		catch (InterruptedException ex) {
-			throw new RuntimeException("Database query terminated due to interruption");
+			throw new RuntimeException("File write terminated due to interruption");
 		}
 		finally { try {
 
@@ -94,7 +94,7 @@ public abstract class FileTask extends DatabaseTask {
 			throwDatabaseExecutionFailed(ex);
 		}
 		catch (InterruptedException ex) {
-			throw new RuntimeException("Database query terminated due to interruption");
+			throw new RuntimeException("File write terminated due to interruption");
 		}
 		finally { try {
 
@@ -127,6 +127,9 @@ public abstract class FileTask extends DatabaseTask {
 		}
 		catch (SQLException ex) {
 			throwDatabaseExecutionFailed(ex);
+		}
+		catch (InterruptedException ex) {
+			throw new RuntimeException("File read terminated due to interruption");
 		}
 		finally { try {
 			if (stmt != null) stmt.close();

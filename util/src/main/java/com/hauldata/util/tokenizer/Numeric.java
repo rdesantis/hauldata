@@ -50,6 +50,6 @@ public class Numeric<Type extends Number> extends Token {
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		return (obj != null) && (obj instanceof Numeric<?>) && (((Numeric<?>)obj).image == image); 
+		return (obj != null) && (obj instanceof Numeric<?>) && (((Numeric<?>)obj).image.equals(image));
 	}
 }

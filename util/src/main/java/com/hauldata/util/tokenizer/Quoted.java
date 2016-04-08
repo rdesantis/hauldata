@@ -49,6 +49,6 @@ public class Quoted extends Token {
 
 	@Override
 	public boolean equals(Object obj) {
-		return (obj != null) && (obj instanceof Quoted) && (((Quoted)obj).quote == quote) && (((Quoted)obj).body == body); 
+		return (obj != null) && (obj instanceof Quoted) && (((Quoted)obj).quote == quote) && (((Quoted)obj).body.equals(body));
 	}
 }
