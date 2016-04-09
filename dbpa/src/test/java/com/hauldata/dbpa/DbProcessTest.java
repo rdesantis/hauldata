@@ -64,37 +64,23 @@ public class DbProcessTest {
 	public static void main(String[] args)
 			throws Exception {
 
+		DbProcessTestProperties testProps = new DbProcessTestPropertiesImpl();
+
 		// Set up database connection properties.
 
-		Properties connProps = new Properties();
-		connProps.put("driver", "com.mysql.jdbc.Driver");
-		connProps.put("url", "jdbc:mysql://localhost/test");
-		connProps.put("allowMultiQueries", "true");
-		connProps.put("user", "insecure");
-		connProps.put("password", "password");
+		Properties connProps = testProps.getConnectionProperties();
 
 		// Set up email session properties.
 
-		Properties mailProps = new Properties();
-		mailProps.put("mail.smtp.starttls.enable", "true");
-		mailProps.put("mail.smtp.auth", "true");
-		mailProps.put("mail.smtp.host", "smtp.gmail.com");
-		mailProps.put("mail.smtp.port", "587");
-		mailProps.put("user", "rdesantis@cmtnyc.com");
-		mailProps.put("password", "Welcome2CMT");
+		Properties mailProps = testProps.getMailProperties();
 
 		// Set up FTP connection properties.
 
-		Properties ftpProps = new Properties();
-		ftpProps.put("protocol", "sftp");
-		ftpProps.put("timeout", "10000");
-		ftpProps.put("hostname", "ftp.creativemobiletechnologies.com");
-		ftpProps.put("user", "rdesantis");
-		ftpProps.put("password", "LPa8gy");
+		Properties ftpProps = testProps.getFtpProperties();
 
 		// Set up data file path.
 
-		String  dataPath = "C:\\Temp\\";
+		String  dataPath = testProps.getDataPath();
 
 		// Create context and set up logging.
 
