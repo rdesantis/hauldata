@@ -18,6 +18,8 @@ package com.hauldata.dbpa.process;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.InputMismatchException;
 import java.util.Iterator;
@@ -38,13 +40,19 @@ import com.hauldata.dbpa.variable.*;
  */
 public class DbProcess extends TaskSet {
 
+	// For non-task-specific runtime logging
+
+	public static final String processTaskId = "process";
+
+	public static final String startMessage = "Starting process";
+	public static final String completeMessage = "Process completed";
+	public static final String terminateMessage = "Process terminated";
+	public static final String failMessageStem = "Process failed: ";
+	public static final String elapsedMessageStem = "Elapsed time: ";
+
 	private List<VariableBase> parameters;
 	@SuppressWarnings("unused")
 	private Map<String, VariableBase> variables;
-
-	// For non-task-specific runtime logging
-
-	private static final String process = "process";
 
 	/**
 	 * Instantiate a DbProcess object by parsing a script from a Reader
@@ -86,39 +94,70 @@ public class DbProcess extends TaskSet {
 
 	/**
 	 * Run the process
+	 * 
 	 * @param args are the argument values to pass into the process.
 	 * @param context is the context in which to run the process.
+	 * <p>
+	 * The first and last log messages written to the log are guaranteed to have
+	 * Task ID set to public static data member <code>processTaskId</code> and
+	 * content as follows: 
+	 * <p>
+	 * First message has level <code>info</code> and content <code>startMessage</code>.
+	 * <p>
+	 * On normal completion next to last message has level <code>info</code> and content <code>completeMessage</code>.
+	 * <P>
+	 * On interrupt next to last message has level <code>error</code> and content <code>terminateMessage</code>.
+	 * <P>
+	 * On failure next to last message has level <code>error</code> and content
+	 * begins with <code>failMessageStem</code>.
+	 * <p>
+	 * Last message has level <code>message</code> and content begins with <code>elapsedMessageStem</code>.
+	 * <p>
 	 * The log of the context is NOT closed when the process has completed.
 	 * Caller must close the log.
 	 * @throws Exception 
 	 */
 	public void run(String[] args, Context context) throws Exception {
 
+		LocalDateTime startTime = LocalDateTime.now();
+
 		try {
-			context.logger.info(process, "Starting process");
+			context.logger.info(processTaskId, startMessage);
 
 			setParameters(args);
 			runTasks(context);
 
-			context.logger.info(process, "Process completed");
+			context.logger.info(processTaskId, completeMessage);
 		}
 		catch (InterruptedException ex) {
-			String message = "Process terminated";
+			context.logger.error(processTaskId, terminateMessage);
 
-			context.logger.error(process, message);
-
-			throw new RuntimeException(message);
+			throw new RuntimeException(terminateMessage);
 		}
 		catch (Exception ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 
-			context.logger.error(process, "Process failed: " + message);
+			context.logger.error(processTaskId, failMessageStem + message);
 
 			throw new RuntimeException(message);
 		}
 		finally {
 			context.files.assureAllClosed();
+			
+			long millis = ChronoUnit.MILLIS.between(startTime,  LocalDateTime.now());
+			
+			context.logger.message(processTaskId, elapsedMessageStem + formatElapsed(millis));
 		}
+	}
+
+	private String formatElapsed(long millis) {
+
+		long seconds = millis / 1000;
+		long minutes = seconds / 60;
+		long hours = minutes / 60;
+		long days = hours / 24;
+
+		return String.format("%d days %02d:%02d:%02d.%03d", days, hours % 24, minutes % 60, seconds % 60, millis % 1000); 	
 	}
 
 	private void setParameters(String[] args) {

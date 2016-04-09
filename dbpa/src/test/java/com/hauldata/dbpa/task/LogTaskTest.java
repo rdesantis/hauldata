@@ -16,26 +16,20 @@
 
 package com.hauldata.dbpa.task;
 
-import com.hauldata.dbpa.expression.Expression;
-import com.hauldata.dbpa.process.Context;
+import com.hauldata.dbpa.log.Logger.Level;
 
-public class GoTask extends LogTask {
+public class LogTaskTest extends LogTaskTestBase {
 
-	public static final String continueMessage = "Continuing";
-
-	public GoTask(
-			Prologue prologue,
-			Expression<String> message) {
-		super(prologue, message);
+	public LogTaskTest(String name) {
+		super(name);
 	}
 
-	@Override
-	protected void execute(Context context) {
-		if (message != null) {
-			super.execute(context);
-		}
-		else {
-			context.logger.info(getName(), continueMessage);
-		}
+	public void testLogTask() throws Exception {
+
+		String processId = "LogTest";
+		String script = "TASK TEST LOG 'This are a test' END TASK";
+
+		testLogTask(processId, Level.info, true, script, "This are a test");
+		testLogTask(processId, Level.message, true, script, "This are a test");
 	}
 }

@@ -64,23 +64,14 @@ public class DbProcessTest {
 	public static void main(String[] args)
 			throws Exception {
 
+		// Set up context properties.
+
 		DbProcessTestProperties testProps = new DbProcessTestPropertiesImpl();
 
-		// Set up database connection properties.
-
 		Properties connProps = testProps.getConnectionProperties();
-
-		// Set up email session properties.
-
 		Properties mailProps = testProps.getMailProperties();
-
-		// Set up FTP connection properties.
-
 		Properties ftpProps = testProps.getFtpProperties();
-
-		// Set up data file path.
-
-		String  dataPath = testProps.getDataPath();
+		String dataPath = testProps.getDataPath();
 
 		// Create context and set up logging.
 

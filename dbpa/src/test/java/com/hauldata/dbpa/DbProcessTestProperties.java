@@ -18,20 +18,74 @@ package com.hauldata.dbpa;
 
 import java.util.Properties;
 
-interface DbProcessTestProperties {
+/**
+ * Properties for running process and task test cases.
+ * 
+ * You must provide an implementation class named DbProcessTestPropertiesImpl that implements this interface.
+ * Sample code is provided with each method below.
+ */
+public interface DbProcessTestProperties {
 
 	// Get database connection properties.
 
 	Properties getConnectionProperties();
+/*
+	@Override
+	public Properties getConnectionProperties() {
 
+		// Set up database connection properties.
+
+		Properties connProps = new Properties();
+		connProps.put("driver", "com.mysql.jdbc.Driver");
+		connProps.put("url", "jdbc:mysql://localhost/test");
+		connProps.put("allowMultiQueries", "true");
+		connProps.put("user", "YOUR_USER");
+		connProps.put("password", "YOUR_PASSWORD");
+
+		return connProps;
+	}
+*/
+	
 	// Get email session properties.
 
 	Properties getMailProperties();
+/*
+	@Override
+	public Properties getMailProperties() {
 
+		// Set up email session properties.
+
+		Properties mailProps = new Properties();
+		mailProps.put("mail.smtp.starttls.enable", "true");
+		mailProps.put("mail.smtp.auth", "true");
+		mailProps.put("mail.smtp.host", "smtp.gmail.com");
+		mailProps.put("mail.smtp.port", "587");
+		mailProps.put("user", "YOUR_USER");
+		mailProps.put("password", "YOUR_PASSWORD");
+
+		return mailProps;
+	}
+*/
+	
 	// Get FTP connection properties.
 
 	Properties getFtpProperties();
+/*
+	@Override
+	public Properties getFtpProperties() {
 
+		// Set up FTP connection properties.
+
+		Properties ftpProps = new Properties();
+		ftpProps.put("protocol", "sftp");
+		ftpProps.put("timeout", "10000");
+		ftpProps.put("hostname", "ftp.YOUR_COMPANY.com");
+		ftpProps.put("user", "YOUR_USER");
+		ftpProps.put("password", "YOUR_PASSWORD");
+
+		return ftpProps;
+	}
+ */
 	// Get data file path.
 
 	String  getDataPath();
