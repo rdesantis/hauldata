@@ -19,7 +19,12 @@ package com.hauldata.dbpa.log;
 import java.time.LocalDateTime;
 import java.util.LinkedList;
 import java.util.List;
-
+import java.util.ListIterator;
+import java.util.regex.Pattern;
+/**
+ * Log appender that writes to an in-memory log with convenient access methods
+ * for analyzing log content. 
+ */
 public class Analyzer implements Appender {
 
 	public static class Record {
@@ -45,6 +50,8 @@ public class Analyzer implements Appender {
 		records = new LinkedList<Record>();
 	}
 
+	// Appender overrides.
+
 	@Override
 	public void log(String processId, String taskId, LocalDateTime datetime, int level, String message) {
 		records.add(new Record(processId, taskId, datetime, level, message));
@@ -54,7 +61,116 @@ public class Analyzer implements Appender {
 	public void close() {
 	}
 
-	public List<Record> getRecords() {
-		return records;
+	// Iterators for accessing log records.
+
+	public class RecordIterator {
+		protected ListIterator<Record> iterator;
+
+		RecordIterator() {
+			iterator = records.listIterator();
+		}
+
+		public Record next() {
+			return iterator.next();
+		}
+
+		public boolean hasNext() {
+			return iterator.hasNext();
+		}
+	}
+
+	/**
+	 * Get iterator to access all records
+	 */
+	public RecordIterator recordIterator() {
+		return new RecordIterator();
+	}
+
+	public class ProcessRecordIterator extends RecordIterator {
+		Pattern pattern;
+
+		ProcessRecordIterator(Pattern pattern) {
+			this.pattern = pattern;
+		}
+
+		ProcessRecordIterator(String processId) {
+			pattern = Pattern.compile(Pattern.quote(processId));
+		}
+
+		public Record next() {
+			Record nextRecord;
+			do { nextRecord = iterator.next();
+			} while (!pattern.matcher(nextRecord.processId).matches());
+			return nextRecord;
+		}
+
+		public boolean hasNext() {
+			while (iterator.hasNext()) {
+				if (pattern.matcher(iterator.next().processId).matches()) {
+					iterator.previous();
+					return true;
+				}
+			}
+			return false;
+		}
+	}
+
+	/**
+	 * Get iterator to access only records where the processId matches a pattern
+	 */
+	public ProcessRecordIterator recordIterator(Pattern processIdPattern) {
+		return new ProcessRecordIterator(processIdPattern);
+	}
+
+	/**
+	 * Get iterator to access only records where the processId matches a literal string
+	 */
+	public ProcessRecordIterator recordIterator(String processId) {
+		return new ProcessRecordIterator(processId);
+	}
+
+	public class TaskRecordIterator extends ProcessRecordIterator {
+		Pattern pattern;
+
+		TaskRecordIterator(String processId, Pattern taskIdPattern) {
+			super(processId);
+			this.pattern = taskIdPattern;
+		}
+
+		TaskRecordIterator(String processId, String taskId) {
+			super(processId);
+			this.pattern = Pattern.compile(Pattern.quote(taskId));
+		}
+
+		public Record next() {
+			Record nextRecord;
+			do { nextRecord = iterator.next();
+			} while (!pattern.matcher(nextRecord.taskId).matches());
+			return nextRecord;
+		}
+
+		public boolean hasNext() {
+			while (iterator.hasNext()) {
+				if (pattern.matcher(iterator.next().taskId).matches()) {
+					iterator.previous();
+					return true;
+				}
+			}
+			return false;
+		}
+	}
+
+	/**
+	 * Get iterator to access only records where the processId matches a pattern
+	 */
+	public TaskRecordIterator recordIterator(String processId, Pattern taskIdPattern) {
+		return new TaskRecordIterator(processId, taskIdPattern);
+	}
+
+	/**
+	 * Get iterator to access only records where the processId matches a pattern
+	 */
+	public TaskRecordIterator recordIterator(String processId, String taskId) {
+		return new TaskRecordIterator(processId, taskId);
 	}
 }

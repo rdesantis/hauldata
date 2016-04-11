@@ -1,7 +1,5 @@
 package com.hauldata.dbpa.task;
 
-import java.util.ListIterator;
-
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.Logger.Level;
 import com.hauldata.dbpa.process.DbProcess;
@@ -21,7 +19,7 @@ public abstract class LogTaskTestBase extends TaskTest {
 
 		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null); 
 
-		ListIterator<Analyzer.Record> recordIterator = analyzer.getRecords().listIterator();
+		Analyzer.RecordIterator recordIterator = analyzer.recordIterator();
 
 		Analyzer.Record record = null;
 

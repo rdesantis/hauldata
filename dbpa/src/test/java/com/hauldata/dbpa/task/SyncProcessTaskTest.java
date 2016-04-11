@@ -17,7 +17,6 @@
 package com.hauldata.dbpa.task;
 
 import java.util.HashMap;
-import java.util.ListIterator;
 import java.util.Map;
 
 import com.hauldata.dbpa.log.Analyzer;
@@ -48,7 +47,7 @@ public class SyncProcessTaskTest extends TaskTest {
 
 		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, nestedScripts); 
 
-		ListIterator<Analyzer.Record> recordIterator = analyzer.getRecords().listIterator();
+		Analyzer.RecordIterator recordIterator = analyzer.recordIterator();
 
 		Analyzer.Record record = null;
 		Analyzer.Record previousRecord = null;

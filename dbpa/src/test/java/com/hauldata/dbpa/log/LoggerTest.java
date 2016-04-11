@@ -16,8 +16,6 @@
 
 package com.hauldata.dbpa.log;
 
-import java.util.ListIterator;
-
 import com.hauldata.dbpa.log.Logger.Level;
 
 import junit.framework.TestCase;
@@ -61,7 +59,7 @@ public class LoggerTest extends TestCase {
 
 		// Analyze the log.
 
-		ListIterator<Analyzer.Record> recordIterator = analyzer.getRecords().listIterator();
+		Analyzer.RecordIterator recordIterator = analyzer.recordIterator();
 		
 		Analyzer.Record record = null;
 

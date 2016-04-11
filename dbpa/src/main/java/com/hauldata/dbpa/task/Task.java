@@ -25,6 +25,12 @@ import com.hauldata.dbpa.process.Context;
 
 public abstract class Task {
 
+	public static final String startMessage = "Starting task";
+	public static final String succeedMessage = "Task succeeded";
+	public static final String skipMessage = "Skipping task; run conditions not met";
+	public static final String terminateMessage = "Task terminated";
+	public static final String failMessage = "Task failed";
+
 	/**
 	 * Prologue to each task constructor
 	 * @param name is the task name
@@ -111,7 +117,7 @@ public abstract class Task {
 
 				boolean isLogTask = this instanceof LogTask;
 				if (!isLogTask) {
-					context.logger.info(name, "Starting task");
+					context.logger.info(name, startMessage);
 				}
 
 				result = Result.running;
@@ -119,16 +125,16 @@ public abstract class Task {
 				execute(context);
 
 				if (!isLogTask) {
-					context.logger.info(name, "Task succeeded");
+					context.logger.info(name, succeedMessage);
 				}
 			}
 			else {
-				context.logger.info(name, "Skipping task; run conditions not met");
+				context.logger.info(name, skipMessage);
 			}
 			result = Result.success;
 		}
 		catch (InterruptedException ex) {
-			context.logger.error(name, "Task terminated");
+			context.logger.error(name, terminateMessage);
 
 			result = Result.terminated;
 		}
@@ -136,7 +142,7 @@ public abstract class Task {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 
 			context.logger.error(name, message);
-			context.logger.error(name, "Task failed");
+			context.logger.error(name, failMessage);
 
 			result = Result.failure;
 		}
