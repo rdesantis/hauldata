@@ -20,7 +20,6 @@ import java.io.StringReader;
 import java.util.Map;
 
 import com.hauldata.dbpa.DbProcessTestProperties;
-import com.hauldata.dbpa.DbProcessTestPropertiesImpl;
 import com.hauldata.dbpa.loader.TestLoader;
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.ConsoleAppender;
@@ -45,7 +44,17 @@ public abstract class TaskTest extends TestCase {
 			String[] args,
 			Map<String, String> nestedScripts) throws Exception {
 
-		DbProcessTestProperties testProps = new DbProcessTestPropertiesImpl();
+		final String testPropsClass = "com.hauldata.dbpa.DbProcessTestPropertiesImpl";
+		DbProcessTestProperties testProps = null;
+		try {
+			testProps = (DbProcessTestProperties) Class.forName(testPropsClass).newInstance();
+		}
+		catch (Exception ex) {
+			System.err.println("Error attempting to load class " + testPropsClass);
+			System.err.println(ex.getLocalizedMessage());
+			System.err.println("You must provide an implementation of this class in order to run task tests");
+			throw ex;
+		}
 
 		Context context = new Context(
 				testProps.getConnectionProperties(),

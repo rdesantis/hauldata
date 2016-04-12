@@ -309,20 +309,6 @@ public class DbProcessTest {
 				"";
 */
 /*
-		script = 
-				"VARIABLES when DATETIME END VARIABLES \n" +
-				"TASK SetWhen SET when = '12/1/2015' END TASK \n" + // 2015-12-01 is a Tuesday, DATEPART(WEEKDAY,...) = 3
-				"TASK Loop AFTER SetWhen DO WHILE when < '12/8/2015' \n" +
-					"TASK Echo LOG FORMAT(when, 'yyyy-MM-dd') + ' ' + " +
-						"FORMAT(DATEPART(YEAR, when), 'd') + ' ' + " +
-						"FORMAT(DATEPART(MONTH, when), 'd') + ' ' + " +
-						"FORMAT(DATEPART(DAY, when), 'd') + ' ' + " +
-						"FORMAT(DATEPART(WEEKDAY, when), 'd') END TASK \n" +
-					"TASK Increment AFTER Echo SET when = DATEADD(DAY, 1, when) END TASK \n" +
-				"END TASK \n" +
-				"";
-*/
-/*
 		script =
 				"PARAMETERS increment INTEGER END PARAMETERS \n" +
 				"VARIABLES \n" + 
