@@ -19,8 +19,14 @@ package com.hauldata.util.tokenizer;
 public abstract class StringToken extends Token {
 	private String value;
 
-	protected StringToken(String value) {
+	protected StringToken(boolean leadingWhitespace, String value) {
+		super(leadingWhitespace);
 		this.value = value;
+	}
+
+	@Override
+	protected String getImage() {
+		return value;
 	}
 
 	@Override

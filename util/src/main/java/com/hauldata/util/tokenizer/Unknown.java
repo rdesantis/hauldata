@@ -18,8 +18,15 @@ package com.hauldata.util.tokenizer;
 
 public class Unknown extends StringToken {
 
-	public Unknown(String value) {
-		super(value);
+	public Unknown(boolean leadingWhitespace, String value) {
+		super(leadingWhitespace, value);
+	}
+
+	public static final Unknown hasWhitespace = new Unknown(true, null);
+	public static final Unknown noWhitespace = new Unknown(false, null);
+
+	public static Unknown withWhitespace(boolean leadingWhitespace) {
+		return leadingWhitespace ? hasWhitespace : noWhitespace;
 	}
 
 	@Override

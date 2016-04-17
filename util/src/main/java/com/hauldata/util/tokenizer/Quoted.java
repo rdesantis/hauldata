@@ -22,11 +22,17 @@ public class Quoted extends Token {
 	
 	private QuoteEscaper escaper;
 
-	public Quoted(char quote, String body) {
+	public Quoted(boolean leadingWhitespace, char quote, String body) {
+		super(leadingWhitespace);
 		this.quote = quote;
 		this.body = body;
 		
 		escaper = QuoteEscaper.of(quote);
+	}
+
+	@Override
+	protected String getImage() {
+		return (String)getValue();
 	}
 
 	public char getQuote() {

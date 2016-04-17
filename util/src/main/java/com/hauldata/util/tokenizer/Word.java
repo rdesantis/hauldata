@@ -18,8 +18,8 @@ package com.hauldata.util.tokenizer;
 
 public class Word extends StringToken {
 
-	public Word(String value) {
-		super(value);
+	public Word(boolean leadingWhitespace, String value) {
+		super(leadingWhitespace, value);
 	}
 
 	@Override

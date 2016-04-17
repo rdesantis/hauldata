@@ -18,6 +18,22 @@ package com.hauldata.util.tokenizer;
 
 public abstract class Token {
 
+	private boolean leadingWhitespace;
+
+	Token(boolean leadingWhitespace) {
+		this.leadingWhitespace = leadingWhitespace;
+	}
+
+	public boolean hasLeadingWhitespace() {
+		return leadingWhitespace;
+	}
+
+	protected abstract String getImage();
+
+	public String render() {
+		return leadingWhitespace ? (" " + getImage()) : getImage();
+	}
+
 	public abstract Object getValue();
 	
 	@Override

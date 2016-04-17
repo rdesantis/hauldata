@@ -22,7 +22,6 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.InputMismatchException;
 import java.util.LinkedList;
@@ -1271,31 +1270,17 @@ abstract class TaskSetParser {
 	}
 
 	private void parseTokenizedStatement(StringBuilder statement) throws IOException {
-		
-		// Put a space between tokens except
-		// don't put a space before or after . or @; and,
-		// don't put a space after #.
 
-		final Delimiter dot = new Delimiter(".");
-		final Delimiter at = new Delimiter("@");
-		final Delimiter hash = new Delimiter("#");
-		
-		final List<Delimiter> doesntNeedSpaceBefore = Arrays.asList(dot, at);
-		final List<Delimiter> doesntNeedSpaceAfter = Arrays.asList(dot, at, hash);
+		BacktrackingTokenizerMark mark = tokenizer.mark();
 
-		boolean previousNeedsSpaceAfter = false;
 		while (!hasNextBeginOrEnd(RW.TASK.name())) {
-			Object nextToken = tokenizer.nextToken();
+			Token nextToken = tokenizer.nextToken();
+			statement.append(nextToken.render());
 
-			boolean isNextDelimiter = (nextToken instanceof Delimiter); 
-			boolean nextNeedsSpaceBefore = (!isNextDelimiter || !doesntNeedSpaceBefore.contains((Delimiter)nextToken));
-
-			if (previousNeedsSpaceAfter && nextNeedsSpaceBefore) {
-				statement.append(" ");
+			if (!tokenizer.hasNext()) {
+				tokenizer.reset(mark);
+				throw new NoSuchElementException("SQL not terminated properly");
 			}
-			statement.append(nextToken.toString());
-
-			previousNeedsSpaceAfter = (!isNextDelimiter || !doesntNeedSpaceAfter.contains((Delimiter)nextToken));
 		}
 	}
 

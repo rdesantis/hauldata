@@ -19,50 +19,34 @@ package com.hauldata.dbpa;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 import javax.naming.NamingException;
 
 import com.hauldata.dbpa.loader.Loader;
+import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.ConsoleAppender;
 import com.hauldata.dbpa.log.FileAppender;
 import com.hauldata.dbpa.log.Logger;
 import com.hauldata.dbpa.log.RootLogger;
+import com.hauldata.dbpa.log.Logger.Level;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.DbProcess;
+import com.hauldata.dbpa.task.Task;
+import com.hauldata.dbpa.task.TaskTest;
 
-public class DbProcessTest {
+public class DbProcessTest extends TaskTest {
 
-	static final String text =
-			"PARAMETERS						\n" +
-			"	job_id VARCHAR				\n" +
-			"END PARAMETERS					\n" +
-			"								\n" +
-			"VARIABLES						\n" +
-			"	pop_id VARCHAR,				\n" +
-			"	email_enabled TINYINT,		\n" +
-			"	email_message VARCHAR(100),	\n" +
-			"	now DATETIME				\n" +
-			"END VARIABLES					\n" +
-			"								\n" +
-			"TASK SetVariables				\n" +
-			"	SET							\n" +
-			"		now = GETDATE(),		\n" +
-			"		email_enabled = 1,		\n" +
-			"		email_message =			\n" +
-			"			'Would send email'	\n" +
-			"END TASK						\n" +
-			"								\n" +
-			"TASK DoConditional				\n" +
-			"	AFTER SetVariables			\n" +
-			"	IF email_enabled = 1		\n" +
-			"	LOG email_message + '!'		\n" +
-			"END TASK";
+	public DbProcessTest(String name) {
+		super(name);
+	}
 
-	static Context context;
-
-	public static void main(String[] args)
-			throws Exception {
+	public void testEverything() throws Exception {
 
 		// Set up context properties.
 
@@ -72,23 +56,19 @@ public class DbProcessTest {
 		Properties mailProps = testProps.getMailProperties();
 		Properties ftpProps = testProps.getFtpProperties();
 		String dataPath = testProps.getDataPath();
+		String logPath = testProps.getLogPath();
 
 		// Create context and set up logging.
 
-		context = new Context(connProps, mailProps, ftpProps, dataPath, new TestLoader());
+		Context context = new Context(connProps, mailProps, ftpProps, dataPath, new DummyLoader());
 
 		RootLogger logger = new RootLogger("DBPATest", Logger.Level.info);
 		logger.add(new ConsoleAppender());
-		logger.add(new FileAppender("test %d{yyyy-MM-dd} at time %d{HH-mm-ss}.log", "Daily every 10 seconds"));
+		logger.add(new FileAppender(logPath + "\\" + "test %d{yyyy-MM-dd} at time %d{HH-mm-ss}.log", "Daily every 10 seconds"));
 		context.logger = logger;
 
 		// Now ready to run scripts.
-/*
-		runScript(new StringReader(text), args);
 
-		final String fileName = "C:\\Users\\Ron\\Documents\\CMT\\Pay_Trips sample SSIS replacement script.txt";
-		runScript(new BufferedReader(new FileReader(new File(fileName))), args);
-*/
 		String script;
 ///*
 		script =
@@ -287,29 +267,47 @@ public class DbProcessTest {
 				"TASK ReadCsvP AFTER ReadCsvO COMPLETES READ CSV 'EH0010_20151102_20151108.csv' IGNORE HEADERS COLUMNS 2, 'app' INTO TABLE 'test.importtarget' END TASK \n" +
 				"";
 */
-/*
-		script = 
-				"VARIABLES when VARCHAR, start DATETIME, finish DATETIME END VARIABLES \n" +
-				"TASK Scheduler ON TODAY NOW \n" +
-					"TASK Schedulee LOG 'Scheduled task' END TASK \n" +
-				"END TASK \n" +
-				"TASK SetSchedule SET when = 'TODAY NOW' END TASK \n" +
-				"TASK Scheduler2 AFTER Scheduler AND SetSchedule ON SCHEDULE when \n" +
-					"TASK Schedulee2 LOG 'Another scheduled task' END TASK \n" +
-				"END TASK \n" +
-				"TASK SetRange AFTER Scheduler2 SET \n" +
-					"start = DATEADD(SECOND, 2, GETDATE()), \n" +
-					"finish = DATEADD(SECOND, 6, start), \n" +
-					"when = 'TODAY NOW, TODAY EVERY 2 SECONDS FROM ''' + FORMAT(start, 'HH:mm:ss') + ''' UNTIL ''' + FORMAT(finish, 'HH:mm:ss') + '''' \n" +
-				"END TASK \n" +
-				"TASK ShowSchedule AFTER SetRange LOG when END TASK \n" +
-				"TASK Scheduler3 AFTER ShowSchedule ON SCHEDULE when \n" +
-					"TASK Schedulee3 LOG 'Recurring scheduled task' END TASK \n" +
-				"END TASK \n" +
-				"";
-*/
-/*
-		script =
+
+		String[] args = new String[] { "11" };
+
+		runScript(new StringReader(script), args, context);
+
+		context.close();
+	}
+
+	private static void runScript(Reader r, String[] args, Context context) {
+
+		try {
+			DbProcess process = DbProcess.parse(r);
+			process.run(args, context);
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+	}
+
+	private static class DummyLoader implements Loader {
+
+		@Override
+		public DbProcess load(String name) throws IOException, NamingException {
+
+			final String script =
+					"PARAMETERS text VARCHAR, number INTEGER END PARAMETERS \n" +
+					"VARIABLES dimension INT -- This is a comment. \n" +
+					"END VARIABLES -- This is ALSO a comment \n" +
+					"TASK Nested LOG 'Arguments are: \"' + text + '\", \"' + FORMAT(number, 'd') + '\"' END TASK \n" +
+					"TASK UpdateFred UPDATE dimension FROM SQL SELECT size FROM test.things WHERE name = 'fred' END TASK \n" +
+					"TASK Show AFTER UpdateFred LOG 'Fred''s size is ' + FORMAT(dimension, 'd') END TASK \n" +
+					"-- very end";
+
+			return DbProcess.parse(new StringReader(script));
+		}
+	}
+
+	public void testNulls() throws Exception {
+
+		String processId = "NullsTest";
+		String script =
 				"PARAMETERS increment INTEGER END PARAMETERS \n" +
 				"VARIABLES \n" + 
 					"future DATETIME, something VARCHAR, three INTEGER, \n" +
@@ -324,7 +322,7 @@ public class DbProcessTest {
 					"notnulldate = GETDATE() \n" +
 				"END TASK \n" +
 				"TASK log1 AFTER Assign LOG 'Time ' + FORMAT(increment, 'd') + ' months from now is ' + FORMAT(future, 'M/d/yyyy h:mm:ss a') END TASK \n" +
-				"TASK log2 AFTER log1 LOG 'nullint IS ' + IIF(nullint IS NULL, '', 'NOT ') + 'NULL' END TASK \n" +
+				"TASK log2 AFTER log1 COMPLETES LOG 'nullint IS ' + IIF(nullint IS NULL, '', 'NOT ') + 'NULL' END TASK \n" +
 				"TASK log3 AFTER log2 LOG 'notnullint IS ' + IIF(notnullint IS NULL, '', 'NOT ') + 'NULL' END TASK \n" +
 				"TASK log4 AFTER log3 LOG 'nullchar IS ' + IIF(nullchar IS NULL, '', 'NOT ') + 'NULL' END TASK \n" +
 				"TASK log5 AFTER log4 LOG 'notnullchar IS ' + IIF(notnullchar IS NULL, '', 'NOT ') + 'NULL' END TASK \n" +
@@ -351,46 +349,186 @@ public class DbProcessTest {
 				"TASK log36 AFTER log34 LOG 'nulldate expression IS ' + IIF(DATEADD(DAY, nullint, GETDATE()) IS NULL, '', 'NOT ') + 'NULL' END TASK \n" +
 				"TASK Nester AFTER log36 PROCESS 'whatever' WITH nullchar + 'x', 1 + 2 END TASK \n" +
 				"";
-*/
-///*
-		String[] newArgs = new String[] { "11" };
-		runScript(new StringReader(script), newArgs);
-//*/
-/*
-		final String fileName = "C:\\Temp\\process\\PutTrips.dbp";
-		runScript(new BufferedReader(new FileReader(new File(fileName))), args);
-*/
-		context.close();
-	}
 
-	private static void runScript(Reader r, String[] args) {
+		String nestedScriptName = "whatever";
+		String nestedScript =
+				"PARAMETERS parm1 VARCHAR, parm2 INT END PARAMETERS\n" +
+				"TASK nest1 LOG 'nullchar IS ' + IIF(parm1 IS NULL, '', 'NOT ') + 'NULL' END TASK \n" +
+				"TASK nest2 AFTER nest1 LOG 'notnullint IS ' + IIF(parm2 IS NULL, '', 'NOT ') + 'NULL' END TASK \n" +
+				"";
 
-		try {
-			DbProcess process = DbProcess.parse(r);
-			process.run(args, context);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getMessage());
-		}
-	}
+		Map<String, String> nestedScripts = new HashMap<String, String>();
+		nestedScripts.put(nestedScriptName, nestedScript);
 
-	private static class TestLoader implements Loader {
+		Level logLevel = Level.info;
+		boolean logToConsole = true;
 
-		@Override
-		public DbProcess load(String name) throws IOException, NamingException {
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, nestedScripts);
 
-			context.logger.message("TestLoader", "Loading " + name);
+		Analyzer.RecordIterator recordIterator = analyzer.recordIterator(processId, Pattern.compile("LOG\\d+$"));
+		Analyzer.Record record;
 
-			final String script =
-					"PARAMETERS text VARCHAR, number INTEGER END PARAMETERS \n" +
-					"VARIABLES dimension INT -- This is a comment. \n" +
-					"END VARIABLES -- This is ALSO a comment \n" +
-					"TASK Nested LOG 'Arguments are: \"' + text + '\", \"' + FORMAT(number, 'd') + '\"' END TASK \n" +
-					"TASK UpdateFred UPDATE dimension FROM SQL SELECT size FROM test.things WHERE name = 'fred' END TASK \n" +
-					"TASK Show AFTER UpdateFred LOG 'Fred''s size is ' + FORMAT(dimension, 'd') END TASK \n" +
-					"-- very end";
+		record = recordIterator.next();
+		assertEquals("LOG1", record.taskId);
+		assertEquals("Message evaluates to NULL", record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG1", record.taskId);
+		assertEquals(Task.failMessage, record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG2", record.taskId);
+		assertEquals("nullint IS NULL", record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG3", record.taskId);
+		assertEquals("notnullint IS NOT NULL", record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG4", record.taskId);
+		assertEquals("nullchar IS NULL", record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG5", record.taskId);
+		assertEquals("notnullchar IS NOT NULL", record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG6", record.taskId);
+		assertEquals("nulldate IS NULL", record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG7", record.taskId);
+		assertEquals("notnulldate IS NOT NULL", record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG12", record.taskId);
+		assertEquals("nullint IS NULL", record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG14", record.taskId);
+		assertEquals("nullchar IS NULL", record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG16", record.taskId);
+		assertEquals("nulldate IS NULL", record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG22", record.taskId);
+		assertEquals("nullint IS NULL", record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG24", record.taskId);
+		assertEquals("nullchar IS NULL", record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG26", record.taskId);
+		assertEquals("nulldate IS NULL", record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG32", record.taskId);
+		assertEquals("nullint expression IS NULL", record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG34", record.taskId);
+		assertEquals("nullchar expression IS NULL", record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG36", record.taskId);
+		assertEquals("nulldate expression IS NULL", record.message);
 		
-			return DbProcess.parse(new StringReader(script));
+		assertFalse(recordIterator.hasNext());
+
+		String nestedProcessId = processId + "." + nestedScriptName;
+
+		recordIterator = analyzer.recordIterator(nestedProcessId, Pattern.compile("NEST\\d+$"));
+
+		record = recordIterator.next();
+		assertEquals("NEST1", record.taskId);
+		assertEquals("nullchar IS NULL", record.message);
+
+		record = recordIterator.next();
+		assertEquals("NEST2", record.taskId);
+		assertEquals("notnullint IS NOT NULL", record.message);
+
+		assertFalse(recordIterator.hasNext());
+	}
+
+	public void testSchedule() throws Exception {
+
+		String processId = "ScheduleTest";
+		String script =
+				"VARIABLES when VARCHAR, start DATETIME, finish DATETIME, ms_format VARCHAR, no_ms_format VARCHAR END VARIABLES \n" +
+				"TASK Scheduler ON TODAY NOW \n" +
+					"TASK Schedulee LOG 'Scheduled task' END TASK \n" +
+				"END TASK \n" +
+				"TASK SetSchedule SET when = 'TODAY NOW' END TASK \n" +
+				"TASK Scheduler2 AFTER Scheduler AND SetSchedule ON SCHEDULE when \n" +
+					"TASK Schedulee2 LOG 'Another scheduled task' END TASK \n" +
+				"END TASK \n" +
+				"TASK SetRange AFTER Scheduler2 SET \n" +
+					"start = DATEADD(SECOND, 2, GETDATE()), \n" +
+					"finish = DATEADD(SECOND, 6, start), \n" +
+					"when = 'TODAY NOW, TODAY EVERY 2 SECONDS FROM ''' + FORMAT(start, 'HH:mm:ss') + ''' UNTIL ''' + FORMAT(finish, 'HH:mm:ss') + '''', \n" +
+					"no_ms_format = 'uuuu-MM-dd''T''HH:mm:ss', \n" +
+					"ms_format = no_ms_format + '.SSS' \n" +
+				"END TASK \n" +
+				"TASK ShowSchedule AFTER SetRange LOG when END TASK \n" +
+				"TASK ShowTimes AFTER ShowSchedule LOG FORMAT(GETDATE(), ms_format) + ',' + FORMAT(start, no_ms_format) + ',' + FORMAT(finish, no_ms_format) END TASK \n" +
+				"TASK Scheduler3 AFTER ShowTimes ON SCHEDULE when \n" +
+					"TASK Schedulee3 LOG 'Recurring scheduled task' END TASK \n" +
+				"END TASK \n" +
+				"";
+
+		Level logLevel = Level.info;
+		boolean logToConsole = true;
+
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null);
+
+		int frequency = 2;
+		int cycles = 3;
+
+		final int fuzzMillis = 150;
+		final float fuzzSeconds = (float)fuzzMillis / 1000f;
+
+		Analyzer.RecordIterator recordIterator = analyzer.recordIterator("ScheduleTest", "SHOWTIMES");
+		Analyzer.Record record = recordIterator.next();
+
+		LocalDateTime messageTime = record.datetime;
+		String[] times = record.message.split(",");
+		LocalDateTime getdateTime = LocalDateTime.parse(times[0]);
+		LocalDateTime startTime = LocalDateTime.parse(times[1]);
+		LocalDateTime finishTime = LocalDateTime.parse(times[2]);
+
+		assertEquals(0f, secondsBetween(messageTime, getdateTime), fuzzSeconds);
+		assertEquals((float)frequency, secondsBetween(getdateTime, startTime), 1f);
+
+		recordIterator = analyzer.recordIterator("ScheduleTest", "SCHEDULER3.SCHEDULEE3");
+		String recurMessage = "Recurring scheduled task";
+
+		record = recordIterator.next();
+		assertEquals(recurMessage, record.message);
+		assertEquals(0f, secondsBetween(getdateTime, record.datetime), fuzzSeconds);
+
+		record = recordIterator.next();
+		assertEquals(recurMessage, record.message);
+		assertEquals(0f, secondsBetween(startTime, record.datetime), fuzzSeconds);
+
+		LocalDateTime previousTime = record.datetime;
+		for (int cycle = 0; cycle < cycles; ++cycle) {
+
+			record = recordIterator.next();
+			assertEquals(recurMessage, record.message);
+			assertEquals((float)frequency, secondsBetween(previousTime, record.datetime), fuzzSeconds);
+
+			previousTime = record.datetime;
 		}
+
+		assertEquals(0f, secondsBetween(finishTime, record.datetime), fuzzSeconds);
+
+		assertFalse(recordIterator.hasNext());
+	}
+
+	private static float secondsBetween(LocalDateTime earlier, LocalDateTime later) {
+		return (float)ChronoUnit.MILLIS.between(earlier, later) / 1000f;
 	}
 }

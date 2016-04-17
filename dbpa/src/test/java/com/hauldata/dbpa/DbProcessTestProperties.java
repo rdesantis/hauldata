@@ -86,7 +86,12 @@ public interface DbProcessTestProperties {
 		return ftpProps;
 	}
  */
+
 	// Get data file path.
 
 	String  getDataPath();
+
+	// Get log file path.
+
+	String  getLogPath();
 }

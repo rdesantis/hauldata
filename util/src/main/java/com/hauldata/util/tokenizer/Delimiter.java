@@ -18,8 +18,8 @@ package com.hauldata.util.tokenizer;
 
 public class Delimiter extends StringToken {
 
-	public Delimiter(String value) {
-		super(value);
+	public Delimiter(boolean leadingWhitespace, String value) {
+		super(leadingWhitespace, value);
 	}
 
 	@Override

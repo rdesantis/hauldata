@@ -21,9 +21,15 @@ public class Numeric<Type extends Number> extends Token {
 	private String image;
 	private Type value;
 
-	public Numeric(String image, Type value) {
+	public Numeric(boolean leadingWhitespace, String image, Type value) {
+		super(leadingWhitespace);
 		this.image = image;
 		this.value = value;
+	}
+
+	@Override
+	protected String getImage() {
+		return image;
 	}
 
 	public Type getNumericValue() {

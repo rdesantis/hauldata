@@ -21,6 +21,7 @@ import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.InputMismatchException;
+import java.util.NoSuchElementException;
 
 import junit.framework.TestCase;
 
@@ -61,14 +62,14 @@ public class TokenizerTest extends TestCase {
 
 	private static void assertNextQuoted(Tokenizer tokenizer, char quote, String body) throws IOException {
 		assertHasNext(tokenizer, Quoted.class);
-		Quoted quoted = new Quoted(quote, body);
+		Quoted quoted = new Quoted(true, quote, body);
 		assertEquals(quoted, tokenizer.nextQuoted());
 	}
 
 	private static void assertNextDelimiter(Tokenizer tokenizer, String value) throws IOException {
 		assertHasNext(tokenizer, Delimiter.class);
 		assertTrue(tokenizer.hasNextDelimiter(value));
-		Delimiter delimiter = new Delimiter(value);
+		Delimiter delimiter = new Delimiter(true, value);
 		assertEquals(delimiter, tokenizer.nextDelimiter());
 	}
 
@@ -204,30 +205,84 @@ public class TokenizerTest extends TestCase {
 				"END\r\n";
 
 		DsvTokenizer tokenizer = new DsvTokenizer(new StringReader(text), ',');
-		Delimiter comma = new Delimiter(",");
+		Delimiter comma = new Delimiter(false, ",");
 
 		assertEquals(1, tokenizer.lineno());
-		assertEquals(new Unknown("One"), tokenizer.nextToken());
+		assertEquals(new Unknown(false, "One"), tokenizer.nextToken());
 		assertEquals(comma, tokenizer.nextToken());
-		assertEquals(new Quoted('"', "Two two"), tokenizer.nextToken());
+		assertEquals(new Quoted(false, '"', "Two two"), tokenizer.nextToken());
 		assertEquals(comma, tokenizer.nextToken());
 		assertEquals(comma, tokenizer.nextToken());
-		assertEquals(new Numeric<Integer>("4", 4), tokenizer.nextToken());
+		assertEquals(new Numeric<Integer>(false, "4", 4), tokenizer.nextToken());
 		assertEquals(comma, tokenizer.nextToken());
-		assertEquals(new Numeric<Long>("-555555555555555", new Long(-555555555555555L)), tokenizer.nextToken());
+		assertEquals(new Numeric<Long>(false, "-555555555555555", new Long(-555555555555555L)), tokenizer.nextToken());
 		assertEquals(comma, tokenizer.nextToken());
-		assertEquals(new Numeric<BigDecimal>("6.6E6", new BigDecimal("6.6E6")), tokenizer.nextToken());
+		assertEquals(new Numeric<BigDecimal>(false, "6.6E6", new BigDecimal("6.6E6")), tokenizer.nextToken());
 		
 		assertFalse(tokenizer.hasNextOnLine());
 		assertEquals(EndOfLine.value, tokenizer.nextToken());
 
 		assertEquals(2, tokenizer.lineno());
-		assertEquals(new Unknown("END"), tokenizer.nextToken());
+		assertEquals(new Unknown(false, "END"), tokenizer.nextToken());
 
 		assertFalse(tokenizer.hasNextOnLine());
 		assertEquals(EndOfLine.value, tokenizer.nextToken());
 
 		assertFalse(tokenizer.hasNext());
 		assertNull(tokenizer.nextToken());
+	}
+
+	public void testRender() throws IOException {
+
+		final String text =
+				"INTO\n" +
+				"	EXEC StoredProc\n" +
+				"		@first_arg = ?,\n" +
+				"		@second_arg= ? ,\n" +
+				"		@third_arg=name@domain.com\n" +
+				"	Garbage  @   function(arg) nonfunction (   nonarg   )   a@b+-  -   -- Ignore\n" +
+				"END TASK";
+
+		BacktrackingTokenizer tokenizer = new BacktrackingTokenizer(new StringReader(text));
+		tokenizer.useEndLineCommentDelimiter("--");
+
+		assertNextWord(tokenizer, "INTO");
+
+		BacktrackingTokenizerMark mark = tokenizer.mark();
+
+		StringBuilder renderedStatement = new StringBuilder();
+		while (!hasEndTask(tokenizer)) {
+			Token nextToken = tokenizer.nextToken();
+			renderedStatement.append(nextToken.render());
+
+			if (!tokenizer.hasNext()) {
+				tokenizer.reset(mark);
+				throw new NoSuchElementException("SQL not terminated properly at line " + String.valueOf(tokenizer.lineno()));
+			}
+		}
+
+		final String normalizedStatement =
+				" EXEC StoredProc" +
+				" @first_arg = ?," +
+				" @second_arg= ? ," +
+				" @third_arg=name@domain.com" +
+				" Garbage @ function(arg) nonfunction ( nonarg ) a@b+- -";
+
+		assertEquals(normalizedStatement, renderedStatement.toString());
+	}
+
+	private boolean hasEndTask(BacktrackingTokenizer tokenizer) throws IOException {
+
+		if (!tokenizer.hasNextWordIgnoreCase("END")) {
+			return false;
+		}
+
+		BacktrackingTokenizerMark mark = tokenizer.mark();
+		tokenizer.nextToken();
+
+		boolean result = tokenizer.hasNextWordIgnoreCase("TASK");
+
+		tokenizer.reset(mark);
+		return result;
 	}
 }

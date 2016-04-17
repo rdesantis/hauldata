@@ -36,19 +36,19 @@ public class DsvTokenizer extends BaseTokenizer {
 	}
 
 	@Override
-	protected Delimiter skipWhitespace() throws IOException {
+	protected Token skipWhitespace() throws IOException {
 		// DSV files don't recognize whitespace.
-		return null;
+		return Unknown.noWhitespace;
 	}
 
 	@Override
-	protected Token parseWord() {
+	protected Token parseWord(boolean leadingWhitespace) {
 		// This should never be called.
 		throw new RuntimeException("Internal error - call to DsvTokenizer.parseWord()");
 	}
 
 	@Override
-	protected Delimiter parseDelimiter(char leader) {
-		return new Delimiter(String.valueOf(leader));
+	protected Delimiter parseDelimiter(boolean leadingWhitespace, char leader) {
+		return new Delimiter(leadingWhitespace, String.valueOf(leader));
 	}
 }

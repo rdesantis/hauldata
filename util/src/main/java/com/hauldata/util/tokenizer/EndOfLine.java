@@ -20,7 +20,14 @@ public class EndOfLine extends Token {
 
 	public static EndOfLine value = new EndOfLine();
 
-	public EndOfLine() {}
+	public EndOfLine() {
+		super(false);
+	}
+
+	@Override
+	protected String getImage() {
+		return (String)getValue();
+	}
 
 	@Override
 	public Object getValue() {

@@ -34,10 +34,10 @@ public abstract class VariableType {
 		this.example = example;
 	}
 
-	public static VariableType INTEGER = new VariableType("INTEGER", (Integer)0) { public Object getValueChecked(Object value) { return (Integer)value; } };
-	public static VariableType VARCHAR = new VariableType("VARCHAR", "") { public Object getValueChecked(Object value) { return (String)value; } };
-	public static VariableType DATETIME = new VariableType("DATETIME", LocalDateTime.MIN) { public Object getValueChecked(Object value) { return (LocalDateTime)value; } };
-	public static VariableType BOOLEAN = new VariableType("BOOLEAN", (Boolean)false)  { public Object getValueChecked(Object value) { return (Boolean)value; } };
+	public static final VariableType INTEGER = new VariableType("INTEGER", (Integer)0) { public Object getValueChecked(Object value) { return (Integer)value; } };
+	public static final VariableType VARCHAR = new VariableType("VARCHAR", "") { public Object getValueChecked(Object value) { return (String)value; } };
+	public static final VariableType DATETIME = new VariableType("DATETIME", LocalDateTime.MIN) { public Object getValueChecked(Object value) { return (LocalDateTime)value; } };
+	public static final VariableType BOOLEAN = new VariableType("BOOLEAN", (Boolean)false)  { public Object getValueChecked(Object value) { return (Boolean)value; } };
 
 	/**
 	 * @return the type name

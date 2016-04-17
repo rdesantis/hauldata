@@ -289,7 +289,7 @@ public abstract class BaseTokenizer {
 	protected Token getToken() throws IOException {
 
 		Token token = skipWhitespace();
-		if (token != null) {
+		if (!(token instanceof Unknown)) {
 			return token;
 		}
 
@@ -301,49 +301,51 @@ public abstract class BaseTokenizer {
 
 		if (negativeIsRespected && ((char)intChar == minusSign)) {
 			if (hasNextNumericChar()) {
-				return parseInteger(new StringBuilder(String.valueOf(minusSign)), true);
+				return parseInteger(token.hasLeadingWhitespace(), new StringBuilder(String.valueOf(minusSign)), true);
 			}
 			else if ((char)peekChar() == decimalPoint) {
-				return parseDecimal(new StringBuilder(String.valueOf(minusSign)), BigDecimal.ZERO, true);
+				return parseDecimal(token.hasLeadingWhitespace(), new StringBuilder(String.valueOf(minusSign)), BigDecimal.ZERO, true);
 			}
 		}
 		else if ((char)intChar == decimalPoint) {
 			pushChar(intChar);
-			return parseDecimal(new StringBuilder(), BigDecimal.ZERO, false);
+			return parseDecimal(token.hasLeadingWhitespace(), new StringBuilder(), BigDecimal.ZERO, false);
 		}
 
 		switch (charTypeOf(intChar)) {
 		case delimiter:
-			return parseDelimiter((char)intChar);
+			return parseDelimiter(token.hasLeadingWhitespace(), (char)intChar);
 		case alphabetic:
 			pushChar(intChar);
-			return parseWord();
+			return parseWord(token.hasLeadingWhitespace());
 		case numeric:
 			pushChar(intChar);
-			return parseInteger(new StringBuilder(), false);
+			return parseInteger(token.hasLeadingWhitespace(), new StringBuilder(), false);
 		case quote:
-			return parseQuoted((char)intChar);
+			return parseQuoted(token.hasLeadingWhitespace(), (char)intChar);
 		case endOfLine:
 			return parseEndOfLine((char)intChar);
 		default:
 		case unknown:
 			StringBuilder image = new StringBuilder(String.valueOf((char)intChar));
-			return parseUnknown(image);
+			return parseUnknown(token.hasLeadingWhitespace(), image);
 		}
 	}
 
 	/**
 	 * Skips whitespace characters in the input stream.
-	 * @return the next token if a delimiter token is next in the input stream, otherwise null
+	 * @return an instance of Delimiter parsed from the input stream if the next token is a delimiter token,
+	 * otherwise an instance of Unknown.  In the latter case, no token is actually parsed from the input stream
+	 * but the hasLeadingWhitespace() member tells if whitespace was actually skipped.
 	 * @throws IOException
 	 */
-	protected abstract Delimiter skipWhitespace() throws IOException;
+	protected abstract Token skipWhitespace() throws IOException;
 
-	protected abstract Delimiter parseDelimiter(char leader) throws IOException;
+	protected abstract Delimiter parseDelimiter(boolean leadingWhitespace, char leader) throws IOException;
 
-	protected abstract Token parseWord() throws IOException;
+	protected abstract Token parseWord(boolean leadingWhitespace) throws IOException;
 
-	private Token parseInteger(StringBuilder image, boolean negate) throws IOException {
+	private Token parseInteger(boolean leadingWhitespace, StringBuilder image, boolean negate) throws IOException {
 
 		final int maxDiv10 = Integer.MAX_VALUE / 10;
 		final int maxMod10 = Integer.MAX_VALUE - (maxDiv10 * 10);
@@ -357,7 +359,7 @@ public abstract class BaseTokenizer {
 			
 			if ((value > maxDiv10) || ((value == maxDiv10) && (digit >= maxMod10))) {
 				pushChar(intChar);
-				return parseLong(image, value, negate);
+				return parseLong(leadingWhitespace, image, value, negate);
 			}
 			
 			image.append((char)intChar);
@@ -366,25 +368,25 @@ public abstract class BaseTokenizer {
 		}
 
 		if ((char)peekChar() == decimalPoint) {
-			return parseDecimal(image, BigDecimal.valueOf(value), negate);
+			return parseDecimal(leadingWhitespace, image, BigDecimal.valueOf(value), negate);
 		}
 
 		if ((char)peekChar() == exponential) {
-			return parseScientific(image, BigDecimal.valueOf(value), negate);
+			return parseScientific(leadingWhitespace, image, BigDecimal.valueOf(value), negate);
 		}
 
 		if (!hasNextTerminatingChar()) {
-			return parseUnknown(image);
+			return parseUnknown(leadingWhitespace, image);
 		}
 
 		if (negate) {
 			value = -value;
 		}
 
-		return new Numeric<Integer>(image.toString(), value);
+		return new Numeric<Integer>(leadingWhitespace, image.toString(), value);
 	}
 
-	private Token parseLong(StringBuilder image, int valueSoFar, boolean negate) throws IOException {
+	private Token parseLong(boolean leadingWhitespace, StringBuilder image, int valueSoFar, boolean negate) throws IOException {
 
 		final long maxDiv10 = Long.MAX_VALUE / 10;
 		final long maxMod10 = Long.MAX_VALUE - (maxDiv10 * 10);
@@ -398,7 +400,7 @@ public abstract class BaseTokenizer {
 			
 			if ((value > maxDiv10) || ((value == maxDiv10) && (digit >= maxMod10))) {
 				pushChar(intChar);
-				return parseBigInteger(image, value, negate);
+				return parseBigInteger(leadingWhitespace, image, value, negate);
 			}
 			
 			image.append((char)intChar);
@@ -407,25 +409,25 @@ public abstract class BaseTokenizer {
 		}
 
 		if ((char)peekChar() == decimalPoint) {
-			return parseDecimal(image, BigDecimal.valueOf(value), negate);
+			return parseDecimal(leadingWhitespace, image, BigDecimal.valueOf(value), negate);
 		}
 
 		if ((char)peekChar() == exponential) {
-			return parseScientific(image, BigDecimal.valueOf(value), negate);
+			return parseScientific(leadingWhitespace, image, BigDecimal.valueOf(value), negate);
 		}
 
 		if (!hasNextTerminatingChar()) {
-			return parseUnknown(image);
+			return parseUnknown(leadingWhitespace, image);
 		}
 
 		if (negate) {
 			value = -value;
 		}
 
-		return new Numeric<Long>(image.toString(), value);
+		return new Numeric<Long>(leadingWhitespace, image.toString(), value);
 	}
 
-	private Token parseBigInteger(StringBuilder image, long valueSoFar, boolean negate) throws IOException {
+	private Token parseBigInteger(boolean leadingWhitespace, StringBuilder image, long valueSoFar, boolean negate) throws IOException {
 
 		BigInteger value = BigInteger.valueOf(valueSoFar);
 		while (hasNextNumericChar())  {
@@ -440,25 +442,25 @@ public abstract class BaseTokenizer {
 		}
 
 		if ((char)peekChar() == decimalPoint) {
-			return parseDecimal(image, new BigDecimal(value), negate);
+			return parseDecimal(leadingWhitespace, image, new BigDecimal(value), negate);
 		}
 
 		if ((char)peekChar() == exponential) {
-			return parseScientific(image, new BigDecimal(value), negate);
+			return parseScientific(leadingWhitespace, image, new BigDecimal(value), negate);
 		}
 
 		if (!hasNextTerminatingChar()) {
-			return parseUnknown(image);
+			return parseUnknown(leadingWhitespace, image);
 		}
 
 		if (negate) {
 			value = value.negate();
 		}
 
-		return new Numeric<BigInteger>(image.toString(), value);
+		return new Numeric<BigInteger>(leadingWhitespace, image.toString(), value);
 	}
 
-	private Token parseDecimal(StringBuilder image, BigDecimal value, boolean negate) throws IOException {
+	private Token parseDecimal(boolean leadingWhitespace, StringBuilder image, BigDecimal value, boolean negate) throws IOException {
 
 		if ((char)nextChar() != decimalPoint) {
 			throw new InputMismatchException("parseDecimal() requires decimal point to be the next character parsed");
@@ -481,25 +483,25 @@ public abstract class BaseTokenizer {
 		}
 
 		if ((decimalPlaces == 0) || ((char)peekChar() == decimalPoint)) {
-			return parseUnknown(image);
+			return parseUnknown(leadingWhitespace, image);
 		}
 
 		if ((char)peekChar() == exponential) {
-			return parseScientific(image, value, negate);
+			return parseScientific(leadingWhitespace, image, value, negate);
 		}
 
 		if (!hasNextTerminatingChar()) {
-			return parseUnknown(image);
+			return parseUnknown(leadingWhitespace, image);
 		}
 
 		if (negate) {
 			value = value.negate();
 		}
 
-		return new Numeric<BigDecimal>(image.toString(), value);
+		return new Numeric<BigDecimal>(leadingWhitespace, image.toString(), value);
 	}
 
-	private Token parseScientific(StringBuilder image, BigDecimal value, boolean negate) throws IOException {
+	private Token parseScientific(boolean leadingWhitespace, StringBuilder image, BigDecimal value, boolean negate) throws IOException {
 
 		if ((char)nextChar() != exponential) {
 			throw new InputMismatchException("parseScientific() requires \"" + String.valueOf(exponential) + "\" to be the next character parsed");
@@ -514,7 +516,7 @@ public abstract class BaseTokenizer {
 		}
 
 		if (!hasNextNumericChar()) {
-			return parseUnknown(image);
+			return parseUnknown(leadingWhitespace, image);
 		}
 
 		int exponent = 0;
@@ -529,12 +531,12 @@ public abstract class BaseTokenizer {
 			exponent = exponent * 10 + digit;
 			
 			if (exponent > Double.MAX_EXPONENT) {
-				return parseUnknown(image);
+				return parseUnknown(leadingWhitespace, image);
 			}
 		}
 
 		if (!hasNextTerminatingChar()) {
-			return parseUnknown(image);
+			return parseUnknown(leadingWhitespace, image);
 		}
 
 		if (negateExponent) {
@@ -547,10 +549,10 @@ public abstract class BaseTokenizer {
 			value = value.negate();
 		}
 
-		return new Numeric<BigDecimal>(image.toString(), value);
+		return new Numeric<BigDecimal>(leadingWhitespace, image.toString(), value);
 	}
 
-	private Token parseQuoted(char quote) throws IOException {
+	private Token parseQuoted(boolean leadingWhitespace, char quote) throws IOException {
 		
 		StringBuilder image = new StringBuilder();
 		
@@ -581,14 +583,14 @@ public abstract class BaseTokenizer {
 		}
 
 		if (!isQuoteClosed) {
-			return new Unknown(image.insert(0, quote).toString());
+			return new Unknown(leadingWhitespace, image.insert(0, quote).toString());
 		}
 
 		if (!hasNextTerminatingChar()) {
-			return parseUnknown(image.insert(0, quote).append(quote));
+			return parseUnknown(leadingWhitespace, image.insert(0, quote).append(quote));
 		}
 
-		return new Quoted(quote, image.toString());
+		return new Quoted(leadingWhitespace, quote, image.toString());
 	}
 
 	private EndOfLine parseEndOfLine(char sentinel) throws IOException {
@@ -601,12 +603,12 @@ public abstract class BaseTokenizer {
 		return EndOfLine.value;
 	}
 
-	protected Unknown parseUnknown(StringBuilder image) throws IOException {
+	protected Unknown parseUnknown(boolean leadingWhitespace, StringBuilder image) throws IOException {
 
 		while (!hasNextTerminatingChar()) {
 			image.append((char)nextChar());
 		}
-		return new Unknown(image.toString());
+		return new Unknown(leadingWhitespace, image.toString());
 	}
 
 	// Logical character scanning

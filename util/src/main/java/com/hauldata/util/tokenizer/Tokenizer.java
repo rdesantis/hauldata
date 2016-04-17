@@ -334,11 +334,13 @@ public class Tokenizer extends BaseTokenizer {
 	// Base class overrides - implementation details
 
 	@Override
-	protected Delimiter skipWhitespace() throws IOException {
+	protected Token skipWhitespace() throws IOException {
 
+		boolean leadingWhitespace = false;
 		boolean moreWhitespace;
 		do {
 			while (charTypeOf(peekChar()) == CharType.whitespace) {
+				leadingWhitespace = true;
 				nextChar();
 			}
 			
@@ -346,7 +348,7 @@ public class Tokenizer extends BaseTokenizer {
 
 			if ((endLineCommentDelimiter != null) && (charTypeOf(peekChar()) == CharType.delimiter)) {
 
-				Delimiter delimiter = parseDelimiter((char)nextChar());
+				Delimiter delimiter = parseDelimiter(leadingWhitespace, (char)nextChar());
 
 				if (delimiter.toString() != endLineCommentDelimiter) {
 					return delimiter;
@@ -359,11 +361,11 @@ public class Tokenizer extends BaseTokenizer {
 			}
 		} while (moreWhitespace);
 		
-		return null;
+		return Unknown.withWhitespace(leadingWhitespace);
 	}
 
 	@Override
-	protected Token parseWord() throws IOException {
+	protected Token parseWord(boolean leadingWhitespace) throws IOException {
 
 		StringBuilder image = new StringBuilder();
 		while (hasNextWordChar())  {
@@ -371,17 +373,17 @@ public class Tokenizer extends BaseTokenizer {
 		}
 
 		if (!hasNextTerminatingChar()) {
-			return parseUnknown(image);
+			return parseUnknown(leadingWhitespace, image);
 		}
 
-		return new Word(image.toString());
+		return new Word(leadingWhitespace, image.toString());
 	}
 
 	@Override
-	protected Delimiter parseDelimiter(char leader) throws IOException {
+	protected Delimiter parseDelimiter(boolean leadingWhitespace, char leader) throws IOException {
 
 		if (compoundDelimiters.isEmpty()) {
-			return new Delimiter(String.valueOf(leader));
+			return new Delimiter(leadingWhitespace, String.valueOf(leader));
 		}
 
 		String imageSoFar = String.valueOf(leader);
@@ -395,7 +397,7 @@ public class Tokenizer extends BaseTokenizer {
 				String delimiter = delimiterIterator.next();
 
 				if (delimiter.equals(image)) {
-					return new Delimiter(delimiter);
+					return new Delimiter(leadingWhitespace, delimiter);
 				}
 				else if (!delimiter.startsWith(image)) {
 					delimiterIterator.remove();
@@ -404,7 +406,7 @@ public class Tokenizer extends BaseTokenizer {
 
 			if (potentialMatches.isEmpty()) {
 				pushChar(intChar);
-				return new Delimiter(imageSoFar);
+				return new Delimiter(leadingWhitespace, imageSoFar);
 			}
 			
 			imageSoFar = image;
