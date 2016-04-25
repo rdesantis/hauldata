@@ -32,19 +32,22 @@ public class ReadIntoTableTask extends FileTask {
 	private ReadHeaderExpressions headers;
 	private ColumnExpressions columns;
 	private Expression<String> table;
+	private Expression<String> prefix;
 
 	public ReadIntoTableTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
 			ReadHeaderExpressions headers,
 			ColumnExpressions columns,
-			Expression<String> table) {
+			Expression<String> table,
+			Expression<String> prefix) {
 
 		super(prologue);
 		this.page = page;
 		this.headers = headers;
 		this.columns = columns;
 		this.table = table;
+		this.prefix = prefix;
 	}
 
 	@Override
@@ -53,6 +56,7 @@ public class ReadIntoTableTask extends FileTask {
 		PageIdentifier page = this.page.evaluate(context);
 		ReadHeaders headers = this.headers.evaluate();
 		String table = this.table.evaluate();
+		String prefix = (this.prefix != null) ? this.prefix.evaluate() : null;
 
 		context.files.assureNotOpen(page.getPath());
 		try {
@@ -61,6 +65,10 @@ public class ReadIntoTableTask extends FileTask {
 			List<String> captions = columns.getCaptions();
 
 			StringBuilder statement = new StringBuilder();
+			if (prefix != null) {
+				statement.append(prefix).append(" ");
+			}
+
 			statement.append("INSERT INTO ").append(table).append(" ");
 
 			if (headers.toMetadata()) {

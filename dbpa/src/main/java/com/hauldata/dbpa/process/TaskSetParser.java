@@ -107,6 +107,7 @@ abstract class TaskSetParser {
 		HEADERS,
 		COLUMNS,
 		TABLE,
+		PREFIX,
 		ZIP,
 		UNZIP,
 		PUT,
@@ -789,8 +790,14 @@ abstract class TaskSetParser {
 			}
 
 			Expression<String> table = parseStringExpression();
-	
-			return new ReadIntoTableTask(prologue, page, headers, columns, table);
+
+			Expression<String> prefix = null;
+			if (tokenizer.skipWordIgnoreCase(RW.PREFIX.name())) {
+				tokenizer.skipWordIgnoreCase(RW.WITH.name());
+				prefix = parseStringExpression();
+			}
+
+			return new ReadIntoTableTask(prologue, page, headers, columns, table, prefix);
 		}
 	}
 
