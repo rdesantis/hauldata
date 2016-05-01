@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 
 /**
  * Log appender that writes to an in-memory log with convenient access methods
- * for analyzing log content. 
+ * for analyzing log content.
  */
 public class Analyzer implements Appender {
 
@@ -55,7 +55,9 @@ public class Analyzer implements Appender {
 
 	@Override
 	public void log(String processId, String taskId, LocalDateTime datetime, int level, String message) {
-		records.add(new Record(processId, taskId, datetime, level, message));
+		synchronized (records) {
+			records.add(new Record(processId, taskId, datetime, level, message));
+		}
 	}
 
 	@Override
