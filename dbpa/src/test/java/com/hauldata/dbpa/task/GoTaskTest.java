@@ -50,7 +50,7 @@ public class GoTaskTest extends LogTaskTestBase {
 			boolean logToConsole,
 			String script) throws Exception {
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null); 
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null); 
 
 		Analyzer.RecordIterator recordIterator = analyzer.recordIterator();
 

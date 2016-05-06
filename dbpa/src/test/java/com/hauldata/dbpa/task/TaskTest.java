@@ -36,13 +36,18 @@ public abstract class TaskTest extends TestCase {
 		super(name);
 	}
 
+	public static interface ContextAction {
+		public void action(Context context);
+	}
+
 	protected Analyzer runScript(
 			String processId,
 			Level logLevel,
 			boolean logToConsole,
 			String script,
 			String[] args,
-			Map<String, String> nestedScripts) throws Exception {
+			Map<String, String> nestedScripts,
+			ContextAction setup) throws Exception {
 
 		final String testPropsClass = "com.hauldata.dbpa.DbProcessTestPropertiesImpl";
 		DbProcessTestProperties testProps = null;
@@ -72,6 +77,10 @@ public abstract class TaskTest extends TestCase {
 		}
 
 		context.logger = logger;
+
+		if (setup != null) {
+			setup.action(context);
+		}
 
 		if (args == null) {
 			args = new String[0];

@@ -67,6 +67,10 @@ public class DbProcessTest extends TaskTest {
 		logger.add(new FileAppender(logPath + "\\" + "test %d{yyyy-MM-dd} at time %d{HH-mm-ss}.log", "Daily every 10 seconds"));
 		context.logger = logger;
 
+		// Make sure the test tables exist.
+
+		DbProcessTestTables.assureExist(context);
+
 		// Now ready to run scripts.
 
 		String script;
@@ -113,7 +117,8 @@ public class DbProcessTest extends TaskTest {
 				"TASK CreateCsv2 AFTER NameCsv2 CREATE CSV csv2 WITH NO HEADERS END TASK \n" +
 				"TASK WriteCsv2 AFTER CreateCsv2 APPEND CSV csv2 FROM SQL SELECT * FROM test.importtarget END TASK \n" +
 /*mail*///		"TASK EmailCsv2 AFTER WriteCsv2 EMAIL FROM 'rdesantis@cmtnyc.com' TO 'rdesantis@comcast.net' SUBJECT 'From DBPA' ATTACH csv2 END TASK \n" +
-				"TASK NameCsv3 AFTER OpenNonExistent COMPLETES SET child = 'C:\\Temp\\child\\child file.csv' END TASK \n" +
+//TODO: Remove hard-coded driver letter!
+"TASK NameCsv3 AFTER OpenNonExistent COMPLETES SET child = 'D:\\Temp\\child\\child file.csv' END TASK \n" +
 				"TASK CreateCsv3 AFTER NameCsv3 CREATE CSV child END TASK \n" +
 				"TASK WriteCsv3 AFTER CreateCsv3 APPEND CSV child FROM SQL SELECT * FROM test.things END TASK\n" +
 				"TASK NameTsv AFTER OpenNonExistent COMPLETES SET tsvName = 'tabbed.tsv' END TASK \n" +
@@ -149,7 +154,8 @@ public class DbProcessTest extends TaskTest {
 				"TASK ShowDateFromParts AFTER ForLoop COMPLETES LOG '2/29/2016 from parts = ' + FORMAT(DATEFROMPARTS(2016, 2, 29), 'M/d/yyyy') END TASK \n" +
 				"TASK MkDir AFTER ShowDateFromParts MAKE DIRECTORY 'where this goes' END TASK \n" +
 				"TASK RunScript AFTER MkDir COMPLETES RUN SCRIPT 'inserter.sql' END TASK \n" +
-				"TASK ZipWildcards AFTER RunScript ZIP 'C:\\code\\dbpa\\*.properties', 'process\\*.*' TO 'wildcarded.zip' END TASK \n" +
+//TODO: Remove hard-coded driver letter!
+				"TASK ZipWildcards AFTER RunScript ZIP 'D:\\code\\dbpa\\*.properties', 'process\\*.*' TO 'wildcarded.zip' END TASK \n" +
 				"TASK CopyWildcards AFTER ZipWildcards COPY 'written*.*', '*.sql' TO 'trash' END TASK \n" +
 				"TASK DeleteWildcards AFTER UnZipper AND CopyWildcards DELETE 'trash\\*Framework*', 'trash\\5CD2-11-Schemata-2006-01.pdf' END TASK \n" +
 				"TASK Async1 AFTER DeleteWildcards PROCESS ASYNC 'asyncproc1' WITH 'my butt', 1 END TASK \n" +
@@ -330,7 +336,7 @@ public class DbProcessTest extends TaskTest {
 		Level logLevel = Level.info;
 		boolean logToConsole = true;
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, nestedScripts);
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, nestedScripts, null);
 
 		Analyzer.RecordIterator recordIterator = analyzer.recordIterator(processId, Pattern.compile("LOG\\d+$"));
 		Analyzer.Record record;
@@ -449,7 +455,7 @@ public class DbProcessTest extends TaskTest {
 		Level logLevel = Level.info;
 		boolean logToConsole = true;
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null);
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
 
 		int frequency = 2;
 		int cycles = 3;
@@ -499,6 +505,8 @@ public class DbProcessTest extends TaskTest {
 		return (float)ChronoUnit.MILLIS.between(earlier, later) / 1000f;
 	}
 
+	private static ContextAction assureTestTablesExist = new ContextAction() { public void action(Context context) { DbProcessTestTables.assureExist(context); } };
+
 	public void testRead() throws Exception {
 
 		String processId = "ReadTest";
@@ -534,7 +542,7 @@ public class DbProcessTest extends TaskTest {
 		Level logLevel = Level.error;
 		boolean logToConsole = true;
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null);
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, assureTestTablesExist);
 		Analyzer.RecordIterator recordIterator = analyzer.recordIterator();
 
 		assertNextTaskFailed(recordIterator, "FAILCSV4", "The file has wrong number of columns for the requested operation");
@@ -584,7 +592,7 @@ public class DbProcessTest extends TaskTest {
 		Level logLevel = Level.error;
 		boolean logToConsole = true;
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null);
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, assureTestTablesExist);
 		Analyzer.RecordIterator recordIterator = analyzer.recordIterator();
 
 		Analyzer.Record record;

@@ -44,7 +44,7 @@ public class DoTaskTest extends TaskTest {
 		Level logLevel = Level.info;
 		boolean logToConsole = true;
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null); 
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null); 
 
 		Analyzer.RecordIterator recordIterator = analyzer.recordIterator(processId, "LOOP.ECHO");
 		Analyzer.Record record = null;
@@ -95,7 +95,7 @@ public class DoTaskTest extends TaskTest {
 		Level logLevel = Level.info;
 		boolean logToConsole = true;
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null); 
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null); 
 
 		Analyzer.RecordIterator recordIterator;
 		Analyzer.Record record;

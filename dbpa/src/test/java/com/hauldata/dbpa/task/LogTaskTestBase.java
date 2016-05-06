@@ -17,7 +17,7 @@ public abstract class LogTaskTestBase extends TaskTest {
 			String script,
 			String logMessage) throws Exception {
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null); 
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null); 
 
 		Analyzer.RecordIterator recordIterator = analyzer.recordIterator();
 

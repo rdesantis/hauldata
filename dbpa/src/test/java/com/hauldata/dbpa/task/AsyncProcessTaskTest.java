@@ -57,7 +57,7 @@ public class AsyncProcessTaskTest extends TaskTest {
 		Level logLevel = Level.info;
 		boolean logToConsole = true;
 
-		analyzer = runScript(processId, logLevel, logToConsole, script, null, nestedScripts); 
+		analyzer = runScript(processId, logLevel, logToConsole, script, null, nestedScripts, null); 
 	}
 
 	private void testAsyncProcessLaunch(String taskId) throws Exception {

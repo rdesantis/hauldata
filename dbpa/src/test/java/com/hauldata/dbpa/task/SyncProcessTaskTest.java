@@ -45,7 +45,7 @@ public class SyncProcessTaskTest extends TaskTest {
 		Level logLevel = Level.info;
 		boolean logToConsole = true;
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, nestedScripts); 
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, nestedScripts, null); 
 
 		Analyzer.RecordIterator recordIterator = analyzer.recordIterator();
 
