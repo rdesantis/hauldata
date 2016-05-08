@@ -1,0 +1,17 @@
+PARAMETERS
+	name VARCHAR,
+	number INT
+END PARAMETERS
+
+TASK
+	LOG 'Sample process'
+END TASK
+
+TASK SayName
+	LOG 'Name is ' + name
+END TASK
+
+TASK SayNumberPlus
+	AFTER SayName
+	LOG 'Number ' + FORMAT(number, 'd') + ' plus 5 is ' + FORMAT(number + 5, 'd')
+END TASK

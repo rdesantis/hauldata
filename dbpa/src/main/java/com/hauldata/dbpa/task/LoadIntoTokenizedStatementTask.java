@@ -44,7 +44,7 @@ public class LoadIntoTokenizedStatementTask extends FileTask {
 	@Override
 	protected void execute(Context context) {
 
-		PageIdentifier page = this.page.evaluate(context);
+		PageIdentifier page = this.page.evaluate(context, false);
 
 		try {
 			ReadPage readPage = page.load(context.files);

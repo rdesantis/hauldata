@@ -39,7 +39,7 @@ public class RunScriptTask extends DatabaseTask {
 	@Override
 	protected void execute(Context context) {
 
-		Path sourcePath = context.getDataPath(source.evaluate());
+		Path sourcePath = context.getReadPath(source.evaluate());
 		context.files.assureNotOpen(sourcePath);
 
 		// Get the script body into a string.

@@ -40,10 +40,6 @@ public class ContextProperties {
 	private Properties pathProps;
 	private Properties logProps;
 
-	private String dataPath;
-	private String processPath;
-	private String logPath;
-
 	private static final String dbpaHomeName = "DBPA_HOME";
 	private static final String dbpaHome;
 
@@ -78,11 +74,6 @@ public class ContextProperties {
 		ftpProps = getProperties("ftp", defaults.ftpProps);
 		pathProps = getProperties("path", defaults.pathProps);
 		logProps = getProperties("log", defaults.logProps);
-
-		String[] paths = getPaths(pathProps);
-		dataPath = paths[0];
-		processPath = paths[1];
-		logPath = paths[2];
 	}
 
 	public Context createContext(String processId) {
@@ -96,10 +87,10 @@ public class ContextProperties {
 		try {
 			// TODO: Make loader type configurable through properties.
 
-			Loader loader = (parentContext == null) ? new FileLoader(processPath) : parentContext.loader;
-			
-			context = new Context(connectionProps, sessionProps, ftpProps, dataPath, loader);
-			
+			Loader loader = (parentContext == null) ? new FileLoader(getPathname("process")) : parentContext.loader;
+
+			context = new Context(connectionProps, sessionProps, ftpProps, pathProps, loader);
+
 			context.logger = (parentContext == null) ? setupLog(processId, context) : parentContext.logger.nestProcess(processId);
 		}
 		catch (Exception ex) {
@@ -154,24 +145,16 @@ public class ContextProperties {
 	private Properties getDefaultPathsProperties() {
 
 		Properties props = new Properties();
-		props.setProperty("data", ".");
+		props.setProperty("read", ".");
+		props.setProperty("write", ".");
 		props.setProperty("process", ".");
 		props.setProperty("log", ".");
 		return props;
 	}
 
-	private String[] getPaths(Properties pathProps) {
-
-		if (pathProps == null) {
-			// Defensive: This path should never execute because of how ContextProperties() default constructor is defined.
-			pathProps = getDefaultPathsProperties();
-		}
-
-		String dataPath = pathProps.getProperty("data");
-		String processPath = pathProps.getProperty("process");
-		String logPath = pathProps.getProperty("log");
-
-		return new String[] { dataPath, processPath, logPath };
+	private String getPathname(String usage) {
+		// Defensive: The == null path should never execute because of how ContextProperties() default constructor is defined.
+		return (pathProps != null) ? pathProps.getProperty(usage, ".") : ".";
 	}
 
 	private Logger setupLog(String processID, Context context) {
@@ -196,7 +179,7 @@ public class ContextProperties {
 					log.add(new ConsoleAppender());
 				}
 				else if (logType.equals("file")) {
-					String fileName = Files.getPath(logPath, logProps.getProperty("fileName")).toString();
+					String fileName = Files.getPath(getPathname("log"), logProps.getProperty("fileName")).toString();
 					String rolloverSchedule = logProps.getProperty("fileRollover");
 
 					log.add(new FileAppender(fileName, rolloverSchedule));
@@ -218,6 +201,6 @@ public class ContextProperties {
 	}
 	
 	public Path getProcessPath() {
-		return Files.getPath(processPath);
+		return Files.getPath(getPathname("process"));
 	}
 }

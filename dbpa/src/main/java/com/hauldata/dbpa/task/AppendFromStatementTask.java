@@ -41,7 +41,7 @@ public class AppendFromStatementTask extends FileTask {
 	@Override
 	protected void execute(Context context) throws Exception {
 
-		PageIdentifier page = this.page.evaluate(context);
+		PageIdentifier page = this.page.evaluate(context, true);
 		String statement = this.statement.evaluate();
 
 		try {

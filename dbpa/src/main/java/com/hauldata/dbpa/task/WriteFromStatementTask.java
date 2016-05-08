@@ -45,7 +45,7 @@ public class WriteFromStatementTask extends FileTask {
 	@Override
 	protected void execute(Context context) {
 
-		PageIdentifier page = this.page.evaluate(context);
+		PageIdentifier page = this.page.evaluate(context, true);
 		WriteHeaders headers = this.headers.evaluate();
 		String statement = this.statement.evaluate();
 

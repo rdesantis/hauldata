@@ -86,7 +86,13 @@ public class Files extends File.Owner {
 	 */
 	public static String[] getParentAndFileName(String fileName) {
 
-		int lastSeparatorIndex = fileName.lastIndexOf(fs.getSeparator());
+		// FileSystem.getPath(String) does not accept the wildcard character so it can't be used here.
+		// On MS Windows, the file separator is backslash but forward slash is also accepted.
+		// Allow the user to specify either. 
+
+		int lastSeparatorIndex = Math.max(
+				fileName.lastIndexOf(fs.getSeparator()),
+				fileName.lastIndexOf("/"));
 		if (lastSeparatorIndex == -1) {
 			return new String[] { "." , fileName };
 		}

@@ -55,7 +55,7 @@ public class ForReadTask extends FileTask {
 	@Override
 	protected void execute(Context context) {
 
-		PageIdentifier page = this.page.evaluate(context);
+		PageIdentifier page = this.page.evaluate(context, false);
 		ReadHeaders headers = this.headers.evaluate();
 
 		context.files.assureNotOpen(page.getPath());

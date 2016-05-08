@@ -45,7 +45,7 @@ public class LoadIntoStatementTask extends FileTask {
 	@Override
 	protected void execute(Context context) {
 
-		PageIdentifier page = this.page.evaluate(context);
+		PageIdentifier page = this.page.evaluate(context, false);
 		String statement = this.statement.evaluate();
 
 		try {

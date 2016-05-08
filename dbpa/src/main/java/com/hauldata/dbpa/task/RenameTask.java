@@ -37,7 +37,7 @@ public class RenameTask extends RenameOrCopyTask {
 
 	@Override
 	protected void execute(Context context) {
-		doAction(context, context.getDataPath(from.evaluate()), context.getDataPath(to.evaluate()));
+		doAction(context, context.getWritePath(from.evaluate()), context.getWritePath(to.evaluate()));
 	}
 
 	@Override

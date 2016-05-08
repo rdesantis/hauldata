@@ -36,7 +36,7 @@ public class MakeDirectoryTask extends Task {
 	@Override
 	protected void execute(Context context) {
 
-		Path path = context.getDataPath(this.path.evaluate());
+		Path path = context.getWritePath(this.path.evaluate());
 		try {
 			Files.createDirectory(path);
 		}

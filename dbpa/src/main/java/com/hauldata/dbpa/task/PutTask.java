@@ -67,7 +67,7 @@ public class PutTask extends Task {
 
 			for (Expression<String> localName : localNames) {
 
-				Path localFilePath = context.getDataPath(localName.evaluate());
+				Path localFilePath = context.getWritePath(localName.evaluate());
 				context.files.assureNotOpen(localFilePath);
 
 				FileObject localFile = manager.resolveFile(localFilePath.toString());

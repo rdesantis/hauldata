@@ -59,7 +59,7 @@ public class ZipTask extends Task {
 			String targetName = target.evaluate();
 			out = new ZipOutputStream(
 					new BufferedOutputStream(
-							new FileOutputStream(context.getDataPath(targetName).toFile())));
+							new FileOutputStream(context.getWritePath(targetName).toFile())));
 
 			byte data[] = new byte[BUFFER];
 
@@ -67,7 +67,7 @@ public class ZipTask extends Task {
 				
 				String sourceName = source.evaluate();
 				String[] parentAndFileName = com.hauldata.dbpa.process.Files.getParentAndFileName(sourceName);
-				Path parentPath = context.getDataPath(parentAndFileName[0]);
+				Path parentPath = context.getWritePath(parentAndFileName[0]);
 
 				try {
 					paths = Files.newDirectoryStream(parentPath, parentAndFileName[1]);

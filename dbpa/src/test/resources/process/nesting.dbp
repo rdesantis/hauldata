@@ -1,0 +1,13 @@
+TASK Start
+	LOG 'Hello'
+END TASK
+
+TASK Nest
+	AFTER Start
+	PROCESS 'sample' 'wombat', 123
+END TASK
+
+TASK End
+	AFTER Nest
+	LOG 'Goodbye'
+END TASK

@@ -1,0 +1,1 @@
+TASK RunScript RUN SCRIPT 'inserter.sql' END TASK

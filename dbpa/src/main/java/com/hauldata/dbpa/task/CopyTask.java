@@ -41,7 +41,7 @@ public class CopyTask extends RenameOrCopyTask {
 	@Override
 	protected void execute(Context context) {
 
-		Path toPath = context.getDataPath(to.evaluate());
+		Path toPath = context.getWritePath(to.evaluate());
 		boolean toDirectory = Files.isDirectory(toPath);
 
 		if ((from.size() > 1) && !toDirectory) {
@@ -54,7 +54,7 @@ public class CopyTask extends RenameOrCopyTask {
 				
 				String sourceName = source.evaluate();
 				String[] parentAndFileName = com.hauldata.dbpa.process.Files.getParentAndFileName(sourceName);
-				Path parentPath = context.getDataPath(parentAndFileName[0]);
+				Path parentPath = context.getWritePath(parentAndFileName[0]);
 	
 				try {
 					sourcePaths = Files.newDirectoryStream(parentPath, parentAndFileName[1]);

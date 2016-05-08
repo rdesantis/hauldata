@@ -19,7 +19,7 @@ package com.hauldata.dbpa.task;
 import java.io.StringReader;
 import java.util.Map;
 
-import com.hauldata.dbpa.DbProcessTestProperties;
+import com.hauldata.dbpa.DbProcessTestPropertiesBase;
 import com.hauldata.dbpa.loader.TestLoader;
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.ConsoleAppender;
@@ -49,10 +49,10 @@ public abstract class TaskTest extends TestCase {
 			Map<String, String> nestedScripts,
 			ContextAction setup) throws Exception {
 
-		final String testPropsClass = "com.hauldata.dbpa.DbProcessTestPropertiesImpl";
-		DbProcessTestProperties testProps = null;
+		final String testPropsClass = "com.hauldata.dbpa.DbProcessTestProperties";
+		DbProcessTestPropertiesBase testProps = null;
 		try {
-			testProps = (DbProcessTestProperties) Class.forName(testPropsClass).newInstance();
+			testProps = (DbProcessTestPropertiesBase) Class.forName(testPropsClass).newInstance();
 		}
 		catch (Exception ex) {
 			System.err.println("Error attempting to load class " + testPropsClass);
@@ -65,7 +65,7 @@ public abstract class TaskTest extends TestCase {
 				testProps.getConnectionProperties(),
 				testProps.getMailProperties(),
 				testProps.getFtpProperties(),
-				testProps.getDataPath(),
+				testProps.getPathProperties(),
 				new TestLoader(nestedScripts));
 
 		RootLogger logger = new RootLogger(processId, logLevel);

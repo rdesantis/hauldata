@@ -1,0 +1,21 @@
+TASK LongRunSql
+	RUN SQL DO SLEEP(5)
+END TASK
+
+TASK LongRunStatement
+	AFTER LongRunSql COMPLETES
+	
+	RUN STATEMENT 'DO SLEEP(5)'
+END TASK
+
+TASK LongWriteCsvSql
+	AFTER LongRunStatement COMPLETES
+	
+	WRITE CSV 'longsql.csv' FROM SQL SELECT SLEEP(5) AS zero, 123 AS one_two_three
+END TASK
+
+TASK LongWriteCsvStatement
+	AFTER LongWriteCsvSql COMPLETES
+	
+	WRITE CSV 'longstmt.csv' FROM STATEMENT 'SELECT SLEEP(5) AS zero, 123 AS one_two_three'
+END TASK

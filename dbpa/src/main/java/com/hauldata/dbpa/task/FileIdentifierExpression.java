@@ -29,7 +29,7 @@ public class FileIdentifierExpression extends PageIdentifierExpression {
 	}
 
 	@Override
-	public PageIdentifier evaluate(Context context) {
-		return new FileIdentifier(handler, context.getDataPath(filePath.evaluate()));
+	public PageIdentifier evaluate(Context context, boolean writeNotRead) {
+		return new FileIdentifier(handler, context.getDataPath(filePath.evaluate(), writeNotRead));
 	}
 }

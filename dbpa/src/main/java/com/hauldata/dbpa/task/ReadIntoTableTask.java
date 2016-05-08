@@ -53,7 +53,7 @@ public class ReadIntoTableTask extends FileTask {
 	@Override
 	protected void execute(Context context) {
 
-		PageIdentifier page = this.page.evaluate(context);
+		PageIdentifier page = this.page.evaluate(context, false);
 		ReadHeaders headers = this.headers.evaluate();
 		String table = this.table.evaluate();
 		String prefix = (this.prefix != null) ? this.prefix.evaluate() : null;

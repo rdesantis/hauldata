@@ -45,7 +45,7 @@ public class WriteFromTableTask extends FileTask {
 	@Override
 	protected void execute(Context context) {
 
-		PageIdentifier page = this.page.evaluate(context);
+		PageIdentifier page = this.page.evaluate(context, true);
 		WriteHeaders headers = this.headers.evaluate();
 		String table = this.table.evaluate();
 

@@ -1,0 +1,24 @@
+VARIABLES
+	duration INTEGER,
+	repetitions INTEGER,
+	start DATETIME,
+	finish DATETIME,
+	when VARCHAR
+END VARIABLES
+
+TASK SetRange
+	SET
+		duration = 5,
+		repetitions = 4,
+		start = DATEADD(SECOND, duration, GETDATE()),
+		finish = DATEADD(SECOND, duration * (repetitions - 1), start),
+		when = 'TODAY NOW, TODAY EVERY ' + FORMAT(duration, 'd') + ' SECONDS FROM ''' +
+				FORMAT(start, 'hh:mm:ss a') + ''' UNTIL ''' +
+				FORMAT(finish, 'hh:mm:ss a') + ''''
+END TASK
+
+TASK ShowSchedule AFTER SetRange LOG when END TASK
+
+TASK Sleeper AFTER ShowSchedule ON SCHEDULE when
+	TASK Logger LOG 'Recurring scheduled task' END TASK
+END TASK

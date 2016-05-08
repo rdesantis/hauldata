@@ -85,7 +85,7 @@ public class EmailTask extends Task {
 			}
 
 			for (Expression<String> attachment : attachments) {
-				Path path = context.getDataPath(attachment.evaluate());
+				Path path = context.getWritePath(attachment.evaluate());
 				context.files.assureNotOpen(path);
 
 				BodyPart attachmentBodyPart = new MimeBodyPart();

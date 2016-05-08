@@ -45,7 +45,7 @@ public class DeleteTask extends Task {
 
 				String fileName = file.evaluate();
 				String[] parentAndFileName = com.hauldata.dbpa.process.Files.getParentAndFileName(fileName);
-				Path parentPath = context.getDataPath(parentAndFileName[0]);
+				Path parentPath = context.getWritePath(parentAndFileName[0]);
 	
 				try {
 					filePaths = Files.newDirectoryStream(parentPath, parentAndFileName[1]);

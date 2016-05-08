@@ -31,5 +31,5 @@ public abstract class PageIdentifierExpression {
 		this.filePath = filePath;
 	}
 
-	public abstract PageIdentifier evaluate(Context context);
+	public abstract PageIdentifier evaluate(Context context, boolean writeNotRead);
 }

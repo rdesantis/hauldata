@@ -33,7 +33,7 @@ public class SheetIdentifierExpression extends PageIdentifierExpression {
 	}
 
 	@Override
-	public PageIdentifier evaluate(Context context) {
-		return new SheetIdentifier(handler, context.getDataPath(filePath.evaluate()), sheetName.evaluate());
+	public PageIdentifier evaluate(Context context, boolean writeNotRead) {
+		return new SheetIdentifier(handler, context.getDataPath(filePath.evaluate(), writeNotRead), sheetName.evaluate());
 	}
 }

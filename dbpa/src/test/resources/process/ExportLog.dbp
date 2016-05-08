@@ -1,0 +1,4 @@
+TASK WriteLog
+	WRITE CSV 'log.csv' FROM SQL
+	SELECT * FROM test.log
+END TASK

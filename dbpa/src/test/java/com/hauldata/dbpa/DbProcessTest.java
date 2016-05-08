@@ -50,21 +50,23 @@ public class DbProcessTest extends TaskTest {
 
 		// Set up context properties.
 
-		DbProcessTestProperties testProps = new DbProcessTestPropertiesImpl();
+		DbProcessTestPropertiesBase testProps = new DbProcessTestProperties();
 
 		Properties connProps = testProps.getConnectionProperties();
 		Properties mailProps = testProps.getMailProperties();
 		Properties ftpProps = testProps.getFtpProperties();
-		String dataPath = testProps.getDataPath();
-		String logPath = testProps.getLogPath();
+		Properties pathProps = testProps.getPathProperties();
+
+		String logFileName = pathProps.getProperty("log", ".") + "\\" + "test %d{yyyy-MM-dd} at time %d{HH-mm-ss}.log";
+		String logRollover = "Daily every 10 seconds";
 
 		// Create context and set up logging.
 
-		Context context = new Context(connProps, mailProps, ftpProps, dataPath, new DummyLoader());
+		Context context = new Context(connProps, mailProps, ftpProps, pathProps, new DummyLoader());
 
 		RootLogger logger = new RootLogger("DBPATest", Logger.Level.info);
 		logger.add(new ConsoleAppender());
-		logger.add(new FileAppender(logPath + "\\" + "test %d{yyyy-MM-dd} at time %d{HH-mm-ss}.log", "Daily every 10 seconds"));
+		logger.add(new FileAppender(logFileName, logRollover));
 		context.logger = logger;
 
 		// Make sure the test tables exist.
@@ -117,8 +119,7 @@ public class DbProcessTest extends TaskTest {
 				"TASK CreateCsv2 AFTER NameCsv2 CREATE CSV csv2 WITH NO HEADERS END TASK \n" +
 				"TASK WriteCsv2 AFTER CreateCsv2 APPEND CSV csv2 FROM SQL SELECT * FROM test.importtarget END TASK \n" +
 /*mail*///		"TASK EmailCsv2 AFTER WriteCsv2 EMAIL FROM 'rdesantis@cmtnyc.com' TO 'rdesantis@comcast.net' SUBJECT 'From DBPA' ATTACH csv2 END TASK \n" +
-//TODO: Remove hard-coded driver letter!
-"TASK NameCsv3 AFTER OpenNonExistent COMPLETES SET child = 'D:\\Temp\\child\\child file.csv' END TASK \n" +
+				"TASK NameCsv3 AFTER OpenNonExistent COMPLETES SET child = 'child/child file.csv' END TASK \n" +
 				"TASK CreateCsv3 AFTER NameCsv3 CREATE CSV child END TASK \n" +
 				"TASK WriteCsv3 AFTER CreateCsv3 APPEND CSV child FROM SQL SELECT * FROM test.things END TASK\n" +
 				"TASK NameTsv AFTER OpenNonExistent COMPLETES SET tsvName = 'tabbed.tsv' END TASK \n" +
@@ -136,7 +137,8 @@ public class DbProcessTest extends TaskTest {
 				"TASK NewWriteXlsx3 AFTER NewWriteXlsx2 WRITE XLSX 'written headers.xlsx' 'yet another sheet' FROM SQL SELECT * FROM test.things END TASK \n" +
 				"TASK NewWriteXlsx4 AFTER NewWriteXlsx3 WRITE XLSX 'written headers.xlsx' 'final sheet' NO HEADERS FROM SQL SELECT * FROM test.things END TASK \n" +
 				"TASK Appender APPEND CSV 'append me.csv' FROM SQL SELECT * FROM test.things END TASK \n" +
-				"TASK UnZipper UNZIP 'sql200n.zip' TO 'trash' END TASK \n" +
+				"TASK CopyZip COPY '../../../../src/test/resources/data/sql200n.zip' TO 'sql200n.zip' END TASK \n" +
+				"TASK UnZipper AFTER CopyZip UNZIP 'sql200n.zip' TO 'trash' END TASK \n" +
 				"TASK Deleter DELETE 'final target.csv', 'target.csv' END TASK \n" +
 				"TASK Copier AFTER Appender SUCCEEDS AND Deleter COMPLETES COPY 'append me.csv' TO 'target.csv' END TASK \n" +
 				"TASK Renamer AFTER Copier SUCCEEDS AND Deleter COMPLETES RENAME 'target.csv' TO 'final target.csv' END TASK \n" +
@@ -154,10 +156,9 @@ public class DbProcessTest extends TaskTest {
 				"TASK ShowDateFromParts AFTER ForLoop COMPLETES LOG '2/29/2016 from parts = ' + FORMAT(DATEFROMPARTS(2016, 2, 29), 'M/d/yyyy') END TASK \n" +
 				"TASK MkDir AFTER ShowDateFromParts MAKE DIRECTORY 'where this goes' END TASK \n" +
 				"TASK RunScript AFTER MkDir COMPLETES RUN SCRIPT 'inserter.sql' END TASK \n" +
-//TODO: Remove hard-coded driver letter!
-				"TASK ZipWildcards AFTER RunScript ZIP 'D:\\code\\dbpa\\*.properties', 'process\\*.*' TO 'wildcarded.zip' END TASK \n" +
-				"TASK CopyWildcards AFTER ZipWildcards COPY 'written*.*', '*.sql' TO 'trash' END TASK \n" +
-				"TASK DeleteWildcards AFTER UnZipper AND CopyWildcards DELETE 'trash\\*Framework*', 'trash\\5CD2-11-Schemata-2006-01.pdf' END TASK \n" +
+				"TASK ZipWildcards AFTER RunScript ZIP '*.csv', '../../../../src/test/resources/process/*.*' TO 'wildcarded.zip' END TASK \n" +
+				"TASK CopyWildcards AFTER ZipWildcards COPY 'written*.*', '*.txt' TO 'trash' END TASK \n" +
+				"TASK DeleteWildcards AFTER UnZipper AND CopyWildcards DELETE 'trash/*Framework*', 'trash/5CD2-11-Schemata-2006-01.pdf' END TASK \n" +
 				"TASK Async1 AFTER DeleteWildcards PROCESS ASYNC 'asyncproc1' WITH 'my butt', 1 END TASK \n" +
 				"TASK Async2 AFTER Async1 PROCESS ASYNCHRONOUSLY 'asyncproc2' WITH 'your butt', 2 END TASK \n" +
 				"TASK AsyncDone AFTER Async2 LOG 'After sequential async tasks' END TASK \n" +

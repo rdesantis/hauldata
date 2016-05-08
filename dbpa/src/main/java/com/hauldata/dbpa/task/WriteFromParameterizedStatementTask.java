@@ -51,7 +51,7 @@ public class WriteFromParameterizedStatementTask extends FileTask {
 	@Override
 	protected void execute(Context context) {
 
-		PageIdentifier page = this.page.evaluate(context);
+		PageIdentifier page = this.page.evaluate(context, true);
 		WriteHeaders headers = this.headers.evaluate();
 		List<Object> values = this.expressions.stream().map(e -> e.getEvaluationObject()).collect(Collectors.toCollection(LinkedList::new));
 

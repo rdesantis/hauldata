@@ -40,7 +40,7 @@ public class Context {
 	public Properties connectionProps;
 	public Properties sessionProps;
 	public Properties ftpProps;
-	public String dataPath;
+	public Properties pathProps;
 	public Loader loader;
 	public Logger logger;
 	public TaskExecutor executor;
@@ -48,7 +48,8 @@ public class Context {
 
 	public Files files;
 
-	private Path dataParent;
+	private Path readParent;
+	private Path writeParent;
 
 	private static class Resources {
 		public Connection conn;
@@ -73,7 +74,7 @@ public class Context {
 	 * - connectionProps are the properties to use when setting up a database connection for the process
 	 * - sessionProps are properties to use when setting up a JavaMail session for the process
 	 * - ftpProps are properties to use when setting up an FTP server connection for the process
-	 * - dataPath is the path for data files
+	 * - pathProps contain the default paths to use when reading and writing files
 	 * - loader is the factory to instantiate nested processes
 	 * 
 	 * In addition, the following public data member should be set BY THE CALLER AFTER the context has been constructed.
@@ -86,12 +87,12 @@ public class Context {
 	 * - files is the set of files written and/or read by the process
 	 * - executor is task executor to which addition concurrent tasks can be submitted
 	 */
-	public Context(Properties connectionProps, Properties sessionProps, Properties ftpProps, String dataPath, Loader loader) {
+	public Context(Properties connectionProps, Properties sessionProps, Properties ftpProps, Properties pathProps, Loader loader) {
 
 		this.connectionProps = connectionProps;
 		this.sessionProps = sessionProps;
 		this.ftpProps = ftpProps;
-		this.dataPath = dataPath;
+		this.pathProps = pathProps;
 		this.loader = loader;
 
 		logger = NullLogger.logger;
@@ -101,9 +102,18 @@ public class Context {
 		executor = new TaskExecutor();
 		rootExecutor = executor;
 
-		dataParent = Files.getPath(dataPath);
+		readParent = getParent(pathProps, "read");
+		writeParent = getParent(pathProps, "write");
 
 		resources = new Resources();
+	}
+
+	private static Path getParent(Properties pathProps, String mode) {
+		String location = ".";
+		if (pathProps != null) {
+			location = pathProps.getProperty(mode, pathProps.getProperty("data", location));
+		}
+		return Files.getPath(location);
 	}
 
 	/**
@@ -123,7 +133,7 @@ public class Context {
 	 */
 	public Context nestContext() {
 		
-		Context context = new Context(connectionProps, sessionProps, ftpProps, dataPath, loader);
+		Context context = new Context(connectionProps, sessionProps, ftpProps, pathProps, loader);
 
 		context.executor = new TaskExecutor();
 		context.rootExecutor = context.executor;
@@ -150,7 +160,7 @@ public class Context {
 	 */
 	public Context cloneContext() {
 		
-		Context context = new Context(connectionProps, sessionProps, ftpProps, dataPath, loader);
+		Context context = new Context(connectionProps, sessionProps, ftpProps, pathProps, loader);
 
 		context.logger = logger;
 		context.files = files;
@@ -158,7 +168,8 @@ public class Context {
 		context.executor = new TaskExecutor();
 		context.rootExecutor = rootExecutor;
 
-		context.dataParent = dataParent;
+		context.readParent = readParent;
+		context.writeParent = writeParent;
 		context.resources = resources;
 
 		return context;
@@ -357,11 +368,17 @@ public class Context {
 
 	/**
 	 * Get the fully-resolved path of a file name that may include a relative or absolute path.
-	 * Uses the dataPath of the context to resolve relative paths.
+	 * Uses the readPath of the context to resolve relative paths.
 	 * @param fileName is the file name to resolve.
 	 * @return the fully-resolved path
 	 */
-	public Path getDataPath(String fileName) {
-		return dataParent.resolve(fileName).toAbsolutePath().normalize();
+	public Path getReadPath(String fileName) {
+		return readParent.resolve(fileName).toAbsolutePath().normalize();
+	}
+	public Path getWritePath(String fileName) {
+		return writeParent.resolve(fileName).toAbsolutePath().normalize();
+	}
+	public Path getDataPath(String fileName, boolean writeNotRead) {
+		return writeNotRead ? getWritePath(fileName) : getReadPath(fileName);
 	}
 }

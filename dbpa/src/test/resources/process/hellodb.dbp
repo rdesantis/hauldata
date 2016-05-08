@@ -1,0 +1,4 @@
+TASK SayHello
+	WRITE TXT 'hello.txt' FROM SQL
+	SELECT 'Hello, world!'
+END TASK
