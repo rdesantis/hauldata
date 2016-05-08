@@ -7,7 +7,7 @@ TASK Nest
 	PROCESS 'sample' 'wombat', 123
 END TASK
 
-TASK End
+TASK
 	AFTER Nest
 	LOG 'Goodbye'
 END TASK

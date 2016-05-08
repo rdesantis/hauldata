@@ -57,7 +57,7 @@ public class DbProcessTest extends TaskTest {
 		Properties ftpProps = testProps.getFtpProperties();
 		Properties pathProps = testProps.getPathProperties();
 
-		String logFileName = pathProps.getProperty("log", ".") + "\\" + "test %d{yyyy-MM-dd} at time %d{HH-mm-ss}.log";
+		String logFileName = pathProps.getProperty("log", ".") + "/" + "test %d{yyyy-MM-dd} at time %d{HH-mm-ss}.log";
 		String logRollover = "Daily every 10 seconds";
 
 		// Create context and set up logging.
@@ -75,9 +75,7 @@ public class DbProcessTest extends TaskTest {
 
 		// Now ready to run scripts.
 
-		String script;
-///*
-		script =
+		String script =
 				"PARAMETERS increment INTEGER END PARAMETERS \n" +
 				"VARIABLES future DATETIME, garbage VARCHAR, something VARCHAR, three INTEGER, \n" +
 				"name VARCHAR, description VARCHAR, size INTEGER, report VARCHAR, report2 VARCHAR, import VARCHAR, csv2 VARCHAR, child VARCHAR, tsvName VARCHAR, \n" +
@@ -182,43 +180,7 @@ public class DbProcessTest extends TaskTest {
 				"TASK WaitforTime3 AFTER Scheduler3 WAITFOR TIME FORMAT(DATEADD(SECOND, 3, GETDATE()), 'HH:mm:ss') END TASK \n" +
 				"TASK LOG 'Early anonymous task' END TASK \n" +
 				"";
-//*/
-/*
-		LocalDateTime x;
-		x = LocalDateTime.parse("2015-09-15 10:30", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-		x = LocalDateTime.parse("08/15/2015 10:30", DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm"));
-		x = LocalDateTime.parse("8/5/2015 10:30", DateTimeFormatter.ofPattern("M/d/yyyy HH:mm"));
-		x = LocalDateTime.parse("07/23/2015 10:30", DateTimeFormatter.ofPattern("M/d/yyyy HH:mm"));
-		x = LocalDateTime.parse("07/23/2015 10:30", DateTimeFormatter.ofPattern("M/d/yyyy H:mm"));
-		x = LocalDateTime.parse("07/24/2015 10:30", DateTimeFormatter.ofPattern("M/d/yyyy[ H:mm]"));
-		x = LocalDate.parse("07/25/2015", DateTimeFormatter.ofPattern("M/d/yyyy[ H:mm]")).atStartOfDay();
-		System.out.println(x);
-*/
 
-/*
-		script =
-				"VARIABLES \n" +
-					"d1 DATETIME, d2 DATETIME, d3 DATETIME, \n" +
-					"s1 VARCHAR, s2 VARCHAR, s3 VARCHAR, \n" + 
-					"i1 INTEGER, i2 INTEGER, i3 INTEGER \n" +
-				"END VARIABLES \n" +
-				"TASK DateMath SET \n" +
-					"d1 = '9/1/2015 9:30 PM', \n" + 
-					"d2 = '2001-8-10 12:34:56', \n" +
-					"d3 = '2015-09-05T00:40:26.090' \n" +
-				"END TASK \n" +
-				"TASK Echo AFTER DateMath LOG \n" +
-					"'d1 = ' + FORMAT(d1,'yyyy-MM-dd HH:mm:ss') + ', d2 = ' + FORMAT(d2,'yyyy-MM-dd') + ', d3 = ' + FORMAT(d3,'M/d/yyyy h:mm:ss a') \n" +
-				"END TASK \n" +
-				"TASK Zipper AFTER Echo ZIP \n" +
-					"FROM 'no header.csv', 'another test file.xlsx' TO 'no header.zip' \n" +
-				"END TASK \n" +
-				"TASK UnZipper UNZIP \n" +
-					"FROM 'sql200n.zip' TO 'trash' \n" +
-//					"FROM 'sql200n.zip' \n" +
-				"END TASK \n" +
-				"";
-*/
 /*
 		script = 
 				"VARIABLES import VARCHAR END VARIABLES \n" +
@@ -425,6 +387,38 @@ public class DbProcessTest extends TaskTest {
 		assertEquals("notnullint IS NOT NULL", record.message);
 
 		assertFalse(recordIterator.hasNext());
+	}
+
+	public void testDateFormat() throws Exception {
+
+		String processId = "DateFormatTest";
+		String script =
+				"VARIABLES \n" +
+					"d1 DATETIME, d2 DATETIME, d3 DATETIME, \n" +
+					"s1 VARCHAR, s2 VARCHAR, s3 VARCHAR, \n" +
+					"i1 INTEGER, i2 INTEGER, i3 INTEGER \n" +
+				"END VARIABLES \n" +
+				"TASK DateFormat SET \n" +
+					"d1 = '9/1/2015 9:30 PM', \n" +
+					"d2 = '2001-8-10 12:34:56', \n" +
+					"d3 = '2015-09-05T00:40:26.090' \n" +
+				"END TASK \n" +
+				"TASK Echo AFTER DateFormat LOG \n" +
+					"'d1 = ' + FORMAT(d1,'yyyy-MM-dd HH:mm:ss') + ', d2 = ' + FORMAT(d2,'yyyy-MM-dd') + ', d3 = ' + FORMAT(d3,'M/d/yyyy h:mm:ss a') \n" +
+				"END TASK \n" +
+				"";
+
+		Level logLevel = Level.message;
+		boolean logToConsole = true;
+
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
+
+		Analyzer.RecordIterator recordIterator = analyzer.recordIterator();
+		Analyzer.Record record;
+
+		record = recordIterator.next();
+		assertEquals("ECHO", record.taskId);
+		assertEquals("d1 = 2015-09-01 21:30:00, d2 = 2001-08-10, d3 = 9/5/2015 12:40:26 AM", record.message);
 	}
 
 	public void testSchedule() throws Exception {
