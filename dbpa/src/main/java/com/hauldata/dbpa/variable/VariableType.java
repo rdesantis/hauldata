@@ -27,17 +27,22 @@ import java.time.LocalDateTime;
 public abstract class VariableType {
 
 	private String name;
-	private Object example;
 
-	private VariableType(String name, Object example) {
+	private VariableType(String name) {
 		this.name = name;
-		this.example = example;
 	}
 
-	public static final VariableType INTEGER = new VariableType("INTEGER", (Integer)0) { public Object getValueChecked(Object value) { return (Integer)value; } };
-	public static final VariableType VARCHAR = new VariableType("VARCHAR", "") { public Object getValueChecked(Object value) { return (String)value; } };
-	public static final VariableType DATETIME = new VariableType("DATETIME", LocalDateTime.MIN) { public Object getValueChecked(Object value) { return (LocalDateTime)value; } };
-	public static final VariableType BOOLEAN = new VariableType("BOOLEAN", (Boolean)false)  { public Object getValueChecked(Object value) { return (Boolean)value; } };
+	public static final VariableType VARCHAR = new VariableType("VARCHAR") { public Object getValueChecked(Object value) { return (String)value; } };
+	public static final VariableType DATETIME = new VariableType("DATETIME") { public Object getValueChecked(Object value) { return (LocalDateTime)value; } };
+	public static final VariableType BOOLEAN = new VariableType("BOOLEAN")  { public Object getValueChecked(Object value) { return (Boolean)value; } };
+	public static final VariableType INTEGER = new VariableType("INTEGER") {
+		public Object getValueChecked(Object value) {
+			return
+					value instanceof Integer ? value :
+					value == null ? null :
+					(Integer)((Number)value).intValue();
+		}
+	};
 
 	/**
 	 * @return the type name
@@ -47,31 +52,11 @@ public abstract class VariableType {
 	}
 
 	/**
-	 * @return an arbitrary example of a value of the type
-	 */
-	public Object getExample() {
-		return example;
-	}
-
-	/**
-	 * Casts an object to a value that can be stored in a variable of the type.
+	 * Converts an object to a value that can be stored in a variable of the type.
 	 * Throws an exception if the value cannot be stored in the type.
 	 * 
 	 * @param value is the value to be cast
 	 * @return the value cast to the type
 	 */
 	public abstract Object getValueChecked(Object value);
-
-	/**
-	 * Return the variable type that can be used to store a value
-	 * @param example is an example of the value type to be stored
-	 * @return the VariableType that can used to store the value or null if there is no such type 
-	 */
-	public static VariableType of(Object example) {
-		return
-				example instanceof Integer ? INTEGER :
-				example instanceof String ? VARCHAR :
-				example instanceof LocalDateTime ? DATETIME :
-				null;
-	}
 }

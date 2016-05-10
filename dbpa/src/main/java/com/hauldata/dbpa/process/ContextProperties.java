@@ -145,8 +145,8 @@ public class ContextProperties {
 	private Properties getDefaultPathsProperties() {
 
 		Properties props = new Properties();
-		props.setProperty("read", ".");
-		props.setProperty("write", ".");
+		// Don't set "read" or "write" defaults.  If either of these is missing, the "data" default will be used.
+		props.setProperty("data", ".");
 		props.setProperty("process", ".");
 		props.setProperty("log", ".");
 		return props;

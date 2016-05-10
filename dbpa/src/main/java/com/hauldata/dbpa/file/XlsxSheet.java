@@ -19,10 +19,12 @@ package com.hauldata.dbpa.file;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.Date;
 
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 
@@ -104,7 +106,8 @@ public class XlsxSheet extends com.hauldata.dbpa.file.Sheet {
 		}
 
 		Cell cell = row.createCell(columnIndex - 1);
-		
+
+		String cellImage = null;
 		if (object == null) {
 			// Leave cell empty
 		}
@@ -112,33 +115,45 @@ public class XlsxSheet extends com.hauldata.dbpa.file.Sheet {
 			cell.setCellValue(((Number)object).doubleValue());
 		}
 		else if (object instanceof String) {
-			cell.setCellValue((String)object);
+			cellImage = (String)object;
+			cell.setCellValue(cellImage);
 		}
 		else if (object instanceof Boolean) {
 			cell.setCellValue((Boolean)object);
 		}
 		else if (object instanceof Date) {
-			cell.setCellValue((Date)object);
-			cell.setCellStyle(((XlsxBook)owner).getDateStyle());
-		}
-		else if (object instanceof LocalDateTime) {
-			Instant instant = ((LocalDateTime)object).toInstant(ZoneOffset.UTC);
-			Date date = Date.from(instant);
+			Date date = (Date)object;
 			cell.setCellValue(date);
-			cell.setCellStyle(((XlsxBook)owner).getDatetimeStyle());
+			// See if the date has non-zero time to determine the formatting to use.
+			// Date component getters are deprecated and are found to throw exceptions.
+			// So convert to LocalDatetime to test components.
+			Instant instant = Instant.ofEpochMilli(date.getTime());
+			LocalTime time = LocalDateTime.ofInstant(instant, ZoneId.systemDefault()).toLocalTime();
+
+			CellStyle style = null;
+			if (time.equals(LocalTime.MIDNIGHT)) {
+				style = ((XlsxBook)owner).getDateStyle();
+			}
+			else {
+				style = ((XlsxBook)owner).getDatetimeStyle();
+			}
+			cell.setCellStyle(style);
+
+			cellImage = style.getDataFormatString();
 		}
 		else {
-			cell.setCellValue(object.toString());
+			cellImage = object.toString();
+			cell.setCellValue(cellImage);
 		}
 
 		// Extend column width to hold the widest string encountered.
 
-		if (cell.getCellType() == Cell.CELL_TYPE_STRING) {
+		if (cellImage != null) {
 			final int excelColumnPaddingWidthInCharacters = 2;
 			final int excelMaxColumnWidthInCharacters = 255;
 			final int excelColumnWidthUnitsPerCharacter = 256;
 
-			int cellWidth = Math.min(cell.getStringCellValue().length() + excelColumnPaddingWidthInCharacters, excelMaxColumnWidthInCharacters) * excelColumnWidthUnitsPerCharacter;
+			int cellWidth = Math.min(cellImage.length() + excelColumnPaddingWidthInCharacters, excelMaxColumnWidthInCharacters) * excelColumnWidthUnitsPerCharacter;
 
 			Sheet sheet = row.getSheet();
 			if (cellWidth > sheet.getColumnWidth(columnIndex - 1)) {

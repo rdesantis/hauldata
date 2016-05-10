@@ -21,6 +21,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
 
 public abstract class DatabaseTask extends Task {
@@ -52,10 +56,24 @@ public abstract class DatabaseTask extends Task {
 
 		int parameterIndex = 1;
 		for (Object value : values) {
-			stmt.setObject(parameterIndex++, value);
+			stmt.setObject(parameterIndex++, setable(value));
 		}
 
 		return stmt;
+	}
+
+	/**
+	 * Return the value converted if necessary to an object type acceptable to PreparedStatement.setObject()
+	 * on all database systems. 
+	 */
+	private Object setable(Object value) {
+		if (value instanceof LocalDateTime) {
+			Instant instant = ((LocalDateTime)value).atZone(ZoneId.systemDefault()).toInstant();
+			return Date.from(instant);
+		}
+		else {
+			return value;
+		}
 	}
 
 	/**
