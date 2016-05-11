@@ -135,6 +135,7 @@ abstract class TaskSetParser {
 		DO,
 		WHILE,
 		FOR,
+		VALUES,
 		ON,
 		SCHEDULE,
 		WAITFOR,
@@ -483,19 +484,7 @@ abstract class TaskSetParser {
 
 			tokenizer.nextDelimiter("=");
 
-			ExpressionBase expression = null;
-			if (variable.getType() == VariableType.INTEGER) {
-				expression = parseIntegerExpression();
-			}
-			else if (variable.getType() == VariableType.VARCHAR) {
-				expression = parseStringExpression();
-			}
-			else if (variable.getType() == VariableType.DATETIME) {
-				expression = parseDatetimeFromCompatibleExpression();
-			}
-			else {
-				throw new InputMismatchException("Internal error - variable type not recognized in " + RW.SET.name());
-			}
+			ExpressionBase expression = parseExpression(variable.getType());
 
 			return new SetVariablesTask.Assignment(variable, expression);
 		}
@@ -1047,6 +1036,9 @@ abstract class TaskSetParser {
 			if (hasFileType(false)) {
 				return parseForReadFile(prologue, variables);
 			}
+			else if (tokenizer.skipWordIgnoreCase(RW.VALUES.name())) {
+				return parseForValues(prologue, variables);
+			}
 			else if (hasSQL(RW.FOR.name())) {
 				return parseForParameterizedStatement(prologue, variables);
 			}
@@ -1095,6 +1087,38 @@ abstract class TaskSetParser {
 			NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
 
 			return new ForReadTask(prologue, variables, page, headers, columns, taskSet);
+		}
+
+		private Task parseForValues(
+				Task.Prologue prologue,
+				ArrayList<VariableBase> variables) throws IOException, NamingException {
+
+			List<ExpressionBase[]> values = new LinkedList<ExpressionBase[]>();
+			do {
+				values.add(parseExpressionList(variables));
+			} while (tokenizer.skipDelimiter(","));
+
+			NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
+
+			return new ForValuesTask(prologue, variables, values, taskSet);
+		}
+
+		private ExpressionBase[] parseExpressionList(ArrayList<VariableBase> variables)
+				throws InputMismatchException, NoSuchElementException, IOException {
+
+			ExpressionBase[] expressionList = new ExpressionBase[variables.size()];
+			tokenizer.nextDelimiter("(");
+
+			int index = 0;
+			for (VariableBase variable : variables) {
+				expressionList[index] = parseExpression(variable.getType());
+				if (++index < variables.size()) {
+					tokenizer.nextDelimiter(",");
+				}
+			}
+
+			tokenizer.nextDelimiter(")");
+			return expressionList;
 		}
 	}
 
@@ -1352,6 +1376,26 @@ abstract class TaskSetParser {
 		else {
 			return false;
 		}
+	}
+
+	private ExpressionBase parseExpression(VariableType type)
+			throws InputMismatchException, NoSuchElementException, IOException {
+
+		ExpressionBase expression = null;
+		if (type == VariableType.INTEGER) {
+			expression = parseIntegerExpression();
+		}
+		else if (type == VariableType.VARCHAR) {
+			expression = parseStringExpression();
+		}
+		else if (type == VariableType.DATETIME) {
+			expression = parseDatetimeFromCompatibleExpression();
+		}
+		else {
+			throw new InputMismatchException("Internal error - variable type not recognized");
+		}
+
+		return expression;
 	}
 
 	private ExpressionBase parseAnyExpression() {
