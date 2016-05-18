@@ -16,6 +16,8 @@
 
 package com.hauldata.dbpa.task;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -27,6 +29,7 @@ import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.Transport;
+import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
@@ -34,8 +37,17 @@ import javax.mail.internet.MimeMultipart;
 
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
+import com.hauldata.util.tokenizer.Token;
+import com.hauldata.util.tokenizer.Tokenizer;
 
 public class EmailTask extends Task {
+
+	private Expression<String> from;
+	private List<Expression<String>> to;
+	private List<Expression<String>> cc;
+	private Expression<String> subject;
+	private Expression<String> body;
+	private List<Expression<String>> attachments;
 
 	public EmailTask(
 			Prologue prologue,
@@ -65,10 +77,10 @@ public class EmailTask extends Task {
 
 			message.setFrom(new InternetAddress(from.evaluate()));
 			for (Expression<String> to : this.to) {
-				message.addRecipient(Message.RecipientType.TO, new InternetAddress(to.evaluate()));
+				addRecipients(message, Message.RecipientType.TO, to);
 			}
 			for (Expression<String> cc : this.cc) {
-				message.addRecipient(Message.RecipientType.CC, new InternetAddress(cc.evaluate()));
+				addRecipients(message, Message.RecipientType.CC, cc);
 			}
 
 			if (subject != null) {
@@ -105,16 +117,31 @@ public class EmailTask extends Task {
 
 			Transport.send(message);
 		}
-		catch (MessagingException ex) {
+		catch (MessagingException | IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 			throw new RuntimeException("Email messaging failed: " + message);
 		}
 	}
 
-	private Expression<String> from;
-	private List<Expression<String>> to;
-	private List<Expression<String>> cc;
-	private Expression<String> subject;
-	private Expression<String> body;
-	private List<Expression<String>> attachments;
+	private void addRecipients(Message message, Message.RecipientType type, Expression<String> recipients)
+			throws AddressException, IOException, MessagingException {
+
+		String evaluatedRecipients = recipients.evaluate() + ",";
+		Tokenizer tokenizer = new Tokenizer(new StringReader(evaluatedRecipients));
+
+		StringBuilder recipient = new StringBuilder();
+		while (tokenizer.hasNext()) {
+			if (tokenizer.skipDelimiter(",")) {
+				String address = recipient.toString().trim();
+				if (!address.isEmpty()) {
+					message.addRecipient(type, new InternetAddress(address));
+				}
+				recipient = new StringBuilder();
+			}
+			else {
+				Token nextToken = tokenizer.nextToken();
+				recipient.append(nextToken.render());
+			}
+		}
+	}
 }
