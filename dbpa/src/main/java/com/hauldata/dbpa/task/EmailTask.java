@@ -37,8 +37,9 @@ import javax.mail.internet.MimeMultipart;
 
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
+import com.hauldata.util.tokenizer.Delimiter;
+import com.hauldata.util.tokenizer.DsvTokenizer;
 import com.hauldata.util.tokenizer.Token;
-import com.hauldata.util.tokenizer.Tokenizer;
 
 public class EmailTask extends Task {
 
@@ -126,12 +127,15 @@ public class EmailTask extends Task {
 	private void addRecipients(Message message, Message.RecipientType type, Expression<String> recipients)
 			throws AddressException, IOException, MessagingException {
 
+		final Delimiter comma = new Delimiter(false, ",");
+
 		String evaluatedRecipients = recipients.evaluate() + ",";
-		Tokenizer tokenizer = new Tokenizer(new StringReader(evaluatedRecipients));
+		DsvTokenizer tokenizer = new DsvTokenizer(new StringReader(evaluatedRecipients), ',');
 
 		StringBuilder recipient = new StringBuilder();
 		while (tokenizer.hasNext()) {
-			if (tokenizer.skipDelimiter(",")) {
+			Token nextToken = tokenizer.nextToken();
+			if (nextToken.equals(comma)) {
 				String address = recipient.toString().trim();
 				if (!address.isEmpty()) {
 					message.addRecipient(type, new InternetAddress(address));
@@ -139,7 +143,6 @@ public class EmailTask extends Task {
 				recipient = new StringBuilder();
 			}
 			else {
-				Token nextToken = tokenizer.nextToken();
 				recipient.append(nextToken.render());
 			}
 		}
