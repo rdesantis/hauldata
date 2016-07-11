@@ -29,10 +29,17 @@ import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Properties;
-import java.util.AbstractMap.SimpleEntry;
 
-import com.hauldata.dbpa.control.ProcessRun.Status;
+import javax.naming.NameNotFoundException;
+import javax.naming.NamingException;
+
+import com.hauldata.dbpa.control.api.ProcessConfiguration;
+import com.hauldata.dbpa.control.api.ProcessRun;
+import com.hauldata.dbpa.control.api.ScriptValidation;
+import com.hauldata.dbpa.control.api.ProcessRun.Status;
+import com.hauldata.dbpa.control.api.ScriptArgument;
 import com.hauldata.dbpa.loader.FileLoader;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.ContextProperties;
@@ -129,10 +136,10 @@ public class Controller {
 	 * Retrieve a list of all scripts available in the process directory.
 	 *
 	 * @return the list of scripts if any exists;
-	 * or an empty list if no scripts exist;
-	 * or null if an error occurred.
+	 * or an empty list if no scripts exist
+	 * @throws Exception if an error occurred
 	 */
-	public List<String> listScripts() {
+	public List<String> listScripts() throws Exception {
 
 		final String scriptSuffix = "." + FileLoader.processFileExt;
 		final int scriptSuffixLength = scriptSuffix.length();
@@ -154,7 +161,7 @@ public class Controller {
 			}
 		}
 		catch (Exception ex) {
-			scriptNames = null;
+			throw ex;
 		}
 		finally {
 			try { scriptPaths.close(); } catch (Exception ex) {}
@@ -171,8 +178,9 @@ public class Controller {
 	 *	isValid returns true if the script is valid syntactically, other false;
 	 *	validationMessage returns an error message if the validation failed, or null if it succeeded;
 	 * 	parameters returns the list of parameters that can be passed to the script.
+	 * @throws Exception if validation fails for a reason other than bad syntax
  	 */
-	public ScriptValidation validateScript(String name) {
+	public ScriptValidation validateScript(String name) throws Exception {
 
 		DbProcess process = null;
 		String validationMessage = null;
@@ -182,37 +190,37 @@ public class Controller {
 			process = context.loader.load(name);
 			parameters = process.getParameters();
 		}
-		catch (Exception ex) {
+		catch (/*InputMismatchException |*/ NoSuchElementException | /*NameNotFoundException | NameAlreadyBoundException |*/ NamingException ex) {
+			// See TaskSetParser.parseTasks() for parse exceptions.
+			// TODO: Define a SyntaxError exception that collects all syntax errors
 			validationMessage = ex.getMessage();
+		}
+		catch (Exception ex) {
+			throw ex;
 		}
 
 		return new ScriptValidation(process != null, validationMessage, parameters);
 	}
 
-	public String deleteScript(String name) {
+	public void deleteScript(String name) throws Exception {
+		//TODO
+	}
+
+	public List<String> listPropertiesFiles() throws Exception {
 		//TODO
 		return null;
 	}
 
-	public List<String> listPropertiesFiles() {
+	public void deletePropertiesFile(String name) throws Exception {
 		//TODO
-		return null;
-	}
-
-	public String deletePropertiesFile(String name) {
-		//TODO
-		return null;
 	}
 
 	/**
 	 * Create the set of database tables used to store process configurations
 	 * and run results.
-	 * 
-	 * @return an error message if the operation failed, or null if it succeeded. 
+	 * @throws Exception if schema creation fails for any reason
 	 */
-	public String createSchema() {
-
-		String message = null;
+	public void createSchema() throws Exception {
 
 		Connection conn = null;
 		Statement stmt = null;
@@ -233,26 +241,22 @@ public class Controller {
 		    stmt.executeUpdate(createRunTable);
 		}
 		catch (Exception ex) {
-			message = ex.getMessage();
+			throw ex;
 		}
 		finally {
-			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
+			try { if (stmt != null) stmt.close(); } catch (Exception ex) {}
 
 			if (conn != null) context.releaseConnection();
 		}
-
-		return message;
 	}
 
 	/**
 	 * Store a configuration in the database.
 	 * 
 	 * @param config is the configuration to store.
-	 * @return an error message if the operation failed, or null if it succeeded. 
+	 * @throws Exception if the configuration cannot be stored for any reason
 	 */
-	public String storeConfiguration(ProcessConfiguration config) {
-
-		String message = null;
+	public void storeConfiguration(ProcessConfiguration config)throws Exception {
 
 		Connection conn = null;
 		PreparedStatement stmt = null;
@@ -264,15 +268,17 @@ public class Controller {
 
 			stmt = conn.prepareStatement(insertConfig);
 
-			stmt.setString(2, config.processName);
-			stmt.setString(3, config.scriptName);
-			stmt.setString(4, config.propName);
+			stmt.setString(2, config.getProcessName());
+			stmt.setString(3, config.getScriptName());
+			stmt.setString(4, config.getPropName());
 
-			config.id = -1;
+			config.setId(-1);
 			synchronized (this) {
 
-				config.id = getNextConfigId();
-				stmt.setInt(1, config.id);
+				int nextConfigId = getNextConfigId();
+				config.setId(nextConfigId);
+
+				stmt.setInt(1, nextConfigId);
 
 				stmt.executeUpdate();
 			}
@@ -285,11 +291,11 @@ public class Controller {
 			stmt = conn.prepareStatement(insertArg);
 
 			int argIndex = 1;
-			for (SimpleEntry<String, String> argument : config.arguments) {
+			for (ScriptArgument argument : config.getArguments()) {
 
-				stmt.setInt(1, config.id);
+				stmt.setInt(1, config.getId());
 				stmt.setInt(2, argIndex++);
-				stmt.setString(3, argument.getKey());
+				stmt.setString(3, argument.getName());
 				stmt.setString(4, argument.getValue());
 
 				stmt.addBatch();
@@ -298,15 +304,13 @@ public class Controller {
 			stmt.executeBatch();
 		}
 		catch (Exception ex) {
-			message = ex.getMessage();
+			throw ex;
 		}
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
 			if (conn != null) context.releaseConnection();
 		}
-
-		return message;
 	}
 
 	private int getNextConfigId() throws Exception {
@@ -347,29 +351,12 @@ public class Controller {
 	 * Retrieve all configurations from the database
 	 *
 	 * @return the list of configurations if any exists;
-	 * or an empty list if no configuration exist;
-	 * or if an error occurred, error information appears in the final,
-	 * possibly the only, list element formatted as in loadConfiguration(String)
+	 * or an empty list if no configuration exist
+	 * @throws Exception if any error occurs
 	 */
-	public List<ProcessConfiguration> listConfigurations() {
+	public List<ProcessConfiguration> listConfigurations() throws Exception {
 
-		List<ProcessConfiguration> configs;
-
-		try {
-			configs = getConfigurations(null);
-		}
-		catch (Exception ex) {
-			configs = messageAsConfigurations(ex.getLocalizedMessage());
-		}
-
-		return configs;
-	}
-
-	private List<ProcessConfiguration> messageAsConfigurations(String message) {
-
-		List<ProcessConfiguration> configs = new LinkedList<ProcessConfiguration>();
-		configs.add(messageAsConfiguration(message));
-		return configs;
+		return getConfigurations(null);
 	}
 
 	/**
@@ -377,28 +364,12 @@ public class Controller {
 	 *
 	 * @param name is the name of the configuration to load
 	 * @return the configuration if it exists, which will have a positive
-	 * id member; or, null if the configuration does not exist;
-	 * or if an error occurred, error information formatted as a configuration
-	 * as follows:
-	 * 	id			is a non-positive integer,
-	 * 	processName	is the detailed error message. 
+	 * id member; or, null if the configuration does not exist
+	 * @throws Exception if any error occurs
 	 */
-	public ProcessConfiguration loadConfiguration(String name) {
+	public ProcessConfiguration loadConfiguration(String name) throws Exception {
 
-		ProcessConfiguration config;
-
-		try {
-			config = getConfiguration(name);
-		}
-		catch (Exception ex) {
-			config = messageAsConfiguration(ex.getLocalizedMessage());
-		}
-
-		return config;
-	}
-
-	private ProcessConfiguration messageAsConfiguration(String message) {
-		return new ProcessConfiguration(-1, message, null, null, null);
+		return getConfiguration(name);
 	}
 
 	/**
@@ -446,7 +417,7 @@ public class Controller {
 					propName = null;
 				}
 
-				List<SimpleEntry<String, String>> arguments = getArguments(id);
+				List<ScriptArgument> arguments = getArguments(id);
 
 				configs.add(new ProcessConfiguration(id, configName, scriptName, propName, arguments));
 			}
@@ -464,9 +435,9 @@ public class Controller {
 		return configs;
 	}
 
-	private List<SimpleEntry<String, String>> getArguments(int configId) throws Exception {
+	private List<ScriptArgument> getArguments(int configId) throws Exception {
 
-		List<SimpleEntry<String, String>> arguments = new LinkedList<SimpleEntry<String, String>>();
+		List<ScriptArgument> arguments = new LinkedList<ScriptArgument>();
 
 		Connection conn = null;
 		PreparedStatement stmt = null;
@@ -488,7 +459,7 @@ public class Controller {
 				String argName = rs.getString(1);
 				String argValue = rs.getString(2);
 
-				arguments.add(new SimpleEntry<String, String>(argName, argValue));
+				arguments.add(new ScriptArgument(argName, argValue));
 			}
 		}
 		catch (Exception ex) {
@@ -520,9 +491,14 @@ public class Controller {
 		return ((configs != null) && (0 < configs.size())) ? configs.get(0) : null;
 	}
 
-	public String deleteConfiguration(String name) {
-
-		String message = null;
+	/**
+	 * Delete a configuration
+	 *
+	 * @param name is the name of the configuration to delete
+	 * @throws NameNotFoundException if the configuration does not exist 
+	 * @throws Exception if any other error occurs
+	 */
+	public void deleteConfiguration(String name) throws Exception {
 
 		Connection conn = null;
 		PreparedStatement stmt = null;
@@ -531,7 +507,7 @@ public class Controller {
 			ProcessConfiguration config = getConfiguration(name);
 
 			if (config == null) {
-				return "Configuration not found";
+				throw new NameNotFoundException("Configuration not found");
 			}
 
 			conn = context.getConnection();
@@ -540,7 +516,7 @@ public class Controller {
 
 			stmt = conn.prepareStatement(deleteArgs);
 
-			stmt.setInt(1, config.id);
+			stmt.setInt(1, config.getId());
 
 			stmt.executeUpdate();
 
@@ -551,101 +527,18 @@ public class Controller {
 
 			stmt = conn.prepareStatement(deleteConfig);
 
-			stmt.setInt(1, config.id);
+			stmt.setInt(1, config.getId());
 
 			stmt.executeUpdate();
 		}
 		catch (Exception ex) {
-			message = ex.getMessage();
+			throw ex;
 		}
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
 			if (conn != null) context.releaseConnection();
 		}
-
-		return message;
-	}
-
-	/**
-	 * Retrieve a list of configuration runs from the database.
-	 * 
-	 * @param configName is the name of a single configuration or null to get runs for all configurations.
-	 * @param latest is true to only get the latest run for each configuration; otherwise, all runs are retrieved.
-	 * @return the list of runs, which will all have a positive configId value;
-	 * or if an error occurred, error information will appear in the final, possibly the only,
-	 * list element as follows:
-	 * 	configId	is a non-positive integer,
-	 * 	name		is the detailed error message. 
-	 */
-	public List<ProcessRun> listRuns(
-			String configName,
-			boolean latest) {
-
-		List<ProcessRun> runs = new LinkedList<ProcessRun>();
-
-		Connection conn = null;
-		PreparedStatement stmt = null;
-		ResultSet rs = null;
-
-		try {
-			conn = context.getConnection();
-
-			String selectRun = String.format(selectRunSql, runTableName, configTableName);
-
-			if (latest) {
-				String selectAllLastRunIndex = String.format(selectAllLastRunIndexSql, runTableName);
-
-				String selectLastRun = String.format(selectLastRunSql, selectRun, selectAllLastRunIndex);
-				
-				selectRun = selectLastRun;
-			}
-			
-			if (configName != null) {
-				selectRun += whereConfigNameSql;
-			}
-
-			stmt = conn.prepareStatement(selectRun, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-
-			if (configName != null) {
-				stmt.setString(1, configName);
-			}
-
-			rs = stmt.executeQuery();
-
-			while (rs.next()) {
-				
-				String name = rs.getString(1);
-				int configId = rs.getInt(2);
-				int runIndex = rs.getInt(3);
-				Status status = Status.of(rs.getInt(4));
-				LocalDateTime startTime = getLocalDateTime(rs, 5);
-				LocalDateTime endTime = getLocalDateTime(rs, 6);
-
-				runs.add(new ProcessRun(name, configId, runIndex, status, startTime, endTime));
-			}
-		}
-		catch (Exception ex) {
-			runs.add(messageAsRun(ex.getLocalizedMessage()));
-		}
-		finally {
-			try { if (rs != null) rs.close(); } catch (Exception exx) {}
-			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
-
-			if (conn != null) context.releaseConnection();
-		}
-
-		return runs;
-	}
-
-	private LocalDateTime getLocalDateTime(ResultSet rs, int columnIndex) throws SQLException {
-		
-		Timestamp timestamp = rs.getTimestamp(columnIndex);
-		return (timestamp != null) ? timestamp.toLocalDateTime() : null;
-	}
-
-	private ProcessRun messageAsRun(String message) {
-		return new ProcessRun(message, -1, null, null, null, null);
 	}
 
 	/**
@@ -658,12 +551,13 @@ public class Controller {
 	/**
 	 * Start the controller so that it can subsequently run and stop processes.
 	 * 
-	 * @return an error message if startup failed or null if it succeeded.
+	 * @throws RuntimeException if the controller is already started
+	 * @throws Exception if any error occurs
 	 */
-	public String startup() {
+	public void startup() throws Exception{
 
 		if (isStarted()) {
-			return "Controller is already started.";
+			throw new RuntimeException("Controller is already started.");
 		}
 		
 		// Instantiate a ProcessExecutor and create a process monitor thread
@@ -673,8 +567,6 @@ public class Controller {
 		executor = new ProcessExecutor();
 		monitorThread = new Thread(new ProcessMonitor()); 
 		monitorThread.start();
-
-		return null;
 	}
 
 	private class ProcessMonitor implements Runnable {
@@ -709,15 +601,13 @@ public class Controller {
 	/**
 	 * Start a process from a configuration.
 	 * 
-	 * @return the run object, which will all have a positive configId value;
-	 * or if an error occurred, error information will appear in the object as follows:
-	 * 	configId	is a non-positive integer,
-	 * 	name		is the detailed error message. 
+	 * @return the run object, which will all have a positive configId value
+	 * @throws Exception if any error occurs
 	 */
-	public ProcessRun run(String configName) {
+	public ProcessRun run(String configName) throws Exception {
 
 		if (!isStarted()) {
-			return messageAsRun("Must startup controller before running processes.");
+			throw new RuntimeException("Must startup controller before running processes.");
 		}
 
 		// Instantiate the process, arguments, and context,
@@ -732,24 +622,24 @@ public class Controller {
 		try {
 			ProcessConfiguration config = getConfiguration(configName);
 			if (config == null) {
-				return messageAsRun("Process configuration does not exist");
+				throw new NameNotFoundException("Process configuration does not exist");
 			}
 
-			process = context.loader.load(config.scriptName);
+			process = context.loader.load(config.getScriptName());
 
-			args = new String[config.arguments.size()];
+			args = new String[config.getArguments().size()];
 			int i = 0;
-			for (SimpleEntry<String, String> argument : config.arguments) {
+			for (ScriptArgument argument : config.getArguments()) {
 				args[i++] = argument.getValue(); 
 			}
 
 			ContextProperties props =
-					(config.propName == null) ? contextProps :
-					new ContextProperties(config.propName, contextProps);  
+					(config.getPropName() == null) ? contextProps :
+					new ContextProperties(config.getPropName(), contextProps);  
 
 			configContext = props.createContext(configName, context);
 
-			run = new ProcessRun(configName, config.id);
+			run = new ProcessRun(configName, config.getId());
 
 			putRun(run);
 
@@ -758,7 +648,7 @@ public class Controller {
 			updateRun(run);
 		}
 		catch (Exception ex) {
-			return messageAsRun(ex.getMessage());
+			throw ex;
 		}
 
 		return run;
@@ -779,14 +669,16 @@ public class Controller {
 
 			stmt = conn.prepareStatement(insertRun);
 
-			stmt.setInt(1, run.configId);
-			stmt.setInt(3, run.status.value());
+			stmt.setInt(1, run.getConfigId());
+			stmt.setInt(3, run.getStatus().value());
 
-			run.runIndex = -1;
+			run.setRunIndex(-1);
 			synchronized (this) {
 
-				run.runIndex = getNextRunIndex(run.configId);
-				stmt.setInt(2, run.runIndex);
+				int nextRunIndex = getNextRunIndex(run.getConfigId());
+				run.setRunIndex(nextRunIndex);
+
+				stmt.setInt(2, nextRunIndex);
 
 				stmt.executeUpdate();
 			}
@@ -852,12 +744,12 @@ public class Controller {
 
 			stmt = conn.prepareStatement(updateRun);
 
-			stmt.setInt(1, run.status.value());
-			setTimestamp(stmt, 2, run.startTime);
-			setTimestamp(stmt, 3, run.endTime);
+			stmt.setInt(1, run.getStatus().value());
+			setTimestamp(stmt, 2, run.getStartTime());
+			setTimestamp(stmt, 3, run.getEndTime());
 
-			stmt.setInt(4, run.configId);
-			stmt.setInt(5, run.runIndex);
+			stmt.setInt(4, run.getConfigId());
+			stmt.setInt(5, run.getRunIndex());
 
 			stmt.executeUpdate();
 		}
@@ -885,25 +777,108 @@ public class Controller {
 	 * Stop a process run by interrupting its thread.
 	 * 
 	 * @param run is the process run to stop.
-	 * @return an error message if stop failed or null if it succeeded.
+	 * @return true if the run was stopped; false otherwise
+	 * @throws Exception if any error occurs
 	 */
-	public String stop(ProcessRun run) {
-		
+	public boolean stop(ProcessRun run) throws Exception {
+
 		if (!isStarted()) {
-			return "Controller is not started; no processes are running.";
+			throw new RuntimeException("Controller is not started; no processes are running.");
 		}
 
-		boolean cancelled;
-		try {
-			cancelled = executor.stop(run);
-		}
-		catch (Exception ex) {
-			return ex.getLocalizedMessage();
-		}
-
-		return cancelled ? null : "Could not stop the process";
+		return executor.stop(run);
 	}
 
+	/**
+	 * Retrieve a list of currently running processes
+	 * @return the list of currently running processes
+	 * @throws Exception if any error occurs
+	 */
+	public List<ProcessRun> listRunning() throws Exception {
+
+		if (!isStarted()) {
+			throw new RuntimeException("Controller is not started; no processes are running.");
+		}
+
+		return executor.getRunning();
+	}
+	
+	/**
+	 * Retrieve a list of process runs from the database.
+	 * 
+	 * @param configName is the name of a single process configuration or null to get runs for all configurations.
+	 * @param latest is true to only get the latest run for each configuration; otherwise, all runs are retrieved.
+	 * @return the list of runs, which will all have a positive configId value
+	 * @throws Exception if any error occurs
+	 */
+	public List<ProcessRun> listRuns(String configName, boolean latest) throws Exception {
+
+		List<ProcessRun> runs = new LinkedList<ProcessRun>();
+
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+
+		try {
+			conn = context.getConnection();
+
+			String selectRun = String.format(selectRunSql, runTableName, configTableName);
+
+			if (latest) {
+				String selectAllLastRunIndex = String.format(selectAllLastRunIndexSql, runTableName);
+
+				String selectLastRun = String.format(selectLastRunSql, selectRun, selectAllLastRunIndex);
+				
+				selectRun = selectLastRun;
+			}
+			
+			if (configName != null) {
+				selectRun += whereConfigNameSql;
+			}
+
+			stmt = conn.prepareStatement(selectRun, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+
+			if (configName != null) {
+				stmt.setString(1, configName);
+			}
+
+			rs = stmt.executeQuery();
+
+			while (rs.next()) {
+				
+				String name = rs.getString(1);
+				int configId = rs.getInt(2);
+				int runIndex = rs.getInt(3);
+				Status status = Status.of(rs.getInt(4));
+				LocalDateTime startTime = getLocalDateTime(rs, 5);
+				LocalDateTime endTime = getLocalDateTime(rs, 6);
+
+				runs.add(new ProcessRun(name, configId, runIndex, status, startTime, endTime));
+			}
+		}
+		catch (Exception ex) {
+			throw ex;
+		}
+		finally {
+			try { if (rs != null) rs.close(); } catch (Exception ex) {}
+			try { if (stmt != null) stmt.close(); } catch (Exception ex) {}
+
+			if (conn != null) context.releaseConnection();
+		}
+
+		return runs;
+	}
+
+	private LocalDateTime getLocalDateTime(ResultSet rs, int columnIndex) throws SQLException {
+		
+		Timestamp timestamp = rs.getTimestamp(columnIndex);
+		return (timestamp != null) ? timestamp.toLocalDateTime() : null;
+	}
+
+	/**
+	 * Stop all processes currently running.
+	 * @throws Exception if any error occurs
+	 */
 	private void stopAll() throws Exception  {
 		
 		executor.stopAll();
@@ -918,18 +893,16 @@ public class Controller {
 	 * Shutdown process control, stopping any running processes.
 	 * The controller still retains resources needed for
 	 * creating, listing, and validating entities. 
-	 * @return
+	 * @throws Exception if any error occurs
 	 */
-	public String shutdown() {
+	public void shutdown() throws Exception {
 
 		if (!isStarted()) {
-			return "Controller was not started.";
+			throw new RuntimeException("Controller was not started.");
 		}
 
 		// Interrupt the process monitor thread to terminate it,
 		// stop any running processes, and shut down the executor.
-
-		String message = null;
 
 		try {
 			long waitMillis = 10000;
@@ -942,12 +915,10 @@ public class Controller {
 			executor.close();
 		}
 		catch (Exception ex) {
-			message = ex.getLocalizedMessage();
+			throw ex;
 		}
 
 		executor = null;
-
-		return message;
 	}
 
 	/**
@@ -955,7 +926,7 @@ public class Controller {
 	 */
 	public void close() {
 
-		if (isStarted()) shutdown();
+		try { if (isStarted()) shutdown(); } catch (Exception ex) {}
 
 		try { if (context != null) context.close(); } catch (Exception ex) {}
 		

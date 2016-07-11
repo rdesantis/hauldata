@@ -14,18 +14,20 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.control;
+package com.hauldata.dbpa.control.api;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class ProcessRun {
 
-	public String configName;
-	public int configId;
-	public Integer runIndex;
-	public Status status;
-	public LocalDateTime startTime;
-	public LocalDateTime endTime;
+	private String configName;
+	private int configId;
+	private Integer runIndex;
+	private Status status;
+	private LocalDateTime startTime;
+	private LocalDateTime endTime;
 
 	public enum Status {
 		notRun, parseFailed, runInProgress, runFailed, runSucceeded, runTerminated, controllerShutdown;
@@ -34,6 +36,10 @@ public class ProcessRun {
 		
 		public static Status of(int i) { return statuses[i]; } 
 		public int value() { return ordinal(); }
+	}
+
+	public ProcessRun() {
+		// Jackson deserialization
 	}
 
 	public ProcessRun(
@@ -96,6 +102,8 @@ public class ProcessRun {
 		return (obj != null) && (obj instanceof ProcessRun) && (((ProcessRun)obj).configId == this.configId) && (((ProcessRun)obj).runIndex == this.runIndex);
 	}
 
+	// Status updates
+
 	public void runInProgress() {
 		status = Status.runInProgress;
 		startTime = LocalDateTime.now();
@@ -124,5 +132,43 @@ public class ProcessRun {
 	public void setEndStatusNow(Status status) {
 		this.status = status;
 		endTime = LocalDateTime.now();
+	}
+
+	// Setter
+
+	public void setRunIndex(Integer runIndex) {
+		this.runIndex = runIndex;
+	}
+
+	// Getters
+
+	@JsonProperty
+	public String getConfigName() {
+		return configName;
+	}
+
+	@JsonProperty
+	public int getConfigId() {
+		return configId;
+	}
+
+	@JsonProperty
+	public Integer getRunIndex() {
+		return runIndex;
+	}
+
+	@JsonProperty
+	public Status getStatus() {
+		return status;
+	}
+
+	@JsonProperty
+	public LocalDateTime getStartTime() {
+		return startTime;
+	}
+
+	@JsonProperty
+	public LocalDateTime getEndTime() {
+		return endTime;
 	}
 }

@@ -14,25 +14,52 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.control;
+package com.hauldata.dbpa.control.api;
 
+import java.util.LinkedList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.hauldata.dbpa.variable.VariableBase;
 
 public class ScriptValidation {
 
-	public boolean isValid;
-	public String validationMessage;
-	public List<VariableBase> parameters;
-	
+	private boolean valid;
+	private String validationMessage;
+	private List<ScriptParameter> parameters;
+
+	public ScriptValidation() {
+		// Jackson deserialization
+	}
+
 	public ScriptValidation(
-			boolean isValid,
+			boolean valid,
 			String validationMessage,
 			List<VariableBase> parameters) {
 		
-		this.isValid = isValid;
+		this.valid = valid;
 		this.validationMessage = validationMessage;
-		this.parameters = parameters;
+
+		this.parameters = new LinkedList<ScriptParameter>();
+		if (parameters != null) {
+			for (VariableBase parameter : parameters) {
+				this.parameters.add(new ScriptParameter(parameter.getName(), parameter.getType().getName()));
+			}
+		}
+	}
+
+	@JsonProperty
+	public boolean isValid() {
+		return valid;
+	}
+
+	@JsonProperty
+	public String getValidationMessage() {
+		return validationMessage;
+	}
+
+	@JsonProperty
+	public List<ScriptParameter> getParameters() {
+		return parameters;
 	}
 }

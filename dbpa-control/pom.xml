@@ -8,17 +8,31 @@
 	</parent>
 
 	<artifactId>dbpa-control</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0</version>
 	<packaging>jar</packaging>
 
 	<name>DBPA Controller</name>
 	<description>DBPA script controller with web service interface</description>
+
+	<properties>
+		<!-- use UTF-8 for everything
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		-->
+
+		<dropwizard.version>0.9.1</dropwizard.version>
+	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>com.hauldata</groupId>
 			<artifactId>dbpa</artifactId>
 			<version>1.2</version>
+		</dependency>
+		<dependency>
+			<groupId>io.dropwizard</groupId>
+			<artifactId>dropwizard-core</artifactId>
+			<version>${dropwizard.version}</version>
 		</dependency>
 	</dependencies>
 

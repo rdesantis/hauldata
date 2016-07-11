@@ -14,33 +14,71 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.control;
+package com.hauldata.dbpa.control.api;
 
-import java.util.AbstractMap.SimpleEntry;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * All the information needed to launch a process and record its status
  */
 public class ProcessConfiguration {
 
-	public Integer id;
-	public String processName;
-	public String scriptName;
-	public String propName;
-	public List<SimpleEntry<String, String>> arguments;
+	private Integer id;
+	private String processName;
+	private String scriptName;
+	private String propName;
+	private List<ScriptArgument> arguments;
+
+	public ProcessConfiguration() {
+		// Jackson deserialization
+	}
 
 	public ProcessConfiguration(
 			Integer id,
 			String name,
 			String scriptName,
 			String propName,
-			List<SimpleEntry<String, String>> arguments) {
+			List<ScriptArgument> arguments) {
 
 		this.id = id;
 		this.processName = name;
 		this.scriptName = scriptName;
 		this.propName = propName;
 		this.arguments = arguments;
+	}
+
+	// Setter
+
+	public void setId(Integer id) {
+		this.id = id;
+	}
+
+	// Getters
+
+	@JsonProperty
+	public Integer getId() {
+		return id;
+	}
+
+	@JsonProperty
+	public String getProcessName() {
+		return processName;
+	}
+
+	@JsonProperty
+	public String getScriptName() {
+		return scriptName;
+	}
+
+	@JsonProperty
+	public String getPropName() {
+		return propName;
+	}
+
+	@JsonProperty
+	public List<ScriptArgument> getArguments() {
+		return arguments;
 	}
 }

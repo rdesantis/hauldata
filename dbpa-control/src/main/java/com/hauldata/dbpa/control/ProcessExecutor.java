@@ -17,6 +17,7 @@
 package com.hauldata.dbpa.control;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
@@ -28,8 +29,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import com.hauldata.dbpa.control.ProcessRun.Status;
+import com.hauldata.dbpa.control.api.ProcessRun;
+import com.hauldata.dbpa.control.api.ProcessRun.Status;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.DbProcess;
 
@@ -115,6 +118,17 @@ public class ProcessExecutor {
 			Future<ProcessRun> futureRun = ecs.submit(new CallableProcessRun(process, args, context, run));
 
 			runs.put(run, futureRun);
+		}
+	}
+
+	/**
+	 * Get the list of running processes.
+	 * @return the list of submitted processes that are in progress.
+	 * It is guaranteed that the status of each is ProcessRun.Status.runInProgress.
+	 */
+	public List<ProcessRun> getRunning() {
+		synchronized (runs) {
+			return runs.keySet().stream().filter(e -> (e.getStatus() == ProcessRun.Status.runInProgress)).collect(Collectors.toList());
 		}
 	}
 
