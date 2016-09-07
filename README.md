@@ -1,7 +1,7 @@
 DBPA - Database Process Automation
 ==================================
 
-*DBPA lets easily you automate database workflow tasks.  It's like SSIS but much easier.*
+*DBPA lets you easily automate database workflow tasks.  It's like SSIS but much easier.*
 
 Java-based, it works with any database that has a JDBC driver.  Used extensively with MS SQL Server.  Tested with MySQL.
 
