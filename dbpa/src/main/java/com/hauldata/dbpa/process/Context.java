@@ -18,16 +18,16 @@ package com.hauldata.dbpa.process;
 
 import java.nio.file.Path;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.Properties;
 
-import javax.mail.Authenticator;
-import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 
+import org.apache.commons.vfs2.FileSystemException;
+
+import com.hauldata.dbpa.connection.DatabaseConnection;
+import com.hauldata.dbpa.connection.EmailConnection;
+import com.hauldata.dbpa.connection.FtpConnection;
 import com.hauldata.dbpa.loader.Loader;
 import com.hauldata.dbpa.log.Logger;
 import com.hauldata.dbpa.log.NullLogger;
@@ -52,18 +52,14 @@ public class Context {
 	private Path writeParent;
 
 	private static class Resources {
-		public Connection conn;
-		public Session session;
+		public DatabaseConnection dbconn;
+		public EmailConnection mailconn;
+		public FtpConnection ftpconn;
 		
-		public int connCount;
-		public LocalDateTime connLastUsed;
-
 		Resources() {
-			conn = null;
-			session = null;
-
-			connCount = 0;
-			connLastUsed = null;
+			dbconn = null;
+			mailconn = null;
+			ftpconn = null;
 		}
 	}
 
@@ -106,6 +102,12 @@ public class Context {
 		writeParent = getParent(pathProps, "write");
 
 		resources = new Resources();
+		resources.dbconn = new DatabaseConnection();
+		resources.dbconn.setProperties(connectionProps);
+		resources.mailconn = new EmailConnection();
+		resources.mailconn.setProperties(sessionProps);
+		resources.ftpconn = new FtpConnection();
+		resources.ftpconn.setProperties(ftpProps);
 	}
 
 	private static Path getParent(Properties pathProps, String mode) {
@@ -123,7 +125,7 @@ public class Context {
 		try { executor.close(); } catch (Exception ex) {}
 		try { files.assureAllClosed(); } catch (Exception ex) {}
 		try { logger.close(); } catch (Exception ex) {}
-		try { assureConnectionClosed(); } catch (Exception ex) {}
+		try { resources.dbconn.assureClosed(); } catch (Exception ex) {}
 	}
 
 	/**
@@ -192,46 +194,7 @@ public class Context {
 	 * connection cannot be established.
 	 */
 	public Connection getConnection() {
-
-		synchronized (resources) {
-			if (resources.conn != null) {
-
-				if (
-						(resources.connCount == 0) &&
-						(resources.connLastUsed != null) &&
-						(resources.connLastUsed.until(LocalDateTime.now(), ChronoUnit.MILLIS) > longSleepMillis)) {
-
-					wakeFromSleep(true);
-				}
-
-				++resources.connCount;
-			}
-			else if (connectionProps != null) {
-
-				setLongSleepSeconds("longSleepSeconds");
-
-				String driver = connectionProps.getProperty("driver");
-				String url = connectionProps.getProperty("url");
-
-				if (driver == null || url == null) {
-					throw new RuntimeException("Required database connection properties are not set");
-				}
-
-				try {
-					Class.forName(driver);
-					resources.conn = DriverManager.getConnection(url, connectionProps);
-					resources.connCount = 1;
-				}
-				catch (Exception ex) {
-					throw new RuntimeException("Database connection failed: " + ex.toString(), ex);
-				}
-			}
-			
-			if (resources.conn != null) {
-				resources.connLastUsed = LocalDateTime.now();
-			}
-		}
-		return resources.conn;
+		return resources.dbconn.get();
 	}
 
 	/**
@@ -239,31 +202,11 @@ public class Context {
 	 * is no longer needed by the acquirer.
 	 */
 	public void releaseConnection() {
-
-		synchronized (resources) {
-			resources.connLastUsed = LocalDateTime.now();
-			--resources.connCount;
-		}
+		resources.dbconn.release();
 	}
 
 	public void assureConnectionClosed() throws SQLException {
-		if (resources.conn != null) {
-			resources.conn.close();
-			resources.conn = null;
-		}
-	}
-
-	// Sleep functions.  These are intended to release the database connection
-	// when all active tasks are in a long sleep period.
-	
-	private static final int defaultLongSleepSeconds = 120;
-	private long longSleepMillis;
-
-	private void setLongSleepSeconds(String propName) {
-		String longSleepSecondsString = connectionProps.getProperty(propName, String.valueOf(defaultLongSleepSeconds));
-		int longSleepSeconds = defaultLongSleepSeconds;
-		try { longSleepSeconds = Integer.parseInt(longSleepSecondsString); } catch (Exception ex) {}
-		longSleepMillis = longSleepSeconds * 1000L;
+		resources.dbconn.assureClosed();
 	}
 
 	/**
@@ -276,18 +219,7 @@ public class Context {
 	 * @see Context#wakeFromSleep(boolean)
 	 */
 	public boolean prepareToSleep(long millis) {
-
-		if ((resources.conn == null) || (millis < longSleepMillis)) {
-			return false;
-		}
-
-		synchronized (resources) {
-			if (resources.connCount == 0) {
-				try { assureConnectionClosed(); } catch (Exception ex) {}
-			}
-		}
-
-		return true;
+		return resources.dbconn.prepareToSleep(millis);
 	}
 
 	/**
@@ -297,27 +229,10 @@ public class Context {
 	 * @see Context#prepareToSleep(long)
 	 */
 	public void wakeFromSleep(boolean longSleep) {
-
-		// If the task went into a long sleep, the database connection may have been
-		// closed at sleep time but may have been re-opened during the sleep if another
-		// task became active.  Even for a short sleep, it is assumed that an
-		// indefinite number of short sleeps may occur over an extended period
-		// of time and that the database connection may become invalid during that time.
-		// Therefore, the connection is tested for validity.  If found to be invalid,
-		// it is closed so that a new connection will be created by the next call to
-		// getConnection().
-		
-		synchronized (resources) {
-			if ((resources.conn != null) && (resources.connCount == 0)) {
-				boolean isValid = false;
-				try { isValid = resources.conn.isValid(0); } catch (Exception ex) {}
-				if (!isValid) {
-					try { resources.conn.close(); } catch (Exception ex) {}
-					resources.conn = null;
-				}
-			}
-		}
+		resources.dbconn.wakeFromSleep(longSleep);
 	}
+
+	// Email connection functions.
 
 	/**
 	 * Return email server session, setting it up if required
@@ -327,41 +242,13 @@ public class Context {
 	 * session cannot be established.
 	 */
 	public Session getSession() {
-
-		synchronized (resources) {
-			if (resources.session == null && sessionProps != null) {
-	
-				String user = sessionProps.getProperty("user");
-				String password = sessionProps.getProperty("password");
-				
-				if (user == null || password == null) {
-					throw new RuntimeException("Required email credential properties are not set");
-				}
-
-				try {
-					resources.session = Session.getInstance(sessionProps, new PasswordAuthenticator(user, password));
-				}
-				catch (Exception ex) {
-					throw new RuntimeException("Email session setup failed: " + ex.toString(), ex);
-				}
-			}
-		}
-		return resources.session;
+		return resources.mailconn.get();
 	}
 
-	private static class PasswordAuthenticator extends Authenticator {
+	// FTP connection functions.
 
-		PasswordAuthenticator(String user, String password) {
-			this.user = user;
-			this.password = password;
-		}
-
-		protected PasswordAuthentication getPasswordAuthentication() {
-			return new PasswordAuthentication(user, password);
-		}
-		
-		private String user;
-		private String password;
+	public FtpConnection.Manager getManager(boolean isBinary) throws FileSystemException {
+		return resources.ftpconn.getManager(isBinary);
 	}
 
 	// File system functions.

@@ -70,6 +70,7 @@ public class EmailTask extends Task {
 
 	@Override
 	protected void execute(Context context) {
+
 		// See http://stackoverflow.com/questions/3649014/send-email-using-java for basic mail
 		// See http://www.tutorialspoint.com/javamail_api/javamail_api_send_email_with_attachment.htm for attachments
 
