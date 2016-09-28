@@ -35,6 +35,7 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
+import com.hauldata.dbpa.connection.EmailConnection;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.util.tokenizer.Delimiter;
@@ -43,6 +44,7 @@ import com.hauldata.util.tokenizer.Token;
 
 public class EmailTask extends Task {
 
+	private EmailConnection connection;
 	private Expression<String> from;
 	private List<Expression<String>> to;
 	private List<Expression<String>> cc;
@@ -52,6 +54,7 @@ public class EmailTask extends Task {
 
 	public EmailTask(
 			Prologue prologue,
+			EmailConnection connection,
 			Expression<String> from,
 			List<Expression<String>> to,
 			List<Expression<String>> cc,
@@ -60,6 +63,7 @@ public class EmailTask extends Task {
 			List<Expression<String>> attachments) {
 
 		super(prologue);
+		this.connection = connection;
 		this.from = from;
 		this.to = to;
 		this.cc = cc;
@@ -75,7 +79,7 @@ public class EmailTask extends Task {
 		// See http://www.tutorialspoint.com/javamail_api/javamail_api_send_email_with_attachment.htm for attachments
 
 		try {
-			Message message = new MimeMessage(context.getSession());
+			Message message = new MimeMessage(context.getSession(connection));
 
 			message.setFrom(new InternetAddress(from.evaluate()));
 			for (Expression<String> to : this.to) {

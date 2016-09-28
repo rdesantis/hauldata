@@ -235,14 +235,13 @@ public class Context {
 	// Email connection functions.
 
 	/**
-	 * Return email server session, setting it up if required
-	 * using properties specified on the constructor.
-	 * @return the email session or null if session properties were not
-	 * provided on the constructor.  Throws an exception if the
-	 * session cannot be established.
+	 * Return email server session for the indicated connection if not null,
+	 * otherwise for the context default connection.
+	 * @return the email session or null if session properties were not provided.
+	 * Throws an exception if the session cannot be established.
 	 */
-	public Session getSession() {
-		return resources.mailconn.get();
+	public Session getSession(EmailConnection connection) {
+		return (connection != null ? connection : resources.mailconn).get();
 	}
 
 	// FTP connection functions.

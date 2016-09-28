@@ -38,6 +38,7 @@ import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
 import com.hauldata.dbpa.connection.Connection;
+import com.hauldata.dbpa.connection.EmailConnection;
 import com.hauldata.dbpa.connection.FtpConnection;
 import com.hauldata.dbpa.expression.*;
 import com.hauldata.dbpa.file.*;
@@ -122,6 +123,7 @@ abstract class TaskSetParser {
 		BINARY,
 		ASCII,
 //		EMAIL,
+		THROUGH,
 		TO,
 		CC,
 		SUBJECT,
@@ -877,6 +879,13 @@ abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 	
+			EmailConnection connection = null;
+			if (tokenizer.skipWordIgnoreCase(RW.THROUGH.name())) {
+				connection = (EmailConnection)parseOptionalConnection(RW.EMAIL.name(), EmailConnection.class.getName());
+				if (connection == null) {
+					throw new RuntimeException("Missing connection on " + RW.THROUGH.name() + " in " + RW.EMAIL.name());
+				}
+			}
 			if (!tokenizer.skipWordIgnoreCase(RW.FROM.name())) {
 				throw new RuntimeException("Missing " + RW.FROM.name() + " in " + RW.EMAIL.name());
 			}
@@ -914,7 +923,7 @@ abstract class TaskSetParser {
 				} while (tokenizer.skipDelimiter(","));
 			}
 		
-			return new EmailTask(prologue, from, to, cc, subject, body, attachments);
+			return new EmailTask(prologue, connection, from, to, cc, subject, body, attachments);
 		}
 	}
 
