@@ -27,17 +27,20 @@ public class PutTask extends Task {
 
 	private boolean isBinary;
 	private List<Expression<String>> localNames;
+	private FtpConnection connection;
 	private Expression<String> remoteName;
 
 	public PutTask(
 			Prologue prologue,
 			boolean isBinary,
 			List<Expression<String>> localNames,
+			FtpConnection connection,
 			Expression<String> remoteName) {
 		
 		super(prologue);
 		this.isBinary = isBinary;
 		this.localNames = localNames;
+		this.connection = connection;
 		this.remoteName = remoteName;
 	}
 
@@ -48,7 +51,7 @@ public class PutTask extends Task {
 		
 		FtpConnection.Manager manager = null;
 		try {
-			manager = context.getManager(isBinary);
+			manager = context.getManager(connection, isBinary);
 
 			for (Expression<String> localName : localNames) {
 

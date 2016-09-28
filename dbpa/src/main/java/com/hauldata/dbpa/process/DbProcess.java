@@ -31,6 +31,10 @@ import javax.naming.NameAlreadyBoundException;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
+import com.hauldata.dbpa.connection.Connection;
+import com.hauldata.dbpa.connection.DatabaseConnection;
+import com.hauldata.dbpa.connection.EmailConnection;
+import com.hauldata.dbpa.connection.FtpConnection;
 import com.hauldata.dbpa.expression.*;
 import com.hauldata.dbpa.task.Task;
 import com.hauldata.dbpa.variable.*;
@@ -51,8 +55,15 @@ public class DbProcess extends TaskSet {
 	public static final String elapsedMessageStem = "Elapsed time: ";
 
 	private List<VariableBase> parameters;
+
+	// Note that Task objects created outside the scope of this compilation unit but owned by this DbProcess
+	// hold direct references to elements of these Map objects.  Therefore the maps must be retained
+	// even though the compiler warns they "unused" because this class does not directly reference them
+	// again after they are set.
 	@SuppressWarnings("unused")
 	private Map<String, VariableBase> variables;
+	@SuppressWarnings("unused")
+	private Map<String, Connection> connections;
 
 	/**
 	 * Instantiate a DbProcess object by parsing a script from a Reader
@@ -77,14 +88,16 @@ public class DbProcess extends TaskSet {
 	DbProcess(
 				List<VariableBase> parameters,
 				Map<String, VariableBase> variables,
+				Map<String, Connection> connections,
 				Map<String, Task> tasks) {
 
 		super(tasks);
 
 		this.parameters = parameters;
 		this.variables = variables;
+		this.connections = connections;
 	}
-	
+
 	/**
 	 * @return the parameters for the process
 	 */
@@ -215,6 +228,7 @@ class DbProcessParser extends TaskSetParser {
 		try {
 			parseParameters();
 			parseVariables();
+			parseConnections();
 			parseTasks();
 			
 			if (tokenizer.hasNext()) {
@@ -230,7 +244,7 @@ class DbProcessParser extends TaskSetParser {
 			close();
 		}
 		
-		return new DbProcess(parameters, variables, tasks);
+		return new DbProcess(parameters, variables, connections, tasks);
 	}
 
 	private void parseParameters()
@@ -251,17 +265,17 @@ class DbProcessParser extends TaskSetParser {
 
 		String section = RW.VARIABLES.name();
 		if (tokenizer.skipWordIgnoreCase(section)) {
-			
+
 			do { parseVariable();
 			} while (tokenizer.skipDelimiter(","));
-			
+
 			nextEnd(section);
 		}
 	}
 
 	private VariableBase parseVariable()
 			throws InputMismatchException, NoSuchElementException, IOException, NameAlreadyBoundException {
-		
+
 		String name = tokenizer.nextWordUpperCase();
 		if (variables.containsKey(name)) {
 			throw new NameAlreadyBoundException("Duplicate variable name: " + name);
@@ -286,7 +300,7 @@ class DbProcessParser extends TaskSetParser {
 	 * @throws IOException
 	 */
 	private VariableType parseType() throws InputMismatchException, IOException {
-		
+
 		String type = tokenizer.nextWordUpperCase();
 
 		if (type.equals(RW.TINYINT.name()) || type.equals(RW.INT.name()) || type.equals(RW.INTEGER.name())) {
@@ -308,5 +322,46 @@ class DbProcessParser extends TaskSetParser {
 		}
 	}
 
-}
+	private void parseConnections()
+			throws IOException, InputMismatchException, NoSuchElementException, NameAlreadyBoundException {
 
+		String section = RW.CONNECTIONS.name();
+		if (tokenizer.skipWordIgnoreCase(section)) {
+
+			do { parseConnection();
+			} while (tokenizer.skipDelimiter(","));
+
+			nextEnd(section);
+		}
+	}
+
+	private void parseConnection()
+			throws InputMismatchException, NoSuchElementException, IOException, NameAlreadyBoundException {
+
+		String name = tokenizer.nextWordUpperCase();
+		if (connections.containsKey(name)) {
+			throw new NameAlreadyBoundException("Duplicate connection name: " + name);
+		}
+		else if (reservedWords.contains(name)) {
+			throw new NameAlreadyBoundException("Cannot use reserved word as a connection name: " + name);
+		}
+
+		String type = tokenizer.nextWordUpperCase();
+		Connection connection = null;
+
+		if (type.equals(RW.DATABASE.name())) {
+			connection = new DatabaseConnection();
+		}
+		else if (type.equals(RW.FTP.name())) {
+			connection = new FtpConnection();
+		}
+		else if (type.equals(RW.EMAIL.name())) {
+			connection = new EmailConnection();
+		}
+		else {
+			throw new InputMismatchException("Invalid connection type name: " + type);
+		}
+
+		connections.put(name, connection);
+	}
+}

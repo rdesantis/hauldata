@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.InputMismatchException;
 import java.util.NoSuchElementException;
 
 import junit.framework.TestCase;
@@ -193,40 +192,6 @@ public class TokenizerTest extends TestCase {
 		assertNextWord(tokenizer, "a");
 		assertNextWord(tokenizer, "test");
 		assertNextDelimiter(tokenizer, ";");
-
-		assertFalse(tokenizer.hasNext());
-		assertNull(tokenizer.nextToken());
-	}
-
-	public void testDsvTokenizer() throws InputMismatchException, IOException {
-
-		final String text =
-				"One,\"Two two\",,4,-555555555555555,6.6E6\r\n" +
-				"END\r\n";
-
-		DsvTokenizer tokenizer = new DsvTokenizer(new StringReader(text), ',');
-		Delimiter comma = new Delimiter(false, ",");
-
-		assertEquals(1, tokenizer.lineno());
-		assertEquals(new Unknown(false, "One"), tokenizer.nextToken());
-		assertEquals(comma, tokenizer.nextToken());
-		assertEquals(new Quoted(false, '"', "Two two"), tokenizer.nextToken());
-		assertEquals(comma, tokenizer.nextToken());
-		assertEquals(comma, tokenizer.nextToken());
-		assertEquals(new Numeric<Integer>(false, "4", 4), tokenizer.nextToken());
-		assertEquals(comma, tokenizer.nextToken());
-		assertEquals(new Numeric<Long>(false, "-555555555555555", new Long(-555555555555555L)), tokenizer.nextToken());
-		assertEquals(comma, tokenizer.nextToken());
-		assertEquals(new Numeric<BigDecimal>(false, "6.6E6", new BigDecimal("6.6E6")), tokenizer.nextToken());
-		
-		assertFalse(tokenizer.hasNextOnLine());
-		assertEquals(EndOfLine.value, tokenizer.nextToken());
-
-		assertEquals(2, tokenizer.lineno());
-		assertEquals(new Unknown(false, "END"), tokenizer.nextToken());
-
-		assertFalse(tokenizer.hasNextOnLine());
-		assertEquals(EndOfLine.value, tokenizer.nextToken());
 
 		assertFalse(tokenizer.hasNext());
 		assertNull(tokenizer.nextToken());

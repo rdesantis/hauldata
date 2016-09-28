@@ -37,6 +37,8 @@ import javax.naming.NameAlreadyBoundException;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
+import com.hauldata.dbpa.connection.Connection;
+import com.hauldata.dbpa.connection.FtpConnection;
 import com.hauldata.dbpa.expression.*;
 import com.hauldata.dbpa.file.*;
 import com.hauldata.dbpa.task.*;
@@ -70,6 +72,12 @@ abstract class TaskSetParser {
 		CHARACTER,
 		DATETIME,
 		DATE,
+
+		// Connection types
+
+		DATABASE,
+		FTP,
+		EMAIL,
 
 		// Task predecessors and conditions
 
@@ -113,7 +121,7 @@ abstract class TaskSetParser {
 		PUT,
 		BINARY,
 		ASCII,
-		EMAIL,
+//		EMAIL,
 		TO,
 		CC,
 		SUBJECT,
@@ -141,6 +149,8 @@ abstract class TaskSetParser {
 		WAITFOR,
 		DELAY,
 		TIME,
+		CONNECT,
+		DEFAULT,
 
 		// Task subtypes
 
@@ -172,7 +182,8 @@ abstract class TaskSetParser {
 		// Process sections
 		
 		PARAMETERS,
-		VARIABLES
+		VARIABLES,
+		CONNECTIONS,
 	}
 
 	/**
@@ -193,6 +204,7 @@ abstract class TaskSetParser {
 	// Parse-time through run-time data
 
 	protected Map<String, VariableBase> variables;
+	protected Map<String, Connection> connections;
 	protected Map<String, Task> tasks;
 
 	/**
@@ -205,6 +217,8 @@ abstract class TaskSetParser {
 		thisTaskParser = this;
 				
 		setupVariables();
+
+		setupConnections();
 
 		setupParsing(r);
 	}
@@ -219,6 +233,8 @@ abstract class TaskSetParser {
 		thisTaskParser = this;
 
 		reuseVariables(parent);
+
+		reuseConnections(parent);
 
 		reuseParsing(parent);
 	}
@@ -277,6 +293,14 @@ abstract class TaskSetParser {
 		this.variables = parent.variables;
 	}
 
+	private void setupConnections() {
+		this.connections = new HashMap<String, Connection>();
+	}
+
+	private void reuseConnections(TaskSetParser parent) {
+		this.connections = parent.connections;
+	}
+
 	private void setupParsing(Reader r) {
 
 		reservedWords = Stream.of(RW.values()).map(Enum::name).collect(Collectors.toCollection(TreeSet::new));
@@ -323,6 +347,7 @@ abstract class TaskSetParser {
 		taskParsers.put(RW.FOR.name(), new ForTaskParser());
 		taskParsers.put(RW.ON.name(), new OnTaskParser());
 		taskParsers.put(RW.WAITFOR.name(), new WaitforTaskParser());
+		taskParsers.put(RW.CONNECT.name(), new ConnectTaskParser());
 
 		CsvFile.registerHandler(RW.CSV.name());
 		TsvFile.registerHandler(RW.TSV.name());
@@ -841,9 +866,10 @@ abstract class TaskSetParser {
 			} while (tokenizer.skipDelimiter(","));
 
 			tokenizer.skipWordIgnoreCase(RW.TO.name());
+			FtpConnection connection = (FtpConnection)parseOptionalConnection(RW.FTP.name(), FtpConnection.class.getName());
 			Expression<String> remoteName = parseStringExpression();
 	
-			return new PutTask(prologue, isBinary, localNames, remoteName);
+			return new PutTask(prologue, isBinary, localNames, connection, remoteName);
 		}
 	}
 
@@ -1185,6 +1211,30 @@ abstract class TaskSetParser {
 		}
 	}
 
+	class ConnectTaskParser implements TaskParser {
+
+		public Task parse(Task.Prologue prologue)
+				throws InputMismatchException, NoSuchElementException, IOException, NamingException {
+
+			Connection connection = parseConnection();
+			boolean inherit = false;
+			Expression<String> properties = null;
+
+			tokenizer.skipWordIgnoreCase(RW.TO.name());
+			if (tokenizer.skipWordIgnoreCase(RW.DEFAULT.name())) {
+				inherit = true;
+				if (tokenizer.skipWordIgnoreCase(RW.WITH.name())) {
+					properties = parseStringExpression();
+				}
+			}
+			else {
+				properties = parseStringExpression();
+			}
+
+			return new ConnectTask(prologue, connection, inherit, properties);
+		}
+	}
+
 	private boolean hasSQL(String taskTypeName) throws IOException {
 
 		if (tokenizer.skipWordIgnoreCase(RW.STATEMENT.name())) {
@@ -1313,6 +1363,50 @@ abstract class TaskSetParser {
 				throw new NoSuchElementException("SQL not terminated properly");
 			}
 		}
+	}
+
+	private Connection parseConnection() throws InputMismatchException, NoSuchElementException, IOException {
+
+		String name = tokenizer.nextWordUpperCase();
+		Connection connection = connections.get(name);
+		if (connection == null) {
+			throw new NoSuchElementException("Connection name not declared: " + name);
+		}
+		return connection;
+	}
+
+	public Connection parseOptionalConnection(String typeName, String className) throws InputMismatchException, NoSuchElementException, IOException {
+		
+		Connection connection = null;
+		if (tokenizer.hasNextWord()) {
+			if (tokenizer.skipWordIgnoreCase(RW.DEFAULT.name())) {
+				tokenizer.skipWordIgnoreCase(typeName);
+			}
+			else {
+				if (tokenizer.skipWordIgnoreCase(typeName)) {
+					// Connection name must be present.
+					connection = parseConnection();
+				}
+				else if (tokenizer.hasNextWord()) {
+					// Connection name may or may not be present.
+					BacktrackingTokenizerMark mark = tokenizer.mark();
+
+					String name = tokenizer.nextWordUpperCase();
+					connection = connections.get(name);
+
+					if (connection == null) {
+						tokenizer.reset(mark);
+					}
+				}
+				
+				if (connection != null) {
+					if (connection.getClass().getName() != className) {
+						throw new InputMismatchException("Connection is not " + typeName + " type");
+					}
+				}
+			}
+		}
+		return connection;
 	}
 
 	/**

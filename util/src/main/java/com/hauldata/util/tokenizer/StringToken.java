@@ -25,7 +25,7 @@ public abstract class StringToken extends Token {
 	}
 
 	@Override
-	protected String getImage() {
+	public String getImage() {
 		return value;
 	}
 

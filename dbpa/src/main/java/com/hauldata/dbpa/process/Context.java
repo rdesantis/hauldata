@@ -247,8 +247,12 @@ public class Context {
 
 	// FTP connection functions.
 
-	public FtpConnection.Manager getManager(boolean isBinary) throws FileSystemException {
-		return resources.ftpconn.getManager(isBinary);
+	/**
+	 * Return FTP manager for the indicated connection if not null,
+	 * otherwise for the context default connection.
+	 */
+	public FtpConnection.Manager getManager(FtpConnection connection, boolean isBinary) throws FileSystemException {
+		return (connection != null ? connection : resources.ftpconn).getManager(isBinary);
 	}
 
 	// File system functions.

@@ -28,7 +28,7 @@ public abstract class Token {
 		return leadingWhitespace;
 	}
 
-	protected abstract String getImage();
+	public abstract String getImage();
 
 	public String render() {
 		return leadingWhitespace ? (" " + getImage()) : getImage();

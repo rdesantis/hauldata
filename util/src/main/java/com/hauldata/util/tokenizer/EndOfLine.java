@@ -25,7 +25,7 @@ public class EndOfLine extends Token {
 	}
 
 	@Override
-	protected String getImage() {
+	public String getImage() {
 		return (String)getValue();
 	}
 

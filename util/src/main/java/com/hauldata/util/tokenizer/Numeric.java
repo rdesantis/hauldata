@@ -28,7 +28,7 @@ public class Numeric<Type extends Number> extends Token {
 	}
 
 	@Override
-	protected String getImage() {
+	public String getImage() {
 		return image;
 	}
 
