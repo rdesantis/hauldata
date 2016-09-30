@@ -523,7 +523,7 @@ abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
-			DatabaseConnection connection = parseOptionalDatabaseConnection(null);
+			DatabaseConnection connection = parseOptionalDatabaseConnection(RW.THROUGH.name());
 
 			if (tokenizer.skipWordIgnoreCase(RW.SCRIPT.name())) {
 				return parseRunScript(prologue, connection);
