@@ -38,6 +38,7 @@ import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
 import com.hauldata.dbpa.connection.Connection;
+import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.connection.EmailConnection;
 import com.hauldata.dbpa.connection.FtpConnection;
 import com.hauldata.dbpa.expression.*;
@@ -522,38 +523,41 @@ abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
+			DatabaseConnection connection = parseOptionalDatabaseConnection(null);
+
 			if (tokenizer.skipWordIgnoreCase(RW.SCRIPT.name())) {
-				return parseRunScript(prologue);
+				return parseRunScript(prologue, connection);
 			}
 			else if (hasSQL(RW.RUN.name())) {
-				return parseRunParameterizedStatement(prologue);
+				return parseRunParameterizedStatement(prologue, connection);
 			}
 			else {
-				return parseRunStatement(prologue);
+				return parseRunStatement(prologue, connection);
 			}
 		}
 
-		private Task parseRunScript(Task.Prologue prologue) throws IOException {
+		private Task parseRunScript(Task.Prologue prologue, DatabaseConnection connection) throws IOException {
 
 			Expression<String> source = parseStringExpression();
-			return new RunScriptTask(prologue, source);
+
+			return new RunScriptTask(prologue, connection, source);
 		}
 
-		private Task parseRunStatement(Task.Prologue prologue) throws IOException {
+		private Task parseRunStatement(Task.Prologue prologue, DatabaseConnection connection) throws IOException {
 
 			Expression<String> statement = parseStringExpression();
-			return new RunStatementTask(prologue, statement);
+
+			return new RunStatementTask(prologue, connection, statement);
 		}
 
-		private Task parseRunParameterizedStatement(Task.Prologue prologue) throws IOException {
+		private Task parseRunParameterizedStatement(Task.Prologue prologue, DatabaseConnection connection) throws IOException {
 
 			List<ExpressionBase> expressions = new ArrayList<ExpressionBase>();
 			StringBuilder statement = new StringBuilder();
-
 			parseParameterizedStatement(expressions, statement);
-			return new RunParameterizedStatementTask(prologue, expressions, statement.toString());
-		}
 
+			return new RunParameterizedStatementTask(prologue, connection, expressions, statement.toString());
+		}
 	}
 
 	class UpdateTaskParser implements TaskParser {
@@ -566,31 +570,35 @@ abstract class TaskSetParser {
 				variables.add(parseVariableReference());
 			} while (tokenizer.skipDelimiter(","));
 	
-			if (hasTokenizedStatement(RW.FROM.name(), RW.UPDATE.name())) {
-				return parseUpdateFromParameterizedStatement(prologue, variables);
+			DatabaseConnection connection = parseOptionalDatabaseConnection(RW.FROM.name());
+
+			if (hasSQL(RW.UPDATE.name())) {
+				return parseUpdateFromParameterizedStatement(prologue, variables, connection);
 			}
 			else {
-				return parseUpdateFromStatement(prologue, variables);
+				return parseUpdateFromStatement(prologue, variables, connection);
 			}
 		}
 
 		private Task parseUpdateFromStatement(
 				Task.Prologue prologue,
-				List<VariableBase> variables) throws IOException {
+				List<VariableBase> variables,
+				DatabaseConnection connection) throws IOException {
 
 			Expression<String> statement = parseStringExpression();
-			return new UpdateFromStatementTask(prologue, variables, statement);
+			return new UpdateFromStatementTask(prologue, variables, connection, statement);
 		}
 
 		private Task parseUpdateFromParameterizedStatement(
 				Task.Prologue prologue,
-				List<VariableBase> variables) throws IOException {
+				List<VariableBase> variables,
+				DatabaseConnection connection) throws IOException {
 
 			List<ExpressionBase> expressions = new ArrayList<ExpressionBase>();
 			StringBuilder statement = new StringBuilder();
 
 			parseParameterizedStatement(expressions, statement);
-			return new UpdateFromParameterizedStatementTask(prologue, variables, expressions, statement.toString());
+			return new UpdateFromParameterizedStatementTask(prologue, variables, connection, expressions, statement.toString());
 		}
 	}
 
@@ -612,33 +620,36 @@ abstract class TaskSetParser {
 	
 			PageIdentifierExpression page = parsePageIdentifier(true);
 	
-			if (hasTokenizedStatement(RW.FROM.name(), RW.APPEND.name())) {
-				return parseAppendFromParameterizedStatement(prologue, page);
+			DatabaseConnection connection = parseOptionalDatabaseConnection(RW.FROM.name());
+
+			if (hasSQL(RW.APPEND.name())) {
+				return parseAppendFromParameterizedStatement(prologue, page, connection);
 			}
 			else {
-				return parseAppendFromStatement(prologue, page);
+				return parseAppendFromStatement(prologue, page, connection);
 			}
 		}
 
 		private Task parseAppendFromStatement(
 				Task.Prologue prologue,
-				PageIdentifierExpression page) throws IOException {
+				PageIdentifierExpression page,
+				DatabaseConnection connection) throws IOException {
 
 			Expression<String> statement = parseStringExpression();
 
-			return new AppendFromStatementTask(prologue, page, statement);
+			return new AppendFromStatementTask(prologue, page, connection, statement);
 		}
 
 		private Task parseAppendFromParameterizedStatement(
 				Task.Prologue prologue,
-				PageIdentifierExpression page) throws IOException {
+				PageIdentifierExpression page,
+				DatabaseConnection connection) throws IOException {
 
 			List<ExpressionBase> expressions = new ArrayList<ExpressionBase>();
 			StringBuilder statement = new StringBuilder();
-
 			parseParameterizedStatement(expressions, statement);
 
-			return new AppendFromParameterizedStatementTask(prologue, page, expressions, statement.toString());
+			return new AppendFromParameterizedStatementTask(prologue, page, connection, expressions, statement.toString());
 		}
 	}
 
@@ -650,50 +661,52 @@ abstract class TaskSetParser {
 
 			WriteHeaderExpressions headers = parseWriteHeaders(RW.FROM.name());
 
-			tokenizer.skipWordIgnoreCase(RW.FROM.name());
+			DatabaseConnection connection = parseOptionalDatabaseConnection(RW.FROM.name());
 
 			if (tokenizer.skipWordIgnoreCase(RW.TABLE.name())) {
-				return parseWriteFromTable(prologue, page, headers);
+				return parseWriteFromTable(prologue, page, headers, connection);
 			}
 			else if (hasSQL(RW.WRITE.name())) {
-				return parseWriteFromParameterizedStatement(prologue, page, headers);
+				return parseWriteFromParameterizedStatement(prologue, page, headers, connection);
 			}
 			else {
-				return parseWriteFromStatement(prologue, page, headers);
+				return parseWriteFromStatement(prologue, page, headers, connection);
 			}
 		}
 
 		private Task parseWriteFromStatement(
 				Task.Prologue prologue,
 				PageIdentifierExpression page,
-				WriteHeaderExpressions headers) throws IOException {
+				WriteHeaderExpressions headers,
+				DatabaseConnection connection) throws IOException {
 
 			Expression<String> statement = parseStringExpression();
 
-			return new WriteFromStatementTask(prologue, page, headers, statement);
+			return new WriteFromStatementTask(prologue, page, headers, connection, statement);
 		}
 
 		private Task parseWriteFromParameterizedStatement(
 				Task.Prologue prologue,
 				PageIdentifierExpression page,
-				WriteHeaderExpressions headers) throws IOException {
+				WriteHeaderExpressions headers,
+				DatabaseConnection connection) throws IOException {
 
 			List<ExpressionBase> expressions = new ArrayList<ExpressionBase>();
 			StringBuilder statement = new StringBuilder();
-
 			parseParameterizedStatement(expressions, statement);
 
-			return new WriteFromParameterizedStatementTask(prologue, page, headers, expressions, statement.toString());
+			return new WriteFromParameterizedStatementTask(prologue, page, headers, connection, expressions, statement.toString());
 		}
 
 		private Task parseWriteFromTable(
 				Task.Prologue prologue,
 				PageIdentifierExpression page,
-				WriteHeaderExpressions headers) throws IOException {
+				WriteHeaderExpressions headers,
+				DatabaseConnection connection) throws IOException {
 
 			Expression<String> table = parseStringExpression();
 	
-			return new WriteFromTableTask(prologue, page, headers, table);
+			return new WriteFromTableTask(prologue, page, headers, connection, table);
 		}
 	}
 
@@ -717,33 +730,37 @@ abstract class TaskSetParser {
 	
 			ColumnExpressions columns = parseColumns();
 
-			if (hasTokenizedStatement(RW.INTO.name(), RW.LOAD.name())) {
-				return parseLoadIntoTokenizedStatement(prologue, page, columns);
+			DatabaseConnection connection = parseOptionalDatabaseConnection(RW.INTO.name());
+
+			if (hasSQL(RW.LOAD.name())) {
+				return parseLoadIntoTokenizedStatement(prologue, page, columns, connection);
 			}
 			else {
-				return parseLoadIntoStatement(prologue, page, columns);
+				return parseLoadIntoStatement(prologue, page, columns, connection);
 			}
 		}
-	
+
 		private Task parseLoadIntoStatement(
 				Task.Prologue prologue,
 				PageIdentifierExpression page,
-				ColumnExpressions columns) throws IOException {
+				ColumnExpressions columns,
+				DatabaseConnection connection) throws IOException {
 	
 			Expression<String> statement = parseStringExpression();
 	
-			return new LoadIntoStatementTask(prologue, page, columns, statement);
+			return new LoadIntoStatementTask(prologue, page, columns, connection, statement);
 		}
 	
 		private Task parseLoadIntoTokenizedStatement(
 				Task.Prologue prologue,
 				PageIdentifierExpression page,
-				ColumnExpressions columns) throws IOException {
+				ColumnExpressions columns,
+				DatabaseConnection connection) throws IOException {
 	
 			StringBuilder statement = new StringBuilder();
 			parseTokenizedStatement(statement);
 	
-			return new LoadIntoTokenizedStatementTask(prologue, page, columns, statement.toString());
+			return new LoadIntoTokenizedStatementTask(prologue, page, columns, connection, statement.toString());
 		}
 	}
 
@@ -759,16 +776,16 @@ abstract class TaskSetParser {
 			
 			columns.validate(headers);
 
-			tokenizer.skipWordIgnoreCase(RW.INTO.name());
+			DatabaseConnection connection = parseOptionalDatabaseConnection(RW.INTO.name());
 
 			if (tokenizer.skipWordIgnoreCase(RW.TABLE.name())) {
-				return parseReadIntoTable(prologue, page, headers, columns);
+				return parseReadIntoTable(prologue, page, headers, columns, connection);
 			}
 			else if (hasSQL(RW.READ.name())) {
-				return parseReadIntoTokenizedStatement(prologue, page, headers, columns);
+				return parseReadIntoTokenizedStatement(prologue, page, headers, columns, connection);
 			}
 			else {
-				return parseReadIntoStatement(prologue, page, headers, columns);
+				return parseReadIntoStatement(prologue, page, headers, columns, connection);
 			}
 		}
 	
@@ -776,30 +793,33 @@ abstract class TaskSetParser {
 				Task.Prologue prologue,
 				PageIdentifierExpression page,
 				ReadHeaderExpressions headers,
-				ColumnExpressions columns) throws IOException {
+				ColumnExpressions columns,
+				DatabaseConnection connection) throws IOException {
 	
 			Expression<String> statement = parseStringExpression();
 	
-			return new ReadIntoStatementTask(prologue, page, headers, columns, statement);
+			return new ReadIntoStatementTask(prologue, page, headers, columns, connection, statement);
 		}
 	
 		private Task parseReadIntoTokenizedStatement(
 				Task.Prologue prologue,
 				PageIdentifierExpression page,
 				ReadHeaderExpressions headers,
-				ColumnExpressions columns) throws IOException {
+				ColumnExpressions columns,
+				DatabaseConnection connection) throws IOException {
 	
 			StringBuilder statement = new StringBuilder();
 			parseTokenizedStatement(statement);
 	
-			return new ReadIntoTokenizedStatementTask(prologue, page, headers, columns, statement.toString());
+			return new ReadIntoTokenizedStatementTask(prologue, page, headers, columns, connection, statement.toString());
 		}
 
 		private Task parseReadIntoTable(
 				Task.Prologue prologue,
 				PageIdentifierExpression page,
 				ReadHeaderExpressions headers,
-				ColumnExpressions columns) throws IOException {
+				ColumnExpressions columns,
+				DatabaseConnection connection) throws IOException {
 
 			if (!headers.exist()) {
 				throw new RuntimeException(RW.READ.name() + " " + RW.INTO.name() + " " + RW.TABLE.name() + " requires column headers");
@@ -813,7 +833,7 @@ abstract class TaskSetParser {
 				prefix = parseStringExpression();
 			}
 
-			return new ReadIntoTableTask(prologue, page, headers, columns, table, prefix);
+			return new ReadIntoTableTask(prologue, page, headers, columns, connection, table, prefix);
 		}
 	}
 
@@ -1074,37 +1094,42 @@ abstract class TaskSetParser {
 			else if (tokenizer.skipWordIgnoreCase(RW.VALUES.name())) {
 				return parseForValues(prologue, variables);
 			}
-			else if (hasSQL(RW.FOR.name())) {
-				return parseForParameterizedStatement(prologue, variables);
-			}
 			else {
-				return parseForStatement(prologue, variables);
+				DatabaseConnection connection = parseOptionalDatabaseConnection(null);
+
+				if (hasSQL(RW.FOR.name())) {
+					return parseForParameterizedStatement(prologue, variables, connection);
+				}
+				else {
+					return parseForStatement(prologue, variables, connection);
+				}
 			}
 		}
 		
 		private Task parseForStatement(
 				Task.Prologue prologue,
-				List<VariableBase> variables) throws IOException, NamingException {
+				List<VariableBase> variables,
+				DatabaseConnection connection) throws IOException, NamingException {
 		
 			Expression<String> statement = parseStringExpression();
 			
 			NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
 
-			return new ForStatementTask(prologue, variables, statement, taskSet);
+			return new ForStatementTask(prologue, variables, connection, statement, taskSet);
 		}
 		
 		private Task parseForParameterizedStatement(
 				Task.Prologue prologue,
-				List<VariableBase> variables) throws IOException, NamingException {
+				List<VariableBase> variables,
+				DatabaseConnection connection) throws IOException, NamingException {
 		
 			List<ExpressionBase> expressions = new ArrayList<ExpressionBase>();
 			StringBuilder statement = new StringBuilder();
-		
 			parseParameterizedStatement(expressions, statement);
 			
 			NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
 
-			return new ForParameterizedStatementTask(prologue, variables, expressions, statement.toString(), taskSet);
+			return new ForParameterizedStatementTask(prologue, variables, connection, expressions, statement.toString(), taskSet);
 		}
 
 		private Task parseForReadFile(
@@ -1257,13 +1282,6 @@ abstract class TaskSetParser {
 		}
 	}
 	
-	private boolean hasTokenizedStatement(String introWord, String taskTypeName) throws IOException {
-
-		tokenizer.skipWordIgnoreCase(introWord);
-
-		return hasSQL(taskTypeName);
-	}
-
 	private VariableBase parseVariableReference() throws InputMismatchException, NoSuchElementException, IOException {
 		
 		String name = tokenizer.nextWordUpperCase();
@@ -1384,7 +1402,7 @@ abstract class TaskSetParser {
 		return connection;
 	}
 
-	public Connection parseOptionalConnection(String typeName, String className) throws InputMismatchException, NoSuchElementException, IOException {
+	private Connection parseOptionalConnection(String typeName, String className) throws InputMismatchException, NoSuchElementException, IOException {
 		
 		Connection connection = null;
 		if (tokenizer.hasNextWord()) {
@@ -1416,6 +1434,14 @@ abstract class TaskSetParser {
 			}
 		}
 		return connection;
+	}
+
+	private DatabaseConnection parseOptionalDatabaseConnection(String introWord) throws InputMismatchException, NoSuchElementException, IOException {
+
+		if (introWord != null) {
+			tokenizer.skipWordIgnoreCase(introWord);
+		}
+		return (DatabaseConnection)parseOptionalConnection(RW.DATABASE.name(), DatabaseConnection.class.getName());
 	}
 
 	/**

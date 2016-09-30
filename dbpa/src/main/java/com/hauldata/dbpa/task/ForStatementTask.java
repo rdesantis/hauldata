@@ -22,22 +22,30 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
+import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.NestedTaskSet;
 import com.hauldata.dbpa.variable.VariableBase;
 
 public class ForStatementTask extends UpdateVariablesTask {
+	
+	private List<VariableBase> variables;
+	private DatabaseConnection connection;
+	private Expression<String> statement;
+	private NestedTaskSet taskSet;
 
 	public ForStatementTask(
 			Prologue prologue,
 			List<VariableBase> variables,
+			DatabaseConnection connection,
 			Expression<String> statement,
 			NestedTaskSet taskSet) {
 	
 		super(prologue);
 	
 		this.variables = variables;
+		this.connection = connection;
 		this.statement = statement;
 		this.taskSet = taskSet;
 	}
@@ -53,7 +61,7 @@ public class ForStatementTask extends UpdateVariablesTask {
 		ResultSet rs = null;
 	
 		try {
-			conn = context.getConnection();
+			conn = context.getConnection(connection);
 
 			stmt = createStatement(conn);
 
@@ -82,13 +90,9 @@ public class ForStatementTask extends UpdateVariablesTask {
 			throwDatabaseCloseFailed(ex);
 		}
 		finally {
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(connection);
 
 			nestedContext.closeCloned();
 		} }
 	}
-	
-	private List<VariableBase> variables;
-	private Expression<String> statement;
-	private NestedTaskSet taskSet;
 }

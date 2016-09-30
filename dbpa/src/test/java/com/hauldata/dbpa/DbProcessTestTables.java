@@ -31,7 +31,7 @@ public class DbProcessTestTables {
 
 		Connection conn = null;
 		try {
-			conn = context.getConnection();
+			conn = context.getConnection(null);
 
 			if (!tablesExist(conn)) {
 				createThingsTable(conn);
@@ -42,7 +42,7 @@ public class DbProcessTestTables {
 			throw new RuntimeException(ex.getLocalizedMessage());
 		}
 		finally {
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(null);
 		}
 
 		isAssured = true;
@@ -79,7 +79,7 @@ public class DbProcessTestTables {
 				"('Fido', 'Fred''s dog', 2)," +
 				"('Some Thing', 'whatever', 3)," +
 				"('ethel', 'a nice lady', 12)," +
-				"('has bad chars', '[“in quotes”]', 123456)," +
+				"('has bad chars', '[ï¿½in quotesï¿½]', 123456)," +
 				"('has blank description', '', 55555);";
 
 		execute(conn, sql);

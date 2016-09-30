@@ -24,6 +24,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.expression.ExpressionBase;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.NestedTaskSet;
@@ -31,9 +32,16 @@ import com.hauldata.dbpa.variable.VariableBase;
 
 public class ForParameterizedStatementTask extends UpdateVariablesTask {
 
+	private List<VariableBase> variables;
+	private DatabaseConnection connection;
+	private List<ExpressionBase> expressions;
+	private String statement;
+	private NestedTaskSet taskSet;
+
 	public ForParameterizedStatementTask(
 			Prologue prologue,
 			List<VariableBase> variables,
+			DatabaseConnection connection,
 			List<ExpressionBase> expressions,
 			String statement,
 			NestedTaskSet taskSet) {
@@ -41,6 +49,7 @@ public class ForParameterizedStatementTask extends UpdateVariablesTask {
 		super(prologue);
 
 		this.variables = variables;
+		this.connection = connection;
 		this.expressions = expressions;
 		this.statement = statement;
 		this.taskSet = taskSet;
@@ -59,7 +68,7 @@ public class ForParameterizedStatementTask extends UpdateVariablesTask {
 		ResultSet rs = null;
 
 		try {
-			conn = context.getConnection();
+			conn = context.getConnection(connection);
 
 			stmt = prepareParameterizedStatement(values, statement, conn);
 
@@ -88,14 +97,9 @@ public class ForParameterizedStatementTask extends UpdateVariablesTask {
 			throwDatabaseCloseFailed(ex);
 		}
 		finally {
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(connection);
 
 			nestedContext.closeCloned();
 		} }
 	}
-
-	private List<VariableBase> variables;
-	private List<ExpressionBase> expressions;
-	private String statement;
-	private NestedTaskSet taskSet;
 }

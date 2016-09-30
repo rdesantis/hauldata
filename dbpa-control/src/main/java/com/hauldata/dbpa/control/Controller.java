@@ -228,7 +228,7 @@ public class Controller {
 		try {
 			// Create the tables in the schema.
 
-			conn = context.getConnection();
+			conn = context.getConnection(null);
 
 			String createConfigTable = String.format(createConfigTableSql, configTableName);
 			String createArgTable = String.format(createArgTableSql, argTableName);
@@ -246,7 +246,7 @@ public class Controller {
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception ex) {}
 
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(null);
 		}
 	}
 
@@ -262,7 +262,7 @@ public class Controller {
 		PreparedStatement stmt = null;
 
 		try {
-			conn = context.getConnection();
+			conn = context.getConnection(null);
 
 			String insertConfig = String.format(insertConfigSql, configTableName);
 
@@ -309,7 +309,7 @@ public class Controller {
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(null);
 		}
 	}
 
@@ -322,7 +322,7 @@ public class Controller {
 		ResultSet rs = null;
 
 		try {
-			conn = context.getConnection();
+			conn = context.getConnection(null);
 
 			String selectLastConfigId = String.format(selectLastConfigIdSql, configTableName);
 
@@ -341,7 +341,7 @@ public class Controller {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(null);
 		}
 
 		return nextConfigId;
@@ -388,7 +388,7 @@ public class Controller {
 		ResultSet rs = null;
 
 		try {
-			conn = context.getConnection();
+			conn = context.getConnection(null);
 
 			String selectConfig = String.format(selectConfigSql, configTableName);
 			
@@ -429,7 +429,7 @@ public class Controller {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(null);
 		}
 
 		return configs;
@@ -444,7 +444,7 @@ public class Controller {
 		ResultSet rs = null;
 
 		try {
-			conn = context.getConnection();
+			conn = context.getConnection(null);
 
 			String selectArgs = String.format(selectArgsSql, argTableName);
 
@@ -469,7 +469,7 @@ public class Controller {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(null);
 		}
 
 		return arguments;
@@ -510,7 +510,7 @@ public class Controller {
 				throw new NameNotFoundException("Configuration not found");
 			}
 
-			conn = context.getConnection();
+			conn = context.getConnection(null);
 
 			String deleteArgs = String.format(deleteArgsSql, argTableName);
 
@@ -537,7 +537,7 @@ public class Controller {
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(null);
 		}
 	}
 
@@ -663,7 +663,7 @@ public class Controller {
 		PreparedStatement stmt = null;
 
 		try {
-			conn = context.getConnection();
+			conn = context.getConnection(null);
 
 			String insertRun = String.format(insertRunSql, runTableName);
 
@@ -689,7 +689,7 @@ public class Controller {
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(null);
 		}
 	}
 
@@ -704,7 +704,7 @@ public class Controller {
 		try {
 			String selectLastRunIndex = String.format(selectLastRunIndexSql, runTableName);
 
-			conn = context.getConnection();
+			conn = context.getConnection(null);
 
 			stmt = conn.prepareStatement(selectLastRunIndex);
 
@@ -723,7 +723,7 @@ public class Controller {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(null);
 		}
 
 		return nextRunIndex;
@@ -738,7 +738,7 @@ public class Controller {
 		PreparedStatement stmt = null;
 
 		try {
-			conn = context.getConnection();
+			conn = context.getConnection(null);
 
 			String updateRun = String.format(updateRunSql, runTableName);
 
@@ -759,7 +759,7 @@ public class Controller {
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(null);
 		}
 	}
 
@@ -820,7 +820,7 @@ public class Controller {
 		ResultSet rs = null;
 
 		try {
-			conn = context.getConnection();
+			conn = context.getConnection(null);
 
 			String selectRun = String.format(selectRunSql, runTableName, configTableName);
 
@@ -863,7 +863,7 @@ public class Controller {
 			try { if (rs != null) rs.close(); } catch (Exception ex) {}
 			try { if (stmt != null) stmt.close(); } catch (Exception ex) {}
 
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(null);
 		}
 
 		return runs;

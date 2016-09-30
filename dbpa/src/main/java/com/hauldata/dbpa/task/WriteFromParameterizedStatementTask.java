@@ -21,6 +21,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.expression.ExpressionBase;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.WriteHeaders;
@@ -31,6 +32,7 @@ public class WriteFromParameterizedStatementTask extends FileTask {
 
 	private PageIdentifierExpression page;
 	private WriteHeaderExpressions headers;
+	private DatabaseConnection connection;
 	private List<ExpressionBase> expressions;
 	private String statement;
 
@@ -38,12 +40,14 @@ public class WriteFromParameterizedStatementTask extends FileTask {
 			Prologue prologue,
 			PageIdentifierExpression page,
 			WriteHeaderExpressions headers,
+			DatabaseConnection connection,
 			List<ExpressionBase> expressions,
 			String statement) {
 
 		super(prologue);
 		this.page = page;
 		this.headers = headers;
+		this.connection = connection;
 		this.expressions = expressions;
 		this.statement = statement;
 	}
@@ -57,7 +61,7 @@ public class WriteFromParameterizedStatementTask extends FileTask {
 
 		try {
 			WritePage writePage = page.write(context.files, headers);
-			writeFromParameterizedStatement(context, writePage, values, statement);
+			writeFromParameterizedStatement(context, connection, writePage, values, statement);
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();

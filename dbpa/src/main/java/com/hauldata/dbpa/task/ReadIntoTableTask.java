@@ -19,6 +19,7 @@ package com.hauldata.dbpa.task;
 import java.io.IOException;
 import java.util.List;
 
+import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.PageIdentifier;
@@ -31,6 +32,7 @@ public class ReadIntoTableTask extends FileTask {
 	private PageIdentifierExpression page;
 	private ReadHeaderExpressions headers;
 	private ColumnExpressions columns;
+	private DatabaseConnection connection;
 	private Expression<String> table;
 	private Expression<String> prefix;
 
@@ -39,6 +41,7 @@ public class ReadIntoTableTask extends FileTask {
 			PageIdentifierExpression page,
 			ReadHeaderExpressions headers,
 			ColumnExpressions columns,
+			DatabaseConnection connection,
 			Expression<String> table,
 			Expression<String> prefix) {
 
@@ -46,6 +49,7 @@ public class ReadIntoTableTask extends FileTask {
 		this.page = page;
 		this.headers = headers;
 		this.columns = columns;
+		this.connection = connection;
 		this.table = table;
 		this.prefix = prefix;
 	}
@@ -95,7 +99,7 @@ public class ReadIntoTableTask extends FileTask {
 
 			statement.append(")");
 
-			readIntoStatement(context, readPage, columns, statement.toString());
+			readIntoStatement(context, connection, readPage, columns, statement.toString());
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();

@@ -69,7 +69,7 @@ public class TableAppender implements Appender {
 		stmt = null;
 
 		try {
-			conn = context.getConnection(); 
+			conn = context.getConnection(null); 
 
 			String statement = "INSERT INTO " + tableName + " VALUES (?,?,?,?,?)";
 
@@ -78,7 +78,7 @@ public class TableAppender implements Appender {
 		catch (SQLException ex) {
 
 			if (conn != null) {
-				context.releaseConnection();
+				context.releaseConnection(null);
 				conn = null;
 			}
 
@@ -97,10 +97,10 @@ public class TableAppender implements Appender {
 	private PreparedStatement getPreparedStatement() {
 
 		synchronized (this) {
-			Connection currentConn = context.getConnection();
+			Connection currentConn = context.getConnection(null);
 			if ((currentConn != conn) && (currentConn != null)) {
 
-				context.releaseConnection();
+				context.releaseConnection(null);
 
 				close();
 
@@ -116,7 +116,7 @@ public class TableAppender implements Appender {
 	 * for proper task sleep / wake connection management.
 	 */
 	private void releasePreparedStatement() {
-		context.releaseConnection();
+		context.releaseConnection(null);
 	}
 
 	@Override

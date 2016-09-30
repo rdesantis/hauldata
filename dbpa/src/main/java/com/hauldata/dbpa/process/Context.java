@@ -18,7 +18,6 @@ package com.hauldata.dbpa.process;
 
 import java.nio.file.Path;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Properties;
 
 import javax.mail.Session;
@@ -187,26 +186,21 @@ public class Context {
 	// Database connection functions.
 
 	/**
-	 * Return JDBC connection, setting it up if required
-	 * using properties specified on the constructor.
-	 * @return the JDBC connection or null if JDBC properties were not
-	 * provided on the constructor.  Throws an exception if the
-	 * connection cannot be established.
+	 * Return JDBC connection for the indicated database connection if not null,
+	 * otherwise for the context default database connection.
+	 * @return the JDBC connection or null if JDBC properties were not provided.
+	 * Throws an exception if the connection cannot be established.
 	 */
-	public Connection getConnection() {
-		return resources.dbconn.get();
+	public Connection getConnection(DatabaseConnection connection) {
+		return (connection != null ? connection : resources.dbconn).get();
 	}
 
 	/**
 	 * Indicate that a JDBC connection acquired with getConnection()
 	 * is no longer needed by the acquirer.
 	 */
-	public void releaseConnection() {
-		resources.dbconn.release();
-	}
-
-	public void assureConnectionClosed() throws SQLException {
-		resources.dbconn.assureClosed();
+	public void releaseConnection(DatabaseConnection connection) {
+		(connection != null ? connection : resources.dbconn).release();
 	}
 
 	/**

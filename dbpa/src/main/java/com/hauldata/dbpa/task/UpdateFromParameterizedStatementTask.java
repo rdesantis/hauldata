@@ -24,20 +24,28 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.expression.ExpressionBase;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.variable.VariableBase;
 
 public class UpdateFromParameterizedStatementTask extends UpdateVariablesTask {
 
+	private List<VariableBase> variables;
+	private DatabaseConnection connection;
+	private List<ExpressionBase> expressions;
+	private String statement;
+
 	public UpdateFromParameterizedStatementTask(
 			Prologue prologue,
 			List<VariableBase> variables,
+			DatabaseConnection connection,
 			List<ExpressionBase> expressions,
 			String statement) {
 
 		super(prologue);
 		this.variables = variables;
+		this.connection = connection;
 		this.expressions = expressions;
 		this.statement = statement;
 	}
@@ -52,7 +60,7 @@ public class UpdateFromParameterizedStatementTask extends UpdateVariablesTask {
 		ResultSet rs = null;
 
 		try {
-			conn = context.getConnection();
+			conn = context.getConnection(connection);
 
 			stmt = prepareOneRowParameterizedStatement(values, statement, conn);
 
@@ -72,11 +80,7 @@ public class UpdateFromParameterizedStatementTask extends UpdateVariablesTask {
 			throwDatabaseCloseFailed(ex);
 		}
 		finally {
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(connection);
 		} }
 	}
-
-	private List<VariableBase> variables;
-	private List<ExpressionBase> expressions;
-	private String statement;
 }

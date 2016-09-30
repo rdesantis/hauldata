@@ -22,14 +22,19 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.TextFile;
 import com.hauldata.dbpa.process.Context;
 
 public class RunScriptTask extends DatabaseTask {
 
+	private Expression<String> source;
+	DatabaseConnection connection;
+
 	public RunScriptTask(
 			Prologue prologue,
+			DatabaseConnection connection,
 			Expression<String> source) {
 
 		super(prologue);
@@ -61,7 +66,7 @@ public class RunScriptTask extends DatabaseTask {
 		Statement stmt = null;
 
 		try {
-			conn = context.getConnection();
+			conn = context.getConnection(connection);
 
 			stmt = conn.createStatement();
 			
@@ -81,9 +86,7 @@ public class RunScriptTask extends DatabaseTask {
 			throwDatabaseCloseFailed(ex);
 		}
 		finally {
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(connection);
 		} }
 	}
-
-	private Expression<String> source;
 }

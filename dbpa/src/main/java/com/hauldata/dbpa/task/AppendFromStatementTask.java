@@ -18,6 +18,7 @@ package com.hauldata.dbpa.task;
 
 import java.io.IOException;
 
+import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.WritePage;
@@ -26,15 +27,18 @@ import com.hauldata.dbpa.process.Context;
 public class AppendFromStatementTask extends FileTask {
 
 	private PageIdentifierExpression page;
+	private DatabaseConnection connection;
 	private Expression<String> statement;
 
 	public AppendFromStatementTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
+			DatabaseConnection connection,
 			Expression<String> statement) {
 
 		super(prologue);
 		this.page = page;
+		this.connection = connection;
 		this.statement = statement;
 	}
 
@@ -46,7 +50,7 @@ public class AppendFromStatementTask extends FileTask {
 
 		try {
 			WritePage writePage = page.append(context.files);
-			writeFromStatement(context, writePage, statement);
+			writeFromStatement(context, connection, writePage, statement);
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();

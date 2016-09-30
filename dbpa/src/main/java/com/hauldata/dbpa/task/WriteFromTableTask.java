@@ -18,6 +18,7 @@ package com.hauldata.dbpa.task;
 
 import java.io.IOException;
 
+import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.WriteHeaders;
@@ -28,17 +29,20 @@ public class WriteFromTableTask extends FileTask {
 
 	private PageIdentifierExpression page;
 	private WriteHeaderExpressions headers;
+	private DatabaseConnection connection;
 	private Expression<String> table;
 
 	public WriteFromTableTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
 			WriteHeaderExpressions headers,
+			DatabaseConnection connection,
 			Expression<String> table) {
 
 		super(prologue);
 		this.page = page;
 		this.headers = headers;
+		this.connection = connection;
 		this.table = table;
 	}
 
@@ -53,7 +57,7 @@ public class WriteFromTableTask extends FileTask {
 
 		try {
 			WritePage writePage = page.write(context.files, headers);
-			writeFromStatement(context, writePage, statement);
+			writeFromStatement(context, connection, writePage, statement);
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();

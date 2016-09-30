@@ -23,6 +23,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
+import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.ReadPage;
 import com.hauldata.dbpa.file.WritePage;
@@ -36,6 +37,7 @@ public abstract class FileTask extends DatabaseTask {
 
 	protected void writeFromStatement(
 			Context context,
+			DatabaseConnection connection,
 			WritePage page,
 			String statement) {
 
@@ -44,7 +46,7 @@ public abstract class FileTask extends DatabaseTask {
 		ResultSet rs = null;
 
 		try {
-			conn = context.getConnection();
+			conn = context.getConnection(connection);
 
 			stmt = conn.createStatement();
 
@@ -67,12 +69,13 @@ public abstract class FileTask extends DatabaseTask {
 			throwDatabaseCloseFailed(ex);
 		}
 		finally {
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(connection);
 		} }
 	}
 
 	protected void writeFromParameterizedStatement(
 			Context context,
+			DatabaseConnection connection,
 			WritePage page,
 			List<Object> values,
 			String statement) {
@@ -82,7 +85,7 @@ public abstract class FileTask extends DatabaseTask {
 		ResultSet rs = null;
 
 		try {
-			conn = context.getConnection();
+			conn = context.getConnection(connection);
 
 			stmt = prepareParameterizedStatement(values, statement, conn);
 
@@ -105,12 +108,13 @@ public abstract class FileTask extends DatabaseTask {
 			throwDatabaseCloseFailed(ex);
 		}
 		finally {
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(connection);
 		} }
 	}
 
 	protected void readIntoStatement(
 			Context context,
+			DatabaseConnection connection,
 			ReadPage page,
 			Columns columns,
 			String statement) {
@@ -119,7 +123,7 @@ public abstract class FileTask extends DatabaseTask {
 		PreparedStatement stmt = null;
 
 		try {
-			conn = context.getConnection();
+			conn = context.getConnection(connection);
 
 			stmt = conn.prepareStatement(statement);
 
@@ -140,7 +144,7 @@ public abstract class FileTask extends DatabaseTask {
 		finally {
 			try { page.close(); } catch (Exception ex) {}
 
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(connection);
 		} }
 	}
 }

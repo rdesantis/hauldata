@@ -18,6 +18,7 @@ package com.hauldata.dbpa.task;
 
 import java.io.IOException;
 
+import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.ReadHeaders;
@@ -29,6 +30,7 @@ public class ReadIntoTokenizedStatementTask extends FileTask {
 	private PageIdentifierExpression page;
 	private ReadHeaderExpressions headers;
 	private ColumnExpressions columns;
+	private DatabaseConnection connection;
 	private String statement;
 
 	public ReadIntoTokenizedStatementTask(
@@ -36,12 +38,14 @@ public class ReadIntoTokenizedStatementTask extends FileTask {
 			PageIdentifierExpression page,
 			ReadHeaderExpressions headers,
 			ColumnExpressions columns,
+			DatabaseConnection connection,
 			String statement) {
 
 		super(prologue);
 		this.page = page;
 		this.headers = headers;
 		this.columns = columns;
+		this.connection = connection;
 		this.statement = statement;
 	}
 
@@ -55,7 +59,7 @@ public class ReadIntoTokenizedStatementTask extends FileTask {
 		try {
 			ReadPage readPage = page.read(context.files, headers);
 			Columns columns = this.columns.evaluate(readPage.getReadHeaders());
-			readIntoStatement(context, readPage, columns, statement);
+			readIntoStatement(context, connection, readPage, columns, statement);
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();

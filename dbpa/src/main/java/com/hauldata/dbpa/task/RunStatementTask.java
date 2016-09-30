@@ -20,16 +20,22 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
 
 public class RunStatementTask extends DatabaseTask {
 
+	private DatabaseConnection connection;
+	private Expression<String> statement;
+
 	public RunStatementTask(
 			Prologue prologue,
+			DatabaseConnection connection,
 			Expression<String> statement) {
 		
 		super(prologue);
+		this.connection = connection;
 		this.statement =  statement;
 	}
 
@@ -40,7 +46,7 @@ public class RunStatementTask extends DatabaseTask {
 		Statement stmt = null;
 
 		try {
-			conn = context.getConnection();
+			conn = context.getConnection(connection);
 
 			stmt = conn.createStatement();
 			
@@ -60,9 +66,7 @@ public class RunStatementTask extends DatabaseTask {
 			throwDatabaseCloseFailed(ex);
 		}
 		finally {
-			if (conn != null) context.releaseConnection();
+			if (conn != null) context.releaseConnection(connection);
 		} }
 	}
-
-	private Expression<String> statement;
 }
