@@ -16,18 +16,24 @@
 
 package com.hauldata.dbpa.task;
 
+import java.util.Map;
+
+import com.hauldata.dbpa.connection.Connection;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.NestedTaskSet;
 import com.hauldata.util.schedule.ScheduleSet;
 
 public class OnTask extends ScheduleTask {
 
+	private ScheduleSet schedules;
+
 	public OnTask(
 			Prologue prologue,
 			ScheduleSet schedules,
-			NestedTaskSet taskSet) {
+			NestedTaskSet taskSet,
+			Map<String, Connection> connections) {
 
-		super(prologue, taskSet);
+		super(prologue, taskSet, connections);
 		this.schedules = schedules;
 	}
 
@@ -35,6 +41,4 @@ public class OnTask extends ScheduleTask {
 	protected void execute(Context context) {
 		execute(context, schedules);
 	}
-	
-	private ScheduleSet schedules;
 }

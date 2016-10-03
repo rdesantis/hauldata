@@ -20,15 +20,18 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 
+import com.hauldata.dbpa.connection.Connection;
 import com.hauldata.dbpa.expression.Expression;
 
 public class WaitforDelayTask extends WaitforTask {
 
 	public WaitforDelayTask(
 			Prologue prologue,
-			Expression<String> delay) {
-		super(prologue, delay);
+			Expression<String> delay,
+			Map<String, Connection> connections) {
+		super(prologue, delay, connections);
 	}
 
 	protected long sleepMillis(String delay) {

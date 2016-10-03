@@ -6,15 +6,18 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 
+import com.hauldata.dbpa.connection.Connection;
 import com.hauldata.dbpa.expression.Expression;
 
 public class WaitforTimeTask extends WaitforTask {
 
 	public WaitforTimeTask(
 			Prologue prologue,
-			Expression<String> time) {
-		super(prologue, time);
+			Expression<String> time,
+			Map<String, Connection> connections) {
+		super(prologue, time, connections);
 	}
 
 	@Override

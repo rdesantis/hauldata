@@ -17,13 +17,14 @@
 package com.hauldata.dbpa.process;
 
 import java.nio.file.Path;
-import java.sql.Connection;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.mail.Session;
 
 import org.apache.commons.vfs2.FileSystemException;
 
+import com.hauldata.dbpa.connection.Connection;
 import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.connection.EmailConnection;
 import com.hauldata.dbpa.connection.FtpConnection;
@@ -191,7 +192,7 @@ public class Context {
 	 * @return the JDBC connection or null if JDBC properties were not provided.
 	 * Throws an exception if the connection cannot be established.
 	 */
-	public Connection getConnection(DatabaseConnection connection) {
+	public java.sql.Connection getConnection(DatabaseConnection connection) {
 		return (connection != null ? connection : resources.dbconn).get();
 	}
 
@@ -212,7 +213,14 @@ public class Context {
 	 * when the sleep has finished. 
 	 * @see Context#wakeFromSleep(boolean)
 	 */
-	public boolean prepareToSleep(long millis) {
+	public boolean prepareToSleep(long millis, Map<String, Connection> connections) {
+
+		for (Connection connection : connections.values()) {
+			if (connection instanceof DatabaseConnection) {
+				((DatabaseConnection)connection).prepareToSleep(millis);
+			}
+		}
+
 		return resources.dbconn.prepareToSleep(millis);
 	}
 
@@ -222,7 +230,14 @@ public class Context {
 	 * @param longSleep is the return value from a previous call to prepareToSleep(long).
 	 * @see Context#prepareToSleep(long)
 	 */
-	public void wakeFromSleep(boolean longSleep) {
+	public void wakeFromSleep(boolean longSleep, Map<String, Connection> connections) {
+
+		for (Connection connection : connections.values()) {
+			if (connection instanceof DatabaseConnection) {
+				((DatabaseConnection)connection).wakeFromSleep(longSleep);
+			}
+		}
+
 		resources.dbconn.wakeFromSleep(longSleep);
 	}
 

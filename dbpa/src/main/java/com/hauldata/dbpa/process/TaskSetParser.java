@@ -1201,7 +1201,7 @@ abstract class TaskSetParser {
 
 			NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
 
-			return new OnScheduleTask(prologue, schedule, taskSet);
+			return new OnScheduleTask(prologue, schedule, taskSet, connections);
 		}
 		
 		private Task parseOn(Task.Prologue prologue) throws IOException, NamingException {
@@ -1210,7 +1210,7 @@ abstract class TaskSetParser {
 
 			NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
 
-			return new OnTask(prologue, schedules, taskSet);
+			return new OnTask(prologue, schedules, taskSet, connections);
 		}
 	}
 
@@ -1234,14 +1234,14 @@ abstract class TaskSetParser {
 
 			Expression<String> delay = parseStringExpression();
 
-			return new WaitforDelayTask(prologue, delay);
+			return new WaitforDelayTask(prologue, delay, connections);
 		}
 
 		private Task parseWaitforTime(Task.Prologue prologue) throws IOException, NamingException {
 
 			Expression<String> time = parseStringExpression();
 
-			return new WaitforTimeTask(prologue, time);
+			return new WaitforTimeTask(prologue, time, connections);
 		}
 	}
 

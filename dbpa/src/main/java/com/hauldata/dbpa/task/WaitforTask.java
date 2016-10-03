@@ -16,19 +16,25 @@
 
 package com.hauldata.dbpa.task;
 
+import java.util.Map;
+
+import com.hauldata.dbpa.connection.Connection;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
 
 public abstract class WaitforTask extends Task {
 
 	private Expression<String> delayOrTime;
+	private Map<String, Connection> connections;
 
 	public WaitforTask(
 			Prologue prologue,
-			Expression<String> delayOrTime) {
+			Expression<String> delayOrTime,
+			Map<String, Connection> connections) {
 
 		super(prologue);
 		this.delayOrTime = delayOrTime;
+		this.connections = connections;
 	}
 
 	@Override
@@ -38,11 +44,11 @@ public abstract class WaitforTask extends Task {
 		long millis = sleepMillis(delayOrTime);
 
 		try {
-			boolean longSleep = context.prepareToSleep(millis);
+			boolean longSleep = context.prepareToSleep(millis, connections);
 
 			Thread.sleep(millis);
 
-			context.wakeFromSleep(longSleep);
+			context.wakeFromSleep(longSleep, connections);
 		}
 		catch (InterruptedException ex) {
 			throw new RuntimeException("Wait terminated due to interruption");
