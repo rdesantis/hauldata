@@ -53,7 +53,7 @@ public class ForStatementTask extends UpdateVariablesTask {
 	@Override
 	protected void execute(Context context) {
 	
-		Context nestedContext = context.cloneContext();
+		Context nestedContext = context.makeNestedContext();
 		nestedContext.logger = context.logger.nestTask(getName());
 
 		Connection conn = null;
@@ -92,7 +92,7 @@ public class ForStatementTask extends UpdateVariablesTask {
 		finally {
 			if (conn != null) context.releaseConnection(connection);
 
-			nestedContext.closeCloned();
+			nestedContext.close();
 		} }
 	}
 }

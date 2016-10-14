@@ -17,6 +17,7 @@
 package com.hauldata.dbpa.process;
 
 import java.nio.file.Path;
+import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
 
@@ -64,7 +65,7 @@ public class Context {
 	}
 
 	private Resources resources;
-	
+
 	/**
 	 * Constructor for context in which a process will run.  Fields are:
 	 * - connectionProps are the properties to use when setting up a database connection for the process
@@ -129,29 +130,31 @@ public class Context {
 	}
 
 	/**
-	 * Construct a context to use by a process nested within this process.
-	 * @return the nested process context.  It shares the JDBC connection and JavaMail session
-	 * of this parent context.  The log data member must be set on the nested context.
+	 * Constructor to copy common data members used by either a child or nested context.
 	 */
-	public Context nestContext() {
-		
-		Context context = new Context(connectionProps, sessionProps, ftpProps, pathProps, loader);
+	protected Context(Context context) {
 
-		context.executor = new TaskExecutor();
-		context.rootExecutor = context.executor;
+		connectionProps = context.connectionProps;
+		sessionProps = context.sessionProps;
+		ftpProps = context.ftpProps;
+		pathProps = context.pathProps;
+		loader = context.loader;
 
-		context.resources = resources;
+		executor = new TaskExecutor();
 
-		return context;
+		readParent = context.readParent;
+		writeParent = context.writeParent;
+
+		resources = context.resources;
 	}
 
 	/**
-	 * Close a nested context.
+	 * Construct a context to use by a child process of this process.
+	 * @return the child process context.  It shares the JDBC connection and JavaMail session
+	 * of this parent context.  The log data member must be set on the child context.
 	 */
-	public void closeNested() {
-		try { executor.close(); } catch (Exception ex) {}
-		try { files.assureAllClosed(); } catch (Exception ex) {}
-		try { logger.close(); } catch (Exception ex) {}
+	public Context makeChildContext() {
+		return new ChildContext(this);
 	}
 
 	/**
@@ -160,28 +163,8 @@ public class Context {
 	 * otherwise shares all data members of this parent context but can be given
 	 * a different log data member if desired.
 	 */
-	public Context cloneContext() {
-		
-		Context context = new Context(connectionProps, sessionProps, ftpProps, pathProps, loader);
-
-		context.logger = logger;
-		context.files = files;
-
-		context.executor = new TaskExecutor();
-		context.rootExecutor = rootExecutor;
-
-		context.readParent = readParent;
-		context.writeParent = writeParent;
-		context.resources = resources;
-
-		return context;
-	}
-
-	/**
-	 * Close a cloned context.
-	 */
-	public void closeCloned() {
-		try { executor.close(); } catch (Exception ex) {}
+	public Context makeNestedContext() {
+		return new NestedContext(this);
 	}
 
 	// Database connection functions.
@@ -239,6 +222,18 @@ public class Context {
 		}
 
 		resources.dbconn.wakeFromSleep(longSleep);
+	}
+
+	/**
+	 * Close all named connections used by the process.
+	 */
+	public void close(Map<String, Connection> connections) {
+
+		for (Connection connection : connections.values()) {
+			if (connection instanceof DatabaseConnection) {
+				try { ((DatabaseConnection)connection).assureClosed(); } catch (Exception ex) {}
+			}
+		}
 	}
 
 	// Email connection functions.

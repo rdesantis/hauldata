@@ -64,7 +64,7 @@ public class ForReadTask extends FileTask {
 			ReadPage readPage = page.read(context.files, headers);
 			Columns columns = this.columns.evaluate(readPage.getReadHeaders());
 
-			nestedContext = context.cloneContext();
+			nestedContext = context.makeNestedContext();
 			nestedContext.logger = context.logger.nestTask(getName());
 
 			while (readRowIntoVariables(readPage, columns, variables)) {
@@ -84,7 +84,7 @@ public class ForReadTask extends FileTask {
 		}
 		finally {
 			if (nestedContext != null) {
-				nestedContext.closeCloned();
+				nestedContext.close();
 			}
 		}
 	}

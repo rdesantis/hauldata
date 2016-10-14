@@ -36,7 +36,7 @@ public class DoTask extends Task {
 	@Override
 	protected void execute(Context context) {
 
-		Context nestedContext = context.cloneContext();
+		Context nestedContext = context.makeNestedContext();
 		nestedContext.logger = context.logger.nestTask(getName());
 
 		try {
@@ -57,7 +57,7 @@ public class DoTask extends Task {
 			throw new RuntimeException("Error attempting to run nested tasks - " + message);
 		}
 		finally {
-			nestedContext.closeCloned();
+			nestedContext.close();
 		}
 	}
 

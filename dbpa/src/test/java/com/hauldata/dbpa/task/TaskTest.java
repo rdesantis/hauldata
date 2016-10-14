@@ -95,7 +95,7 @@ public abstract class TaskTest extends TestCase {
 			throw ex;
 		}
 		finally {
-			logger.close();
+			context.close();
 		}
 
 		return analyzer;

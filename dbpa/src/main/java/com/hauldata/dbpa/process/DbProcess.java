@@ -54,15 +54,14 @@ public class DbProcess extends TaskSet {
 	public static final String failMessageStem = "Process failed: ";
 	public static final String elapsedMessageStem = "Elapsed time: ";
 
-	private List<VariableBase> parameters;
-
 	// Note that Task objects created outside the scope of this compilation unit but owned by this DbProcess
-	// hold direct references to elements of these Map objects.  Therefore the maps must be retained
-	// even though the compiler warns they "unused" because this class does not directly reference them
-	// again after they are set.
+	// hold direct references to elements of the variables map.  Therefore the map is retained
+	// even though the compiler warns it is "unused" because this class does not directly reference it
+	// again after it is set.
+
+	private List<VariableBase> parameters;
 	@SuppressWarnings("unused")
 	private Map<String, VariableBase> variables;
-	@SuppressWarnings("unused")
 	private Map<String, Connection> connections;
 
 	/**
@@ -155,10 +154,10 @@ public class DbProcess extends TaskSet {
 			throw new RuntimeException(message);
 		}
 		finally {
-			context.files.assureAllClosed();
-			
+			context.close(connections);
+
 			long millis = ChronoUnit.MILLIS.between(startTime,  LocalDateTime.now());
-			
+
 			context.logger.message(processTaskId, elapsedMessageStem + formatElapsed(millis));
 		}
 	}

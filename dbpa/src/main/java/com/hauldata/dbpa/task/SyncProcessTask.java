@@ -49,18 +49,18 @@ public class SyncProcessTask extends ProcessTask {
 			args[i++] = (argumentValue != null) ? argumentValue.toString() : null;
 		}
 		
-		Context nestedContext = context.nestContext();
-		nestedContext.logger = context.logger.nestProcess(processName);
+		Context childContext = context.makeChildContext();
+		childContext.logger = context.logger.nestProcess(processName);
 		try {
 			DbProcess process = context.loader.load(processName);
-			process.run(args, nestedContext);
+			process.run(args, childContext);
 		}
 		catch (Exception ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 			throw new RuntimeException("Error attempting to load or run process " + processName + " - " + message, ex);
 		}
 		finally {
-			nestedContext.closeNested();
+			childContext.close();
 		}
 	}
 }

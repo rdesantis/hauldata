@@ -47,7 +47,7 @@ public class ForValuesTask extends Task {
 
 		Context nestedContext = null;
 		try {
-			nestedContext = context.cloneContext();
+			nestedContext = context.makeNestedContext();
 			nestedContext.logger = context.logger.nestTask(getName());
 
 			for (ExpressionBase[] expressionList : values) {
@@ -69,7 +69,7 @@ public class ForValuesTask extends Task {
 		}
 		finally {
 			if (nestedContext != null) {
-				nestedContext.closeCloned();
+				nestedContext.close();
 			}
 		}
 	}

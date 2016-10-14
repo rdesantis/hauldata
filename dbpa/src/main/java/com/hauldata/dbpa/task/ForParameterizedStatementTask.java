@@ -60,7 +60,7 @@ public class ForParameterizedStatementTask extends UpdateVariablesTask {
 
 		List<Object> values = this.expressions.stream().map(e -> e.getEvaluationObject()).collect(Collectors.toCollection(LinkedList::new));
 
-		Context nestedContext = context.cloneContext();
+		Context nestedContext = context.makeNestedContext();
 		nestedContext.logger = context.logger.nestTask(getName());
 
 		Connection conn = null;
@@ -99,7 +99,7 @@ public class ForParameterizedStatementTask extends UpdateVariablesTask {
 		finally {
 			if (conn != null) context.releaseConnection(connection);
 
-			nestedContext.closeCloned();
+			nestedContext.close();
 		} }
 	}
 }
