@@ -27,7 +27,11 @@ import com.hauldata.dbpa.task.Task;
 /**
  * Executable task set base class
  */
-abstract class TaskSet {
+public abstract class TaskSet {
+
+	public static final String orphanedMessage = "Task orphaned";
+	public static final String cancelledMessage = "Task cancelled";
+	public static final String interruptedMessage = "Process interrupted";
 
 	protected Map<String, Task> tasks;
 
@@ -82,7 +86,7 @@ abstract class TaskSet {
 							for (ListIterator<Task> waitingIterator = waiting.listIterator(); waitingIterator.hasNext(); ) {
 								Task waiter = waitingIterator.next();
 								if (waiter.getResult() == Task.Result.orphaned) {
-									context.logger.warn(waiter.getName(), "Task orphaned");
+									context.logger.warn(waiter.getName(), orphanedMessage);
 									waitingIterator.remove();
 								}
 							}
@@ -106,7 +110,7 @@ abstract class TaskSet {
 		catch (InterruptedException iex) {
 			// This thread was interrupted.  Cancel all tasks. 
 
-			context.logger.error("process", "Process interrupted");
+			context.logger.error("process", interruptedMessage);
 
 			executor.terminateAll();
 
@@ -114,12 +118,12 @@ abstract class TaskSet {
 				Task task = executor.getCompleted();
 
 				if (task.getResult() == Task.Result.waiting) {
-					context.logger.error(task.getName(), "Task cancelled");
+					context.logger.error(task.getName(), cancelledMessage);
 				}
 			}
 			
 			for (Task waiter : waiting) {
-				context.logger.warn(waiter.getName(), "Task orphaned");
+				context.logger.warn(waiter.getName(), orphanedMessage);
 			}
 			
 			throw iex;
