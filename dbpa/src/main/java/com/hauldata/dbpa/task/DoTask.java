@@ -36,8 +36,7 @@ public class DoTask extends Task {
 	@Override
 	protected void execute(Context context) {
 
-		Context nestedContext = context.makeNestedContext();
-		nestedContext.logger = context.logger.nestTask(getName());
+		Context nestedContext = context.makeNestedContext(getName());
 
 		try {
 			if (whileCondition == null) {

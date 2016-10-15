@@ -17,7 +17,6 @@
 package com.hauldata.dbpa.process;
 
 import java.nio.file.Path;
-import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
 
@@ -153,8 +152,8 @@ public class Context {
 	 * @return the child process context.  It shares the JDBC connection and JavaMail session
 	 * of this parent context.  The log data member must be set on the child context.
 	 */
-	public Context makeChildContext() {
-		return new ChildContext(this);
+	public Context makeChildContext(String childName) {
+		return new ChildContext(this, childName);
 	}
 
 	/**
@@ -163,8 +162,8 @@ public class Context {
 	 * otherwise shares all data members of this parent context but can be given
 	 * a different log data member if desired.
 	 */
-	public Context makeNestedContext() {
-		return new NestedContext(this);
+	public Context makeNestedContext(String nestedName) {
+		return new NestedContext(this, nestedName);
 	}
 
 	// Database connection functions.

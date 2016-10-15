@@ -53,8 +53,7 @@ public class ForStatementTask extends UpdateVariablesTask {
 	@Override
 	protected void execute(Context context) {
 	
-		Context nestedContext = context.makeNestedContext();
-		nestedContext.logger = context.logger.nestTask(getName());
+		Context nestedContext = context.makeNestedContext(getName());
 
 		Connection conn = null;
 		Statement stmt = null;

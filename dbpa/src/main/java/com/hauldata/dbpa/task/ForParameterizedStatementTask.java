@@ -60,8 +60,7 @@ public class ForParameterizedStatementTask extends UpdateVariablesTask {
 
 		List<Object> values = this.expressions.stream().map(e -> e.getEvaluationObject()).collect(Collectors.toCollection(LinkedList::new));
 
-		Context nestedContext = context.makeNestedContext();
-		nestedContext.logger = context.logger.nestTask(getName());
+		Context nestedContext = context.makeNestedContext(getName());
 
 		Connection conn = null;
 		PreparedStatement stmt = null;

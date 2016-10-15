@@ -16,15 +16,13 @@
 
 package com.hauldata.dbpa.process;
 
-import com.hauldata.dbpa.log.NullLogger;
-
 public class ChildContext extends Context {
 
-	public ChildContext(Context parent) {
+	public ChildContext(Context parent, String childName) {
 
 		super(parent);
 
-		logger = NullLogger.logger;
+		logger = parent.logger.nestProcess(childName);
 
 		files = new Files();
 

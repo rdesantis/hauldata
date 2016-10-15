@@ -47,8 +47,7 @@ public class ForValuesTask extends Task {
 
 		Context nestedContext = null;
 		try {
-			nestedContext = context.makeNestedContext();
-			nestedContext.logger = context.logger.nestTask(getName());
+			nestedContext = context.makeNestedContext(getName());
 
 			for (ExpressionBase[] expressionList : values) {
 

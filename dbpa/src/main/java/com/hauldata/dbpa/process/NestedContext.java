@@ -18,11 +18,11 @@ package com.hauldata.dbpa.process;
 
 public class NestedContext extends Context {
 
-	public NestedContext(Context owner) {
+	public NestedContext(Context owner, String nestedName) {
 
 		super(owner);
 
-		logger = owner.logger;
+		logger = owner.logger.nestTask(nestedName);
 
 		files = owner.files;
 

@@ -49,8 +49,7 @@ public class SyncProcessTask extends ProcessTask {
 			args[i++] = (argumentValue != null) ? argumentValue.toString() : null;
 		}
 		
-		Context childContext = context.makeChildContext();
-		childContext.logger = context.logger.nestProcess(processName);
+		Context childContext = context.makeChildContext(processName);
 		try {
 			DbProcess process = context.loader.load(processName);
 			process.run(args, childContext);
