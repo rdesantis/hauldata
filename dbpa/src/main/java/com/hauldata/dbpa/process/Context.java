@@ -149,8 +149,7 @@ public class Context {
 
 	/**
 	 * Construct a context to use by a child process of this process.
-	 * @return the child process context.  It shares the JDBC connection and JavaMail session
-	 * of this parent context.  The log data member must be set on the child context.
+	 * @return the child process context.
 	 */
 	public Context makeChildContext(String childName) {
 		return new ChildContext(this, childName);
@@ -158,9 +157,7 @@ public class Context {
 
 	/**
 	 * Construct a context to use by a task set nested within this process.
-	 * @return the nested task set context.  It has a distinct task executor but
-	 * otherwise shares all data members of this parent context but can be given
-	 * a different log data member if desired.
+	 * @return the nested task set context.
 	 */
 	public Context makeNestedContext(String nestedName) {
 		return new NestedContext(this, nestedName);
