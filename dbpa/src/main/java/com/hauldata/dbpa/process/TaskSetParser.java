@@ -123,6 +123,7 @@ abstract class TaskSetParser {
 		PUT,
 		BINARY,
 		ASCII,
+		GET,
 //		EMAIL,
 		THROUGH,
 		TO,
@@ -147,6 +148,7 @@ abstract class TaskSetParser {
 		WHILE,
 		FOR,
 		VALUES,
+		FILES,
 		ON,
 		SCHEDULE,
 		WAITFOR,
@@ -155,11 +157,15 @@ abstract class TaskSetParser {
 		CONNECT,
 		DEFAULT,
 
+		SYSTEM,
+		EXECUTE,
+
 		// Task subtypes
 
 		STATEMENT,
 		SQL,
 		SUBSTITUTING,
+		PROCEDURE,
 
 		// Functions
 
