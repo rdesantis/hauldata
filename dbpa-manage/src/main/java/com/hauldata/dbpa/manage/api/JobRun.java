@@ -14,17 +14,19 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.control.api;
+package com.hauldata.dbpa.manage.api;
 
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class ProcessRun {
+/**
+ * Description of a single instance of a job run; the run may be in progress
+ */
+public class JobRun {
 
-	private String configName;
-	private int configId;
-	private Integer runIndex;
+	private Integer runId;
+	private String jobName;
 	private Status status;
 	private LocalDateTime startTime;
 	private LocalDateTime endTime;
@@ -38,68 +40,59 @@ public class ProcessRun {
 		public int value() { return ordinal(); }
 	}
 
-	public ProcessRun() {
+	public JobRun() {
 		// Jackson deserialization
 	}
 
-	public ProcessRun(
-			String configName,
-			int configId,
-			Integer runIndex,
+	/**
+	 * Constructor for job not yet submitted or written to database
+	 * @param jobName
+	 */
+	public JobRun(String jobName) {
+
+		this.runId = -1;
+		this.jobName = jobName;
+		this.status = Status.notRun;
+		this.startTime = null;
+		this.endTime = null;
+	}
+
+	public JobRun(
+			Integer runId,
+			String jobName,
 			Status status,
 			LocalDateTime startTime,
 			LocalDateTime endTime) {
 
-		this.configName = configName;
-		this.configId = configId;
-		this.runIndex = runIndex;
+		this.runId = runId;
+		this.jobName = jobName;
 		this.status = status;
 		this.startTime = startTime;
 		this.endTime = endTime;
 	}
 
-	public ProcessRun(String configName, int configId) {
-
-		this.configName = configName;
-		this.configId = configId;
-
-		runIndex = null;
-		status = Status.notRun;
-		startTime = null;
-		endTime = null;
-	}
-
-	/**
-	 * Construct a ProcessRun object from the fields that uniquely identify a run.
+	/*
+	 * Constructor that sets the runId field, which uniquely identifies a job.
 	 * 
-	 * If instantiated from this constructor, the equals() member will return true
-	 * when compared to any other ProcessRun with the same values for the fields
-	 * entered on this constructor, regardless of the values of any other fields.
+	 * It is guaranteed that the equals() operator returns true when comparing
+	 * this JobRun to another JobRun with the same runId.
 	 */
-	public ProcessRun(int configId, int runIndex) {
-
-		configName = null;
-
-		this.configId = configId;
-		this.runIndex = runIndex;
-
-		status = null;
-		startTime = null;
-		endTime = null;
+	public static JobRun of(Integer runId) {
+		return new JobRun(runId, null, null, null, null);
 	}
 
 	@Override
 	public int hashCode() {
-		return (this.configId << 16) ^ this.runIndex;
+		return runId;
 	}
 
 	/**
-	 * @return true if obj is a ProcessRun and the fields that uniquely identify a run
+	 * @return true if obj is a JobRun and the fields that uniquely identify a run
 	 * have the same values as this object, regardless of the values of any other fields. 
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		return (obj != null) && (obj instanceof ProcessRun) && (((ProcessRun)obj).configId == this.configId) && (((ProcessRun)obj).runIndex == this.runIndex);
+		return (obj != null) && (obj instanceof JobRun) && (((JobRun)obj).runId == this.runId);
 	}
 
 	// Status updates
@@ -136,25 +129,20 @@ public class ProcessRun {
 
 	// Setter
 
-	public void setRunIndex(Integer runIndex) {
-		this.runIndex = runIndex;
+	public void setRunId(int runId) {
+		this.runId = runId;
 	}
 
 	// Getters
 
 	@JsonProperty
-	public String getConfigName() {
-		return configName;
+	public Integer getRunId() {
+		return runId;
 	}
 
 	@JsonProperty
-	public int getConfigId() {
-		return configId;
-	}
-
-	@JsonProperty
-	public Integer getRunIndex() {
-		return runIndex;
+	public String getJobName() {
+		return jobName;
 	}
 
 	@JsonProperty

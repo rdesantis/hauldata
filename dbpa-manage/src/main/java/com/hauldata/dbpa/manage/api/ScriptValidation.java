@@ -14,7 +14,7 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.control.api;
+package com.hauldata.dbpa.manage.api;
 
 import java.util.LinkedList;
 import java.util.List;

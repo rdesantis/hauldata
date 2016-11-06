@@ -14,58 +14,42 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.control.api;
+package com.hauldata.dbpa.manage.api;
 
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * All the information needed to launch a process and record its status
+ * All the information needed to launch a job and record its status
  */
-public class ProcessConfiguration {
+public class Job {
 
-	private Integer id;
-	private String processName;
 	private String scriptName;
 	private String propName;
 	private List<ScriptArgument> arguments;
+	private List<String> scheduleNames;
+	private boolean enabled;
 
-	public ProcessConfiguration() {
+	public Job() {
 		// Jackson deserialization
 	}
 
-	public ProcessConfiguration(
-			Integer id,
-			String name,
+	public Job(
 			String scriptName,
 			String propName,
-			List<ScriptArgument> arguments) {
+			List<ScriptArgument> arguments,
+			List<String> scheduleNames,
+			boolean enabled) {
 
-		this.id = id;
-		this.processName = name;
 		this.scriptName = scriptName;
 		this.propName = propName;
 		this.arguments = arguments;
-	}
-
-	// Setter
-
-	public void setId(Integer id) {
-		this.id = id;
+		this.scheduleNames = scheduleNames;
+		this.enabled = enabled;
 	}
 
 	// Getters
-
-	@JsonProperty
-	public Integer getId() {
-		return id;
-	}
-
-	@JsonProperty
-	public String getProcessName() {
-		return processName;
-	}
 
 	@JsonProperty
 	public String getScriptName() {
@@ -80,5 +64,15 @@ public class ProcessConfiguration {
 	@JsonProperty
 	public List<ScriptArgument> getArguments() {
 		return arguments;
+	}
+
+	@JsonProperty
+	public List<String> getScheduleNames() {
+		return scheduleNames;
+	}
+
+	@JsonProperty
+	public boolean isEnabled() {
+		return enabled;
 	}
 }

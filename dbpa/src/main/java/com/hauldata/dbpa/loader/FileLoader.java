@@ -32,8 +32,14 @@ public class FileLoader implements Loader {
 
 	public static final String processFileExt = "dbp";
 
+	private String processPath;
+
 	public FileLoader(String processPath) {
 		this.processPath = processPath;
+	}
+
+	public Path getProcessPath() {
+		return Files.getPath(processPath);
 	}
 
 	@Override
@@ -44,6 +50,4 @@ public class FileLoader implements Loader {
 		Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(path.toString())));
 		return DbProcess.parse(reader);
 	}
-
-	private String processPath;
 }

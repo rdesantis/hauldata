@@ -13,7 +13,7 @@
 		<module>util</module>
 		<module>dbpa</module>
 		<module>dbpa-run</module>
-		<module>dbpa-control</module>
+		<module>dbpa-manage</module>
 	</modules>
   
 	<build>

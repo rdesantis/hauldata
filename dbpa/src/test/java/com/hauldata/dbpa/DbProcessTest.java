@@ -79,7 +79,7 @@ public class DbProcessTest extends TaskTest {
 				"PARAMETERS increment INTEGER END PARAMETERS \n" +
 				"VARIABLES future DATETIME, garbage VARCHAR, something VARCHAR, three INTEGER, \n" +
 				"name VARCHAR, description VARCHAR, size INTEGER, report VARCHAR, report2 VARCHAR, import VARCHAR, csv2 VARCHAR, child VARCHAR, tsvName VARCHAR, \n" +
-				"start DATETIME, finish DATETIME, when VARCHAR \n" +
+				"start DATETIME, finish DATETIME, occurs VARCHAR \n" +
 				"END VARIABLES \n" +
 				"TASK ForCsvLoop FOR size, description FROM CSV 'read file.csv' WITH HEADERS 'Numero', 'Parola' COLUMNS 1, 2 \n" +
 					"TASK ForShow LOG 'number = ' + FORMAT(size, 'd') + ', text = \"' + description + '\"' END TASK \n" +
@@ -167,10 +167,10 @@ public class DbProcessTest extends TaskTest {
 				"TASK SetRange AFTER AsyncLoop SET \n" +
 					"start = DATEADD(SECOND, 2, GETDATE()), \n" +
 					"finish = DATEADD(SECOND, 6, start), \n" +
-					"when = 'TODAY NOW, TODAY EVERY 2 SECONDS FROM ''' + FORMAT(start, 'hh:mm:ss a') + ''' UNTIL ''' + FORMAT(finish, 'hh:mm:ss a') + '''' \n" +
+					"occurs = 'TODAY NOW, TODAY EVERY 2 SECONDS FROM ''' + FORMAT(start, 'hh:mm:ss a') + ''' UNTIL ''' + FORMAT(finish, 'hh:mm:ss a') + '''' \n" +
 				"END TASK \n" +
-				"TASK ShowSchedule AFTER SetRange LOG when END TASK \n" +
-				"TASK Scheduler3 AFTER ShowSchedule ON SCHEDULE when \n" +
+				"TASK ShowSchedule AFTER SetRange LOG occurs END TASK \n" +
+				"TASK Scheduler3 AFTER ShowSchedule ON SCHEDULE occurs \n" +
 					"TASK Schedulee3 LOG 'Recurring scheduled task' END TASK \n" +
 				"END TASK \n" +
 /*mail*///		"TASK EmailAgain AFTER DeleteWildcards EMAIL FROM 'rdesantis@cmtnyc.com' TO 'rdesantis@comcast.net' SUBJECT 'From DBPA again' BODY 'Re-using email session' END TASK \n" +
@@ -425,24 +425,24 @@ public class DbProcessTest extends TaskTest {
 
 		String processId = "ScheduleTest";
 		String script =
-				"VARIABLES when VARCHAR, start DATETIME, finish DATETIME, ms_format VARCHAR, no_ms_format VARCHAR END VARIABLES \n" +
+				"VARIABLES occurs VARCHAR, start DATETIME, finish DATETIME, ms_format VARCHAR, no_ms_format VARCHAR END VARIABLES \n" +
 				"TASK Scheduler ON TODAY NOW \n" +
 					"TASK Schedulee LOG 'Scheduled task' END TASK \n" +
 				"END TASK \n" +
-				"TASK SetSchedule SET when = 'TODAY NOW' END TASK \n" +
-				"TASK Scheduler2 AFTER Scheduler AND SetSchedule ON SCHEDULE when \n" +
+				"TASK SetSchedule SET occurs = 'TODAY NOW' END TASK \n" +
+				"TASK Scheduler2 AFTER Scheduler AND SetSchedule ON SCHEDULE occurs \n" +
 					"TASK Schedulee2 LOG 'Another scheduled task' END TASK \n" +
 				"END TASK \n" +
 				"TASK SetRange AFTER Scheduler2 SET \n" +
 					"start = DATEADD(SECOND, 2, GETDATE()), \n" +
 					"finish = DATEADD(SECOND, 6, start), \n" +
-					"when = 'TODAY NOW, TODAY EVERY 2 SECONDS FROM ''' + FORMAT(start, 'HH:mm:ss') + ''' UNTIL ''' + FORMAT(finish, 'HH:mm:ss') + '''', \n" +
+					"occurs = 'TODAY NOW, TODAY EVERY 2 SECONDS FROM ''' + FORMAT(start, 'HH:mm:ss') + ''' UNTIL ''' + FORMAT(finish, 'HH:mm:ss') + '''', \n" +
 					"no_ms_format = 'uuuu-MM-dd''T''HH:mm:ss', \n" +
 					"ms_format = no_ms_format + '.SSS' \n" +
 				"END TASK \n" +
-				"TASK ShowSchedule AFTER SetRange LOG when END TASK \n" +
+				"TASK ShowSchedule AFTER SetRange LOG occurs END TASK \n" +
 				"TASK ShowTimes AFTER ShowSchedule LOG FORMAT(GETDATE(), ms_format) + ',' + FORMAT(start, no_ms_format) + ',' + FORMAT(finish, no_ms_format) END TASK \n" +
-				"TASK Scheduler3 AFTER ShowTimes ON SCHEDULE when \n" +
+				"TASK Scheduler3 AFTER ShowTimes ON SCHEDULE occurs \n" +
 					"TASK Schedulee3 LOG 'Recurring scheduled task' END TASK \n" +
 				"END TASK \n" +
 				"";

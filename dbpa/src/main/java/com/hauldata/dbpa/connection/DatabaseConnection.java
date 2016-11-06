@@ -25,7 +25,7 @@ import java.util.Properties;
 
 public class DatabaseConnection extends com.hauldata.dbpa.connection.Connection {
 
-	private Connection conn;
+	private Connection conn = null;
 
 	private int connCount = 0;
 	private LocalDateTime connLastUsed = null;
@@ -47,23 +47,28 @@ public class DatabaseConnection extends com.hauldata.dbpa.connection.Connection 
 	/**
 	 * Return JDBC connection, setting it up if required
 	 * using properties specified on setProperties(Properties).
-	 * @return the JDBC connection or setProperties(Properties)
-	 * was not called.  Throws an exception if the
-	 * connection cannot be established.
+	 * @return the JDBC connection or null if setProperties(Properties)
+	 * was not called.  Throws an exception if the connection cannot
+	 * be established.
 	 */
 	public Connection get() {
 
+		boolean longIdle;
 		synchronized (this) {
+			longIdle =
+					(conn != null) &&
+					(connCount == 0) &&
+					(connLastUsed != null) &&
+					(connLastUsed.until(LocalDateTime.now(), ChronoUnit.MILLIS) > longSleepMillis);
+		}
+
+		if (longIdle) {
+			wakeFromSleep(true);
+		}
+
+		synchronized (this) {
+
 			if (conn != null) {
-
-				if (
-						(connCount == 0) &&
-						(connLastUsed != null) &&
-						(connLastUsed.until(LocalDateTime.now(), ChronoUnit.MILLIS) > longSleepMillis)) {
-
-					wakeFromSleep(true);
-				}
-
 				++connCount;
 			}
 			else if (getProperties() != null) {
@@ -133,7 +138,7 @@ public class DatabaseConnection extends com.hauldata.dbpa.connection.Connection 
 	 * @return an indicator of whether the context considers the sleep
 	 * to be a "long" sleep.  This value must be passed to wakeFromSleep(boolean)
 	 * when the sleep has finished. 
-	 * @see Context#wakeFromSleep(boolean)
+	 * @see DatabaseConnection#wakeFromSleep(boolean)
 	 */
 	public boolean prepareToSleep(long millis) {
 
@@ -154,7 +159,7 @@ public class DatabaseConnection extends com.hauldata.dbpa.connection.Connection 
 	 * Alerts the context that a task has awakened from sleep.
 	 * 
 	 * @param longSleep is the return value from a previous call to prepareToSleep(long).
-	 * @see Context#prepareToSleep(long)
+	 * @see DatabaseConnection#prepareToSleep(long)
 	 */
 	public void wakeFromSleep(boolean longSleep) {
 

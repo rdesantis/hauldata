@@ -14,7 +14,7 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.control;
+package com.hauldata.dbpa.manage;
 
 import java.util.HashMap;
 import java.util.List;
@@ -31,28 +31,34 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.hauldata.dbpa.control.api.ProcessRun;
-import com.hauldata.dbpa.control.api.ProcessRun.Status;
+import com.hauldata.dbpa.manage.api.JobRun;
+import com.hauldata.dbpa.manage.api.JobRun.Status;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.DbProcess;
 
 /**
- * Concurrent process executor
+ * Concurrent job executor
  */
-public class ProcessExecutor {
+public class JobExecutor {
 
 	// See http://stackoverflow.com/questions/3096842/wait-for-one-of-several-threads
 
 	private ExecutorService es;
-	private ExecutorCompletionService<ProcessRun> ecs;
+	private ExecutorCompletionService<JobRun> ecs;
 
-	private Map<ProcessRun, Future<ProcessRun>> runs;
+	private Map<JobRun, Future<JobRun>> runs;
+	private Map<Integer, JobRun> runsById;
 
-	private class CallableProcessRun implements Callable<ProcessRun> {
+	private class CallableJobRun implements Callable<JobRun> {
+
+		private DbProcess process;
+		private String[] args;
+		private Context context;
+		private JobRun result;
 
 		@Override
-		public ProcessRun call() throws Exception {
-			
+		public JobRun call() throws Exception {
+
 			try {
 				process.run(args, context);
 				result.runSucceeded();
@@ -69,38 +75,35 @@ public class ProcessExecutor {
 			return result;
 		}
 
-		public CallableProcessRun(
+		public CallableJobRun(
 				DbProcess process,
 				String[] args,
 				Context context,
-				ProcessRun result) {
+				JobRun result) {
 
 			this.process = process;
 			this.args = args;
 			this.context = context;
 			this.result = result;
 		}
-
-		private DbProcess process;
-		private String[] args;
-		private Context context;
-		private ProcessRun result;
 	}
 
-	public ProcessExecutor() {
+	public JobExecutor() {
 
 		es = Executors.newCachedThreadPool();
-		ecs = new ExecutorCompletionService<ProcessRun>(es);
-		
+		ecs = new ExecutorCompletionService<JobRun>(es);
+
 		// Note: Intentionally not using ConcurrentHashMap.  See comment in submit().
-		runs = new HashMap<ProcessRun, Future<ProcessRun>>();
+
+		runs = new HashMap<JobRun, Future<JobRun>>();
+		runsById = new HashMap<Integer, JobRun>();
 	}
 
 	/**
-	 * Submit a process for execution
+	 * Submit a job for execution
 	 */
 	public void submit(
-			ProcessRun run,
+			JobRun run,
 			DbProcess process,
 			String[] args,
 			Context context) {
@@ -108,40 +111,52 @@ public class ProcessExecutor {
 		run.runInProgress();
 
 		// There is a race condition where getCompleted() could pull the
-		// completed process from the completion queue and attempt to remove
+		// completed job from the completion queue and attempt to remove
 		// it from the runs map before submit() has added it to the map.
 		// Using ConcurrentHashMap will not solve this problem.
 		// Therefore, use regular HashMap but synchronize explicitly.
 
 		synchronized (runs) {
 
-			Future<ProcessRun> futureRun = ecs.submit(new CallableProcessRun(process, args, context, run));
+			Future<JobRun> futureRun = ecs.submit(new CallableJobRun(process, args, context, run));
 
 			runs.put(run, futureRun);
+
+			runsById.put(run.getRunId(), run);
 		}
 	}
 
 	/**
-	 * Get the list of running processes.
-	 * @return the list of submitted processes that are in progress.
-	 * It is guaranteed that the status of each is ProcessRun.Status.runInProgress.
+	 * Get the list of running jobs.
+	 * @return the list of submitted jobs that are in progress.
+	 * It is guaranteed that the status of each is JobRun.Status.runInProgress.
 	 */
-	public List<ProcessRun> getRunning() {
+	public List<JobRun> getRunning() {
 		synchronized (runs) {
-			return runs.keySet().stream().filter(e -> (e.getStatus() == ProcessRun.Status.runInProgress)).collect(Collectors.toList());
+			return runs.keySet().stream().filter(e -> (e.getStatus() == JobRun.Status.runInProgress)).collect(Collectors.toList());
 		}
 	}
 
 	/**
-	 * Get a process run that has completed; blocks until a process completes.
+	 * Get a running job by ID.
+	 * @return the job with the indicated ID if it is still being processed by the executor, otherwise null.
+	 */
+	public JobRun getRunning(int runId) {
+		synchronized (runs) {
+			return runsById.get(runId);
+		}
+	}
+
+	/**
+	 * Get a job run that has completed; blocks until a job completes.
 	 * 
 	 * @throws InterruptedException if the thread calling this function was interrupted
 	 */
-	public ProcessRun getCompleted() throws InterruptedException {
+	public JobRun getCompleted() throws InterruptedException {
 
-		Future<ProcessRun> completedRun = ecs.take();
+		Future<JobRun> completedRun = ecs.take();
 
-		ProcessRun result = null;
+		JobRun result = null;
 		Status exceptionStatus = null;
 
 		synchronized (runs) {
@@ -158,11 +173,11 @@ public class ProcessExecutor {
 
 			if (result == null) {
 
-				// Process was cancelled before completion, possibly before it was started,
+				// Job was cancelled before completion, possibly before it was started,
 				// or failed by throwing an exception, therefore result could not be retrieved
 				// from the completion queue.  Find the map entry for this result and update its status.
 
-				for (Entry<ProcessRun, Future<ProcessRun>> entry : runs.entrySet()) {
+				for (Entry<JobRun, Future<JobRun>> entry : runs.entrySet()) {
 					if (entry.getValue() == completedRun) {
 	
 						result = entry.getKey();
@@ -172,6 +187,7 @@ public class ProcessExecutor {
 				}
 			}
 
+			runsById.remove(result.getRunId());
 			runs.remove(result);
 		}
 
@@ -179,20 +195,20 @@ public class ProcessExecutor {
 	}
 
 	/**
-	 * @return true if no incomplete processes remain submitted
+	 * @return true if no incomplete jobs remain submitted
 	 */
 	public boolean allCompleted() {
 		return runs.isEmpty();
 	}
 
 	/**
-	 * Stop a running process
+	 * Stop a running job
 	 */
-	public boolean stop(ProcessRun run) {
+	public boolean stop(JobRun run) {
 
 		synchronized (runs) {
 
-			Future<ProcessRun> futureRun = runs.get(run);
+			Future<JobRun> futureRun = runs.get(run);
 
 			if (futureRun == null) {
 				throw new NoSuchElementException("Run is not in progress");
@@ -203,12 +219,12 @@ public class ProcessExecutor {
 	}
 
 	/**
-	 * Stop all running processes
+	 * Stop all running jobs
 	 */
 	public void stopAll() {
 
 		synchronized (runs) {
-			for (Future<ProcessRun> futureRun : runs.values()) {
+			for (Future<JobRun> futureRun : runs.values()) {
 				futureRun.cancel(true);
 			}
 		}
@@ -218,13 +234,13 @@ public class ProcessExecutor {
 	 * Close the executor
 	 *
 	 * To assure good behavior, getCompleted() should be called
-	 * until all completed processes have been retrieved before
+	 * until all completed jobs have been retrieved before
 	 * closing the executor.
 	 *
-	 * If any processes have not completed, this function will wait a very
+	 * If any jobs have not completed, this function will wait a very
 	 * short time for them to complete.
 	 * 
-	 * @return true if all processes and the executor terminate in a timely fashion. 
+	 * @return true if all jobs and the executor terminate in a timely fashion. 
 	 * @throws InterruptedException
 	 */
 	public boolean close() throws InterruptedException {

@@ -59,6 +59,16 @@ public class ContextProperties {
 		logProps = null;
 	}
 
+	private Properties getDefaultPathsProperties() {
+
+		Properties props = new Properties();
+		// Don't set "read" or "write" defaults.  If either of these is missing, the "data" default will be used.
+		props.setProperty("data", dbpaHome);
+		props.setProperty("process", dbpaHome);
+		props.setProperty("log", dbpaHome);
+		return props;
+	}
+
 	private static final ContextProperties nullContextProperties = new ContextProperties();
 
 	public ContextProperties(String contextName) {
@@ -142,19 +152,9 @@ public class ContextProperties {
 		return props;
 	}
 
-	private Properties getDefaultPathsProperties() {
-
-		Properties props = new Properties();
-		// Don't set "read" or "write" defaults.  If either of these is missing, the "data" default will be used.
-		props.setProperty("data", ".");
-		props.setProperty("process", ".");
-		props.setProperty("log", ".");
-		return props;
-	}
-
 	private String getPathname(String usage) {
 		// Defensive: The == null path should never execute because of how ContextProperties() default constructor is defined.
-		return (pathProps != null) ? pathProps.getProperty(usage, ".") : ".";
+		return (pathProps != null) ? pathProps.getProperty(usage, ".") : dbpaHome;
 	}
 
 	private Logger setupLog(String processID, Context context) {
@@ -198,9 +198,5 @@ public class ContextProperties {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 			throw new RuntimeException("Failed attempting to set up log : " + message, ex);
 		}
-	}
-	
-	public Path getProcessPath() {
-		return Files.getPath(getPathname("process"));
 	}
 }

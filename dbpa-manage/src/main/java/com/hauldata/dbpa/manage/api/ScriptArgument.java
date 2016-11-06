@@ -14,25 +14,25 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.control.api;
+package com.hauldata.dbpa.manage.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class ScriptParameter {
+public class ScriptArgument {
 
 	private String name;
-	private String typeName;
+	private String value;
 
-	public ScriptParameter() {
+	public ScriptArgument() {
 		// Jackson deserialization
 	}
 
-	public ScriptParameter(
+	public ScriptArgument(
 			String name,
-			String typeName) {
+			String value) {
 
 		this.name = name;
-		this.typeName = typeName;
+		this.value = value;
 	}
 
 	@JsonProperty
@@ -41,7 +41,7 @@ public class ScriptParameter {
 	}
 
 	@JsonProperty
-	public String getTypeName() {
-		return typeName;
+	public String getValue() {
+		return value;
 	}
 }
