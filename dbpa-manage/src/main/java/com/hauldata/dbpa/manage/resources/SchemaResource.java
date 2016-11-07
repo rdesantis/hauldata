@@ -37,10 +37,9 @@ public class SchemaResource {
 
 	@GET
 	@Timed
-	public void confirmSchema() {
+	public boolean confirmSchema() {
 		try {
-			// TODO!!!
-			return;
+			return JobManager.getInstance().confirmSchema();
 		}
 		catch (Exception ex) {
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);

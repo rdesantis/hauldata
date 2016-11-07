@@ -48,62 +48,67 @@ public class JobManager {
 //	private static final String programName = "ManageDbp";
 	private static final String programName = "RunDbp";		// To simplify testing
 
-	private static final String jobTableSuffix = "Job";
-	private final static String createJobTableSql = "CREATE TABLE %1$s" + jobTableSuffix + " " +
+	private static final String jobTableName = "Job";
+	private final static String createJobTableSql = "CREATE TABLE %1$s" + jobTableName + " " +
 			"( id INTEGER, name VARCHAR(255) UNIQUE, scriptName VARCHAR(255), propName VARCHAR(255), enabled TINYINT, PRIMARY KEY (id) )";
-	private final static String insertJobSql = "INSERT INTO %1$s" + jobTableSuffix + " VALUES (?,?,?,?,?)";
-	private final static String selectLastJobIdSql = "SELECT MAX(id) FROM %1$s" + jobTableSuffix;
-	private final static String selectJobsSql = "SELECT id, name, scriptName, propName, enabled FROM %1$s" + jobTableSuffix + " WHERE name LIKE ? ORDER BY name";
-	private final static String selectJobNamesSql = "SELECT name FROM %1$s" + jobTableSuffix + " WHERE name LIKE ? ORDER BY name";
-	private final static String selectJobIdSql = "SELECT id FROM %1$s" + jobTableSuffix + " WHERE name = ?";
-	private final static String deleteJobSql = "DELETE FROM %1$s" + jobTableSuffix + " WHERE id = ?";
+	private final static String insertJobSql = "INSERT INTO %1$s" + jobTableName + " VALUES (?,?,?,?,?)";
+	private final static String selectLastJobIdSql = "SELECT MAX(id) FROM %1$s" + jobTableName;
+	private final static String selectJobsSql = "SELECT id, name, scriptName, propName, enabled FROM %1$s" + jobTableName + " WHERE name LIKE ? ORDER BY name";
+	private final static String selectJobNamesSql = "SELECT name FROM %1$s" + jobTableName + " WHERE name LIKE ? ORDER BY name";
+	private final static String selectJobIdSql = "SELECT id FROM %1$s" + jobTableName + " WHERE name = ?";
+	private final static String deleteJobSql = "DELETE FROM %1$s" + jobTableName + " WHERE id = ?";
+	private final static String selectAllJobColumnsSql = "SELECT id, name, scriptName, propName, enabled FROM %1$s" + jobTableName;
 
-	private static final String argTableSuffix = "JobArgument";
-	private final static String createArgTableSql = "CREATE TABLE %1$s" + argTableSuffix + " " +
+	private static final String argTableName = "JobArgument";
+	private final static String createArgTableSql = "CREATE TABLE %1$s" + argTableName + " " +
 			"( jobId INTEGER, argIndex INTEGER, argName VARCHAR(255), argValue VARCHAR(255), PRIMARY KEY (jobId, argIndex) )";
-	private final static String insertArgSql = "INSERT INTO %1$s" + argTableSuffix + " VALUES (?,?,?,?)";
-	private final static String selectArgsSql = "SELECT argName, argValue FROM %1$s" + argTableSuffix + " WHERE jobId = ? ORDER BY argIndex";
-	private final static String deleteArgsSql = "DELETE FROM %1$s" + argTableSuffix + " WHERE jobId = ?";
+	private final static String insertArgSql = "INSERT INTO %1$s" + argTableName + " VALUES (?,?,?,?)";
+	private final static String selectArgsSql = "SELECT argName, argValue FROM %1$s" + argTableName + " WHERE jobId = ? ORDER BY argIndex";
+	private final static String deleteArgsSql = "DELETE FROM %1$s" + argTableName + " WHERE jobId = ?";
+	private final static String selectAllArgColumnsSql = "SELECT jobId, argIndex, argName, argValue FROM %1$s" + argTableName;
 
-	private static final String scheduleTableSuffix = "Schedule";
-	private final static String createScheduleTableSql = "CREATE TABLE %1$s" + scheduleTableSuffix + " " +
+	private static final String scheduleTableName = "Schedule";
+	private final static String createScheduleTableSql = "CREATE TABLE %1$s" + scheduleTableName + " " +
 			"( id INTEGER, name VARCHAR(255) UNIQUE, schedule VARCHAR(1023), PRIMARY KEY (id) )";
-	private final static String insertScheduleSql = "INSERT INTO %1$s" + scheduleTableSuffix + " VALUES (?,?,?)";
-	private final static String selectLastScheduleIdSql = "SELECT MAX(id) FROM %1$s" + scheduleTableSuffix;
-	private final static String selectScheduleIdsSql = "SELECT id FROM %1$s" + scheduleTableSuffix + " WHERE name IN (%2$s)";
-	private final static String selectSchedulesSql = "SELECT name, schedule FROM %1$s" + scheduleTableSuffix + " WHERE name LIKE ? ORDER BY name";
-	private final static String selectScheduleIdSql = "SELECT id FROM %1$s" + scheduleTableSuffix + " WHERE name = ?";
-	private final static String deleteScheduleSql = "DELETE FROM %1$s" + scheduleTableSuffix + " WHERE id = ?";
+	private final static String insertScheduleSql = "INSERT INTO %1$s" + scheduleTableName + " VALUES (?,?,?)";
+	private final static String selectLastScheduleIdSql = "SELECT MAX(id) FROM %1$s" + scheduleTableName;
+	private final static String selectScheduleIdsSql = "SELECT id FROM %1$s" + scheduleTableName + " WHERE name IN (%2$s)";
+	private final static String selectSchedulesSql = "SELECT name, schedule FROM %1$s" + scheduleTableName + " WHERE name LIKE ? ORDER BY name";
+	private final static String selectScheduleIdSql = "SELECT id FROM %1$s" + scheduleTableName + " WHERE name = ?";
+	private final static String deleteScheduleSql = "DELETE FROM %1$s" + scheduleTableName + " WHERE id = ?";
+	private final static String selectAllScheduleColumnsSql = "SELECT id, name, schedule FROM %1$s" + scheduleTableName;
 
-	private static final String jobScheduleTableSuffix = "JobSchedule";
-	private final static String createJobScheduleTableSql = "CREATE TABLE %1$s" + jobScheduleTableSuffix + " " +
+	private static final String jobScheduleTableName = "JobSchedule";
+	private final static String createJobScheduleTableSql = "CREATE TABLE %1$s" + jobScheduleTableName + " " +
 			"( jobId INTEGER, scheduleId INTEGER, PRIMARY KEY (jobId, scheduleId) )";
-	private final static String insertJobScheduleSql = "INSERT INTO %1$s" + jobScheduleTableSuffix + " VALUES (?,?)";
+	private final static String insertJobScheduleSql = "INSERT INTO %1$s" + jobScheduleTableName + " VALUES (?,?)";
 	private final static String selectScheduleNamesByJobIdSql =
 			"SELECT s.name " +
-			"FROM %1$s" + scheduleTableSuffix + " AS s " +
-			"INNER JOIN %1$s" + jobScheduleTableSuffix + " AS js ON s.id = js.scheduleId " +
+			"FROM %1$s" + scheduleTableName + " AS s " +
+			"INNER JOIN %1$s" + jobScheduleTableName + " AS js ON s.id = js.scheduleId " +
 			"WHERE js.jobId = ?";
-	private final static String deleteJobSchedulesSql = "DELETE FROM %1$s" + jobScheduleTableSuffix + " WHERE jobId = ?";
+	private final static String deleteJobSchedulesSql = "DELETE FROM %1$s" + jobScheduleTableName + " WHERE jobId = ?";
 	private final static String selectJobNamesByScheduleIdSql =
 			"SELECT j.name " +
-			"FROM %1$s" + jobTableSuffix + " AS j " +
-			"INNER JOIN %1$s" + jobScheduleTableSuffix + " AS js ON j.id = js.jobId " +
+			"FROM %1$s" + jobTableName + " AS j " +
+			"INNER JOIN %1$s" + jobScheduleTableName + " AS js ON j.id = js.jobId " +
 			"WHERE js.scheduleId = ?";
+	private final static String selectAllJobScheduleColumnsSql = "SELECT jobId, scheduleId FROM %1$s" + jobScheduleTableName;
 
-	private static final String runTableSuffix = "JobRun";
-	private final static String createRunTableSql = "CREATE TABLE %1$s" + runTableSuffix + " " +
+	private static final String runTableName = "JobRun";
+	private final static String createRunTableSql = "CREATE TABLE %1$s" + runTableName + " " +
 			"( id INTEGER, jobId INTEGER, jobName VARCHAR(255), status TINYINT, startTime DATETIME, endTime DATETIME, PRIMARY KEY (id) )";
-	private final static String insertRunSql = "INSERT INTO %1$s" + runTableSuffix + " (id, jobId, jobName, status) VALUES (?,?,?,?)";
-	private final static String selectLastRunIdSql = "SELECT MAX(id) FROM %1$s" + runTableSuffix;
-	private final static String updateRunSql = "UPDATE %1$s" + runTableSuffix + " SET status = ?, startTime = ?, endTime = ? WHERE id = ?";
+	private final static String insertRunSql = "INSERT INTO %1$s" + runTableName + " (id, jobId, jobName, status) VALUES (?,?,?,?)";
+	private final static String selectLastRunIdSql = "SELECT MAX(id) FROM %1$s" + runTableName;
+	private final static String updateRunSql = "UPDATE %1$s" + runTableName + " SET status = ?, startTime = ?, endTime = ? WHERE id = ?";
+	private final static String selectAllRunColumnsSql = "SELECT id, jobId, jobName, status, startTime, endTime FROM %1$s" + runTableName;
 
 	private final static String dropTableSql = "DROP TABLE %1$s%2$s";
 
 	private final static String selectRunSql =
-			"SELECT id, jobName, status, startTime, endTime FROM %1$s" + runTableSuffix + " AS run";
+			"SELECT id, jobName, status, startTime, endTime FROM %1$s" + runTableName + " AS run";
 	private final static String selectAllLastRunIndexSql =
-			"SELECT jobName, MAX(id) AS maxId FROM %1$s" + runTableSuffix + " GROUP BY jobId";
+			"SELECT jobName, MAX(id) AS maxId FROM %1$s" + runTableName + " GROUP BY jobId";
 	private final static String selectLastRunSql =	// selectRun, selectAllLastRunIndex
 			"%1$s INNER JOIN (%2$s) AS mr ON mr.jobName = run.jobName AND run.id = mr.maxId";
 	private final static String whereRunJobNameSql =
@@ -210,23 +215,18 @@ public class JobManager {
 		Statement stmt = null;
 
 		try {
-			// Drop the tables in the schema.
-
-			String dropJobTable = String.format(dropTableSql, tablePrefix, jobTableSuffix);
-			String dropArgTable = String.format(dropTableSql, tablePrefix, argTableSuffix);
-			String dropScheduleTable = String.format(dropTableSql, tablePrefix, scheduleTableSuffix);
-			String dropJobScheduleTable = String.format(dropTableSql, tablePrefix, jobScheduleTableSuffix);
-			String dropRunTable = String.format(dropTableSql, tablePrefix, runTableSuffix);
+			// Attempt to drop the tables in the schema.
+			// They may not exist; that is not an error.
 
 			conn = context.getConnection(null);
 
 			stmt = conn.createStatement();
 
-			stmt.executeUpdate(dropJobTable);
-		    stmt.executeUpdate(dropArgTable);
-		    stmt.executeUpdate(dropScheduleTable);
-		    stmt.executeUpdate(dropJobScheduleTable);
-		    stmt.executeUpdate(dropRunTable);
+			dropTableNoSqlError(stmt, jobTableName);
+			dropTableNoSqlError(stmt, argTableName);
+			dropTableNoSqlError(stmt, scheduleTableName);
+			dropTableNoSqlError(stmt, jobScheduleTableName);
+			dropTableNoSqlError(stmt, runTableName);
 		}
 		catch (Exception ex) {
 			throw ex;
@@ -236,6 +236,89 @@ public class JobManager {
 
 			if (conn != null) context.releaseConnection(null);
 		}
+	}
+
+	private void dropTableNoSqlError(Statement stmt, String tableName) {
+
+		String dropTable = String.format(dropTableSql, tablePrefix, tableName);
+
+		tryExecuteUpdate(stmt, dropTable);
+	}
+
+	/**
+	 * Execute a SQL statement; return true if it executed without exception, false if SQLException occurred.
+	 * @param stmt is a Statement created for the connection
+	 * @param sql is the SQL to execute.
+	 */
+	private boolean tryExecuteUpdate(Statement stmt, String sql) {
+		try {
+			stmt.executeUpdate(sql);
+		}
+		catch (SQLException e) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Confirm the existence of all the job-related tables with correct columns
+	 * @return true if all tables exist correctly, false otherwise
+	 * @throws Exception
+	 */
+	public boolean confirmSchema() throws Exception {
+
+		Connection conn = null;
+		Statement stmt = null;
+
+		boolean allTablesExistAsRequired;
+		try {
+			conn = context.getConnection(null);
+
+			stmt = conn.createStatement();
+
+			// Need a database-neutral way to test if a table exists with the required columns.
+			// See http://stackoverflow.com/questions/1227921/portable-sql-to-determine-if-a-table-exists-or-not
+			// Run a statement that does nothing but will fail if the table doesn't exist as required.
+
+			allTablesExistAsRequired =
+					trySelectNoRows(stmt, selectAllJobColumnsSql) &&
+					trySelectNoRows(stmt, selectAllArgColumnsSql) &&
+					trySelectNoRows(stmt, selectAllScheduleColumnsSql) &&
+					trySelectNoRows(stmt, selectAllJobScheduleColumnsSql) &&
+					trySelectNoRows(stmt, selectAllRunColumnsSql);
+		}
+		catch (Exception ex) {
+			throw ex;
+		}
+		finally {
+			try { if (stmt != null) stmt.close(); } catch (Exception ex) {}
+
+			if (conn != null) context.releaseConnection(null);
+		}
+
+		return allTablesExistAsRequired;
+	}
+
+	private boolean trySelectNoRows(Statement stmt, String selectAllColumnsSql) {
+
+		String selectAllColumnsNoRows = String.format(selectAllColumnsSql + " WHERE 0=1", tablePrefix);
+
+		return tryExecuteQuery(stmt, selectAllColumnsNoRows);
+	}
+
+	/**
+	 * Execute a SQL query; return true if it executed without exception, false if SQLException occurred.
+	 * @param stmt is a Statement created for the connection
+	 * @param sql is the SQL to execute.
+	 */
+	private boolean tryExecuteQuery(Statement stmt, String sql) {
+		try {
+			stmt.executeQuery(sql);
+		}
+		catch (SQLException e) {
+			return false;
+		}
+		return true;
 	}
 
 	/**
