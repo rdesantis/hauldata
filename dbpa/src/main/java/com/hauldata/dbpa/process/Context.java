@@ -17,6 +17,7 @@
 package com.hauldata.dbpa.process;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
 
@@ -115,7 +116,7 @@ public class Context {
 		if (pathProps != null) {
 			location = pathProps.getProperty(mode, pathProps.getProperty("data", location));
 		}
-		return Files.getPath(location);
+		return Paths.get(location);
 	}
 
 	/**

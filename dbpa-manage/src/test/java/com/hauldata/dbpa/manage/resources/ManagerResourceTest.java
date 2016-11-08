@@ -16,11 +16,18 @@
 
 package com.hauldata.dbpa.manage.resources;
 
-import com.hauldata.dbpa.manage.JobManager;
-
 import junit.framework.TestCase;
 
 public class ManagerResourceTest extends TestCase {
+
+	ManagerResource managerResource;
+
+	protected void setUp() {
+		managerResource = new ManagerResource();
+		if (!managerResource.isStarted()) {
+			managerResource.startup();
+		}
+	}
 
 	public ManagerResourceTest(String name) {
 		super(name);
@@ -28,16 +35,10 @@ public class ManagerResourceTest extends TestCase {
 
 	public void testManager() throws Exception {
 
-		JobManager manager = JobManager.getInstance();
+		assertTrue(managerResource.isStarted());
 
-		if (!manager.isStarted()) {
-			manager.startup();
-		}
+		managerResource.shutdown();
 
-		assertTrue(manager.isStarted());
-
-		manager.shutdown();
-
-		assertFalse(manager.isStarted());
+		assertFalse(managerResource.isStarted());
 	}
 }

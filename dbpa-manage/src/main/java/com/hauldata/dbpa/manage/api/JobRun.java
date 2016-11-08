@@ -27,17 +27,63 @@ public class JobRun {
 
 	private Integer runId;
 	private String jobName;
-	private Status status;
-	private LocalDateTime startTime;
-	private LocalDateTime endTime;
+	private State state;
 
 	public enum Status {
-		notRun, parseFailed, runInProgress, runFailed, runSucceeded, runTerminated, controllerShutdown;
+
+		notRun(0), parseFailed(1), runInProgress(2), runFailed(3), runSucceeded(4), runTerminated(5), controllerShutdown(6);
+
+		private int id;
+
+		Status(int id) { this.id = id; }
 		
-		private static Status[] statuses = values();
+		public static Status valueOf(int id) {
+			return values()[id];
+		}
+
+		@JsonProperty
+		public int getId() {
+			return id;
+		}
+	}
+
+	/**
+	 * All state-related fields; immutable
+	 */
+	public static class State {
 		
-		public static Status of(int i) { return statuses[i]; } 
-		public int value() { return ordinal(); }
+		private Status status;
+		private LocalDateTime startTime;
+		private LocalDateTime endTime;
+
+		public State() {
+			// Jackson deserialization
+		}
+
+		public State(
+				Status status,
+				LocalDateTime startTime,
+				LocalDateTime endTime) {
+
+			this.status = status;
+			this.startTime = startTime;
+			this.endTime = endTime;
+		}
+
+		@JsonProperty
+		public Status getStatus() {
+			return status;
+		}
+
+		@JsonProperty
+		public LocalDateTime getStartTime() {
+			return startTime;
+		}
+
+		@JsonProperty
+		public LocalDateTime getEndTime() {
+			return endTime;
+		}
 	}
 
 	public JobRun() {
@@ -52,33 +98,17 @@ public class JobRun {
 
 		this.runId = -1;
 		this.jobName = jobName;
-		this.status = Status.notRun;
-		this.startTime = null;
-		this.endTime = null;
+		this.state = new State(Status.notRun, null, null);
 	}
 
 	public JobRun(
 			Integer runId,
 			String jobName,
-			Status status,
-			LocalDateTime startTime,
-			LocalDateTime endTime) {
+			State state) {
 
 		this.runId = runId;
 		this.jobName = jobName;
-		this.status = status;
-		this.startTime = startTime;
-		this.endTime = endTime;
-	}
-
-	/*
-	 * Constructor that sets the runId field, which uniquely identifies a job.
-	 * 
-	 * It is guaranteed that the equals() operator returns true when comparing
-	 * this JobRun to another JobRun with the same runId.
-	 */
-	public static JobRun of(Integer runId) {
-		return new JobRun(runId, null, null, null, null);
+		this.state = state;
 	}
 
 	@Override
@@ -98,8 +128,10 @@ public class JobRun {
 	// Status updates
 
 	public void runInProgress() {
-		status = Status.runInProgress;
-		startTime = LocalDateTime.now();
+		state = new State(
+							Status.runInProgress,
+							LocalDateTime.now(),
+							null);
 	}
 
 	public void parseFailed() {
@@ -123,8 +155,10 @@ public class JobRun {
 	}
 
 	public void setEndStatusNow(Status status) {
-		this.status = status;
-		endTime = LocalDateTime.now();
+		state = new State(
+							status,
+							state.getStartTime(),
+							LocalDateTime.now());
 	}
 
 	// Setter
@@ -145,18 +179,15 @@ public class JobRun {
 		return jobName;
 	}
 
+	/**
+	 * Get job state.
+	 *
+	 * @return an immutable State object that returns the state of the job run at the time
+	 * of this call.  If the state subsequently changes, getState() will return a different
+	 * State object with the new state.
+	 */
 	@JsonProperty
-	public Status getStatus() {
-		return status;
-	}
-
-	@JsonProperty
-	public LocalDateTime getStartTime() {
-		return startTime;
-	}
-
-	@JsonProperty
-	public LocalDateTime getEndTime() {
-		return endTime;
+	public State getState() {
+		return state;
 	}
 }

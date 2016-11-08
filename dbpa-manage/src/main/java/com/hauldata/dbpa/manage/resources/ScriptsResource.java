@@ -16,8 +16,20 @@
 
 package com.hauldata.dbpa.manage.resources;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.Writer;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -108,19 +120,96 @@ public class ScriptsResource {
 		}
 	}
 
+	/**
+	 * Write a script to file.
+	 * @param name is the name of the script
+	 * @param body is the body of the script
+	 */
 	private void putScript(String name, String body) {
-		//TODO
-		throw new RuntimeException("Put script not implemented");
+
+		String processFilePathName = getProcessFilePathName(name);
+
+		Writer writer = null;
+		try {
+			writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(processFilePathName)));
+
+			writer.write(body);
+		}
+		catch (IOException ex) {
+			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
+			throw new RuntimeException("Error occurred writing script: " + message, ex);
+		}
+		finally { try {
+			if (writer != null) writer.close();
+		}
+		catch (IOException ex) {
+			throw new RuntimeException("Error occurred closing script: " + name, ex);
+		} }
 	}
 
+	private String getProcessFilePathName(String name) {
+
+		JobManager manager = JobManager.getInstance();
+		FileLoader fileLoader = (FileLoader)manager.getContext().loader;
+
+		String processFileName = name + "." + FileLoader.processFileExt;
+		String processFilePathName = Paths.get(fileLoader.getProcessPathString()).resolve(processFileName).toString();
+
+		return processFilePathName;
+	}
+
+	/**
+	 * Read a script from file.
+	 * @param name is the name of the script
+	 * @return the body of the script
+	 */
 	private String getScript(String name) {
-		//TODO
-		throw new RuntimeException("Get script not implemented");
+
+		String processFilePathName = getProcessFilePathName(name);
+
+		final int bufferLength = 2048;
+		char[] charBuffer = new char[bufferLength];
+		StringBuilder bodyBuilder = new StringBuilder();
+
+		Reader reader = null;
+		try {
+			reader = new BufferedReader(new InputStreamReader(new FileInputStream(processFilePathName)));
+
+			int count;
+			while((count = reader.read(charBuffer, 0, bufferLength)) != -1) {
+				bodyBuilder.append(charBuffer, 0, count);
+			}
+		}
+		catch (FileNotFoundException ex) {
+			throw new RuntimeException("Script not found: " + name);
+		}
+		catch (IOException ex) {
+			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
+			throw new RuntimeException("Error occurred reading script: " + message, ex);
+		}
+		finally { try {
+			if (reader != null) reader.close();
+		}
+		catch (IOException ex) {
+			throw new RuntimeException("Error occurred closing script: " + name, ex);
+		} }
+
+		return bodyBuilder.toString();
 	}
 
 	private void deleteScript(String name) throws Exception {
-		//TODO
-		throw new RuntimeException("Delete script not implemented");
+		String processFilePathName = getProcessFilePathName(name);
+
+		try {
+			Files.delete(Paths.get(processFilePathName));
+		}
+		catch (NoSuchFileException ex) {
+			throw new RuntimeException("Script not found: " + name);
+		}
+		catch (IOException ex) {
+			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
+			throw new RuntimeException("Error occurred deleting script: " + message, ex);
+		}
 	}
 
 	/**
@@ -135,6 +224,7 @@ public class ScriptsResource {
 	private List<String> listScripts(String likeName) throws Exception {
 
 		JobManager manager = JobManager.getInstance();
+		FileLoader fileLoader = (FileLoader)manager.getContext().loader;
 		
 		if (likeName == null) {
 			likeName = "*";
@@ -147,7 +237,7 @@ public class ScriptsResource {
 
 		DirectoryStream<java.nio.file.Path> scriptPaths = null;
 		try {
-			scriptPaths = Files.newDirectoryStream(((FileLoader)(manager.getContext().loader)).getProcessPath(), likeName + scriptSuffix);
+			scriptPaths = Files.newDirectoryStream(Paths.get(fileLoader.getProcessPathString()), likeName + scriptSuffix);
 
 			for (java.nio.file.Path scriptPath : scriptPaths) {
 				if (Files.isRegularFile(scriptPath)) {

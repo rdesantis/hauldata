@@ -18,11 +18,11 @@ package com.hauldata.dbpa.manage.resources;
 
 import junit.framework.TestCase;
 
-public class SchemaResourceTest extends TestCase {
+public class ScriptsResourceTest extends TestCase {
 
-	SchemaResource schemaResource;
+	private ScriptsResource scriptsResource;
 
-	public SchemaResourceTest(String name) {
+	public ScriptsResourceTest(String name) {
 		super(name);
 	}
 
@@ -31,26 +31,14 @@ public class SchemaResourceTest extends TestCase {
 		if (!managerResource.isStarted()) {
 			managerResource.startup();
 		}
-		schemaResource = new SchemaResource();
+		scriptsResource = new ScriptsResource();
 	}
 
-	public void testSchema() throws Exception {
+	public void testPutScript() {
+	
+		String name = "garbage";
+		String body = "TASK LOG 'It may be garbage, but it''s MY garbage' END TASK";
 
-		boolean isSchemaGood = schemaResource.confirmSchema();
-		
-		if (!isSchemaGood) {
-
-			schemaResource.deleteSchema();
-			
-			isSchemaGood = schemaResource.confirmSchema();
-
-			assertFalse(isSchemaGood);
-
-			schemaResource.createSchema();
-
-			isSchemaGood = schemaResource.confirmSchema();
-
-			assertTrue(isSchemaGood);
-		}
+		scriptsResource.put(name, body);
 	}
 }

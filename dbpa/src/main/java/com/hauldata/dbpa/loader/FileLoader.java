@@ -22,31 +22,31 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import javax.naming.NamingException;
 
 import com.hauldata.dbpa.process.DbProcess;
-import com.hauldata.dbpa.process.Files;
 
 public class FileLoader implements Loader {
 
 	public static final String processFileExt = "dbp";
 
-	private String processPath;
+	private String processPathString;
 
-	public FileLoader(String processPath) {
-		this.processPath = processPath;
+	public FileLoader(String processPathString) {
+		this.processPathString = processPathString;
 	}
 
-	public Path getProcessPath() {
-		return Files.getPath(processPath);
+	public String getProcessPathString() {
+		return processPathString;
 	}
 
 	@Override
 	public DbProcess load(String name) throws IOException, NamingException {
 
 		String processFileName = name + "." + processFileExt;
-		Path path = Files.getPath(processPath, processFileName);
+		Path path = Paths.get(processPathString).resolve(processFileName);
 		Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(path.toString())));
 		return DbProcess.parse(reader);
 	}

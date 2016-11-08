@@ -1097,7 +1097,7 @@ public class JobManager {
 
 			stmt.setInt(2, jobId);
 			stmt.setString(3, jobName);
-			stmt.setInt(4, run.getStatus().value());
+			stmt.setInt(4, run.getState().getStatus().getId());
 
 			int runId;
 			synchronized (this) {
@@ -1142,9 +1142,10 @@ public class JobManager {
 
 			stmt = conn.prepareStatement(updateRun);
 
-			stmt.setInt(1, run.getStatus().value());
-			setTimestamp(stmt, 2, run.getStartTime());
-			setTimestamp(stmt, 3, run.getEndTime());
+			JobRun.State state = run.getState();
+			stmt.setInt(1, state.getStatus().getId());
+			setTimestamp(stmt, 2, state.getStartTime());
+			setTimestamp(stmt, 3, state.getEndTime());
 
 			stmt.setInt(4, run.getRunId());
 
@@ -1250,11 +1251,11 @@ public class JobManager {
 
 				int runId = rs.getInt(1);
 				String jobName = rs.getString(2);
-				Status status = Status.of(rs.getInt(3));
+				Status status = Status.valueOf(rs.getInt(3));
 				LocalDateTime startTime = getLocalDateTime(rs, 4);
 				LocalDateTime endTime = getLocalDateTime(rs, 5);
 
-				runs.add(new JobRun(runId, jobName, status, startTime, endTime));
+				runs.add(new JobRun(runId, jobName, new JobRun.State(status, startTime, endTime)));
 			}
 		}
 		catch (Exception ex) {

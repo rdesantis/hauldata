@@ -16,9 +16,9 @@
 
 package com.hauldata.dbpa.process;
 
-import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -28,7 +28,7 @@ public class Files extends File.Owner {
 
 	private Map<Path, File> files;
 
-	private static FileSystem fs = FileSystems.getDefault();
+	private static String separator = FileSystems.getDefault().getSeparator();
 
 	public Files() {
 		files = new ConcurrentHashMap<Path, File>();
@@ -53,19 +53,15 @@ public class Files extends File.Owner {
 
 	// Static members
 	
-	public static Path getPath(String path) {
-		return fs.getPath(path);
-	}
-
 	/**
-	 * Get the fully-resolved path of a file name that may include a relative or absolute path.
+	 * Get the fully-resolved normalized path of a file name that may include a relative or absolute path.
 	 * Uses the provided parentName to resolve relative paths.
 	 * @param parentName is the parent path for resolving relative file names.
 	 * @param fileName is the file name to resolve.
 	 * @return the fully-resolved path
 	 */
 	public static Path getPath(String parentName, String fileName) {
-		return fs.getPath(parentName).resolve(fileName).toAbsolutePath().normalize();
+		return Paths.get(parentName).resolve(fileName).toAbsolutePath().normalize();
 	}
 
 	/**
@@ -86,12 +82,12 @@ public class Files extends File.Owner {
 	 */
 	public static String[] getParentAndFileName(String fileName) {
 
-		// FileSystem.getPath(String) does not accept the wildcard character so it can't be used here.
+		// Paths#get(String) does not accept the wildcard character so it can't be used here.
 		// On MS Windows, the file separator is backslash but forward slash is also accepted.
 		// Allow the user to specify either. 
 
 		int lastSeparatorIndex = Math.max(
-				fileName.lastIndexOf(fs.getSeparator()),
+				fileName.lastIndexOf(separator),
 				fileName.lastIndexOf("/"));
 		if (lastSeparatorIndex == -1) {
 			return new String[] { "." , fileName };

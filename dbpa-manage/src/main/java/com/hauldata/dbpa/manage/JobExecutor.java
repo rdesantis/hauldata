@@ -128,12 +128,16 @@ public class JobExecutor {
 
 	/**
 	 * Get the list of running jobs.
-	 * @return the list of submitted jobs that are in progress.
-	 * It is guaranteed that the status of each is JobRun.Status.runInProgress.
+	 * <P>
+	 * It is only guaranteed that the status of each job was JobRun.Status.runInProgress when this
+	 * function was called.  Each job object in the list continues to be actively updated even after
+	 * the function returns, so the status of a job may have changed when the caller examines it.
+	 *
+	 * @return the list of submitted jobs that are in progress
 	 */
 	public List<JobRun> getRunning() {
 		synchronized (runs) {
-			return runs.keySet().stream().filter(e -> (e.getStatus() == JobRun.Status.runInProgress)).collect(Collectors.toList());
+			return runs.keySet().stream().filter(e -> (e.getState().getStatus() == JobRun.Status.runInProgress)).collect(Collectors.toList());
 		}
 	}
 
