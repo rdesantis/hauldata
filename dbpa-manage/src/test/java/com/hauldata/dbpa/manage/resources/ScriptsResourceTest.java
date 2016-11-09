@@ -36,6 +36,9 @@ public class ScriptsResourceTest extends TestCase {
 	private static final String invalidName = "invalid";
 	private static final String invalidBody = "This is not a valid script";
 
+	private static final String hasParamsName = "HasParams";
+	private static final String hasParamsBody = "PARAMETERS one int, two VARCHAR(50), three DATE END PARAMETERS\n TASK GO END TASK\n";
+
 	private ScriptsResource scriptsResource;
 
 	public ScriptsResourceTest(String name) {
@@ -148,6 +151,18 @@ public class ScriptsResourceTest extends TestCase {
 		validation = scriptsResource.validate(garbageName);
 		assertTrue(validation.isValid());
 		assertEquals(0, validation.getParameters().size());
+
+		scriptsResource.put(hasParamsName, hasParamsBody);
+
+		validation = scriptsResource.validate(hasParamsName);
+		assertTrue(validation.isValid());
+		assertEquals(3, validation.getParameters().size());
+		assertEquals("ONE", validation.getParameters().get(0).getName());
+		assertEquals("INTEGER", validation.getParameters().get(0).getTypeName());
+		assertEquals("TWO", validation.getParameters().get(1).getName());
+		assertEquals("VARCHAR", validation.getParameters().get(1).getTypeName());
+		assertEquals("THREE", validation.getParameters().get(2).getName());
+		assertEquals("DATETIME", validation.getParameters().get(2).getTypeName());
 	}
 
 	public void testValidateNegative() {
