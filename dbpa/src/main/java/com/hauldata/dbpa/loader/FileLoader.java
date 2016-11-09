@@ -18,6 +18,7 @@ package com.hauldata.dbpa.loader;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -42,6 +43,10 @@ public class FileLoader implements Loader {
 		return processPathString;
 	}
 
+	/**
+	 * @throws FileNotFoundException if the file is not found
+	 * @throws IOException for any other file system error
+	 */
 	@Override
 	public DbProcess load(String name) throws IOException, NamingException {
 

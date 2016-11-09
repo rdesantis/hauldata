@@ -36,7 +36,7 @@ public class ScriptValidation {
 			boolean valid,
 			String validationMessage,
 			List<VariableBase> parameters) {
-		
+
 		this.valid = valid;
 		this.validationMessage = validationMessage;
 

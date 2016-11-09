@@ -32,7 +32,6 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import javax.naming.NamingException;
@@ -58,6 +57,8 @@ import com.hauldata.dbpa.variable.VariableBase;
 @Consumes(MediaType.APPLICATION_JSON)
 public class ScriptsResource {
 
+	public static final String scriptNotFoundMessageStem = "Script not found: ";
+
 	public ScriptsResource() {}
 
 	@PUT
@@ -79,6 +80,9 @@ public class ScriptsResource {
 		try {
 			return getScript(name);
 		}
+		catch (FileNotFoundException ex) {
+			throw new WebApplicationException(scriptNotFoundMessageStem + name, 404);
+		}
 		catch (Exception ex) {
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
 		}
@@ -90,6 +94,9 @@ public class ScriptsResource {
 	public void delete(@PathParam("name") String name) {
 		try {
 			deleteScript(name);
+		}
+		catch (NoSuchFileException ex) {
+			throw new WebApplicationException(scriptNotFoundMessageStem + name, 404);
 		}
 		catch (Exception ex) {
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
@@ -115,6 +122,9 @@ public class ScriptsResource {
 		try {
 			return validateScript(name);
 		}
+		catch (FileNotFoundException ex) {
+			throw new WebApplicationException(scriptNotFoundMessageStem + name, 404);
+		}
 		catch (Exception ex) {
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
 		}
@@ -124,8 +134,9 @@ public class ScriptsResource {
 	 * Write a script to file.
 	 * @param name is the name of the script
 	 * @param body is the body of the script
+	 * @throws IOException
 	 */
-	private void putScript(String name, String body) {
+	private void putScript(String name, String body) throws IOException {
 
 		String processFilePathName = getProcessFilePathName(name);
 
@@ -135,16 +146,11 @@ public class ScriptsResource {
 
 			writer.write(body);
 		}
-		catch (IOException ex) {
-			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
-			throw new RuntimeException("Error occurred writing script: " + message, ex);
+		finally {
+			if (writer != null) {
+				try { writer.close(); } catch (Exception ex) {}
+			}
 		}
-		finally { try {
-			if (writer != null) writer.close();
-		}
-		catch (IOException ex) {
-			throw new RuntimeException("Error occurred closing script: " + name, ex);
-		} }
 	}
 
 	private String getProcessFilePathName(String name) {
@@ -162,8 +168,10 @@ public class ScriptsResource {
 	 * Read a script from file.
 	 * @param name is the name of the script
 	 * @return the body of the script
+	 * @throws FileNotFoundException if the file is not found
+	 * @throws IOException for any other file system error
 	 */
-	private String getScript(String name) {
+	private String getScript(String name) throws IOException {
 
 		String processFilePathName = getProcessFilePathName(name);
 
@@ -180,36 +188,25 @@ public class ScriptsResource {
 				bodyBuilder.append(charBuffer, 0, count);
 			}
 		}
-		catch (FileNotFoundException ex) {
-			throw new RuntimeException("Script not found: " + name);
+		finally {
+			if (reader != null) {
+				try { reader.close(); } catch (Exception ex) {}
+			}
 		}
-		catch (IOException ex) {
-			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
-			throw new RuntimeException("Error occurred reading script: " + message, ex);
-		}
-		finally { try {
-			if (reader != null) reader.close();
-		}
-		catch (IOException ex) {
-			throw new RuntimeException("Error occurred closing script: " + name, ex);
-		} }
 
 		return bodyBuilder.toString();
 	}
 
-	private void deleteScript(String name) throws Exception {
-		String processFilePathName = getProcessFilePathName(name);
+	/**
+	 * Delete a script file.
+	 * @param name is the name of the script
+	 * @throws NoSuchFileException if the file is not found
+	 * @throws IOException for any other file system error
+	 */
+	private void deleteScript(String name) throws IOException  {
 
-		try {
-			Files.delete(Paths.get(processFilePathName));
-		}
-		catch (NoSuchFileException ex) {
-			throw new RuntimeException("Script not found: " + name);
-		}
-		catch (IOException ex) {
-			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
-			throw new RuntimeException("Error occurred deleting script: " + message, ex);
-		}
+		String processFilePathName = getProcessFilePathName(name);
+		Files.delete(Paths.get(processFilePathName));
 	}
 
 	/**
@@ -219,13 +216,13 @@ public class ScriptsResource {
 	 * @param likeName is the wildcard pattern or null to match all names
 	 * @return the list of scripts if any exists;
 	 * or an empty list if no scripts exist
-	 * @throws Exception if an error occurred
+	 * @throws IOException
 	 */
-	private List<String> listScripts(String likeName) throws Exception {
+	private List<String> listScripts(String likeName) throws IOException {
 
 		JobManager manager = JobManager.getInstance();
 		FileLoader fileLoader = (FileLoader)manager.getContext().loader;
-		
+
 		if (likeName == null) {
 			likeName = "*";
 		}
@@ -249,9 +246,6 @@ public class ScriptsResource {
 				}
 			}
 		}
-		catch (Exception ex) {
-			throw ex;
-		}
 		finally {
 			try { scriptPaths.close(); } catch (Exception ex) {}
 		}
@@ -261,14 +255,16 @@ public class ScriptsResource {
 
 	/**
 	 * Read a script and validate it for syntax.
-	 * 
+	 *
 	 * @return the validation results.  Fields are:
-	 * 
+	 *
 	 *	isValid returns true if the script is valid syntactically, other false;
 	 *	validationMessage returns an error message if the validation failed, or null if it succeeded;
 	 * 	parameters returns the list of parameters that can be passed to the script.
-	 * 
-	 * @throws Exception if validation fails for a reason other than bad syntax
+	 *
+	 * @throws FileNotFoundException if the file is not found
+	 * @throws IOException for any other file system error
+	 * @throws Exception if validation otherwise fails fatally not due to invalid syntax
  	 */
 	private ScriptValidation validateScript(String name) throws Exception {
 
@@ -282,7 +278,7 @@ public class ScriptsResource {
 			process = manager.getContext().loader.load(name);
 			parameters = process.getParameters();
 		}
-		catch (/*InputMismatchException |*/ NoSuchElementException | /*NameNotFoundException | NameAlreadyBoundException |*/ NamingException ex) {
+		catch (RuntimeException | NamingException ex) {
 			// See TaskSetParser.parseTasks() for parse exceptions.
 			// TODO: Define a SyntaxError exception that collects all syntax errors
 			validationMessage = ex.getMessage();
