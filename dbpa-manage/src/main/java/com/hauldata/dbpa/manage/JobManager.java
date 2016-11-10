@@ -153,9 +153,7 @@ public class JobManager {
 
 			// Write the job header.
 
-			String insertJob = jobSql.insert;
-
-			stmt = conn.prepareStatement(insertJob);
+			stmt = conn.prepareStatement(jobSql.insert);
 
 			stmt.setString(2, name);
 			stmt.setString(3, job.getScriptName());
@@ -177,9 +175,7 @@ public class JobManager {
 
 			// Write the arguments.
 
-			String insertArg = argumentSql.insert;
-
-			stmt = conn.prepareStatement(insertArg);
+			stmt = conn.prepareStatement(argumentSql.insert);
 
 			int argIndex = 1;
 			for (ScriptArgument argument : job.getArguments()) {
@@ -199,9 +195,7 @@ public class JobManager {
 
 			// Write the schedules.
 
-			String insertSchedule = jobScheduleSql.insert;
-
-			stmt = conn.prepareStatement(insertSchedule);
+			stmt = conn.prepareStatement(jobScheduleSql.insert);
 
 			for (int scheduleId : scheduleIds) {
 
@@ -300,9 +294,7 @@ public class JobManager {
 		try {
 			conn = context.getConnection(null);
 
-			String selectJob = jobSql.select;
-			
-			stmt = conn.prepareStatement(selectJob, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+			stmt = conn.prepareStatement(jobSql.select, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
 
 			stmt.setString(1, likeName);
 
@@ -347,9 +339,7 @@ public class JobManager {
 		ResultSet rs = null;
 
 		try {
-			String selectArgs = argumentSql.select;
-
-			stmt = conn.prepareStatement(selectArgs, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+			stmt = conn.prepareStatement(argumentSql.select, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
 
 			stmt.setInt(1, jobId);
 
@@ -382,9 +372,7 @@ public class JobManager {
 		ResultSet rs = null;
 
 		try {
-			String selectNames = jobScheduleSql.selectScheduleNamesByJobId;
-
-			stmt = conn.prepareStatement(selectNames, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+			stmt = conn.prepareStatement(jobScheduleSql.selectScheduleNamesByJobId, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
 
 			stmt.setInt(1, jobId);
 
@@ -443,9 +431,7 @@ public class JobManager {
 		try {
 			conn = context.getConnection(null);
 
-			String selectJob = jobSql.selectNames;
-
-			stmt = conn.prepareStatement(selectJob, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+			stmt = conn.prepareStatement(jobSql.selectNames, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
 
 			stmt.setString(1, likeName);
 
@@ -488,9 +474,7 @@ public class JobManager {
 
 			int jobId = getJobId(conn, name);
 
-			String deleteArgs = argumentSql.delete;
-
-			stmt = conn.prepareStatement(deleteArgs);
+			stmt = conn.prepareStatement(argumentSql.delete);
 
 			stmt.setInt(1, jobId);
 
@@ -499,9 +483,7 @@ public class JobManager {
 			stmt.close();
 			stmt = null;
 
-			String deleteSchedules = jobScheduleSql.delete;
-
-			stmt = conn.prepareStatement(deleteSchedules);
+			stmt = conn.prepareStatement(jobScheduleSql.delete);
 
 			stmt.setInt(1, jobId);
 
@@ -510,9 +492,7 @@ public class JobManager {
 			stmt.close();
 			stmt = null;
 
-			String deleteJob = jobSql.delete;
-
-			stmt = conn.prepareStatement(deleteJob);
+			stmt = conn.prepareStatement(jobSql.delete);
 
 			stmt.setInt(1, jobId);
 
@@ -659,9 +639,7 @@ public class JobManager {
 			int jobId = getJobId(conn, jobName);
 			run = new JobRun(jobName);
 
-			String insertRun = runSql.insert;
-
-			stmt = conn.prepareStatement(insertRun);
+			stmt = conn.prepareStatement(runSql.insert);
 
 			stmt.setInt(2, jobId);
 			stmt.setString(3, jobName);
@@ -706,9 +684,7 @@ public class JobManager {
 		try {
 			conn = context.getConnection(null);
 
-			String updateRun = runSql.update;
-
-			stmt = conn.prepareStatement(updateRun);
+			stmt = conn.prepareStatement(runSql.update);
 
 			JobRun.State state = run.getState();
 			stmt.setInt(1, state.getStatus().getId());
@@ -797,14 +773,12 @@ public class JobManager {
 		try {
 			conn = context.getConnection(null);
 
-			String selectRun = runSql.select;
-
-			if (latest) {
-				String selectAllLastRunIndex = runSql.selectAllLastId;
-
-				String selectLastRun = String.format(runSql.selectLast, selectRun, selectAllLastRunIndex);
-
-				selectRun = selectLastRun;
+			String selectRun;
+			if (!latest) {
+				selectRun = runSql.select;
+			}
+			else {
+				selectRun = String.format(runSql.selectLast, runSql.select, runSql.selectAllLastId);
 			}
 
 			selectRun += runSql.whereJobName;

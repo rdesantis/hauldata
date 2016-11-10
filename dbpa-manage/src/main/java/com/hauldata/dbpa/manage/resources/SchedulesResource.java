@@ -157,9 +157,7 @@ public class SchedulesResource {
 		try {
 			conn = context.getConnection(null);
 
-			String insertSchedule = sql.insert;
-
-			stmt = conn.prepareStatement(insertSchedule);
+			stmt = conn.prepareStatement(sql.insert);
 
 			stmt.setString(2, name);
 			stmt.setString(3, schedule);
@@ -214,9 +212,7 @@ public class SchedulesResource {
 		try {
 			conn = context.getConnection(null);
 
-			String selectSchedule = sql.select;
-
-			stmt = conn.prepareStatement(selectSchedule, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+			stmt = conn.prepareStatement(sql.select, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
 
 			stmt.setString(1, likeName);
 
@@ -289,9 +285,7 @@ public class SchedulesResource {
 				throw new RuntimeException("Cannot delete schedule that is in use by a job");
 			}
 
-			String deleteSchedule = sql.delete;
-
-			stmt = conn.prepareStatement(deleteSchedule);
+			stmt = conn.prepareStatement(sql.delete);
 
 			stmt.setInt(1, id);
 
@@ -312,9 +306,7 @@ public class SchedulesResource {
 		ResultSet rs = null;
 
 		try {
-			String selectNames = jobScheduleSql.selectJobNamesByScheduleId;
-
-			stmt = conn.prepareStatement(selectNames, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+			stmt = conn.prepareStatement(jobScheduleSql.selectJobNamesByScheduleId, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
 
 			stmt.setInt(1, scheduleId);
 
