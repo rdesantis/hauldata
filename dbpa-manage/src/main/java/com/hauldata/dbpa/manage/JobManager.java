@@ -417,7 +417,7 @@ public class JobManager {
 
 		Map<String, Job> jobs = getJobs(name);
 
-		return (jobs.size() == 1) ? jobs.get(0) : null;
+		return (jobs.size() == 1) ? jobs.get(name) : null;
 	}
 
 	/**

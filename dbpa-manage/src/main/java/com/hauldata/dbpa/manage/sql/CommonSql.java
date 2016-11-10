@@ -20,6 +20,7 @@ import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -55,7 +56,14 @@ public class CommonSql {
 		}
 	}
 
-	public static int getNextId(Connection conn, String selectLastId) throws Exception {
+	/**
+	 * For a query that returns a single INTEGER, this function returns that integer plus 1.
+	 * @param conn is the database connection to use for the query
+	 * @param selectLastId is the query
+	 * @return the result of the query plus 1, or 1 if the query returns SQL NULL.
+	 * @throws SQLException
+	 */
+	public static int getNextId(Connection conn, String selectLastId) throws SQLException {
 
 		int nextId = -1;
 
@@ -71,9 +79,6 @@ public class CommonSql {
 
 			nextId = rs.getInt(1) + 1;
 		}
-		catch (Exception ex) {
-			throw ex;
-		}
 		finally {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
@@ -82,7 +87,17 @@ public class CommonSql {
 		return nextId;
 	}
 
-	public static int getId(Connection conn, String selectId, String name, String entityName) throws Exception {
+	/**
+	 * For a query that takes a single VARCHAR parameter and returns a single INTEGER, this function returns that integer.
+	 * @param conn is the database connection to use for the query
+	 * @param selectId is the query
+	 * @param name is the value to use for the single query parameter
+	 * @param entityName is a string to use in the message included with a NameNotFoundException if thrown
+	 * @return the result of the query
+	 * @throws NameNotFoundException if the query returns an empty result set
+	 * @throws SQLException
+	 */
+	public static int getId(Connection conn, String selectId, String name, String entityName) throws SQLException, NameNotFoundException {
 
 		int id = -1;
 
@@ -101,9 +116,6 @@ public class CommonSql {
 			};
 
 			id = rs.getInt(1);
-		}
-		catch (Exception ex) {
-			throw ex;
 		}
 		finally {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}

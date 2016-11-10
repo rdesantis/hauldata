@@ -16,9 +16,11 @@
 
 package com.hauldata.dbpa.manage.resources;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,12 +39,16 @@ import javax.ws.rs.WebApplicationException;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
+import com.hauldata.dbpa.manage.api.ScheduleValidation;
 import com.hauldata.dbpa.manage.sql.CommonSql;
 import com.hauldata.dbpa.manage.sql.JobScheduleSql;
 import com.hauldata.dbpa.manage.sql.ScheduleSql;
 import com.hauldata.dbpa.process.Context;
+import com.hauldata.util.schedule.ScheduleSet;
 
 public class SchedulesResource {
+
+	public static final String scheduleNotFoundMessageStem = "Schedule not found: ";
 
 	public SchedulesResource() {}
 
@@ -65,6 +71,9 @@ public class SchedulesResource {
 		try {
 			return getSchedule(name);
 		}
+		catch (NameNotFoundException ex) {
+			throw new WebApplicationException(scheduleNotFoundMessageStem + name, 404);
+		}
 		catch (Exception ex) {
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
 		}
@@ -76,6 +85,9 @@ public class SchedulesResource {
 	public void delete(@PathParam("name") String name) {
 		try {
 			deleteSchedule(name);
+		}
+		catch (NameNotFoundException ex) {
+			throw new WebApplicationException(scheduleNotFoundMessageStem + name, 404);
 		}
 		catch (Exception ex) {
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
@@ -110,15 +122,30 @@ public class SchedulesResource {
 		}
 	}
 
+	@GET
+	@Path("/schedule/validations/{name}")
+	@Timed
+	public ScheduleValidation validate(@PathParam("name") String name) {
+		try {
+			return validateSchedule(name);
+		}
+		catch (NameNotFoundException ex) {
+			throw new WebApplicationException(scheduleNotFoundMessageStem + name, 404);
+		}
+		catch (Exception ex) {
+			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+		}
+	}
+
 	/**
 	 * Store a schedule in the database.
 	 *
 	 * @param name is the schedule name.
 	 * @param schedule is the schedule to store.
 	 * @return the unique schedule ID created for the schedule.
-	 * @throws Exception if the job cannot be stored for any reason
+	 * @throws SQLException if the schedule cannot be stored
 	 */
-	public int putSchedule(String name, String schedule)throws Exception {
+	public int putSchedule(String name, String schedule) throws SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -152,9 +179,6 @@ public class SchedulesResource {
 
 			return scheduleId;
 		}
-		catch (Exception ex) {
-			throw ex;
-		}
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
@@ -169,9 +193,9 @@ public class SchedulesResource {
 	 * @param likeName is the name wildcard pattern or null to get all schedules
 	 * @return a map of schedule names to schedule strings retrieved from the database
 	 * or an empty list if no schedule with a matching name is found
-	 * @throws Exception if an error occurs
+	 * @throws SQLException if the schedules cannot be retrieved
 	 */
-	public Map<String, String> getSchedules(String likeName) throws Exception {
+	public Map<String, String> getSchedules(String likeName) throws SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -206,9 +230,6 @@ public class SchedulesResource {
 				schedules.put(name, schedule);
 			}
 		}
-		catch (Exception ex) {
-			throw ex;
-		}
 		finally {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
@@ -223,24 +244,34 @@ public class SchedulesResource {
 	 * Return a schedule
 	 *
 	 * @param name is the name of the schedule
-	 * @return the schedule if it exists or null if it does not
-	 * @throws Exception if an error occurs
+	 * @return the schedule
+	 * @throws NameNotFoundException if the schedule does not exist
+	 * @throws IllegalArgumentException if the name contains wildcards and matches multiple schedule names
+	 * @throws SQLException if the schedule cannot be retrieved
 	 */
-	public String getSchedule(String name) throws Exception {
+	public String getSchedule(String name) throws SQLException, NameNotFoundException, IllegalArgumentException {
 
 		Map<String, String> schedules = getSchedules(name);
 
-		return (schedules.size() == 1) ? schedules.get(0) : null;
+		if (schedules.size() == 0) {
+			throw new NameNotFoundException();
+		}
+		else if (1 < schedules.size()) {
+			throw new IllegalArgumentException();
+		}
+
+		return schedules.get(name);
 	}
 
 	/**
 	 * Delete a schedule
 	 *
 	 * @param name is the name of the schedule to delete
-	 * @throws NameNotFoundException if the job does not exist
-	 * @throws Exception if any other error occurs
+	 * @throws SQLException 
+	 * @throws NameNotFoundException if the schedule does not exist
+	 * @throws SQLException if the schedule cannot be deleted
 	 */
-	public void deleteSchedule(String name) throws Exception {
+	public void deleteSchedule(String name) throws NameNotFoundException, SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -266,9 +297,6 @@ public class SchedulesResource {
 
 			stmt.executeUpdate();
 		}
-		catch (Exception ex) {
-			throw ex;
-		}
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
@@ -276,7 +304,7 @@ public class SchedulesResource {
 		}
 	}
 
-	private List<String> getScheduleJobNames(Connection conn, JobScheduleSql jobScheduleSql, int scheduleId) throws Exception {
+	private List<String> getScheduleJobNames(Connection conn, JobScheduleSql jobScheduleSql, int scheduleId) throws SQLException {
 
 		List<String> names = new LinkedList<String>();
 
@@ -297,14 +325,41 @@ public class SchedulesResource {
 				names.add(rs.getString(1));
 			}
 		}
-		catch (Exception ex) {
-			throw ex;
-		}
 		finally {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 		}
 
 		return names;
+	}
+
+	/**
+	 * Validate a schedule for syntax.
+	 *
+	 * @return the validation results.  Fields are:
+	 *
+	 *	isValid returns true if the schedule is valid syntactically, otherwise false;
+	 *	validationMessage returns an error message if the validation failed, or null if it succeeded.
+	 *
+	 * @throws NameNotFoundException if the named schedule does not exist in the database
+	 * @throws IllegalArgumentException if the name contains wildcards and matches multiple schedule names
+	 * @throws SQLException if the schedule cannot be retrieved
+	 */
+	public ScheduleValidation validateSchedule(String name) throws SQLException, NameNotFoundException, IllegalArgumentException {
+
+		String schedule = getSchedule(name);
+
+		boolean valid = false;
+		String validationMessage = null;
+
+		try {
+			ScheduleSet.parse(schedule);
+			valid = true;
+		}
+		catch (RuntimeException | IOException ex) {
+			validationMessage = ex.getMessage();
+		}
+
+		return new ScheduleValidation(valid, validationMessage);
 	}
 }
