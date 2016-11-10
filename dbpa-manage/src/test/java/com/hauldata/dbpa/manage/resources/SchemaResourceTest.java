@@ -36,21 +36,15 @@ public class SchemaResourceTest extends TestCase {
 
 	public void testSchema() throws Exception {
 
-		boolean isSchemaGood = schemaResource.confirmSchema();
-		
-		if (!isSchemaGood) {
+		if (!schemaResource.confirmSchema()) {
 
 			schemaResource.deleteSchema();
 			
-			isSchemaGood = schemaResource.confirmSchema();
-
-			assertFalse(isSchemaGood);
+			assertFalse(schemaResource.confirmSchema());
 
 			schemaResource.createSchema();
 
-			isSchemaGood = schemaResource.confirmSchema();
-
-			assertTrue(isSchemaGood);
+			assertTrue(schemaResource.confirmSchema());
 		}
 	}
 }

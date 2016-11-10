@@ -108,7 +108,7 @@ public class ScriptsResource {
 	@Timed
 	public List<String> getNames(@QueryParam("like") Optional<String> likeName) {
 		try {
-			return listScripts(likeName.orElse(null));
+			return getScriptNames(likeName.orElse(null));
 		}
 		catch (Exception ex) {
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
@@ -218,7 +218,7 @@ public class ScriptsResource {
 	 * or an empty list if no scripts exist
 	 * @throws IOException
 	 */
-	private List<String> listScripts(String likeName) throws IOException {
+	private List<String> getScriptNames(String likeName) throws IOException {
 
 		JobManager manager = JobManager.getInstance();
 		FileLoader fileLoader = (FileLoader)manager.getContext().loader;

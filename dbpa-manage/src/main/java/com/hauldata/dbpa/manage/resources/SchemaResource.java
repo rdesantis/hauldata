@@ -16,6 +16,10 @@
 
 package com.hauldata.dbpa.manage.resources;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -27,6 +31,7 @@ import javax.ws.rs.core.MediaType;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
+import com.hauldata.dbpa.process.Context;
 
 @Path("/schema")
 @Produces(MediaType.APPLICATION_JSON)
@@ -37,9 +42,9 @@ public class SchemaResource {
 
 	@GET
 	@Timed
-	public boolean confirmSchema() {
+	public boolean confirm() {
 		try {
-			return JobManager.getInstance().confirmSchema();
+			return confirmSchema();
 		}
 		catch (Exception ex) {
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
@@ -48,9 +53,9 @@ public class SchemaResource {
 
 	@PUT
 	@Timed
-	public void createSchema() {
+	public void create() {
 		try {
-			JobManager.getInstance().createSchema();
+			createSchema();
 		}
 		catch (Exception ex) {
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
@@ -59,12 +64,163 @@ public class SchemaResource {
 
 	@DELETE
 	@Timed
-	public void deleteSchema() {
+	public void delete() {
 		try {
-			JobManager.getInstance().deleteSchema();
+			deleteSchema();
 		}
 		catch (Exception ex) {
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
 		}
+	}
+
+	/**
+	 * Create the set of database tables used to store job configurations
+	 * and run results.
+	 * @throws Exception if schema creation fails for any reason
+	 */
+	public void createSchema() throws Exception {
+
+		JobManager manager = JobManager.getInstance();
+		Context context = manager.getContext();
+
+		Connection conn = null;
+		Statement stmt = null;
+
+		try {
+			// Create the tables in the schema.
+
+			conn = context.getConnection(null);
+
+			stmt = conn.createStatement();
+
+			stmt.executeUpdate(manager.getJobSql().createTable);
+		    stmt.executeUpdate(manager.getArgumentSql().createTable);
+		    stmt.executeUpdate(manager.getScheduleSql().createTable);
+		    stmt.executeUpdate(manager.getJobScheduleSql().createTable);
+		    stmt.executeUpdate(manager.getRunSql().createTable);
+		}
+		catch (Exception ex) {
+			throw ex;
+		}
+		finally {
+			try { if (stmt != null) stmt.close(); } catch (Exception ex) {}
+
+			if (conn != null) context.releaseConnection(null);
+		}
+	}
+
+	/**
+	 * Drop the job-related tables.
+	 * @throws Exception if schema creation fails for any reason
+	 */
+	public void deleteSchema() throws Exception {
+
+		JobManager manager = JobManager.getInstance();
+		Context context = manager.getContext();
+
+		Connection conn = null;
+		Statement stmt = null;
+
+		try {
+			// Attempt to drop the tables in the schema.
+			// They may not exist; that is not an error.
+
+			conn = context.getConnection(null);
+
+			stmt = conn.createStatement();
+
+			tryExecuteUpdate(stmt, manager.getJobSql().dropTable);
+			tryExecuteUpdate(stmt, manager.getArgumentSql().dropTable);
+			tryExecuteUpdate(stmt, manager.getScheduleSql().dropTable);
+			tryExecuteUpdate(stmt, manager.getJobScheduleSql().dropTable);
+			tryExecuteUpdate(stmt, manager.getRunSql().dropTable);
+		}
+		catch (Exception ex) {
+			throw ex;
+		}
+		finally {
+			try { if (stmt != null) stmt.close(); } catch (Exception ex) {}
+
+			if (conn != null) context.releaseConnection(null);
+		}
+	}
+
+	/**
+	 * Execute a SQL statement; return true if it executed without exception, false if SQLException occurred.
+	 * @param stmt is a Statement created for the connection
+	 * @param sql is the SQL to execute.
+	 */
+	private boolean tryExecuteUpdate(Statement stmt, String sql) {
+		try {
+			stmt.executeUpdate(sql);
+		}
+		catch (SQLException e) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Confirm the existence of all the job-related tables with correct columns
+	 * @return true if all tables exist correctly, false otherwise
+	 * @throws Exception
+	 */
+	public boolean confirmSchema() throws Exception {
+
+		JobManager manager = JobManager.getInstance();
+		Context context = manager.getContext();
+
+		Connection conn = null;
+		Statement stmt = null;
+
+		boolean allTablesExistAsRequired;
+		try {
+			conn = context.getConnection(null);
+
+			stmt = conn.createStatement();
+
+			// Need a database-neutral way to test if a table exists with the required columns.
+			// See http://stackoverflow.com/questions/1227921/portable-sql-to-determine-if-a-table-exists-or-not
+			// Run a statement that does nothing but will fail if the table doesn't exist as required.
+
+			allTablesExistAsRequired =
+					trySelectNoRows(stmt, manager.getJobSql().selectAllColumns) &&
+					trySelectNoRows(stmt, manager.getArgumentSql().selectAllColumns) &&
+					trySelectNoRows(stmt, manager.getScheduleSql().selectAllColumns) &&
+					trySelectNoRows(stmt, manager.getJobScheduleSql().selectAllColumns) &&
+					trySelectNoRows(stmt, manager.getRunSql().selectAllColumns);
+		}
+		catch (Exception ex) {
+			throw ex;
+		}
+		finally {
+			try { if (stmt != null) stmt.close(); } catch (Exception ex) {}
+
+			if (conn != null) context.releaseConnection(null);
+		}
+
+		return allTablesExistAsRequired;
+	}
+
+	private boolean trySelectNoRows(Statement stmt, String selectAllColumns) {
+
+		String selectAllColumnsNoRows = selectAllColumns + " WHERE 0=1";
+
+		return tryExecuteQuery(stmt, selectAllColumnsNoRows);
+	}
+
+	/**
+	 * Execute a SQL query; return true if it executed without exception, false if SQLException occurred.
+	 * @param stmt is a Statement created for the connection
+	 * @param sql is the SQL to execute.
+	 */
+	private boolean tryExecuteQuery(Statement stmt, String sql) {
+		try {
+			stmt.executeQuery(sql);
+		}
+		catch (SQLException e) {
+			return false;
+		}
+		return true;
 	}
 }
