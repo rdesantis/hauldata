@@ -88,13 +88,16 @@ public class CommonSql {
 	}
 
 	/**
-	 * For a query that takes a single VARCHAR parameter and returns a single INTEGER, this function returns that integer.
+	 * For a query that takes a single string parameter and returns a single integer, this function returns that integer.
+	 * Optionally throws an exception if the string is not found.
+	 *
 	 * @param conn is the database connection to use for the query
 	 * @param selectId is the query
 	 * @param name is the value to use for the single query parameter
-	 * @param entityName is a string to use in the message included with a NameNotFoundException if thrown
-	 * @return the result of the query
-	 * @throws NameNotFoundException if the query returns an empty result set
+	 * @param entityName if not null and the query returns an empty result set, contains a string to use in the message
+	 * included with a NameNotFoundException thrown.  If null, no exception is thrown.
+	 * @return the result of the query or -1 if the query returns an empty result set.
+	 * @throws NameNotFoundException if the query returns an empty result set and entityName is not null.
 	 * @throws SQLException
 	 */
 	public static int getId(Connection conn, String selectId, String name, String entityName) throws SQLException, NameNotFoundException {
@@ -111,11 +114,12 @@ public class CommonSql {
 
 			rs = stmt.executeQuery();
 
-			if (!rs.next()) {
-				throw new NameNotFoundException(entityName + " not found");
-			};
-
-			id = rs.getInt(1);
+			if (rs.next()) {
+				id = rs.getInt(1);
+			}
+			else if (entityName != null) {
+				throw new NameNotFoundException(entityName + " not found: " + name);
+			}
 		}
 		finally {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}
@@ -123,5 +127,15 @@ public class CommonSql {
 		}
 
 		return id;
+	}
+
+	public static int getId(Connection conn, String selectId, String name) throws SQLException {
+		try {
+			return getId(conn, selectId, name, null);
+		}
+		catch (NameNotFoundException ex) {
+			// This exception will never happen with this form of the call.
+			return -1;
+		}
 	}
 }

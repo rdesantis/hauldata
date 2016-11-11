@@ -55,9 +55,9 @@ public class SchedulesResource {
 	@PUT
 	@Path("/schedules/{name}")
 	@Timed
-	public void put(@PathParam("name") String name, String body) {
+	public int put(@PathParam("name") String name, String body) {
 		try {
-			putSchedule(name, body);
+			return putSchedule(name, body);
 		}
 		catch (Exception ex) {
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
@@ -142,7 +142,8 @@ public class SchedulesResource {
 	 *
 	 * @param name is the schedule name.
 	 * @param schedule is the schedule to store.
-	 * @return the unique schedule ID created for the schedule.
+	 * @return the unique schedule ID created for the schedule.  If a schedule by the same name
+	 * already existed, it is overwritten and the ID is not changed.
 	 * @throws SQLException if the schedule cannot be stored
 	 */
 	public int putSchedule(String name, String schedule) throws SQLException {
@@ -157,25 +158,40 @@ public class SchedulesResource {
 		try {
 			conn = context.getConnection(null);
 
-			stmt = conn.prepareStatement(sql.insert);
+			int id = CommonSql.getId(conn, sql.selectId, name);
 
-			stmt.setString(2, name);
-			stmt.setString(3, schedule);
+			if (id != -1) {
+				// Update existing schedule
 
-			int scheduleId;
-			synchronized (this) {
+				stmt = conn.prepareStatement(sql.update);
 
-				scheduleId = CommonSql.getNextId(conn, sql.selectLastId);
-
-				stmt.setInt(1, scheduleId);
+				stmt.setString(1, schedule);
+				stmt.setInt(2, id);
 
 				stmt.executeUpdate();
+			}
+			else {
+				// Create new schedule.
+
+				stmt = conn.prepareStatement(sql.insert);
+
+				stmt.setString(2, name);
+				stmt.setString(3, schedule);
+
+				synchronized (this) {
+
+					id = CommonSql.getNextId(conn, sql.selectLastId);
+
+					stmt.setInt(1, id);
+
+					stmt.executeUpdate();
+				}
 			}
 
 			stmt.close();
 			stmt = null;
 
-			return scheduleId;
+			return id;
 		}
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}

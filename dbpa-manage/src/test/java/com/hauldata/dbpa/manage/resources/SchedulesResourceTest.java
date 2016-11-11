@@ -54,7 +54,20 @@ public class SchedulesResourceTest extends TestCase {
 
 		deleteNoError(garbageName);
 
-		schedulesResource.put(garbageName, garbageBody);
+		int id = schedulesResource.put(garbageName, garbageBody);
+
+		assertTrue(id != -1);
+	}
+
+	public void testPutOver() {
+
+		int id = schedulesResource.put(garbageName, garbageBody);
+
+		assertTrue(id != -1);
+
+		int newId = schedulesResource.put(garbageName, garbageBody);
+
+		assertEquals(id, newId);
 	}
 
 	public void testGetPostive() {

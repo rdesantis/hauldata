@@ -27,6 +27,7 @@ public class ScheduleSql extends CommonSql {
 	public final static String selectIds_ = "SELECT id FROM %1$s" + tableName + " WHERE name IN (%%1$s)";
 	public final static String select_ = "SELECT name, schedule FROM %1$s" + tableName + " WHERE name LIKE ? ORDER BY name";
 	public final static String selectId_ = "SELECT id FROM %1$s" + tableName + " WHERE name = ?";
+	public final static String update_ = "UPDATE %1$s" + tableName + " SET schedule = ? WHERE id = ?";
 	public final static String delete_ = "DELETE FROM %1$s" + tableName + " WHERE id = ?";
 	public final static String selectAllColumns_ = "SELECT id, name, schedule FROM %1$s" + tableName;
 	public final static String dropTable_ = "DROP TABLE %1$s" + tableName;
@@ -41,6 +42,7 @@ public class ScheduleSql extends CommonSql {
 	public String selectIds;
 	public String select;
 	public String selectId;
+	public String update;
 	public String delete;
 	public String selectAllColumns;
 	public String dropTable;
