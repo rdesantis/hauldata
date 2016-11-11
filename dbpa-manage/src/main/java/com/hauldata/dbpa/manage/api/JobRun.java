@@ -25,7 +25,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class JobRun {
 
-	private Integer runId;
+	private int runId;
 	private String jobName;
 	private State state;
 
@@ -102,7 +102,7 @@ public class JobRun {
 	}
 
 	public JobRun(
-			Integer runId,
+			int runId,
 			String jobName,
 			State state) {
 
@@ -170,7 +170,7 @@ public class JobRun {
 	// Getters
 
 	@JsonProperty
-	public Integer getRunId() {
+	public int getRunId() {
 		return runId;
 	}
 

@@ -16,6 +16,8 @@
 
 package com.hauldata.dbpa.manage.resources;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +25,7 @@ import java.util.Optional;
 import javax.ws.rs.WebApplicationException;
 
 import com.hauldata.dbpa.manage.api.Job;
+import com.hauldata.dbpa.manage.api.JobRun;
 import com.hauldata.dbpa.manage.api.ScriptArgument;
 
 import junit.framework.TestCase;
@@ -42,11 +45,14 @@ public class JobsResourceTest extends TestCase {
 	private static final String invalidScriptBody = "This is not a valid script";
 
 	private static final String hasParamsScriptName = "HasParams";
-	private static final String hasParamsScriptBody = "PARAMETERS one int, two VARCHAR(50), three DATE END PARAMETERS\n TASK GO END TASK\n";
+	private static final String hasParamsScriptBody = "PARAMETERS one int, two VARCHAR(50), three DATE END PARAMETERS" + "\r\n" + "TASK GO END TASK" + "\r\n";
 
 	private static final String detritusName = "detritus";
 	private static final String differentName = "NotGarbage";
 	private static final String bogusName = "DoesNotExist";
+
+	private static final String sleepJobName = "sleep5";
+	private static final String sleepScript = "TASK" + "\r\n\t" + "WAITFOR DELAY '00:00:05'" + "\r\n" + "END TASK" + "\r\n";
 
 	JobsResource jobsResource;
 	Job detritusJob;
@@ -111,7 +117,7 @@ public class JobsResourceTest extends TestCase {
 
 	public void testGetPostive() {
 
-		// Positive test: can get an existing script
+		// Positive test: can get an existing job
 
 		testPut();
 
@@ -133,7 +139,7 @@ public class JobsResourceTest extends TestCase {
 
 	public void testGetNegative() {
 
-		// Negative test: attempt to get a non-existent schedule fails as expected
+		// Negative test: attempt to get a non-existent job fails as expected
 
 		deleteNoError(bogusName);
 
@@ -152,7 +158,7 @@ public class JobsResourceTest extends TestCase {
 
 	public void testDeletePositive() {
 
-		// Positive test: can get an existing schedule
+		// Positive test: can get an existing job
 
 		testPut();
 
@@ -161,7 +167,7 @@ public class JobsResourceTest extends TestCase {
 
 	public void testDeleteNegative() {
 
-		// Negative test: attempt to delete a non-existent schedule fails as expected
+		// Negative test: attempt to delete a non-existent job fails as expected
 
 		deleteNoError(bogusName);
 
@@ -194,7 +200,7 @@ public class JobsResourceTest extends TestCase {
 		Job differentJob = new Job(crapScriptName, differentName, null, null, false);
 		jobsResource.put(differentName, differentJob);
 
-		// Confirm all like named are found.  There may be other similarly named schedules too.
+		// Confirm all like named are found.  There may be other similarly named jobs too.
 
 		List<String> likeNames = jobsResource.getNames(Optional.of(detritusName + "%"));
 
@@ -208,6 +214,84 @@ public class JobsResourceTest extends TestCase {
 		List<String> allNames = jobsResource.getNames(Optional.empty());
 
 		assertTrue(likeNames.size() < allNames.size());
+	}
+
+	public void testRun() {
+
+		ScriptsResource scriptsResource = new ScriptsResource();
+		scriptsResource.put(sleepJobName, sleepScript);
+		assertTrue(scriptsResource.validate(sleepJobName).isValid());
+
+		Job job = new Job(sleepJobName, null, null, null, true);
+		jobsResource.put(sleepJobName, job);
+
+		int id = jobsResource.run(sleepJobName);
+
+		try { Thread.sleep(1000L); } catch (InterruptedException e) {}
+
+		List<JobRun> running = jobsResource.getRunning();
+
+		assertTrue(running.stream().anyMatch(r -> (r.getRunId() == id)));
+
+		List<JobRun> runs = jobsResource.getRuns(Optional.of(sleepJobName), Optional.of(true));
+
+		assertEquals(1, runs.size());
+
+		try { Thread.sleep(5000L); } catch (InterruptedException e) {}
+
+		running = jobsResource.getRunning();
+
+		assertTrue(running.stream().noneMatch(r -> (r.getRunId() == id)));
+
+		runs = jobsResource.getRuns(Optional.of(sleepJobName), Optional.of(true));
+
+		assertEquals(1, runs.size());
+
+		JobRun run = runs.get(0);
+		JobRun.State state = run.getState();
+
+		assertEquals(id, run.getRunId());
+		assertEquals(sleepJobName, run.getJobName());
+		assertEquals(JobRun.Status.runSucceeded, state.getStatus());
+		assertTrue(state.getEndTime().isBefore(LocalDateTime.now()));
+		assertTrue(state.getStartTime().until(state.getEndTime(), ChronoUnit.SECONDS) >= 5);
+	}
+
+	public void testStopRun() {
+
+		String stopJobName = sleepJobName + "stop";
+
+		ScriptsResource scriptsResource = new ScriptsResource();
+		scriptsResource.put(stopJobName, sleepScript);
+		assertTrue(scriptsResource.validate(stopJobName).isValid());
+
+		Job job = new Job(stopJobName, null, null, null, true);
+		jobsResource.put(stopJobName, job);
+
+		int id = jobsResource.run(stopJobName);
+
+		try { Thread.sleep(1000L); } catch (InterruptedException e) {}
+
+		jobsResource.stop(id);
+
+		try { Thread.sleep(1000L); } catch (InterruptedException e) {}
+
+		List<JobRun> running = jobsResource.getRunning();
+
+		assertTrue(running.stream().noneMatch(r -> (r.getRunId() == id)));
+
+		List<JobRun> runs = jobsResource.getRuns(Optional.of(stopJobName), Optional.of(true));
+
+		assertEquals(1, runs.size());
+
+		JobRun run = runs.get(0);
+		JobRun.State state = run.getState();
+
+		assertEquals(id, run.getRunId());
+		assertEquals(stopJobName, run.getJobName());
+		assertEquals(JobRun.Status.runTerminated, state.getStatus());
+		assertTrue(state.getEndTime().isBefore(LocalDateTime.now()));
+		assertTrue(state.getStartTime().until(state.getEndTime(), ChronoUnit.SECONDS) < 5);
 	}
 
 	private void deleteNoError(String name) {

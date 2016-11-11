@@ -27,7 +27,7 @@ public class RunSql extends CommonSql {
 	public final static String update_ = "UPDATE %1$s" + tableName + " SET status = ?, startTime = ?, endTime = ? WHERE id = ?";
 	public final static String selectAllColumns_ = "SELECT id, jobId, jobName, status, startTime, endTime FROM %1$s" + tableName;
 
-	public final static String select_ = "SELECT id, jobName, status, startTime, endTime FROM %1$s" + tableName + " AS run";
+	public final static String select_ = "SELECT id, run.jobName, status, startTime, endTime FROM %1$s" + tableName + " AS run";
 	public final static String selectAllLastId_ = "SELECT jobName, MAX(id) AS maxId FROM %1$s" + tableName + " GROUP BY jobName";
 
 	public String selectLast =	"%1$s INNER JOIN (%2$s) AS mr ON mr.jobName = run.jobName AND run.id = mr.maxId";

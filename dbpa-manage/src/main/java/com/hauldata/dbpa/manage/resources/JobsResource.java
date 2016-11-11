@@ -214,7 +214,7 @@ public class JobsResource {
 	@POST
 	@Path("/job/running/{name}")
 	@Timed
-	public Integer run(@PathParam("name") String name) {
+	public int run(@PathParam("name") String name) {
 		try {
 			Job job = getJob(name);
 			return JobManager.getInstance().run(name, job).getRunId();
