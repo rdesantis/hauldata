@@ -238,6 +238,7 @@ public class JobsResource {
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
 		}
 	}
+
 	/**
 	 * Store a job in the database.
 	 *
@@ -349,6 +350,12 @@ public class JobsResource {
 				}
 
 				stmt.executeBatch();
+			}
+
+			// Schedule the job if enabled.
+
+			if (job.isEnabled()) {
+				manager.getScheduler().addJobSchedules(scheduleIds);
 			}
 
 			return id;

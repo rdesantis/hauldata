@@ -73,7 +73,6 @@ public class ServiceResource {
 			environment.getApplicationContext().getServer().stop();
 		}
 		catch (Exception ex) {
-			// TODO: Use structured exception handling to report accurately on failures.
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
 		}
 	}

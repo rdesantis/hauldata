@@ -23,6 +23,9 @@ public class NullLogger implements Logger {
 	private NullLogger() {}
 
 	@Override
+	public void addAppender(Appender appender) {}
+
+	@Override
 	public void info(String taskId, String message) {}
 
 	@Override

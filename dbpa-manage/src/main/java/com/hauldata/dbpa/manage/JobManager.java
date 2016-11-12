@@ -48,7 +48,7 @@ public class JobManager {
 	private static final String programName = "RunDbp";		// To simplify testing
 
 	private static JobManager manager = new JobManager();
-	
+
 	private ContextProperties contextProps;
 	private Context context;
 
@@ -60,6 +60,8 @@ public class JobManager {
 
 	private JobExecutor executor;
 	private Thread monitorThread;
+
+	private JobScheduler scheduler;
 
 	/**
 	 * Get the singleton DBPA job manager instance
@@ -83,7 +85,7 @@ public class JobManager {
 
 		contextProps = new ContextProperties(programName);
 		context = contextProps.createContext(null);
-		
+
 		// Get schema specifications.
 
 		Properties schemaProps = contextProps.getProperties("schema");
@@ -103,6 +105,8 @@ public class JobManager {
 		runSql = new RunSql(tablePrefix);
 
 		executor = null;
+
+		scheduler = null;
 	}
 
 	public Context getContext() {
@@ -129,6 +133,13 @@ public class JobManager {
 		return runSql;
 	}
 
+	public JobScheduler getScheduler() {
+		if (scheduler == null) {
+			throw new RuntimeException("Scheduler is not available");
+		}
+		return scheduler;
+	}
+
 	/**
 	 * @return true if the manager has been started to run jobs.
 	 */
@@ -137,17 +148,17 @@ public class JobManager {
 	}
 
 	/**
-	 * Start the manager so that it can subsequently run and stop jobs.
+	 * Start the manager so that it can subsequently run, stop, and schedule jobs.
 	 *
 	 * @throws RuntimeException if the manager is already started
-	 * @throws Exception if any error occurs
+	 * @throws SQLException if an error occurs reading job schedules
 	 */
-	public void startup() throws Exception{
+	public void startup() throws SQLException {
 
 		if (isStarted()) {
 			throw new RuntimeException("Manager is already started");
 		}
-		
+
 		// Instantiate a JobExecutor and create a job monitor thread
 		// that loops calling executor.getCompleted() to update the database
 		// with job completion status.
@@ -155,6 +166,11 @@ public class JobManager {
 		executor = new JobExecutor();
 		monitorThread = new Thread(new JobMonitor());
 		monitorThread.start();
+
+		// Start job scheduling.
+
+		scheduler = new JobScheduler();
+		scheduler.startAllSchedules();
 	}
 
 	private class JobMonitor implements Runnable {
@@ -164,7 +180,7 @@ public class JobManager {
 		 */
 		@Override
 		public void run() {
-			
+
 			try {
 				while (!Thread.interrupted()) {
 					JobRun result = executor.getCompleted();
@@ -311,7 +327,7 @@ public class JobManager {
 	}
 
 	private void setTimestamp(PreparedStatement stmt, int parameterIndex, LocalDateTime time) throws SQLException {
-		
+
 		if (time != null) {
 			stmt.setTimestamp(parameterIndex, Timestamp.valueOf(time));
 		}
@@ -353,50 +369,60 @@ public class JobManager {
 
 		return executor.getRunning();
 	}
-	
+
 	/**
 	 * Stop all jobs currently running.
-	 * @throws Exception if any error occurs
+	 * @throws SQLException if an error occurs recording job status to the database
+	 * @throws InterruptedException
 	 */
-	private void stopAll() throws Exception  {
-		
+	private void stopAll() throws InterruptedException   {
+
 		executor.stopAll();
 
 		while (!executor.allCompleted()) {
 			JobRun result = executor.getCompleted();
-			updateRun(result);
+			try {
+				updateRun(result);
+			}
+			catch (SQLException e) {
+				// Failed trying to update job status in the database.
+				// Don't let this prevent orderly shutdown.
+
+				// TODO: Log failure to update job status in database.
+			}
 		}
 	}
 
 	/**
-	 * Shutdown job manager, stopping any running jobs.
+	 * Shutdown job manager, stopping any running jobs and preventing
+	 * scheduled job runs.
+	 * <p>
 	 * The manager still retains resources needed for
 	 * creating, listing, and validating entities.
-	 * @throws Exception if any error occurs
+	 * @throws InterruptedException
 	 */
-	public void shutdown() throws Exception {
+	public void shutdown() throws InterruptedException  {
 
 		if (!isStarted()) {
 			throw new RuntimeException("Manager was not started.");
 		}
 
+		// Prevent any more scheduled jobs from kicking off.
+
+		scheduler.stopAllSchedules();
+		scheduler = null;
+
 		// Interrupt the job monitor thread to terminate it,
 		// stop any running jobs, and shut down the executor.
 
-		try {
-			int jobTerminateWaitSeconds = 10;
-	
-			monitorThread.interrupt();
-			monitorThread.join(jobTerminateWaitSeconds * 1000L);
+		int jobTerminateWaitSeconds = 10;
 
-			stopAll();
+		monitorThread.interrupt();
+		monitorThread.join(jobTerminateWaitSeconds * 1000L);
 
-			executor.close();
-		}
-		catch (Exception ex) {
-			throw ex;
-		}
+		stopAll();
 
+		executor.close();
 		executor = null;
 	}
 

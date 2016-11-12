@@ -17,6 +17,8 @@
 package com.hauldata.dbpa.manage.resources;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedList;
 import java.util.List;
@@ -24,9 +26,12 @@ import java.util.Optional;
 
 import javax.ws.rs.WebApplicationException;
 
+import com.hauldata.dbpa.log.Analyzer;
+import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.api.Job;
 import com.hauldata.dbpa.manage.api.JobRun;
 import com.hauldata.dbpa.manage.api.ScriptArgument;
+import com.hauldata.dbpa.process.Context;
 
 import junit.framework.TestCase;
 
@@ -91,6 +96,19 @@ public class JobsResourceTest extends TestCase {
 		someSchedules.add("Daily");
 
 		detritusJob = new Job(crapScriptName, "fred", someArguments, someSchedules, true);
+	}
+
+	protected void tearDown() {
+
+		// Delete any job with schedules so those jobs don't get scheduled at next setUp().
+
+		deleteNoError(detritusName);
+
+		final int scriptCount = 9;
+		for (int i = 1; i <= scriptCount; i++) {
+			String garbageNameN = detritusName + String.valueOf(i);
+			deleteNoError(garbageNameN);
+		}
 	}
 
 	public void testPut() {
@@ -292,6 +310,71 @@ public class JobsResourceTest extends TestCase {
 		assertEquals(JobRun.Status.runTerminated, state.getStatus());
 		assertTrue(state.getEndTime().isBefore(LocalDateTime.now()));
 		assertTrue(state.getStartTime().until(state.getEndTime(), ChronoUnit.SECONDS) < 5);
+	}
+
+	public void testSchedule() {
+
+		final String scriptName = "DO_NOTHING";
+		final String taskName = "SAY_NOT_MUCH";
+		final String scheduleName = "Short and sweet";
+		final String jobName = "Short scheduled job";
+
+		final int iterations = 3;
+		final int durationSeconds = 2;
+
+		// Save the script.
+
+		String script = "TASK ScheduledTask LOG 'ScheduledJob' END TASK";
+
+		ScriptsResource scriptsResource = new ScriptsResource();
+		scriptsResource.put(scriptName, script);
+		assertTrue(scriptsResource.validate(scriptName).isValid());
+
+		// Save the schedule.
+
+		LocalTime start = LocalTime.now().plusSeconds(durationSeconds);
+		LocalTime end = start.plusSeconds((iterations - 1) * durationSeconds);
+
+		String schedule =
+				"TODAY NOW, TODAY EVERY 2 SECONDS FROM '" +
+				start.format(DateTimeFormatter.ofPattern("HH:mm:ss")) + "' UNTIL '" + 
+				end.format(DateTimeFormatter.ofPattern("HH:mm:ss")) + "'";
+
+		SchedulesResource schedulesResource = new SchedulesResource();
+		schedulesResource.put(scheduleName, schedule);
+		assertTrue(schedulesResource.validate(scheduleName).isValid());
+
+		List<String> scheduleNames = new LinkedList<String>();
+		scheduleNames.add(scheduleName);
+
+		// Set up logging to the analyzer prior to saving the job.
+
+//		Context context = JobManager.getInstance().getContext();
+//		Analyzer analyzer = new Analyzer();
+//		context.logger.addAppender(analyzer);
+
+		// Save the job, which will schedule it.
+		// Then wait long enough for it to complete.
+
+		Job job = new Job(scriptName, null, null, scheduleNames, true);
+		jobsResource.put(jobName, job);
+
+		try {
+			Thread.sleep((iterations * durationSeconds + 1) * 1000L);
+		}
+		catch (InterruptedException e) {}
+
+		//		// Analyze the job log.
+//		// TODO!!!
+//		Analyzer.RecordIterator recordIterator = analyzer.recordIterator(jobName, taskName);
+//		Analyzer.Record record;
+//
+//		record = recordIterator.next();
+//		assertNotNull(record);
+
+		// Delete the job so it doesn't run the next time the job manager is started.
+
+		jobsResource.delete(jobName);
 	}
 
 	private void deleteNoError(String name) {

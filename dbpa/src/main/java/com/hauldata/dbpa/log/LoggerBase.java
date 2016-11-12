@@ -33,7 +33,8 @@ public abstract class LoggerBase implements Logger {
 		this.appenders = appenders;
 	}
 
-	protected void addAppender(Appender appender) {
+	@Override
+	public void addAppender(Appender appender) {
 		appenders.add(appender);
 	}
 

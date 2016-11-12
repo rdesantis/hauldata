@@ -20,6 +20,8 @@ public interface Logger {
 
 	enum Level { info, warn, error, message };
 
+	void addAppender(Appender appender);
+
 	void info(String taskId, String message);
 	void warn(String taskId, String message);
 	void error(String taskId, String message);
