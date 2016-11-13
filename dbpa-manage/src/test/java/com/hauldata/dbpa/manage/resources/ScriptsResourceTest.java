@@ -16,11 +16,13 @@
 
 package com.hauldata.dbpa.manage.resources;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
 import javax.ws.rs.WebApplicationException;
 
+import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.api.ScriptValidation;
 
 import junit.framework.TestCase;
@@ -45,12 +47,14 @@ public class ScriptsResourceTest extends TestCase {
 		super(name);
 	}
 
-	protected void setUp() {
-		ManagerResource managerResource = new ManagerResource();
-		if (!managerResource.isStarted()) {
-			managerResource.startup();
-		}
+	protected void setUp() throws SQLException {
+		JobManager.instantiate(false).startup();
 		scriptsResource = new ScriptsResource();
+	}
+
+	protected void tearDown() throws InterruptedException {
+		JobManager.getInstance().shutdown();
+		JobManager.killInstance();
 	}
 
 	public void testPut() {
@@ -203,5 +207,4 @@ public class ScriptsResourceTest extends TestCase {
 		assertEquals(message, wex.getMessage());
 		assertEquals(status, wex.getResponse().getStatus());
 	}
-
 }

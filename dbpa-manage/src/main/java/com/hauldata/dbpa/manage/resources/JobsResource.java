@@ -232,7 +232,7 @@ public class JobsResource {
 	@Timed
 	public void stop(@PathParam("id") int id) {
 		try {
-			JobManager.getInstance().stop(id);
+			JobManager.getInstance().stopRun(id);
 		}
 		catch (Exception ex) {
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);

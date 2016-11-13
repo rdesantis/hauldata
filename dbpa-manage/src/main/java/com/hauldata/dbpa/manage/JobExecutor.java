@@ -19,8 +19,8 @@ package com.hauldata.dbpa.manage;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -46,10 +46,22 @@ public class JobExecutor {
 	private ExecutorService es;
 	private ExecutorCompletionService<JobRun> ecs;
 
-	private Map<JobRun, Future<JobRun>> runs;
-	private Map<Integer, JobRun> runsById;
+	private static class SubmittedRun {
 
-	private class CallableJobRun implements Callable<JobRun> {
+		public JobRun run;
+		public Future<JobRun> future;
+
+		public SubmittedRun(
+				JobRun run,
+				Future<JobRun> future) {
+			this.run = run;
+			this.future = future;
+		}
+	}
+
+	private Map<Integer, SubmittedRun> submissions;
+
+	private static class CallableJobRun implements Callable<JobRun> {
 
 		private DbProcess process;
 		private String[] args;
@@ -95,8 +107,7 @@ public class JobExecutor {
 
 		// Note: Intentionally not using ConcurrentHashMap.  See comment in submit().
 
-		runs = new HashMap<JobRun, Future<JobRun>>();
-		runsById = new HashMap<Integer, JobRun>();
+		submissions = new HashMap<Integer, SubmittedRun>();
 	}
 
 	/**
@@ -116,19 +127,17 @@ public class JobExecutor {
 		// Using ConcurrentHashMap will not solve this problem.
 		// Therefore, use regular HashMap but synchronize explicitly.
 
-		synchronized (runs) {
+		synchronized (submissions) {
 
 			Future<JobRun> futureRun = ecs.submit(new CallableJobRun(process, args, context, run));
 
-			runs.put(run, futureRun);
-
-			runsById.put(run.getRunId(), run);
+			submissions.put(run.getRunId(), new SubmittedRun(run, futureRun));
 		}
 	}
 
 	/**
 	 * Get the list of running jobs.
-	 * <P>
+	 * <p>
 	 * It is only guaranteed that the status of each job was JobRun.Status.runInProgress when this
 	 * function was called.  Each job object in the list continues to be actively updated even after
 	 * the function returns, so the status of a job may have changed when the caller examines it.
@@ -136,37 +145,39 @@ public class JobExecutor {
 	 * @return the list of submitted jobs that are in progress
 	 */
 	public List<JobRun> getRunning() {
-		synchronized (runs) {
-			return runs.keySet().stream().filter(e -> (e.getState().getStatus() == JobRun.Status.runInProgress)).collect(Collectors.toList());
+		synchronized (submissions) {
+			return submissions.values().stream().map(s -> s.run).filter(r -> (r.getState().getStatus() == JobRun.Status.runInProgress)).collect(Collectors.toList());
 		}
 	}
 
 	/**
-	 * Get a running job by ID.
-	 * @return the job with the indicated ID if it is still being processed by the executor, otherwise null.
+	 * Get a running job.
+	 * @param runId is the ID of the job run.
+	 * @return the job run with the indicated ID if it is still being processed by the executor, otherwise null.
 	 */
 	public JobRun getRunning(int runId) {
-		synchronized (runs) {
-			return runsById.get(runId);
+		synchronized (submissions) {
+			SubmittedRun submission = submissions.get(runId);
+			return (submission != null) ? submission.run : null;
 		}
 	}
 
 	/**
 	 * Get a job run that has completed; blocks until a job completes.
-	 * 
+	 *
 	 * @throws InterruptedException if the thread calling this function was interrupted
 	 */
 	public JobRun getCompleted() throws InterruptedException {
 
-		Future<JobRun> completedRun = ecs.take();
+		Future<JobRun> completedFuture = ecs.take();
 
-		JobRun result = null;
+		JobRun completedRun = null;
 		Status exceptionStatus = null;
 
-		synchronized (runs) {
+		synchronized (submissions) {
 
 			try {
-				result = completedRun.get();
+				completedRun = completedFuture.get();
 			}
 			catch (CancellationException cex) {
 				exceptionStatus = Status.runTerminated;
@@ -175,50 +186,47 @@ public class JobExecutor {
 				exceptionStatus = Status.runFailed;
 			}
 
-			if (result == null) {
+			if (completedRun == null) {
 
 				// Job was cancelled before completion, possibly before it was started,
 				// or failed by throwing an exception, therefore result could not be retrieved
-				// from the completion queue.  Find the map entry for this result and update its status.
+				// from the completion queue.  Find the run for this future and update its status.
 
-				for (Entry<JobRun, Future<JobRun>> entry : runs.entrySet()) {
-					if (entry.getValue() == completedRun) {
-	
-						result = entry.getKey();
-						result.setEndStatusNow(exceptionStatus);
-						break;
-					}
+				Optional<SubmittedRun> possibleSubmission = submissions.values().stream().filter(s -> (s.future == completedFuture)).findFirst();
+
+				if (possibleSubmission.isPresent()) {
+					completedRun = possibleSubmission.get().run;
+					completedRun.setEndStatusNow(exceptionStatus);
 				}
 			}
 
-			runsById.remove(result.getRunId());
-			runs.remove(result);
+			submissions.remove(completedRun.getRunId());
 		}
 
-		return result;
+		return completedRun;
 	}
 
 	/**
 	 * @return true if no incomplete jobs remain submitted
 	 */
 	public boolean allCompleted() {
-		return runs.isEmpty();
+		return submissions.isEmpty();
 	}
 
 	/**
 	 * Stop a running job
 	 */
-	public boolean stop(JobRun run) {
+	public boolean stop(int runId) throws NoSuchElementException {
 
-		synchronized (runs) {
+		synchronized (submissions) {
 
-			Future<JobRun> futureRun = runs.get(run);
+			SubmittedRun submission = submissions.get(runId);
 
-			if (futureRun == null) {
+			if (submission == null) {
 				throw new NoSuchElementException("Run is not in progress");
 			}
-	
-			return futureRun.cancel(true);
+
+			return submission.future.cancel(true);
 		}
 	}
 
@@ -227,9 +235,9 @@ public class JobExecutor {
 	 */
 	public void stopAll() {
 
-		synchronized (runs) {
-			for (Future<JobRun> futureRun : runs.values()) {
-				futureRun.cancel(true);
+		synchronized (submissions) {
+			for (SubmittedRun submission : submissions.values()) {
+				submission.future.cancel(true);
 			}
 		}
 	}
@@ -243,8 +251,8 @@ public class JobExecutor {
 	 *
 	 * If any jobs have not completed, this function will wait a very
 	 * short time for them to complete.
-	 * 
-	 * @return true if all jobs and the executor terminate in a timely fashion. 
+	 *
+	 * @return true if all jobs and the executor terminate in a timely fashion.
 	 * @throws InterruptedException
 	 */
 	public boolean close() throws InterruptedException {

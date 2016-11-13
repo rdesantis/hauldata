@@ -16,6 +16,10 @@
 
 package com.hauldata.dbpa.manage.resources;
 
+import java.sql.SQLException;
+
+import com.hauldata.dbpa.manage.JobManager;
+
 import junit.framework.TestCase;
 
 public class SchemaResourceTest extends TestCase {
@@ -26,12 +30,14 @@ public class SchemaResourceTest extends TestCase {
 		super(name);
 	}
 
-	protected void setUp() {
-		ManagerResource managerResource = new ManagerResource();
-		if (!managerResource.isStarted()) {
-			managerResource.startup();
-		}
+	protected void setUp() throws SQLException {
+		JobManager.instantiate(false).startup();
 		schemaResource = new SchemaResource();
+	}
+
+	protected void tearDown() throws InterruptedException {
+		JobManager.getInstance().shutdown();
+		JobManager.killInstance();
 	}
 
 	public void testSchema() throws Exception {

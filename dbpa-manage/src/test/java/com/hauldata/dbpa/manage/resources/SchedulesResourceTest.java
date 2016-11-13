@@ -16,11 +16,13 @@
 
 package com.hauldata.dbpa.manage.resources;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
 import javax.ws.rs.WebApplicationException;
 
+import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.api.ScheduleValidation;
 
 import junit.framework.TestCase;
@@ -42,12 +44,14 @@ public class SchedulesResourceTest extends TestCase {
 		super(name);
 	}
 
-	protected void setUp() {
-		ManagerResource managerResource = new ManagerResource();
-		if (!managerResource.isStarted()) {
-			managerResource.startup();
-		}
+	protected void setUp() throws SQLException {
+		JobManager.instantiate(false).startup();
 		schedulesResource = new SchedulesResource();
+	}
+
+	protected void tearDown() throws InterruptedException {
+		JobManager.getInstance().shutdown();
+		JobManager.killInstance();
 	}
 
 	public void testPut() {

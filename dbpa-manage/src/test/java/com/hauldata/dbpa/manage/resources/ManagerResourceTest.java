@@ -16,6 +16,8 @@
 
 package com.hauldata.dbpa.manage.resources;
 
+import com.hauldata.dbpa.manage.JobManager;
+
 import junit.framework.TestCase;
 
 public class ManagerResourceTest extends TestCase {
@@ -23,10 +25,12 @@ public class ManagerResourceTest extends TestCase {
 	ManagerResource managerResource;
 
 	protected void setUp() {
+		JobManager.instantiate(false);
 		managerResource = new ManagerResource();
-		if (!managerResource.isStarted()) {
-			managerResource.startup();
-		}
+	}
+
+	protected void tearDown() throws InterruptedException {
+		JobManager.killInstance();
 	}
 
 	public ManagerResourceTest(String name) {
@@ -34,6 +38,10 @@ public class ManagerResourceTest extends TestCase {
 	}
 
 	public void testManager() throws Exception {
+
+		assertFalse(managerResource.isStarted());
+
+		managerResource.startup();
 
 		assertTrue(managerResource.isStarted());
 

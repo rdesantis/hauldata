@@ -24,11 +24,13 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Properties;
 
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
+import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.manage.api.Job;
 import com.hauldata.dbpa.manage.api.JobRun;
 import com.hauldata.dbpa.manage.api.ScriptArgument;
@@ -47,7 +49,9 @@ public class JobManager {
 //	private static final String programName = "ManageDbp";
 	private static final String programName = "RunDbp";		// To simplify testing
 
-	private static JobManager manager = new JobManager();
+	private static JobManager manager;
+
+	private Analyzer analyzer;
 
 	private ContextProperties contextProps;
 	private Context context;
@@ -64,7 +68,22 @@ public class JobManager {
 	private JobScheduler scheduler;
 
 	/**
-	 * Get the singleton DBPA job manager instance
+	 * Instantiate the singleton job manager instance
+	 * <p>
+	 * @param withLogAnalyzer is true to instantiate an Analyzer and add it as an
+	 * appender to the log of the context of every job that is run.  This is for debugging.
+	 * The analyzer can be retrieved with JobManager.getInstance.getAnalyzer();
+	 * @return the manager
+	 */
+	public static JobManager instantiate(boolean withLogAnalyzer) {
+
+		manager = new JobManager(withLogAnalyzer);
+
+		return manager;
+	}
+
+	/**
+	 * Get the singleton job manager instance
 	 * @return the manager
 	 */
 	public static JobManager getInstance() {
@@ -74,14 +93,23 @@ public class JobManager {
 		return manager;
 	}
 
+	/**
+	 * Prevent the job manager instance from being retrieved
+	 * by any subsequent calls to getInstance() 
+	 */
 	public static void killInstance() {
-		if (manager != null) {
+		if (manager == null) {
 			throw new RuntimeException("Manager is already unavailable");
+		}
+		else if (manager.isStarted()) {
+			throw new RuntimeException("Manager must be shut down before killing");
 		}
 		manager = null;
 	}
 
-	private JobManager() {
+	private JobManager(boolean withLogAnalyzer) {
+
+		this.analyzer = withLogAnalyzer ? new Analyzer() : null;
 
 		contextProps = new ContextProperties(programName);
 		context = contextProps.createContext(null);
@@ -138,6 +166,10 @@ public class JobManager {
 			throw new RuntimeException("Scheduler is not available");
 		}
 		return scheduler;
+	}
+
+	public Analyzer getAnalyzer() {
+		return analyzer;
 	}
 
 	/**
@@ -203,7 +235,7 @@ public class JobManager {
 	/**
 	 * Start a job by name.
 	 *
-	 * @return the run object, which will all have a positive configId value
+	 * @return the run object.  Use the getRunId() member to retrieve the unique run ID.
 	 * @throws NamingException
 	 * @throws IOException
 	 * @throws SQLException
@@ -237,6 +269,10 @@ public class JobManager {
 				new ContextProperties(job.getPropName(), contextProps);
 
 		jobContext = props.createContext(jobName, context);
+
+		if (analyzer != null) {
+			jobContext.logger.addAppender(analyzer);
+		}
 
 		run = putRun(jobName);
 
@@ -339,21 +375,17 @@ public class JobManager {
 	/**
 	 * Stop a job run by interrupting its thread.
 	 *
-	 * @param run is the job run to stop.
+	 * @param runId is the ID of the job run to stop.
 	 * @return true if the run was stopped; false otherwise
-	 * @throws Exception if any error occurs
+	 * @throws NoSuchElementException if the job is not running
 	 */
-	public boolean stop(JobRun run) throws Exception {
+	public boolean stopRun(int runId) throws NoSuchElementException {
 
 		if (!isStarted()) {
 			throw new RuntimeException("Manager is not started; no jobs are running");
 		}
 
-		return executor.stop(run);
-	}
-
-	public boolean stop(int runId) throws Exception {
-		return stop(executor.getRunning(runId));
+		return executor.stop(runId);
 	}
 
 	/**
@@ -375,7 +407,7 @@ public class JobManager {
 	 * @throws SQLException if an error occurs recording job status to the database
 	 * @throws InterruptedException
 	 */
-	private void stopAll() throws InterruptedException   {
+	private void stopAllRuns() throws InterruptedException   {
 
 		executor.stopAll();
 
@@ -420,7 +452,7 @@ public class JobManager {
 		monitorThread.interrupt();
 		monitorThread.join(jobTerminateWaitSeconds * 1000L);
 
-		stopAll();
+		stopAllRuns();
 
 		executor.close();
 		executor = null;
