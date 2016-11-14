@@ -32,10 +32,9 @@ import com.hauldata.dbpa.manage.resources.SchemaResource;
 import com.hauldata.dbpa.manage.resources.ScriptsResource;
 import com.hauldata.dbpa.manage.resources.ServiceResource;
 
-public class ManageDbp extends Application<Configuration>{
+public class ManageDbp extends Application<Configuration> {
 
 	public static void main(String[] args) throws Exception {
-
 		new ManageDbp().run(args);
 	}
 

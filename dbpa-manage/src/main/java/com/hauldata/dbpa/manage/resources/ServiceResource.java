@@ -16,9 +16,6 @@
 
 package com.hauldata.dbpa.manage.resources;
 
-import java.lang.ref.PhantomReference;
-import java.lang.ref.ReferenceQueue;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.Path;
@@ -40,32 +37,26 @@ public class ServiceResource {
 
 	public ServiceResource(Environment environment) {
 		this.environment = environment;
+		serviceResource = this;
+	}
+
+	/**
+	 * For testing, retain the single instance of this class instantiated by
+	 * dropwizard Application.run().
+	 */
+	private static ServiceResource serviceResource;
+
+	public static ServiceResource getInstance() {
+		return serviceResource;
 	}
 
 	@DELETE
 	@Timed
 	public void kill() {
 		try {
-			JobManager.getInstance().shutdown();
-
-			// See https://community.oracle.com/blogs/enicholas/2006/05/04/understanding-weak-references
-
-			ReferenceQueue<JobManager> queue = new ReferenceQueue<JobManager>();
-			PhantomReference<JobManager> managerReference = new PhantomReference<JobManager>(JobManager.getInstance(), queue);
-
-			// Prevent any new references to the Manager instance.
-			// Then wait a reasonable time for all in-progress uses to terminate and drop their strong references,
-			// which will cause the phantom reference to be pushed to the queue.
+			// Shut down the job manager if running and prevent any new references to the singleton Manager instance.
 
 			JobManager.killInstance();
-
-			int timeoutSeconds = 30;
-
-			if (queue.remove(timeoutSeconds * 1000L) != managerReference) {
-				// The in-progress uses of the Manager instance did not terminate within the timeout interval.
-			};
-
-			managerReference.clear();
 
 			// Stop this server.
 			// See http://stackoverflow.com/questions/15989008/dropwizard-how-to-stop-service-programmatically

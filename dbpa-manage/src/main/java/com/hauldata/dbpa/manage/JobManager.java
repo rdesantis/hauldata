@@ -46,7 +46,17 @@ import com.hauldata.dbpa.process.DbProcess;
 
 public class JobManager {
 
-//	private static final String programName = "ManageDbp";
+	public static final String notAvailableMessage = "Manager is not available";
+	public static final String alreadyUnavailableMessage = "Manager is already unavailable";
+	public static final String schemaPropertiesNotFoundMessage = "Schema properties not found";
+	public static final String schemaTablePrefixPropertyNotFoundMessage = "Schema tablePrefix property not found";
+	public static final String schedulerNotAvailableMessage = "Scheduler is not available";
+	public static final String alreadyStartedMessage = "Manager is already started";
+	public static final String mustStartupBeforeJobRunMessage = "Must startup manager before running jobs";
+	public static final String notStartedNoJobRunMessage = "Manager is not started; no jobs are running";
+	public static final String notStartedMessage = "Manager is not started";
+
+	//	private static final String programName = "ManageDbp";
 	private static final String programName = "RunDbp";		// To simplify testing
 
 	private static JobManager manager;
@@ -88,23 +98,36 @@ public class JobManager {
 	 */
 	public static JobManager getInstance() {
 		if (manager == null) {
-			throw new RuntimeException("Manager is not available");
+			throw new RuntimeException(notAvailableMessage);
 		}
 		return manager;
 	}
 
 	/**
 	 * Prevent the job manager instance from being retrieved
-	 * by any subsequent calls to getInstance() 
+	 * by any subsequent calls to getInstance().
+	 * <p>
+	 * Shuts down the manager if it is running.  Does this
+	 * in such a way that no thread that already holds a
+	 * manager reference can start up the manager after
+	 * this function shuts it down.
 	 */
 	public static void killInstance() {
 		if (manager == null) {
-			throw new RuntimeException("Manager is already unavailable");
+			throw new RuntimeException(alreadyUnavailableMessage);
 		}
-		else if (manager.isStarted()) {
-			throw new RuntimeException("Manager must be shut down before killing");
+
+		synchronized (manager) {
+			if (manager.isStarted()) {
+				try {
+					manager.shutdown();
+				}
+				catch (InterruptedException e) {
+					// Don't let this prevent shutdown.
+				}
+			}
+			manager = null;
 		}
-		manager = null;
 	}
 
 	private JobManager(boolean withLogAnalyzer) {
@@ -118,12 +141,12 @@ public class JobManager {
 
 		Properties schemaProps = contextProps.getProperties("schema");
 		if (schemaProps == null) {
-			throw new RuntimeException("Schema properties not found");
+			throw new RuntimeException(schemaPropertiesNotFoundMessage);
 		}
 
 		String tablePrefix = schemaProps.getProperty("tablePrefix");
 		if (tablePrefix == null) {
-			throw new RuntimeException("Schema tablePrefix property not found");
+			throw new RuntimeException(schemaTablePrefixPropertyNotFoundMessage);
 		}
 
 		jobSql = new JobSql(tablePrefix);
@@ -163,7 +186,7 @@ public class JobManager {
 
 	public JobScheduler getScheduler() {
 		if (scheduler == null) {
-			throw new RuntimeException("Scheduler is not available");
+			throw new RuntimeException(schedulerNotAvailableMessage);
 		}
 		return scheduler;
 	}
@@ -187,22 +210,28 @@ public class JobManager {
 	 */
 	public void startup() throws SQLException {
 
-		if (isStarted()) {
-			throw new RuntimeException("Manager is already started");
+		synchronized (this) {
+
+			if (manager == null) {
+				throw new RuntimeException(notAvailableMessage);
+			}
+			else if (isStarted()) {
+				throw new RuntimeException(alreadyStartedMessage);
+			}
+
+			// Instantiate a JobExecutor and create a job monitor thread
+			// that loops calling executor.getCompleted() to update the database
+			// with job completion status.
+
+			executor = new JobExecutor();
+			monitorThread = new Thread(new JobMonitor());
+			monitorThread.start();
+
+			// Start job scheduling.
+
+			scheduler = new JobScheduler();
+			scheduler.startAllSchedules();
 		}
-
-		// Instantiate a JobExecutor and create a job monitor thread
-		// that loops calling executor.getCompleted() to update the database
-		// with job completion status.
-
-		executor = new JobExecutor();
-		monitorThread = new Thread(new JobMonitor());
-		monitorThread.start();
-
-		// Start job scheduling.
-
-		scheduler = new JobScheduler();
-		scheduler.startAllSchedules();
 	}
 
 	private class JobMonitor implements Runnable {
@@ -244,7 +273,7 @@ public class JobManager {
 	public JobRun run(String jobName, Job job) throws IOException, NamingException, SQLException {
 
 		if (!isStarted()) {
-			throw new RuntimeException("Must startup manager before running jobs");
+			throw new RuntimeException(mustStartupBeforeJobRunMessage);
 		}
 
 		// Instantiate the process, arguments, and context,
@@ -382,7 +411,7 @@ public class JobManager {
 	public boolean stopRun(int runId) throws NoSuchElementException {
 
 		if (!isStarted()) {
-			throw new RuntimeException("Manager is not started; no jobs are running");
+			throw new RuntimeException(notStartedNoJobRunMessage);
 		}
 
 		return executor.stop(runId);
@@ -396,7 +425,7 @@ public class JobManager {
 	public List<JobRun> getRunning() throws Exception {
 
 		if (!isStarted()) {
-			throw new RuntimeException("Manager is not started; no jobs are running");
+			throw new RuntimeException(notStartedNoJobRunMessage);
 		}
 
 		return executor.getRunning();
@@ -436,7 +465,7 @@ public class JobManager {
 	public void shutdown() throws InterruptedException  {
 
 		if (!isStarted()) {
-			throw new RuntimeException("Manager was not started.");
+			throw new RuntimeException(notStartedMessage);
 		}
 
 		// Prevent any more scheduled jobs from kicking off.
