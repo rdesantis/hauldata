@@ -23,7 +23,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 
 import javax.ws.rs.WebApplicationException;
 
@@ -224,7 +223,7 @@ public class JobsResourceTest extends TestCase {
 
 		// Confirm all like named are found.  There may be other similarly named jobs too.
 
-		List<String> likeNames = jobsResource.getNames(Optional.of(detritusName + "%"));
+		List<String> likeNames = jobsResource.getNames(detritusName + "%");
 
 		assertTrue(scriptCount <= likeNames.size());
 		for (String name : likeNames) {
@@ -233,7 +232,7 @@ public class JobsResourceTest extends TestCase {
 
 		// Confirm that an all-names list is bigger than the like-named list.
 
-		List<String> allNames = jobsResource.getNames(Optional.empty());
+		List<String> allNames = jobsResource.getNames(null);
 
 		assertTrue(likeNames.size() < allNames.size());
 	}
@@ -255,7 +254,7 @@ public class JobsResourceTest extends TestCase {
 
 		assertTrue(running.stream().anyMatch(r -> (r.getRunId() == id)));
 
-		List<JobRun> runs = jobsResource.getRuns(Optional.of(sleepJobName), Optional.of(true));
+		List<JobRun> runs = jobsResource.getRuns(sleepJobName, true);
 
 		assertEquals(1, runs.size());
 
@@ -265,7 +264,7 @@ public class JobsResourceTest extends TestCase {
 
 		assertTrue(running.stream().noneMatch(r -> (r.getRunId() == id)));
 
-		runs = jobsResource.getRuns(Optional.of(sleepJobName), Optional.of(true));
+		runs = jobsResource.getRuns(sleepJobName, true);
 
 		assertEquals(1, runs.size());
 
@@ -302,7 +301,7 @@ public class JobsResourceTest extends TestCase {
 
 		assertTrue(running.stream().noneMatch(r -> (r.getRunId() == id)));
 
-		List<JobRun> runs = jobsResource.getRuns(Optional.of(stopJobName), Optional.of(true));
+		List<JobRun> runs = jobsResource.getRuns(stopJobName, true);
 
 		assertEquals(1, runs.size());
 

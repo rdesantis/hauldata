@@ -32,7 +32,6 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 
 import javax.naming.NamingException;
 import javax.ws.rs.Consumes;
@@ -53,6 +52,7 @@ import com.hauldata.dbpa.manage.api.ScriptValidation;
 import com.hauldata.dbpa.process.DbProcess;
 import com.hauldata.dbpa.variable.VariableBase;
 
+@Path("/scripts")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class ScriptsResource {
@@ -62,7 +62,7 @@ public class ScriptsResource {
 	public ScriptsResource() {}
 
 	@PUT
-	@Path("/scripts/{name}")
+	@Path("{name}")
 	@Timed
 	public void put(@PathParam("name") String name, String body) {
 		try {
@@ -74,7 +74,7 @@ public class ScriptsResource {
 	}
 
 	@GET
-	@Path("/scripts/{name}")
+	@Path("{name}")
 	@Timed
 	public String get(@PathParam("name") String name) {
 		try {
@@ -89,7 +89,7 @@ public class ScriptsResource {
 	}
 
 	@DELETE
-	@Path("/scripts/{name}")
+	@Path("{name}")
 	@Timed
 	public void delete(@PathParam("name") String name) {
 		try {
@@ -104,11 +104,11 @@ public class ScriptsResource {
 	}
 
 	@GET
-	@Path("/script/names")
+	@Path("-/names")
 	@Timed
-	public List<String> getNames(@QueryParam("like") Optional<String> likeName) {
+	public List<String> getNames(@QueryParam("like") String likeName) {
 		try {
-			return getScriptNames(likeName.orElse(null));
+			return getScriptNames(likeName);
 		}
 		catch (Exception ex) {
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
@@ -116,7 +116,7 @@ public class ScriptsResource {
 	}
 
 	@GET
-	@Path("/script/validations/{name}")
+	@Path("-/validations/{name}")
 	@Timed
 	public ScriptValidation validate(@PathParam("name") String name) {
 		try {

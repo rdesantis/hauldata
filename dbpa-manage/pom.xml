@@ -7,12 +7,12 @@
 		<version>1.0</version>
 	</parent>
 
-	<artifactId>dbpa-control</artifactId>
+	<artifactId>dbpa-manage</artifactId>
 	<version>1.0</version>
 	<packaging>jar</packaging>
 
-	<name>DBPA Controller</name>
-	<description>DBPA script controller with web service interface</description>
+	<name>DBPA Manager</name>
+	<description>DBPA script manager with web service interface</description>
 
 	<properties>
 		<!-- use UTF-8 for everything
@@ -53,7 +53,7 @@
 							<transformers>
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>com.hauldata.dbpa.ControlDbp</mainClass>
+									<mainClass>com.hauldata.dbpa.ManageDbp</mainClass>
 								</transformer>
 							</transformers>
 						</configuration>

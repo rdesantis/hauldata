@@ -18,7 +18,6 @@ package com.hauldata.dbpa.manage.resources;
 
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Optional;
 
 import javax.ws.rs.WebApplicationException;
 
@@ -148,7 +147,7 @@ public class SchedulesResourceTest extends TestCase {
 
 		// Confirm all like named are found.  There may be other similarly named schedules too.
 
-		List<String> likeNames = schedulesResource.getNames(Optional.of(garbageName + "%"));
+		List<String> likeNames = schedulesResource.getNames(garbageName + "%");
 
 		assertTrue(scriptCount <= likeNames.size());
 		for (String name : likeNames) {
@@ -157,7 +156,7 @@ public class SchedulesResourceTest extends TestCase {
 
 		// Confirm that an all-names list is bigger than the like-named list.
 
-		List<String> allNames = schedulesResource.getNames(Optional.empty());
+		List<String> allNames = schedulesResource.getNames(null);
 
 		assertTrue(likeNames.size() < allNames.size());
 	}

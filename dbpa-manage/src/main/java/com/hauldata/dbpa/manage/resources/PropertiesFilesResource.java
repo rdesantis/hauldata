@@ -17,7 +17,6 @@
 package com.hauldata.dbpa.manage.resources;
 
 import java.util.List;
-import java.util.Optional;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -33,6 +32,7 @@ import javax.ws.rs.core.MediaType;
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.api.PropertiesTuple;
 
+@Path("/propfiles")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class PropertiesFilesResource {
@@ -40,7 +40,7 @@ public class PropertiesFilesResource {
 	public PropertiesFilesResource() {}
 
 	@PUT
-	@Path("/propfiles/{name}")
+	@Path("{name}")
 	@Timed
 	public void putProperties(@PathParam("name") String name, PropertiesTuple tuple) {
 		try {
@@ -53,7 +53,7 @@ public class PropertiesFilesResource {
 	}
 
 	@GET
-	@Path("/propfiles/{name}")
+	@Path("{name}")
 	@Timed
 	public PropertiesTuple getProperties(@PathParam("name") String name) {
 		try {
@@ -66,7 +66,7 @@ public class PropertiesFilesResource {
 	}
 
 	@DELETE
-	@Path("/propfiles/{name}")
+	@Path("{name}")
 	@Timed
 	public void deleteProperties(@PathParam("name") String name) {
 		try {
@@ -79,9 +79,9 @@ public class PropertiesFilesResource {
 	}
 
 	@GET
-	@Path("/propfile/names")
+	@Path("-/names")
 	@Timed
-	public List<String> getPropertiesNames(@QueryParam("like") Optional<String> likeName) {
+	public List<String> getPropertiesNames(@QueryParam("like") String likeName) {
 		try {
 			// TODO!!!
 			return null;

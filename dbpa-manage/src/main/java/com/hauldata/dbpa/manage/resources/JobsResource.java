@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.naming.NameNotFoundException;
@@ -56,8 +55,7 @@ import com.hauldata.dbpa.manage.sql.RunSql;
 import com.hauldata.dbpa.manage.sql.ScheduleSql;
 import com.hauldata.dbpa.process.Context;
 
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
+@Path("/jobs")
 public class JobsResource {
 
 	public static final String jobNotFoundMessageStem = "Job not found: ";
@@ -66,7 +64,9 @@ public class JobsResource {
 	public JobsResource() {}
 
 	@PUT
-	@Path("/jobs/{name}")
+	@Path("{name}")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public int put(@PathParam("name") String name, Job job) {
 		try {
@@ -81,7 +81,8 @@ public class JobsResource {
 	}
 
 	@GET
-	@Path("/jobs/{name}")
+	@Path("{name}")
+	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
 	public Job get(@PathParam("name") String name) {
 		try {
@@ -96,7 +97,7 @@ public class JobsResource {
 	}
 
 	@DELETE
-	@Path("/jobs/{name}")
+	@Path("{name}")
 	@Timed
 	public void delete(@PathParam("name") String name) {
 		try {
@@ -111,7 +112,8 @@ public class JobsResource {
 	}
 
 	@PUT
-	@Path("/jobs/{name}/script")
+	@Path("{name}/script")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public void putScriptName(@PathParam("name") String name, String scriptName) {
 		try {
@@ -124,7 +126,8 @@ public class JobsResource {
 	}
 
 	@PUT
-	@Path("/jobs/{name}/propfile")
+	@Path("{name}/propfile")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public void putPropName(@PathParam("name") String name, String propName) {
 		try {
@@ -137,7 +140,8 @@ public class JobsResource {
 	}
 
 	@PUT
-	@Path("/jobs/{name}/arguments")
+	@Path("{name}/arguments")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public void putArguments(@PathParam("name") String name, List<ScriptArgument> arguments) {
 		try {
@@ -150,7 +154,8 @@ public class JobsResource {
 	}
 
 	@PUT
-	@Path("/jobs/{name}/schedules")
+	@Path("{name}/schedules")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public void putScheduleNames(@PathParam("name") String name, List<String> scheduleNames) {
 		try {
@@ -163,7 +168,8 @@ public class JobsResource {
 	}
 
 	@PUT
-	@Path("/jobs/{name}/enabled")
+	@Path("{name}/enabled")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public void putEnabled(@PathParam("name") String name, boolean enabled) {
 		try {
@@ -176,11 +182,12 @@ public class JobsResource {
 	}
 
 	@GET
-	@Path("/job/names")
+	@Path("-/names")
+	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
-	public List<String> getNames(@QueryParam("like") Optional<String> likeName) {
+	public List<String> getNames(@QueryParam("like") String likeName) {
 		try {
-			return getJobNames(likeName.orElse(null));
+			return getJobNames(likeName);
 		}
 		catch (Exception ex) {
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
@@ -188,11 +195,12 @@ public class JobsResource {
 	}
 
 	@GET
-	@Path("/job/runs")
+	@Path("-/runs")
+	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
-	public List<JobRun> getRuns(@QueryParam("like") Optional<String> likeName, @QueryParam("latest") Optional<Boolean> latest) {
+	public List<JobRun> getRuns(@QueryParam("like") String likeName, @QueryParam("latest") Boolean latest) {
 		try {
-			return getJobRuns(likeName.orElse(null), latest.orElse(false));
+			return getJobRuns(likeName, latest);
 		}
 		catch (Exception ex) {
 			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
@@ -200,7 +208,8 @@ public class JobsResource {
 	}
 
 	@GET
-	@Path("/job/running")
+	@Path("-/running")
+	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
 	public List<JobRun> getRunning() {
 		try {
@@ -212,7 +221,8 @@ public class JobsResource {
 	}
 
 	@POST
-	@Path("/job/running/{name}")
+	@Path("-/running/{name}")
+	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
 	public int run(@PathParam("name") String name) {
 		try {
@@ -228,7 +238,7 @@ public class JobsResource {
 	}
 
 	@DELETE
-	@Path("/job/running/{id}")
+	@Path("-/running/{id}")
 	@Timed
 	public void stop(@PathParam("id") int id) {
 		try {
