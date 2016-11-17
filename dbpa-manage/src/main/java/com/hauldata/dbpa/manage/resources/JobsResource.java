@@ -670,7 +670,7 @@ public class JobsResource {
 	 * @return the list of runs
 	 * @throws SQLException if any error occurs
 	 */
-	public List<JobRun> getJobRuns(String likeName, boolean latest) throws SQLException {
+	public List<JobRun> getJobRuns(String likeName, Boolean latest) throws SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -678,6 +678,10 @@ public class JobsResource {
 
 		if (likeName == null) {
 			likeName = "%";
+		}
+
+		if (latest == null) {
+			latest = false;
 		}
 
 		List<JobRun> runs = new LinkedList<JobRun>();

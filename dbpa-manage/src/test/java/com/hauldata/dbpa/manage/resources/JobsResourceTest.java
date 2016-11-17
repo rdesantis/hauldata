@@ -315,7 +315,7 @@ public class JobsResourceTest extends TestCase {
 		assertTrue(state.getStartTime().until(state.getEndTime(), ChronoUnit.SECONDS) < 5);
 	}
 
-	public void testSchedule() {
+	public void testScheduleRun() {
 
 		final String scriptName = "DO_NOTHING";
 		final String taskName = "SAY_NOT_MUCH";
