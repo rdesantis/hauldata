@@ -66,7 +66,7 @@ public class DbProcess extends TaskSet {
 
 	/**
 	 * Instantiate a DbProcess object by parsing a script from a Reader
-	 * 
+	 *
 	 * @param r is the Reader supplying the script to define the process
 	 * @throws IOException
 	 * @throws InputMismatchException
@@ -77,7 +77,7 @@ public class DbProcess extends TaskSet {
 	public static DbProcess parse(Reader r) throws IOException, NamingException {
 
 		DbProcessParser parser = new DbProcessParser(r);
-		
+
 		return parser.parse();
 	}
 
@@ -106,13 +106,13 @@ public class DbProcess extends TaskSet {
 
 	/**
 	 * Run the process
-	 * 
+	 *
 	 * @param args are the argument values to pass into the process.
 	 * @param context is the context in which to run the process.
 	 * <p>
 	 * The first and last log messages written to the log are guaranteed to have
 	 * Task ID set to public static data member <code>processTaskId</code> and
-	 * content as follows: 
+	 * content as follows:
 	 * <p>
 	 * First message has level <code>info</code> and content <code>startMessage</code>.
 	 * <p>
@@ -127,7 +127,7 @@ public class DbProcess extends TaskSet {
 	 * <p>
 	 * The log of the context is NOT closed when the process has completed.
 	 * Caller must close the log.
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	public void run(String[] args, Context context) throws Exception {
 
@@ -169,7 +169,7 @@ public class DbProcess extends TaskSet {
 		long hours = minutes / 60;
 		long days = hours / 24;
 
-		return String.format("%d days %02d:%02d:%02d.%03d", days, hours % 24, minutes % 60, seconds % 60, millis % 1000); 	
+		return String.format("%d days %02d:%02d:%02d.%03d", days, hours % 24, minutes % 60, seconds % 60, millis % 1000);
 	}
 
 	private void setParameters(String[] args) {
@@ -218,7 +218,7 @@ class DbProcessParser extends TaskSetParser {
 	/**
 	 * Parse a script from the Reader provided on the constructor
 	 * returning the results to the variables provided on the constructor
-	 * 
+	 *
 	 * @throws IOException if physical read of the script fails
 	 * @throws RuntimeException if any syntax errors are encountered in the script
 	 */
@@ -229,9 +229,9 @@ class DbProcessParser extends TaskSetParser {
 			parseVariables();
 			parseConnections();
 			parseTasks();
-			
+
 			if (tokenizer.hasNext()) {
-				throw new RuntimeException("Unexpected token where " + RW.TASK.name() + " is expected");
+				throw new RuntimeException("Unexpected token where " + KW.TASK.name() + " is expected");
 			}
 		}
 		catch (IOException ex) { throw ex; }
@@ -242,19 +242,19 @@ class DbProcessParser extends TaskSetParser {
 		finally {
 			close();
 		}
-		
+
 		return new DbProcess(parameters, variables, connections, tasks);
 	}
 
 	private void parseParameters()
 			throws IOException, InputMismatchException, NoSuchElementException, NameAlreadyBoundException {
 
-		String section = RW.PARAMETERS.name();
+		String section = KW.PARAMETERS.name();
 		if (tokenizer.skipWordIgnoreCase(section)) {
 
 			do { parameters.add(parseVariable());
 			} while (tokenizer.skipDelimiter(","));
-			
+
 			nextEnd(section);
 		}
 	}
@@ -262,7 +262,7 @@ class DbProcessParser extends TaskSetParser {
 	private void parseVariables()
 			throws IOException, InputMismatchException, NoSuchElementException, NameAlreadyBoundException {
 
-		String section = RW.VARIABLES.name();
+		String section = KW.VARIABLES.name();
 		if (tokenizer.skipWordIgnoreCase(section)) {
 
 			do { parseVariable();
@@ -279,7 +279,7 @@ class DbProcessParser extends TaskSetParser {
 		if (variables.containsKey(name)) {
 			throw new NameAlreadyBoundException("Duplicate variable name: " + name);
 		}
-		else if (reservedWords.contains(name)) {
+		else if (reservedVariableNames.contains(name)) {
 			throw new NameAlreadyBoundException("Cannot use reserved word as a variable name: " + name);
 		}
 
@@ -293,7 +293,7 @@ class DbProcessParser extends TaskSetParser {
 
 	/**
 	 * Parse a data type
-	 * 
+	 *
 	 * @return the data type object
 	 * @throws InputMismatchException
 	 * @throws IOException
@@ -302,10 +302,10 @@ class DbProcessParser extends TaskSetParser {
 
 		String type = tokenizer.nextWordUpperCase();
 
-		if (type.equals(RW.TINYINT.name()) || type.equals(RW.INT.name()) || type.equals(RW.INTEGER.name())) {
+		if (type.equals(KW.TINYINT.name()) || type.equals(KW.INT.name()) || type.equals(KW.INTEGER.name())) {
 			return VariableType.INTEGER;
 		}
-		else if (type.equals(RW.VARCHAR.name()) || type.equals(RW.CHAR.name()) || type.equals(RW.CHARACTER.name())) {
+		else if (type.equals(KW.VARCHAR.name()) || type.equals(KW.CHAR.name()) || type.equals(KW.CHARACTER.name())) {
 			// Ignore length qualifier if present
 			if (tokenizer.skipDelimiter("(")) {
 				tokenizer.nextToken();
@@ -313,7 +313,7 @@ class DbProcessParser extends TaskSetParser {
 			}
 			return VariableType.VARCHAR;
 		}
-		else if (type.equals(RW.DATETIME.name()) || type.equals(RW.DATE.name())) {
+		else if (type.equals(KW.DATETIME.name()) || type.equals(KW.DATE.name())) {
 			return VariableType.DATETIME;
 		}
 		else {
@@ -324,7 +324,7 @@ class DbProcessParser extends TaskSetParser {
 	private void parseConnections()
 			throws IOException, InputMismatchException, NoSuchElementException, NameAlreadyBoundException {
 
-		String section = RW.CONNECTIONS.name();
+		String section = KW.CONNECTIONS.name();
 		if (tokenizer.skipWordIgnoreCase(section)) {
 
 			do { parseConnection();
@@ -341,20 +341,24 @@ class DbProcessParser extends TaskSetParser {
 		if (connections.containsKey(name)) {
 			throw new NameAlreadyBoundException("Duplicate connection name: " + name);
 		}
-		else if (reservedWords.contains(name)) {
+		else if (reservedConnectionNames.contains(name)) {
 			throw new NameAlreadyBoundException("Cannot use reserved word as a connection name: " + name);
+		}
+		else if (variables.containsKey(name)) {
+			// This is not strictly necessary but it will eliminate certain confusing task constructs.
+			throw new NameAlreadyBoundException("Connection name cannot be the same as a variable name: " + name);
 		}
 
 		String type = tokenizer.nextWordUpperCase();
 		Connection connection = null;
 
-		if (type.equals(RW.DATABASE.name())) {
+		if (type.equals(KW.DATABASE.name())) {
 			connection = new DatabaseConnection();
 		}
-		else if (type.equals(RW.FTP.name())) {
+		else if (type.equals(KW.FTP.name())) {
 			connection = new FtpConnection();
 		}
-		else if (type.equals(RW.EMAIL.name())) {
+		else if (type.equals(KW.EMAIL.name())) {
 			connection = new EmailConnection();
 		}
 		else {
