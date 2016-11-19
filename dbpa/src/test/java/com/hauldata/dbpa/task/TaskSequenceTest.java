@@ -30,7 +30,7 @@ public class TaskSequenceTest extends TaskTest {
 	public void testSequenceTasks() throws Exception {
 
 		String processId = "SequenceTest";
-		String script = 
+		String script =
 				"TASK LOG 'One' END TASK \n" +
 				"TASK AFTER LOG 'Two' END TASK \n" +
 				"TASK AFTER SUCCEEDS LOG 'Three' END TASK \n" +
@@ -41,13 +41,14 @@ public class TaskSequenceTest extends TaskTest {
 				"TASK AFTER Seven COMPLETES LOG 'Eight' END TASK \n" +
 				"TASK AFTER AND Six LOG 'Nine' END TASK \n" +
 				"TASK AFTER AND Seven COMPLETES LOG 'Ten' END TASK \n" +
-				"TASK AFTER FAILS LOG 'Ten failed' END TASK \n" +
+				"TASK AFTER PREVIOUS LOG 'Eleven' END TASK \n" +
+				"TASK AFTER FAILS LOG 'Eleven failed' END TASK \n" +
 				"";
 
 		Level logLevel = Level.info;
 		boolean logToConsole = true;
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null); 
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
 
 		Analyzer.RecordIterator recordIterator;
 		Analyzer.Record record;
@@ -89,16 +90,18 @@ public class TaskSequenceTest extends TaskTest {
 		assertEquals("Ten", record.message);
 		record = recordIterator.next();
 		assertEquals("11", record.taskId);
+		assertEquals("Eleven", record.message);
+		record = recordIterator.next();
+		assertEquals("12", record.taskId);
 		assertEquals(TaskSet.orphanedMessage, record.message);
 
-	
 		record = recordIterator.next();
 		assertEquals(DbProcess.processTaskId, record.taskId);
 		assertEquals(DbProcess.completeMessage, record.message);
 		record = recordIterator.next();
 		assertEquals(DbProcess.processTaskId, record.taskId);
 		assertTrue(record.message.startsWith(DbProcess.elapsedMessageStem));
-		
+
 		assertFalse(recordIterator.hasNext());
 	}
 }

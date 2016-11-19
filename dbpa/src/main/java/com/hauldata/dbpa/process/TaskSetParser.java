@@ -92,6 +92,7 @@ abstract class TaskSetParser {
 		// Task predecessors and conditions
 
 		AFTER,
+		PREVIOUS,
 		SUCCEEDS,
 		FAILS,
 		COMPLETES,
@@ -249,6 +250,7 @@ abstract class TaskSetParser {
 						KW.TASK,
 
 						KW.AFTER,
+						KW.PREVIOUS,
 						KW.SUCCEEDS,
 						KW.FAILS,
 						KW.COMPLETES,
@@ -578,6 +580,10 @@ abstract class TaskSetParser {
 
 	private SimpleEntry<Task, Task.Result> parseFirstPredecessor(Task precedingTask)
 			throws InputMismatchException, NoSuchElementException, IOException, NameNotFoundException {
+
+		if (tokenizer.skipWordIgnoreCase(KW.PREVIOUS.name())) {
+			return parsePredecessorResult(precedingTask);
+		}
 
 		BacktrackingTokenizerMark nameMark = tokenizer.mark();
 		String name = tokenizer.nextWordUpperCase();

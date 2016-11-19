@@ -433,6 +433,7 @@ public class TaskSetTest extends TaskTest {
 		script = "TASK NAME READ LOG 'succeed' END TASK \n";
 		assertGoodSyntax(script);
 
+		assertReservedTaskName("PREVIOUS");
 		assertReservedTaskName("SUCCEEDS");
 		assertReservedTaskName("FAILS");
 		assertReservedTaskName("COMPLETES");
