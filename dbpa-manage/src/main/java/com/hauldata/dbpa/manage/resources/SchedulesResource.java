@@ -31,12 +31,13 @@ import javax.naming.NameNotFoundException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.InternalServerErrorException;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 
 import com.codahale.metrics.annotation.Timed;
@@ -65,7 +66,7 @@ public class SchedulesResource {
 			return putSchedule(name, body);
 		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -77,10 +78,10 @@ public class SchedulesResource {
 			return getSchedule(name);
 		}
 		catch (NameNotFoundException ex) {
-			throw new WebApplicationException(scheduleNotFoundMessageStem + name, 404);
+			throw new NotFoundException(scheduleNotFoundMessageStem + name);
 		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -92,10 +93,10 @@ public class SchedulesResource {
 			deleteSchedule(name);
 		}
 		catch (NameNotFoundException ex) {
-			throw new WebApplicationException(scheduleNotFoundMessageStem + name, 404);
+			throw new NotFoundException(scheduleNotFoundMessageStem + name);
 		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -107,7 +108,7 @@ public class SchedulesResource {
 			return getSchedules(likeName);
 		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -124,7 +125,7 @@ public class SchedulesResource {
 			return schedules.keySet().stream().sorted().collect(Collectors.toList());
 		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -137,10 +138,10 @@ public class SchedulesResource {
 			return validateSchedule(name);
 		}
 		catch (NameNotFoundException ex) {
-			throw new WebApplicationException(scheduleNotFoundMessageStem + name, 404);
+			throw new NotFoundException(scheduleNotFoundMessageStem + name);
 		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 

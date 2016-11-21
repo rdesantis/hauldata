@@ -6,14 +6,15 @@
 	<version>1.0</version>
 	<packaging>pom</packaging>
 
-	<name>Test Maven hauldata parent</name>
-	<description>Test Maven build for hauldata parent project w/ three children</description>
+	<name>DBPA parent</name>
+	<description>Hauldata DBPA parent project</description>
 
 	<modules>
 		<module>util</module>
 		<module>dbpa</module>
 		<module>dbpa-run</module>
 		<module>dbpa-manage</module>
+		<module>dbpa-control</module>
 	</modules>
   
 	<build>

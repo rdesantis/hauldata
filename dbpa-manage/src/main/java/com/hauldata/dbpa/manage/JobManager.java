@@ -46,15 +46,38 @@ import com.hauldata.dbpa.process.DbProcess;
 
 public class JobManager {
 
-	public static final String notAvailableMessage = "Manager is not available";
-	public static final String alreadyUnavailableMessage = "Manager is already unavailable";
-	public static final String schemaPropertiesNotFoundMessage = "Schema properties not found";
-	public static final String schemaTablePrefixPropertyNotFoundMessage = "Schema tablePrefix property not found";
-	public static final String schedulerNotAvailableMessage = "Scheduler is not available";
-	public static final String alreadyStartedMessage = "Manager is already started";
-	public static final String mustStartupBeforeJobRunMessage = "Must startup manager before running jobs";
-	public static final String notStartedNoJobRunMessage = "Manager is not started; no jobs are running";
-	public static final String notStartedMessage = "Manager is not started";
+	public static class JobException extends RuntimeException {
+
+		private static final long serialVersionUID = 1L;
+
+		public enum Reason {
+
+			notAvailable("Manager is not available"),
+			alreadyUnavailable("Manager is already unavailable"),
+			schemaPropertiesNotFound("Schema properties not found"),
+			schemaTablePrefixPropertyNotFound("Schema tablePrefix property not found"),
+			schedulerNotAvailable("Scheduler is not available"),
+			alreadyStarted("Manager is already started"),
+			mustStartupBeforeJobRun("Must startup manager before running jobs"),
+			notStartedNoJobRun("Manager is not started, no jobs are running"),
+			notStarted("Manager is not started");
+
+			private String message;
+
+			Reason(String message) { this.message = message; }
+
+			public String getMessage() { return message; }
+		}
+
+		private Reason reason;
+
+		public JobException(Reason reason)  {
+			super(reason.getMessage());
+			this.reason = reason;
+		}
+
+		public Reason getReason() { return reason; }
+	}
 
 	//	private static final String programName = "ManageDbp";
 	private static final String programName = "RunDbp";		// To simplify testing
@@ -96,9 +119,9 @@ public class JobManager {
 	 * Get the singleton job manager instance
 	 * @return the manager
 	 */
-	public static JobManager getInstance() {
+	public static JobManager getInstance() throws JobException {
 		if (manager == null) {
-			throw new RuntimeException(notAvailableMessage);
+			throw new JobException(JobException.Reason.notAvailable);
 		}
 		return manager;
 	}
@@ -114,7 +137,7 @@ public class JobManager {
 	 */
 	public static void killInstance() {
 		if (manager == null) {
-			throw new RuntimeException(alreadyUnavailableMessage);
+			throw new JobException(JobException.Reason.alreadyUnavailable);
 		}
 
 		synchronized (manager) {
@@ -141,12 +164,12 @@ public class JobManager {
 
 		Properties schemaProps = contextProps.getProperties("schema");
 		if (schemaProps == null) {
-			throw new RuntimeException(schemaPropertiesNotFoundMessage);
+			throw new JobException(JobException.Reason.schemaPropertiesNotFound);
 		}
 
 		String tablePrefix = schemaProps.getProperty("tablePrefix");
 		if (tablePrefix == null) {
-			throw new RuntimeException(schemaTablePrefixPropertyNotFoundMessage);
+			throw new JobException(JobException.Reason.schemaTablePrefixPropertyNotFound);
 		}
 
 		jobSql = new JobSql(tablePrefix);
@@ -186,7 +209,7 @@ public class JobManager {
 
 	public JobScheduler getScheduler() {
 		if (scheduler == null) {
-			throw new RuntimeException(schedulerNotAvailableMessage);
+			throw new JobException(JobException.Reason.schedulerNotAvailable);
 		}
 		return scheduler;
 	}
@@ -213,10 +236,10 @@ public class JobManager {
 		synchronized (this) {
 
 			if (manager == null) {
-				throw new RuntimeException(notAvailableMessage);
+				throw new JobException(JobException.Reason.notAvailable);
 			}
 			else if (isStarted()) {
-				throw new RuntimeException(alreadyStartedMessage);
+				throw new JobException(JobException.Reason.alreadyStarted);
 			}
 
 			// Instantiate a JobExecutor and create a job monitor thread
@@ -268,12 +291,12 @@ public class JobManager {
 	 * @throws NamingException
 	 * @throws IOException
 	 * @throws SQLException
-	 * @throws Exception if any error occurs
+	 * @throws JobException if any error occurs
 	 */
 	public JobRun run(String jobName, Job job) throws IOException, NamingException, SQLException {
 
 		if (!isStarted()) {
-			throw new RuntimeException(mustStartupBeforeJobRunMessage);
+			throw new JobException(JobException.Reason.mustStartupBeforeJobRun);
 		}
 
 		// Instantiate the process, arguments, and context,
@@ -411,7 +434,7 @@ public class JobManager {
 	public boolean stopRun(int runId) throws NoSuchElementException {
 
 		if (!isStarted()) {
-			throw new RuntimeException(notStartedNoJobRunMessage);
+			throw new JobException(JobException.Reason.notStartedNoJobRun);
 		}
 
 		return executor.stop(runId);
@@ -420,12 +443,12 @@ public class JobManager {
 	/**
 	 * Retrieve a list of currently running jobs
 	 * @return the list of currently running jobs
-	 * @throws Exception if any error occurs
+	 * @throws JobException if any error occurs
 	 */
-	public List<JobRun> getRunning() throws Exception {
+	public List<JobRun> getRunning() throws JobException {
 
 		if (!isStarted()) {
-			throw new RuntimeException(notStartedNoJobRunMessage);
+			throw new JobException(JobException.Reason.notStartedNoJobRun);
 		}
 
 		return executor.getRunning();
@@ -465,7 +488,7 @@ public class JobManager {
 	public void shutdown() throws InterruptedException  {
 
 		if (!isStarted()) {
-			throw new RuntimeException(notStartedMessage);
+			throw new JobException(JobException.Reason.notStarted);
 		}
 
 		// Prevent any more scheduled jobs from kicking off.

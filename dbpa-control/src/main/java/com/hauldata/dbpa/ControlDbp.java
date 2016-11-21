@@ -1,0 +1,184 @@
+/*
+ * Copyright (c) 2016, Ronald DeSantis
+ *
+ *	Licensed under the Apache License, Version 2.0 (the "License");
+ *	you may not use this file except in compliance with the License.
+ *	You may obtain a copy of the License at
+ *
+ *		http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *	Unless required by applicable law or agreed to in writing, software
+ *	distributed under the License is distributed on an "AS IS" BASIS,
+ *	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *	See the License for the specific language governing permissions and
+ *	limitations under the License.
+ */
+
+package com.hauldata.dbpa;
+
+import java.util.List;
+
+import com.hauldata.dbpa.control.resources.SchedulesResourceClient;
+import com.hauldata.dbpa.manage.api.ScheduleValidation;
+import com.hauldata.dbpa.manage.resources.SchedulesResourceInterface;
+
+public class ControlDbp {
+
+	enum KW {
+
+		// Commands
+
+		PUT,
+		GET,
+		DELETE,
+		LIST,
+		VALIDATE,
+		SHOW,
+		ALTER,
+		RUN,
+		STOP,
+		START,
+		CONFIRM,
+
+		// Objects
+
+		SCRIPT,
+		PROPERTIES,
+		SCHEDULE,
+		JOB,
+		//RUN,		// Also a command name
+		RUNNING,
+		MANAGER,
+		SERVICE,
+		SCHEMA,
+
+		// Attributes
+
+		ARGUMENTS,
+		ENABLED,
+
+		// Other
+
+		FROM,
+		TO,
+		ON,
+		OFF,
+		NO
+	}
+
+	public static void main(String[] args) {
+
+		String baseUrl = "http://localhost:8080";
+		SchedulesResourceInterface client = new SchedulesResourceClient(baseUrl);
+
+		// get
+
+		String name = "NotGarbage";
+		String schedule = "[get failed]";
+
+		System.out.println();
+
+		try {
+			schedule = client.get(name);
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("Schedule '" + name + "' = " + schedule);
+
+		// getNames
+	
+		String likeName = "garbage%";
+		List<String> names = null;
+
+		System.out.println();
+
+		try {
+			names = client.getNames(likeName);
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("List of schedule names:");
+		if (names == null) {
+			System.out.println("[empty]");
+		}
+		else {
+			System.out.println(names.toString());
+		}
+
+		// validate
+
+		String validateName = "invalid";
+		ScheduleValidation validation = null;
+		
+		System.out.println();
+
+		try {
+			validation = client.validate(validateName);
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("Schedule '" + validateName + "' validation:");
+		if (validation == null) {
+			System.out.println("[empty]");
+		}
+		else {
+			System.out.println("{" + String.valueOf(validation.isValid()) + ", \"" + validation.getValidationMessage() + "\"}");
+		}
+
+		// put
+
+		String putName = "Weekly Friday";
+		String putSchedule = "WEEKLY FRIDAY";
+
+		System.out.println();
+
+		int id = -1;
+		try {
+			id = client.put(putName, putSchedule);
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("Schedule '" + putName + "' id: " + String.valueOf(id));
+
+		// delete
+
+		String deletedName = "Doesn't exist";
+		boolean deleted = false;
+
+		System.out.println();
+
+		try {
+			client.delete(deletedName);
+			deleted = true;
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("Schedule '" + deletedName + "' deleted? " + String.valueOf(deleted));
+
+		// get doesn't exist
+
+		name = deletedName;
+		schedule = null;
+
+		System.out.println();
+
+		try {
+			schedule = client.get(name);
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("Schedule '" + name + "' = " + schedule);
+	}
+}

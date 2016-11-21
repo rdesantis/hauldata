@@ -20,17 +20,21 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
+import com.hauldata.dbpa.manage.JobManager.JobException;
 import com.hauldata.dbpa.process.Context;
 
 @Path("/schema")
@@ -40,14 +44,25 @@ public class SchemaResource {
 
 	public SchemaResource() {}
 
+	// TODO: Use exception mapping instead of duplicating code.
+	// See https://dennis-xlc.gitbooks.io/restful-java-with-jax-rs-2-0-2rd-edition/content/en/part1/chapter7/exception_handling.html
+
 	@GET
 	@Timed
 	public boolean confirm() {
 		try {
 			return confirmSchema();
 		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
+		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -57,8 +72,16 @@ public class SchemaResource {
 		try {
 			createSchema();
 		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
+		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -68,17 +91,26 @@ public class SchemaResource {
 		try {
 			deleteSchema();
 		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
+		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
 	/**
 	 * Create the set of database tables used to store job configurations
 	 * and run results.
-	 * @throws Exception if schema creation fails for any reason
+	 * @throws SQLException if schema creation fails due to a database issue
+	 * @throws JobException due to a job manager issue
 	 */
-	public void createSchema() throws Exception {
+	public void createSchema() throws SQLException, JobException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -99,9 +131,6 @@ public class SchemaResource {
 		    stmt.executeUpdate(manager.getJobScheduleSql().createTable);
 		    stmt.executeUpdate(manager.getRunSql().createTable);
 		}
-		catch (Exception ex) {
-			throw ex;
-		}
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception ex) {}
 
@@ -111,9 +140,10 @@ public class SchemaResource {
 
 	/**
 	 * Drop the job-related tables.
-	 * @throws Exception if schema creation fails for any reason
+	 * @throws SQLException if schema removal fails due to a database issue
+	 * @throws JobException due to a job manager issue
 	 */
-	public void deleteSchema() throws Exception {
+	public void deleteSchema() throws SQLException, JobException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -134,9 +164,6 @@ public class SchemaResource {
 			tryExecuteUpdate(stmt, manager.getScheduleSql().dropTable);
 			tryExecuteUpdate(stmt, manager.getJobScheduleSql().dropTable);
 			tryExecuteUpdate(stmt, manager.getRunSql().dropTable);
-		}
-		catch (Exception ex) {
-			throw ex;
 		}
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception ex) {}
@@ -163,9 +190,9 @@ public class SchemaResource {
 	/**
 	 * Confirm the existence of all the job-related tables with correct columns
 	 * @return true if all tables exist correctly, false otherwise
-	 * @throws Exception
+	 * @throws SQLException, JobException
 	 */
-	public boolean confirmSchema() throws Exception {
+	public boolean confirmSchema() throws SQLException, JobException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -189,9 +216,6 @@ public class SchemaResource {
 					trySelectNoRows(stmt, manager.getScheduleSql().selectAllColumns) &&
 					trySelectNoRows(stmt, manager.getJobScheduleSql().selectAllColumns) &&
 					trySelectNoRows(stmt, manager.getRunSql().selectAllColumns);
-		}
-		catch (Exception ex) {
-			throw ex;
 		}
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception ex) {}

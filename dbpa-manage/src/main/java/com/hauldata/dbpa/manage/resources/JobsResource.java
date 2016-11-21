@@ -26,23 +26,29 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import javax.naming.NameNotFoundException;
+import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.InternalServerErrorException;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
+import com.hauldata.dbpa.manage.JobManager.JobException;
 import com.hauldata.dbpa.manage.api.Job;
 import com.hauldata.dbpa.manage.api.JobRun;
 import com.hauldata.dbpa.manage.api.ScriptArgument;
@@ -60,8 +66,12 @@ public class JobsResource {
 
 	public static final String jobNotFoundMessageStem = "Job not found: ";
 	public static final String scheduleNotFoundMessageStem = "One or more schedules not found for job: ";
+	public static final String runningNotFoundMessageStem = "Running job ID not found: ";
 
 	public JobsResource() {}
+
+	// TODO: Use exception mapping instead of duplicating code.
+	// See https://dennis-xlc.gitbooks.io/restful-java-with-jax-rs-2-0-2rd-edition/content/en/part1/chapter7/exception_handling.html
 
 	@PUT
 	@Path("{name}")
@@ -73,10 +83,18 @@ public class JobsResource {
 			return putJob(name, job);
 		}
 		catch (NameNotFoundException ex) {
-			throw new WebApplicationException(scheduleNotFoundMessageStem + name, 404);
+			throw new NotFoundException(scheduleNotFoundMessageStem + name);
+		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
 		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -89,10 +107,18 @@ public class JobsResource {
 			return getJob(name);
 		}
 		catch (NameNotFoundException ex) {
-			throw new WebApplicationException(jobNotFoundMessageStem + name, 404);
+			throw new NotFoundException(jobNotFoundMessageStem + name);
+		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
 		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -104,10 +130,18 @@ public class JobsResource {
 			deleteJob(name);
 		}
 		catch (NameNotFoundException ex) {
-			throw new WebApplicationException(jobNotFoundMessageStem + name, 404);
+			throw new NotFoundException(jobNotFoundMessageStem + name);
+		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
 		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -120,8 +154,16 @@ public class JobsResource {
 			// TODO!!!
 			return;
 		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
+		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -134,8 +176,16 @@ public class JobsResource {
 			// TODO!!!
 			return;
 		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
+		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -148,8 +198,16 @@ public class JobsResource {
 			// TODO!!!
 			return;
 		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
+		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -162,8 +220,16 @@ public class JobsResource {
 			// TODO!!!
 			return;
 		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
+		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -176,8 +242,16 @@ public class JobsResource {
 			// TODO!!!
 			return;
 		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
+		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -189,8 +263,16 @@ public class JobsResource {
 		try {
 			return getJobNames(likeName);
 		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
+		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -202,8 +284,16 @@ public class JobsResource {
 		try {
 			return getJobRuns(likeName, latest);
 		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
+		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -215,8 +305,17 @@ public class JobsResource {
 		try {
 			return JobManager.getInstance().getRunning();
 		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			case notStartedNoJobRun:
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
+		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -230,10 +329,19 @@ public class JobsResource {
 			return JobManager.getInstance().run(name, job).getRunId();
 		}
 		catch (NameNotFoundException ex) {
-			throw new WebApplicationException(jobNotFoundMessageStem + name, 404);
+			throw new NotFoundException(jobNotFoundMessageStem + name);
+		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			case mustStartupBeforeJobRun:
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
 		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -244,8 +352,20 @@ public class JobsResource {
 		try {
 			JobManager.getInstance().stopRun(id);
 		}
+		catch (NoSuchElementException ex) {
+			throw new NotFoundException(runningNotFoundMessageStem + String.valueOf(id));
+		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			case notStartedNoJobRun:
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
+		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 

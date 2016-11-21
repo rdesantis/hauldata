@@ -16,17 +16,21 @@
 
 package com.hauldata.dbpa.manage.resources;
 
+import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
+import com.hauldata.dbpa.manage.JobManager.JobException;
 
 @Path("/manager")
 @Produces(MediaType.APPLICATION_JSON)
@@ -35,14 +39,26 @@ public class ManagerResource {
 
 	public ManagerResource() {}
 
+	// TODO: Use exception mapping instead of duplicating code.
+	// See https://dennis-xlc.gitbooks.io/restful-java-with-jax-rs-2-0-2rd-edition/content/en/part1/chapter7/exception_handling.html
+
 	@PUT
 	@Timed
 	public void startup() {
 		try {
 			JobManager.getInstance().startup();
 		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			case alreadyStarted:
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
+		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -52,8 +68,16 @@ public class ManagerResource {
 		try {
 			return JobManager.getInstance().isStarted();
 		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
+		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
@@ -63,8 +87,17 @@ public class ManagerResource {
 		try {
 			JobManager.getInstance().shutdown();
 		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case notAvailable:
+				throw new ServiceUnavailableException(ex.getMessage());
+			case notStarted:
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
+		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 }

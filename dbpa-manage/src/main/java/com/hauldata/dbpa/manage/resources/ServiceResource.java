@@ -16,15 +16,18 @@
 
 package com.hauldata.dbpa.manage.resources;
 
+import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
+import com.hauldata.dbpa.manage.JobManager.JobException;
 
 import io.dropwizard.setup.Environment;
 
@@ -63,8 +66,15 @@ public class ServiceResource {
 
 			environment.getApplicationContext().getServer().stop();
 		}
+		catch (JobException ex) {
+			switch (ex.getReason()) {
+			case alreadyUnavailable:
+			default:
+				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+			}
+		}
 		catch (Exception ex) {
-			throw new WebApplicationException(ex.getLocalizedMessage(), 500);
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 }
