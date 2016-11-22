@@ -20,7 +20,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -30,11 +29,11 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManager.JobException;
+import com.hauldata.dbpa.manage.JobManagerException.JobManagerNotAvailableException;
+import com.hauldata.dbpa.manage.JobManagerException.SchemaException;
 import com.hauldata.dbpa.process.Context;
 
 @Path("/schema")
@@ -53,13 +52,8 @@ public class SchemaResource {
 		try {
 			return confirmSchema();
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -72,13 +66,8 @@ public class SchemaResource {
 		try {
 			createSchema();
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -91,13 +80,8 @@ public class SchemaResource {
 		try {
 			deleteSchema();
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -110,7 +94,7 @@ public class SchemaResource {
 	 * @throws SQLException if schema creation fails due to a database issue
 	 * @throws JobException due to a job manager issue
 	 */
-	public void createSchema() throws SQLException, JobException {
+	public void createSchema() throws SQLException, SchemaException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -143,7 +127,7 @@ public class SchemaResource {
 	 * @throws SQLException if schema removal fails due to a database issue
 	 * @throws JobException due to a job manager issue
 	 */
-	public void deleteSchema() throws SQLException, JobException {
+	public void deleteSchema() throws SQLException, SchemaException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -192,7 +176,7 @@ public class SchemaResource {
 	 * @return true if all tables exist correctly, false otherwise
 	 * @throws SQLException, JobException
 	 */
-	public boolean confirmSchema() throws SQLException, JobException {
+	public boolean confirmSchema() throws SQLException, SchemaException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();

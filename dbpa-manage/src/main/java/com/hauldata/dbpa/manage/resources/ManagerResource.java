@@ -30,7 +30,9 @@ import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManager.JobException;
+import com.hauldata.dbpa.manage.JobManagerException.JobManagerAlreadyStartedException;
+import com.hauldata.dbpa.manage.JobManagerException.JobManagerNotAvailableException;
+import com.hauldata.dbpa.manage.JobManagerException.JobManagerNotStartedException;
 
 @Path("/manager")
 @Produces(MediaType.APPLICATION_JSON)
@@ -48,14 +50,11 @@ public class ManagerResource {
 		try {
 			JobManager.getInstance().startup();
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
+		catch (JobManagerNotAvailableException ex) {
 				throw new ServiceUnavailableException(ex.getMessage());
-			case alreadyStarted:
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		}
+		catch (JobManagerAlreadyStartedException ex) {
+			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -68,13 +67,8 @@ public class ManagerResource {
 		try {
 			return JobManager.getInstance().isStarted();
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -87,14 +81,11 @@ public class ManagerResource {
 		try {
 			JobManager.getInstance().shutdown();
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			case notStarted:
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
+		}
+		catch (JobManagerNotStartedException ex) {
+			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());

@@ -31,6 +31,7 @@ import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
 import com.hauldata.dbpa.log.Analyzer;
+import com.hauldata.dbpa.manage.JobManagerException.*;
 import com.hauldata.dbpa.manage.api.Job;
 import com.hauldata.dbpa.manage.api.JobRun;
 import com.hauldata.dbpa.manage.api.ScriptArgument;
@@ -45,39 +46,6 @@ import com.hauldata.dbpa.process.ContextProperties;
 import com.hauldata.dbpa.process.DbProcess;
 
 public class JobManager {
-
-	public static class JobException extends RuntimeException {
-
-		private static final long serialVersionUID = 1L;
-
-		public enum Reason {
-
-			notAvailable("Manager is not available"),
-			alreadyUnavailable("Manager is already unavailable"),
-			schemaPropertiesNotFound("Schema properties not found"),
-			schemaTablePrefixPropertyNotFound("Schema tablePrefix property not found"),
-			schedulerNotAvailable("Scheduler is not available"),
-			alreadyStarted("Manager is already started"),
-			mustStartupBeforeJobRun("Must startup manager before running jobs"),
-			notStartedNoJobRun("Manager is not started, no jobs are running"),
-			notStarted("Manager is not started");
-
-			private String message;
-
-			Reason(String message) { this.message = message; }
-
-			public String getMessage() { return message; }
-		}
-
-		private Reason reason;
-
-		public JobException(Reason reason)  {
-			super(reason.getMessage());
-			this.reason = reason;
-		}
-
-		public Reason getReason() { return reason; }
-	}
 
 	//	private static final String programName = "ManageDbp";
 	private static final String programName = "RunDbp";		// To simplify testing
@@ -119,9 +87,9 @@ public class JobManager {
 	 * Get the singleton job manager instance
 	 * @return the manager
 	 */
-	public static JobManager getInstance() throws JobException {
+	public static JobManager getInstance() throws JobManagerNotAvailableException {
 		if (manager == null) {
-			throw new JobException(JobException.Reason.notAvailable);
+			throw new JobManagerNotAvailableException();
 		}
 		return manager;
 	}
@@ -137,7 +105,7 @@ public class JobManager {
 	 */
 	public static void killInstance() {
 		if (manager == null) {
-			throw new JobException(JobException.Reason.alreadyUnavailable);
+			throw new JobManagerAlreadyUnavailableException();
 		}
 
 		synchronized (manager) {
@@ -164,12 +132,12 @@ public class JobManager {
 
 		Properties schemaProps = contextProps.getProperties("schema");
 		if (schemaProps == null) {
-			throw new JobException(JobException.Reason.schemaPropertiesNotFound);
+			throw new SchemaPropertiesNotFoundException();
 		}
 
 		String tablePrefix = schemaProps.getProperty("tablePrefix");
 		if (tablePrefix == null) {
-			throw new JobException(JobException.Reason.schemaTablePrefixPropertyNotFound);
+			throw new SchemaTablePrefixPropertyNotFoundException();
 		}
 
 		jobSql = new JobSql(tablePrefix);
@@ -209,7 +177,7 @@ public class JobManager {
 
 	public JobScheduler getScheduler() {
 		if (scheduler == null) {
-			throw new JobException(JobException.Reason.schedulerNotAvailable);
+			throw new JobSchedulerNotAvailableException();
 		}
 		return scheduler;
 	}
@@ -236,10 +204,10 @@ public class JobManager {
 		synchronized (this) {
 
 			if (manager == null) {
-				throw new JobException(JobException.Reason.notAvailable);
+				throw new JobManagerNotAvailableException();
 			}
 			else if (isStarted()) {
-				throw new JobException(JobException.Reason.alreadyStarted);
+				throw new JobManagerAlreadyStartedException();
 			}
 
 			// Instantiate a JobExecutor and create a job monitor thread
@@ -296,7 +264,7 @@ public class JobManager {
 	public JobRun run(String jobName, Job job) throws IOException, NamingException, SQLException {
 
 		if (!isStarted()) {
-			throw new JobException(JobException.Reason.mustStartupBeforeJobRun);
+			throw new JobManagerNotStartedCantRunJobException();
 		}
 
 		// Instantiate the process, arguments, and context,
@@ -434,7 +402,7 @@ public class JobManager {
 	public boolean stopRun(int runId) throws NoSuchElementException {
 
 		if (!isStarted()) {
-			throw new JobException(JobException.Reason.notStartedNoJobRun);
+			throw new JobManagerNotStartedNoJobRunningException();
 		}
 
 		return executor.stop(runId);
@@ -445,10 +413,10 @@ public class JobManager {
 	 * @return the list of currently running jobs
 	 * @throws JobException if any error occurs
 	 */
-	public List<JobRun> getRunning() throws JobException {
+	public List<JobRun> getRunning() {
 
 		if (!isStarted()) {
-			throw new JobException(JobException.Reason.notStartedNoJobRun);
+			throw new JobManagerNotStartedNoJobRunningException();
 		}
 
 		return executor.getRunning();
@@ -488,7 +456,7 @@ public class JobManager {
 	public void shutdown() throws InterruptedException  {
 
 		if (!isStarted()) {
-			throw new JobException(JobException.Reason.notStarted);
+			throw new JobManagerNotStartedException();
 		}
 
 		// Prevent any more scheduled jobs from kicking off.

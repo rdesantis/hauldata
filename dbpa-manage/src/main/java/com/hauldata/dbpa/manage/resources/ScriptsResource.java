@@ -34,7 +34,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import javax.naming.NamingException;
-import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -47,12 +46,11 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.loader.FileLoader;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManager.JobException;
+import com.hauldata.dbpa.manage.JobManagerException.JobManagerNotAvailableException;
 import com.hauldata.dbpa.manage.api.ScriptValidation;
 import com.hauldata.dbpa.process.DbProcess;
 import com.hauldata.dbpa.variable.VariableBase;
@@ -76,13 +74,8 @@ public class ScriptsResource {
 		try {
 			putScript(name, body);
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -99,13 +92,8 @@ public class ScriptsResource {
 		catch (FileNotFoundException ex) {
 			throw new NotFoundException(scriptNotFoundMessageStem + name);
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -122,6 +110,9 @@ public class ScriptsResource {
 		catch (NoSuchFileException ex) {
 			throw new NotFoundException(scriptNotFoundMessageStem + name);
 		}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
+		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
@@ -133,6 +124,9 @@ public class ScriptsResource {
 	public List<String> getNames(@QueryParam("like") String likeName) {
 		try {
 			return getScriptNames(likeName);
+		}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -148,6 +142,9 @@ public class ScriptsResource {
 		}
 		catch (FileNotFoundException ex) {
 			throw new NotFoundException(scriptNotFoundMessageStem + name);
+		}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());

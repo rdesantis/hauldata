@@ -48,7 +48,9 @@ import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManager.JobException;
+import com.hauldata.dbpa.manage.JobManagerException.JobManagerNotAvailableException;
+import com.hauldata.dbpa.manage.JobManagerException.JobManagerNotStartedCantRunJobException;
+import com.hauldata.dbpa.manage.JobManagerException.JobManagerNotStartedNoJobRunningException;
 import com.hauldata.dbpa.manage.api.Job;
 import com.hauldata.dbpa.manage.api.JobRun;
 import com.hauldata.dbpa.manage.api.ScriptArgument;
@@ -85,13 +87,8 @@ public class JobsResource {
 		catch (NameNotFoundException ex) {
 			throw new NotFoundException(scheduleNotFoundMessageStem + name);
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -109,13 +106,8 @@ public class JobsResource {
 		catch (NameNotFoundException ex) {
 			throw new NotFoundException(jobNotFoundMessageStem + name);
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -132,13 +124,8 @@ public class JobsResource {
 		catch (NameNotFoundException ex) {
 			throw new NotFoundException(jobNotFoundMessageStem + name);
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -154,13 +141,8 @@ public class JobsResource {
 			// TODO!!!
 			return;
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -176,13 +158,8 @@ public class JobsResource {
 			// TODO!!!
 			return;
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -198,13 +175,8 @@ public class JobsResource {
 			// TODO!!!
 			return;
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -220,13 +192,8 @@ public class JobsResource {
 			// TODO!!!
 			return;
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -242,13 +209,8 @@ public class JobsResource {
 			// TODO!!!
 			return;
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -263,13 +225,8 @@ public class JobsResource {
 		try {
 			return getJobNames(likeName);
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -284,13 +241,8 @@ public class JobsResource {
 		try {
 			return getJobRuns(likeName, latest);
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -305,14 +257,11 @@ public class JobsResource {
 		try {
 			return JobManager.getInstance().getRunning();
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			case notStartedNoJobRun:
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
+		}
+		catch (JobManagerNotStartedNoJobRunningException ex) {
+			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -331,14 +280,11 @@ public class JobsResource {
 		catch (NameNotFoundException ex) {
 			throw new NotFoundException(jobNotFoundMessageStem + name);
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			case mustStartupBeforeJobRun:
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
+		}
+		catch (JobManagerNotStartedCantRunJobException ex) {
+			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -355,14 +301,11 @@ public class JobsResource {
 		catch (NoSuchElementException ex) {
 			throw new NotFoundException(runningNotFoundMessageStem + String.valueOf(id));
 		}
-		catch (JobException ex) {
-			switch (ex.getReason()) {
-			case notAvailable:
-				throw new ServiceUnavailableException(ex.getMessage());
-			case notStartedNoJobRun:
-			default:
-				throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-			}
+		catch (JobManagerNotAvailableException ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
+		}
+		catch (JobManagerNotStartedNoJobRunningException ex) {
+			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
