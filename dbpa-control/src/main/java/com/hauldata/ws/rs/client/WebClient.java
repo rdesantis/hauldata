@@ -50,7 +50,7 @@ public class WebClient {
 	/**
 	 * Instantiate web client for an interface having JAX-RS annotations
 	 *
-	 * @param clientInterface is class of the interface for which a web client is instantiated
+	 * @param clientInterface is class of the interface for which a web client is to be instantiated
 	 * @param baseUrl is the base URL of the web service to which the client will connect
 	 * @return the web client instance which can be cast to the interface being implemented
 	 * @throws ReflectiveOperationException
@@ -64,72 +64,6 @@ public class WebClient {
 		return proxyClass
 				.getConstructor(new Class[] { InvocationHandler.class })
 				.newInstance(new Object[] { handler });
-	}
-}
-
-/**
- * Static methods to help build web client requests
- */
-class WebClientHelper {
-	/**
-	 * Parse a regex group from an annotation
-	 *
-	 * @param annotation is the annotation to parse or null
-	 * @param patternWithGroup is the pattern to match including the group to return
-	 * @return the group match or null if the annotation is null or the pattern is not matched
-	 */
-	public static String parse(Annotation annotation, String patternWithGroup) {
-		String result = null;
-		if (annotation != null) {
-			Matcher matcher = Pattern
-					.compile(patternWithGroup)
-					.matcher(annotation.toString());
-			if (matcher.find()) {
-				result = matcher.group(1);
-			}
-		}
-		return result;
-	}
-
-	/**
-	 * Parse the "value =" value from the annotation
-	 *
-	 * @param annotation is the annotation to parse or null
-	 * @return the value parsed or null if the annotation is null or it does not have value
-	 */
-	public static String parseValue(Annotation annotation) {
-		return parse(annotation, "\\(value=(.+)\\)");
-	}
-
-	/**
-	 * Parse media type from the annotation
-	 *
-	 * @param annotation is the annotation to parse or null
-	 * @param defaultType is the default type
-	 * @return the media type parsed or defaultType if the annotation is null or it does not match a media type
-	 */
-	public static MediaType parseMediaType(Annotation annotation, MediaType defaultType) {
-		// Expect @javax.ws.rs.(Produces|Consumes)(value=[TYPE])
-		String type = parse(annotation, "\\(value=\\[(.+)\\]\\)");
-		if (type != null) {
-			return MediaType.valueOf(type);
-		}
-		return defaultType;
-	}
-
-	/**
-	 * If any of an array of annotations is of the indicated class,
-	 * parse the "value =" value from the annotation.
-	 *
-	 * @param annotations is the array of annotations to check
-	 * @param paramClass is the class of annotation to find
-	 * @return the value parsed or null if no annotation is of the specified type or it does not have value
-	 */
-	public static String parse(Annotation[] annotations, Class<?> paramClass) {
-
-		Annotation paramAnnotation = Stream.of(annotations)
-				.filter(a -> paramClass.isInstance(a)).findFirst().orElse(null);
-		return WebClientHelper.parseValue(paramAnnotation);
 	}
 }
 
@@ -154,7 +88,7 @@ class WebClientInvocationHandler implements InvocationHandler {
 
 		Annotation pathAnnotation = clientInterface.getAnnotation(Path.class);
 		// Expect @javax.ws.rs.Path(value=PATH)
-		String path = WebClientHelper.parseValue(pathAnnotation);
+		String path = AnnotationParser.parseValue(pathAnnotation);
 		if (path != null) {
 			baseTarget = baseTarget.path(path);
 		}
@@ -162,12 +96,12 @@ class WebClientInvocationHandler implements InvocationHandler {
 		// @Produces(MediaType.TYPE)
 
 		Annotation producesAnnotation = clientInterface.getAnnotation(Produces.class);
-		MediaType defaultProduces = WebClientHelper.parseMediaType(producesAnnotation, null);
+		MediaType defaultProduces = AnnotationParser.parseMediaType(producesAnnotation, null);
 
 		// @Consumes(MediaType.TYPE)
 
 		Annotation consumesAnnotation = clientInterface.getAnnotation(Consumes.class);
-		MediaType defaultConsumes = WebClientHelper.parseMediaType(consumesAnnotation, null);
+		MediaType defaultConsumes = AnnotationParser.parseMediaType(consumesAnnotation, null);
 
 		webMethods = new HashMap<Method, WebMethod>();
 		for (Method method : clientInterface.getDeclaredMethods()) {
@@ -222,7 +156,6 @@ abstract class WebMethod {
 	private MediaType produces;
 	private Class<?> returnType;
 	private Map<String, Integer> templateIndexes;
-	private Map<String, Object> templateValues;
 
 	protected WebMethod(Method method, WebTarget baseTarget, MediaType defaultProduces) {
 
@@ -232,7 +165,7 @@ abstract class WebMethod {
 
 		Annotation pathAnnotation = method.getAnnotation(Path.class);
 		// Expect @javax.ws.rs.Path(value=PATH)
-		String path = WebClientHelper.parseValue(pathAnnotation);
+		String path = AnnotationParser.parseValue(pathAnnotation);
 		if (path != null) {
 			target = baseTarget.path("/" + path);
 		}
@@ -240,14 +173,15 @@ abstract class WebMethod {
 		// @Produces(MediaType.TYPE)
 
 		Annotation producesAnnotation = method.getAnnotation(Produces.class);
-		produces = WebClientHelper.parseMediaType(producesAnnotation, defaultProduces);
+		produces = AnnotationParser.parseMediaType(producesAnnotation, defaultProduces);
 
 		returnType = method.getReturnType();
 
-		Annotation[][] parameterAnnotations = method.getParameterAnnotations();
+		// Parameters
 
 		templateIndexes = new HashMap<String, Integer>();
-		templateValues = new HashMap<String, Object>();
+
+		Annotation[][] parameterAnnotations = method.getParameterAnnotations();
 
 		int index = 0;
 		for (Annotation[] annotations : parameterAnnotations) {
@@ -256,7 +190,7 @@ abstract class WebMethod {
 
 			// @QueryParam("NAME")
 
-			paramName = WebClientHelper.parse(annotations, QueryParam.class);
+			paramName = AnnotationParser.parse(annotations, QueryParam.class);
 			if (paramName != null) {
 
 				String paramTemplateName = "_" + paramName + "_";
@@ -267,7 +201,7 @@ abstract class WebMethod {
 
 			// @PathParam("NAME")
 
-			paramName = WebClientHelper.parse(annotations, PathParam.class);
+			paramName = AnnotationParser.parse(annotations, PathParam.class);
 			if (paramName != null) {
 
 				templateIndexes.put(paramName, index);
@@ -279,18 +213,22 @@ abstract class WebMethod {
 
 	protected Invocation.Builder request(Object[] args) {
 
+		WebTarget finalTarget = target;
+
 		if (!templateIndexes.isEmpty()) {
 
 			// Resolve template values from the actual method arguments.
+
+			Map<String, Object> templateValues = new HashMap<String, Object>();
 
 			for (Entry<String, Integer> entry : templateIndexes.entrySet()) {
 				templateValues.put(entry.getKey(), args[entry.getValue()]);
 			}
 
-			target = target.resolveTemplates(templateValues);
+			finalTarget = target.resolveTemplates(templateValues);
 		}
 
-		return target.request(produces);
+		return finalTarget.request(produces);
 	}
 
 	protected Class<?> getReturnType() {
@@ -323,7 +261,7 @@ class PutMethod extends WebMethod {
 		// @Consumes(MediaType.TYPE)
 
 		Annotation consumesAnnotation = method.getAnnotation(Consumes.class);
-		consumes = WebClientHelper.parseMediaType(consumesAnnotation, defaultConsumes);
+		consumes = AnnotationParser.parseMediaType(consumesAnnotation, defaultConsumes);
 
 		// WARNING: For a PUT method, it is assumed the last parameter contains the entity to put
 		entityIndex = method.getParameterCount() - 1;
@@ -344,5 +282,71 @@ class DeleteMethod extends WebMethod {
 	@Override
 	public Object invoke(Object proxy, Object[] args) {
 		return request(args).delete(getReturnType());
+	}
+}
+
+/**
+ * Static methods for parsing values from annotations
+ */
+class AnnotationParser {
+	/**
+	 * Parse a regex group from an annotation
+	 *
+	 * @param annotation is the annotation to parse or null
+	 * @param patternWithGroup is the pattern to match including the group to return
+	 * @return the group match or null if the annotation is null or the pattern is not matched
+	 */
+	public static String parse(Annotation annotation, String patternWithGroup) {
+		String result = null;
+		if (annotation != null) {
+			Matcher matcher = Pattern
+					.compile(patternWithGroup)
+					.matcher(annotation.toString());
+			if (matcher.find()) {
+				result = matcher.group(1);
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Parse the "value =" value from an annotation
+	 *
+	 * @param annotation is the annotation to parse or null
+	 * @return the value parsed or null if the annotation is null or it does not have "value ="
+	 */
+	public static String parseValue(Annotation annotation) {
+		return parse(annotation, "\\(value=(.+)\\)");
+	}
+
+	/**
+	 * Parse media type from an annotation
+	 *
+	 * @param annotation is the annotation to parse or null
+	 * @param defaultType is the default type
+	 * @return the media type parsed or defaultType if the annotation is null or it does not match a media type
+	 */
+	public static MediaType parseMediaType(Annotation annotation, MediaType defaultType) {
+		// Expect @javax.ws.rs.(Produces|Consumes)(value=[TYPE])
+		String type = parse(annotation, "\\(value=\\[(.+)\\]\\)");
+		if (type != null) {
+			return MediaType.valueOf(type);
+		}
+		return defaultType;
+	}
+
+	/**
+	 * If any of an array of annotations is of the indicated class,
+	 * parse the "value =" value from the annotation.
+	 *
+	 * @param annotations is the array of annotations to check
+	 * @param paramClass is the class of annotation to find
+	 * @return the value parsed or null if no annotation is of the specified type or it does not have value
+	 */
+	public static String parse(Annotation[] annotations, Class<?> paramClass) {
+
+		Annotation paramAnnotation = Stream.of(annotations)
+				.filter(a -> paramClass.isInstance(a)).findFirst().orElse(null);
+		return AnnotationParser.parseValue(paramAnnotation);
 	}
 }

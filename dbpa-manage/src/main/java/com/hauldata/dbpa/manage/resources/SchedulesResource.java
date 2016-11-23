@@ -101,7 +101,6 @@ public class SchedulesResource {
 	}
 
 	@GET
-	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
 	public Map<String, String> getAll(@QueryParam("like") String likeName) {
 		try {
@@ -114,7 +113,6 @@ public class SchedulesResource {
 
 	@GET
 	@Path("-/names")
-	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
 	public List<String> getNames(@QueryParam("like") String likeName) {
 		try {
@@ -131,7 +129,6 @@ public class SchedulesResource {
 
 	@GET
 	@Path("validations/{name}")
-	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
 	public ScheduleValidation validate(@PathParam("name") String name) {
 		try {

@@ -18,8 +18,8 @@ package com.hauldata.dbpa;
 
 import java.util.List;
 
+import com.hauldata.dbpa.control.interfaces.Schedules;
 import com.hauldata.dbpa.manage.api.ScheduleValidation;
-import com.hauldata.dbpa.manage.resources.SchedulesResourceInterface;
 import com.hauldata.ws.rs.client.WebClient;
 
 public class ControlDbp {
@@ -69,7 +69,7 @@ public class ControlDbp {
 	public static void main(String[] args) throws ReflectiveOperationException {
 
 		String baseUrl = "http://localhost:8080";
-		SchedulesResourceInterface webClient = (SchedulesResourceInterface)WebClient.of(SchedulesResourceInterface.class, baseUrl);
+		Schedules schedules = (Schedules)WebClient.of(Schedules.class, baseUrl);
 
 		// get
 
@@ -79,7 +79,7 @@ public class ControlDbp {
 		System.out.println();
 
 		try {
-			schedule = webClient.get(name);
+			schedule = schedules.get(name);
 		}
 		catch (Exception ex) {
 			System.out.println(ex.getLocalizedMessage());
@@ -95,7 +95,7 @@ public class ControlDbp {
 		System.out.println();
 
 		try {
-			names = webClient.getNames(likeName);
+			names = schedules.getNames(likeName);
 		}
 		catch (Exception ex) {
 			System.out.println(ex.getLocalizedMessage());
@@ -117,7 +117,7 @@ public class ControlDbp {
 		System.out.println();
 
 		try {
-			validation = webClient.validate(validateName);
+			validation = schedules.validate(validateName);
 		}
 		catch (Exception ex) {
 			System.out.println(ex.getLocalizedMessage());
@@ -140,7 +140,7 @@ public class ControlDbp {
 
 		int id = -1;
 		try {
-			id = webClient.put(putName, putSchedule);
+			id = schedules.put(putName, putSchedule);
 		}
 		catch (Exception ex) {
 			System.out.println(ex.getLocalizedMessage());
@@ -156,7 +156,7 @@ public class ControlDbp {
 		System.out.println();
 
 		try {
-			webClient.delete(deletedName);
+			schedules.delete(deletedName);
 			deleted = true;
 		}
 		catch (Exception ex) {
@@ -168,12 +168,12 @@ public class ControlDbp {
 		// get doesn't exist
 
 		name = deletedName;
-		schedule = null;
+		schedule = "[get failed]";
 
 		System.out.println();
 
 		try {
-			schedule = webClient.get(name);
+			schedule = schedules.get(name);
 		}
 		catch (Exception ex) {
 			System.out.println(ex.getLocalizedMessage());
