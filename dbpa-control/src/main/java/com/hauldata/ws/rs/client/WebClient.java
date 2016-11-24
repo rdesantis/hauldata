@@ -49,21 +49,33 @@ import javax.ws.rs.core.MediaType;
  */
 public class WebClient {
 
+	WebTarget baseTarget;
+
 	/**
-	 * Instantiate web client for an interface having JAX-RS annotations
+	 * Constructor
+	 *
+	 * @param baseUrl is the base URL of the web resources to which the client will connect
+	 */
+	public WebClient(String baseUrl) {
+
+		Client client = ClientBuilder.newClient();
+		baseTarget = client.target(baseUrl);
+	}
+
+	/**
+	 * Instantiate web client accessor for a resource whose interface has JAX-RS annotations
 	 * <p>
 	 * Only those methods in the interface annotated as GET, PUT, POST, or DELETE are implemented.
 	 * For PUT and POST, it is assumed that the final parameter of each method contains the
 	 * data to be posted, and all preceding parameters are annotated QueryParm or PathParam.
 	 *
-	 * @param clientInterface is class of the interface for which a web client is to be instantiated
-	 * @param baseUrl is the base URL of the web service to which the client will connect
-	 * @return the web client instance which can be cast to the interface being implemented
+	 * @param clientInterface is the class of the interface for which an accessor is to be instantiated
+	 * @return an accessor which can be cast to the interface being implemented
 	 * @throws ReflectiveOperationException
 	 */
-	public static Object of(Class<?> clientInterface, String baseUrl) throws ReflectiveOperationException {
+	public Object getResource(Class<?> clientInterface) throws ReflectiveOperationException {
 
-		InvocationHandler handler = new WebClientInvocationHandler(clientInterface, baseUrl);
+		InvocationHandler handler = new WebClientInvocationHandler(clientInterface, baseTarget);
 
 		Class<?> proxyClass = Proxy.getProxyClass(clientInterface.getClassLoader(), new Class[] { clientInterface });
 
@@ -85,10 +97,7 @@ class WebClientInvocationHandler implements InvocationHandler {
 	 *
 	 * @see WebClient#of(Class, String)
 	 */
-	public WebClientInvocationHandler(Class<?> clientInterface, String baseUrl) {
-
-		Client client = ClientBuilder.newClient();
-		WebTarget baseTarget = client.target(baseUrl);
+	public WebClientInvocationHandler(Class<?> clientInterface, WebTarget baseTarget) {
 
 		// @Path("PATH")
 

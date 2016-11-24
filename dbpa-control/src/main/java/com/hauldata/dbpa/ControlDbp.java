@@ -19,7 +19,10 @@ package com.hauldata.dbpa;
 import java.util.List;
 
 import com.hauldata.dbpa.control.interfaces.Jobs;
+import com.hauldata.dbpa.control.interfaces.Manager;
 import com.hauldata.dbpa.control.interfaces.Schedules;
+import com.hauldata.dbpa.control.interfaces.Schema;
+import com.hauldata.dbpa.control.interfaces.Scripts;
 import com.hauldata.dbpa.manage.api.Job;
 import com.hauldata.dbpa.manage.api.JobRun;
 import com.hauldata.dbpa.manage.api.ScheduleValidation;
@@ -73,13 +76,64 @@ public class ControlDbp {
 
 		String baseUrl = "http://localhost:8080";
 
-		// Schedules
+		WebClient client = new WebClient(baseUrl);
 
-		Schedules schedules = (Schedules)WebClient.of(Schedules.class, baseUrl);
+		Manager manager = (Manager)client.getResource(Manager.class);
+		Schema schema = (Schema)client.getResource(Schema.class);
+		Scripts scripts = (Scripts)client.getResource(Scripts.class);
+		Schedules schedules = (Schedules)client.getResource(Schedules.class);
+		Jobs jobs = (Jobs)client.getResource(Jobs.class);
+
+		List<String> names;
+		String name;
+		String likeName;
+
+		// Manager
+
+		boolean isStarted = manager.isStarted();
+
+		System.out.println();
+		System.out.println("Manager is started? " + String.valueOf(isStarted));
+
+		// Schema
+
+		boolean isConfirmed = schema.confirm();
+
+		System.out.println();
+		System.out.println("Schema is confirmed? " + String.valueOf(isConfirmed));
+
+		// Scripts
+
+		// getNames
+
+		likeName = null;
+		names = null;
+
+		System.out.println();
+
+		try {
+			names = scripts.getNames(likeName);
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("List of script names:");
+		if (names == null) {
+			System.out.println("[empty]");
+		}
+		else {
+			//System.out.println(names.toString());
+			for (String scriptName : names) {
+				System.out.println(scriptName);
+			}
+		}
+
+		// Schedules
 
 		// get
 
-		String name = "NotGarbage";
+		name = "NotGarbage";
 		String schedule = "[get failed]";
 
 		System.out.println();
@@ -95,8 +149,7 @@ public class ControlDbp {
 
 		// getNames
 
-		String likeName = "garbage%";
-		List<String> names = null;
+		likeName = "garbage%";
 
 		System.out.println();
 
@@ -191,8 +244,6 @@ public class ControlDbp {
 		System.out.println("Schedule '" + name + "' = " + schedule);
 
 		// Jobs
-
-		Jobs jobs = (Jobs)WebClient.of(Jobs.class, baseUrl);
 
 		// getNames
 
