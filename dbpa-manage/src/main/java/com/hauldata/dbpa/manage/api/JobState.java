@@ -18,12 +18,11 @@ package com.hauldata.dbpa.manage.api;
 
 import java.time.LocalDateTime;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.datatype.joda.deser.LocalDateTimeDeserializer;
-import com.fasterxml.jackson.datatype.joda.ser.LocalDateTimeSerializer;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 
 /**
  * All state-related fields; immutable
@@ -31,13 +30,13 @@ import com.fasterxml.jackson.datatype.joda.ser.LocalDateTimeSerializer;
 public class JobState {
 	
 	private JobStatus status;
-//	@JsonSerialize(using = LocalDateTimeSerializer.class)
-//	@JsonDeserialize(using = LocalDateTimeDeserializer.class)
-	@JsonIgnore
+
+	@JsonSerialize(using = LocalDateTimeSerializer.class)
+	@JsonDeserialize(using = LocalDateTimeDeserializer.class)
 	private LocalDateTime startTime;
-//	@JsonSerialize(using = LocalDateTimeSerializer.class)
-//	@JsonDeserialize(using = LocalDateTimeDeserializer.class)
-	@JsonIgnore
+
+	@JsonSerialize(using = LocalDateTimeSerializer.class)
+	@JsonDeserialize(using = LocalDateTimeDeserializer.class)
 	private LocalDateTime endTime;
 
 	public JobState() {
