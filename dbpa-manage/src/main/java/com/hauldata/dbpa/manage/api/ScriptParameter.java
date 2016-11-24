@@ -35,6 +35,15 @@ public class ScriptParameter {
 		this.typeName = typeName;
 	}
 
+	@Override
+	public String toString() {
+		return getClass().getSimpleName() + ":" +
+				"{" +
+				String.valueOf(name) + "," +
+				String.valueOf(typeName) +
+				"}";
+	}
+
 	@JsonProperty
 	public String getName() {
 		return name;

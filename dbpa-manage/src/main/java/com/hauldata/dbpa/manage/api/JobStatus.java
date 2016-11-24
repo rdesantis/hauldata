@@ -18,39 +18,32 @@ package com.hauldata.dbpa.manage.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class ScriptArgument {
+public enum JobStatus {
 
-	private String name;
-	private String value;
+	notRun(0), parseFailed(1), runInProgress(2), runFailed(3), runSucceeded(4), runTerminated(5), controllerShutdown(6);
 
-	public ScriptArgument() {
+	private int id;
+
+	JobStatus() {
 		// Jackson deserialization
 	}
 
-	public ScriptArgument(
-			String name,
-			String value) {
-
-		this.name = name;
-		this.value = value;
-	}
+	JobStatus(int id) { this.id = id; }
 
 	@Override
 	public String toString() {
 		return getClass().getSimpleName() + ":" +
-				"{" +
-				String.valueOf(name) + "," +
-				String.valueOf(value) +
-				"}";
+				name() + "(" +
+				String.valueOf(id) +
+				")";
+	}
+
+	public static JobStatus valueOf(int id) {
+		return values()[id];
 	}
 
 	@JsonProperty
-	public String getName() {
-		return name;
-	}
-
-	@JsonProperty
-	public String getValue() {
-		return value;
+	public int getId() {
+		return id;
 	}
 }

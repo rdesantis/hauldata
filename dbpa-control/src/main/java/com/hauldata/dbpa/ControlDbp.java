@@ -18,7 +18,10 @@ package com.hauldata.dbpa;
 
 import java.util.List;
 
+import com.hauldata.dbpa.control.interfaces.Jobs;
 import com.hauldata.dbpa.control.interfaces.Schedules;
+import com.hauldata.dbpa.manage.api.Job;
+import com.hauldata.dbpa.manage.api.JobRun;
 import com.hauldata.dbpa.manage.api.ScheduleValidation;
 import com.hauldata.ws.rs.client.WebClient;
 
@@ -69,6 +72,9 @@ public class ControlDbp {
 	public static void main(String[] args) throws ReflectiveOperationException {
 
 		String baseUrl = "http://localhost:8080";
+
+		// Schedules
+
 		Schedules schedules = (Schedules)WebClient.of(Schedules.class, baseUrl);
 
 		// get
@@ -106,7 +112,10 @@ public class ControlDbp {
 			System.out.println("[empty]");
 		}
 		else {
-			System.out.println(names.toString());
+			//System.out.println(names.toString());
+			for (String scheduleName : names) {
+				System.out.println(scheduleName);
+			}
 		}
 
 		// validate
@@ -128,7 +137,7 @@ public class ControlDbp {
 			System.out.println("[empty]");
 		}
 		else {
-			System.out.println("{" + String.valueOf(validation.isValid()) + ", \"" + validation.getValidationMessage() + "\"}");
+			System.out.println(validation.toString());
 		}
 
 		// put
@@ -180,5 +189,137 @@ public class ControlDbp {
 		}
 
 		System.out.println("Schedule '" + name + "' = " + schedule);
+
+		// Jobs
+
+		Jobs jobs = (Jobs)WebClient.of(Jobs.class, baseUrl);
+
+		// getNames
+
+		likeName = "%";
+		names = null;
+
+		System.out.println();
+
+		try {
+			names = jobs.getNames(likeName);
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("List of job names:");
+		if (names == null) {
+			System.out.println("[empty]");
+		}
+		else {
+			//System.out.println(names.toString());
+			for (String jobName : names) {
+				System.out.println(jobName);
+			}
+		}
+
+		// get
+
+		name = "NotGarbage";
+		Job job = null;
+
+		System.out.println();
+
+		try {
+			job = jobs.get(name);
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("Job '" + name + "' = " + String.valueOf(job));
+
+		JobRun run = null;
+
+		// run
+
+		String runName = "sleep5";
+
+		System.out.println();
+
+		id = -1;
+		try {
+			id = jobs.run(runName);
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("Job run '" + runName + "' id: " + String.valueOf(id));
+
+		// getRunning
+
+		run = null;
+
+		System.out.println();
+
+		try {
+			run = jobs.getRunning(id);
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("Job now running:");
+		if (run == null) {
+			System.out.println("[get failed]");
+		}
+		else {
+			System.out.println(run.toString());
+		}
+
+		List<JobRun> runs = null;
+
+		// getRunning
+
+		runs = null;
+
+		System.out.println();
+
+		try {
+			runs = jobs.getRunning();
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("List of jobs running:");
+		if (runs == null) {
+			System.out.println("[empty]");
+		}
+		else {
+			for (JobRun jobRun : runs) {
+				System.out.println(jobRun.toString());
+			}
+		}
+
+		// getRuns
+
+		runs = null;
+
+		System.out.println();
+
+		try {
+			runs = jobs.getRuns("%", true);
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("List of latest job runs:");
+		if (runs == null) {
+			System.out.println("[empty]");
+		}
+		else {
+			for (JobRun jobRun : runs) {
+				System.out.println(jobRun.toString());
+			}
+		}
 	}
 }

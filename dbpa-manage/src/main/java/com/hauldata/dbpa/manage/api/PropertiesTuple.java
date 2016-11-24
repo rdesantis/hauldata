@@ -46,6 +46,18 @@ public class PropertiesTuple {
 		this.logProps = logProps;
 	}
 
+	@Override
+	public String toString() {
+		return getClass().getSimpleName() + ":" +
+				"{" +
+				String.valueOf(connectionProps) + "," +
+				String.valueOf(sessionProps) + "," +
+				String.valueOf(ftpProps) + "," +
+				String.valueOf(pathProps) + "," +
+				String.valueOf(logProps) +
+				"}";
+	}
+
 	@JsonProperty
 	public Properties getConnectionProps() {
 		return connectionProps;

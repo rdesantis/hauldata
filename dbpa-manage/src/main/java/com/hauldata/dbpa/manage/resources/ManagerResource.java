@@ -30,9 +30,9 @@ import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManagerException.JobManagerAlreadyStartedException;
-import com.hauldata.dbpa.manage.JobManagerException.JobManagerNotAvailableException;
-import com.hauldata.dbpa.manage.JobManagerException.JobManagerNotStartedException;
+import com.hauldata.dbpa.manage.JobManagerException.AlreadyStarted;
+import com.hauldata.dbpa.manage.JobManagerException.NotAvailable;
+import com.hauldata.dbpa.manage.JobManagerException.NotStarted;
 
 @Path("/manager")
 @Produces(MediaType.APPLICATION_JSON)
@@ -50,10 +50,10 @@ public class ManagerResource {
 		try {
 			JobManager.getInstance().startup();
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (NotAvailable ex) {
 				throw new ServiceUnavailableException(ex.getMessage());
 		}
-		catch (JobManagerAlreadyStartedException ex) {
+		catch (AlreadyStarted ex) {
 			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
 		}
 		catch (Exception ex) {
@@ -67,7 +67,7 @@ public class ManagerResource {
 		try {
 			return JobManager.getInstance().isStarted();
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -81,10 +81,10 @@ public class ManagerResource {
 		try {
 			JobManager.getInstance().shutdown();
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
-		catch (JobManagerNotStartedException ex) {
+		catch (NotStarted ex) {
 			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
 		}
 		catch (Exception ex) {

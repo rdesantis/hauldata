@@ -50,7 +50,7 @@ import javax.ws.rs.core.MediaType;
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.loader.FileLoader;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManagerException.JobManagerNotAvailableException;
+import com.hauldata.dbpa.manage.JobManagerException.NotAvailable;
 import com.hauldata.dbpa.manage.api.ScriptValidation;
 import com.hauldata.dbpa.process.DbProcess;
 import com.hauldata.dbpa.variable.VariableBase;
@@ -74,7 +74,7 @@ public class ScriptsResource {
 		try {
 			putScript(name, body);
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -92,7 +92,7 @@ public class ScriptsResource {
 		catch (FileNotFoundException ex) {
 			throw new NotFoundException(scriptNotFoundMessageStem + name);
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -110,7 +110,7 @@ public class ScriptsResource {
 		catch (NoSuchFileException ex) {
 			throw new NotFoundException(scriptNotFoundMessageStem + name);
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -125,7 +125,7 @@ public class ScriptsResource {
 		try {
 			return getScriptNames(likeName);
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -143,7 +143,7 @@ public class ScriptsResource {
 		catch (FileNotFoundException ex) {
 			throw new NotFoundException(scriptNotFoundMessageStem + name);
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {

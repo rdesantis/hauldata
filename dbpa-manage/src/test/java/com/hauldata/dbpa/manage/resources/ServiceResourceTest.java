@@ -18,7 +18,7 @@ package com.hauldata.dbpa.manage.resources;
 
 import com.hauldata.dbpa.ManageDbp;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManagerException.JobManagerNotAvailableException;
+import com.hauldata.dbpa.manage.JobManagerException.NotAvailable;
 
 import junit.framework.TestCase;
 
@@ -48,7 +48,7 @@ public class ServiceResourceTest extends TestCase {
 			JobManager.getInstance();
 			isManagerAvailable = true;
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (NotAvailable ex) {
 			isManagerAvailable = false;
 		}
 		assertFalse(isManagerAvailable);

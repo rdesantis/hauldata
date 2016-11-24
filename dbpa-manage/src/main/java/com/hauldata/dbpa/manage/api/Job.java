@@ -49,6 +49,18 @@ public class Job {
 		this.enabled = enabled;
 	}
 
+	@Override
+	public String toString() {
+		return getClass().getSimpleName() + ":" +
+				"{" +
+				String.valueOf(scriptName) + "," +
+				String.valueOf(propName) + "," +
+				String.valueOf(arguments) + "," +
+				String.valueOf(scheduleNames) + "," +
+				String.valueOf(enabled) +
+				"}";
+	}
+
 	// Getters
 
 	@JsonProperty

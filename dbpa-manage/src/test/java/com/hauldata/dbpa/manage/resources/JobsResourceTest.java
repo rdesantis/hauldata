@@ -31,6 +31,8 @@ import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.api.Job;
 import com.hauldata.dbpa.manage.api.JobRun;
 import com.hauldata.dbpa.manage.api.ScriptArgument;
+import com.hauldata.dbpa.manage.api.JobStatus;
+import com.hauldata.dbpa.manage.api.JobState;
 
 import junit.framework.TestCase;
 
@@ -269,11 +271,11 @@ public class JobsResourceTest extends TestCase {
 		assertEquals(1, runs.size());
 
 		JobRun run = runs.get(0);
-		JobRun.State state = run.getState();
+		JobState state = run.getState();
 
 		assertEquals(id, run.getRunId());
 		assertEquals(sleepJobName, run.getJobName());
-		assertEquals(JobRun.Status.runSucceeded, state.getStatus());
+		assertEquals(JobStatus.runSucceeded, state.getStatus());
 		assertTrue(state.getEndTime().isBefore(LocalDateTime.now()));
 		assertTrue(state.getStartTime().until(state.getEndTime(), ChronoUnit.SECONDS) >= 5);
 	}
@@ -306,11 +308,11 @@ public class JobsResourceTest extends TestCase {
 		assertEquals(1, runs.size());
 
 		JobRun run = runs.get(0);
-		JobRun.State state = run.getState();
+		JobState state = run.getState();
 
 		assertEquals(id, run.getRunId());
 		assertEquals(stopJobName, run.getJobName());
-		assertEquals(JobRun.Status.runTerminated, state.getStatus());
+		assertEquals(JobStatus.runTerminated, state.getStatus());
 		assertTrue(state.getEndTime().isBefore(LocalDateTime.now()));
 		assertTrue(state.getStartTime().until(state.getEndTime(), ChronoUnit.SECONDS) < 5);
 	}

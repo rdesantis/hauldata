@@ -27,64 +27,7 @@ public class JobRun {
 
 	private int runId;
 	private String jobName;
-	private State state;
-
-	public enum Status {
-
-		notRun(0), parseFailed(1), runInProgress(2), runFailed(3), runSucceeded(4), runTerminated(5), controllerShutdown(6);
-
-		private int id;
-
-		Status(int id) { this.id = id; }
-		
-		public static Status valueOf(int id) {
-			return values()[id];
-		}
-
-		@JsonProperty
-		public int getId() {
-			return id;
-		}
-	}
-
-	/**
-	 * All state-related fields; immutable
-	 */
-	public static class State {
-		
-		private Status status;
-		private LocalDateTime startTime;
-		private LocalDateTime endTime;
-
-		public State() {
-			// Jackson deserialization
-		}
-
-		public State(
-				Status status,
-				LocalDateTime startTime,
-				LocalDateTime endTime) {
-
-			this.status = status;
-			this.startTime = startTime;
-			this.endTime = endTime;
-		}
-
-		@JsonProperty
-		public Status getStatus() {
-			return status;
-		}
-
-		@JsonProperty
-		public LocalDateTime getStartTime() {
-			return startTime;
-		}
-
-		@JsonProperty
-		public LocalDateTime getEndTime() {
-			return endTime;
-		}
-	}
+	private JobState state;
 
 	public JobRun() {
 		// Jackson deserialization
@@ -98,13 +41,13 @@ public class JobRun {
 
 		this.runId = -1;
 		this.jobName = jobName;
-		this.state = new State(Status.notRun, null, null);
+		this.state = new JobState(JobStatus.notRun, null, null);
 	}
 
 	public JobRun(
 			int runId,
 			String jobName,
-			State state) {
+			JobState state) {
 
 		this.runId = runId;
 		this.jobName = jobName;
@@ -125,37 +68,47 @@ public class JobRun {
 		return (obj != null) && (obj instanceof JobRun) && (((JobRun)obj).runId == this.runId);
 	}
 
+	@Override
+	public String toString() {
+		return getClass().getSimpleName() + ":" +
+				"{" +
+				String.valueOf(runId) + "," +
+				String.valueOf(jobName) + "," +
+				state.toString() +
+				"}";
+	}
+
 	// Status updates
 
 	public void runInProgress() {
-		state = new State(
-							Status.runInProgress,
+		state = new JobState(
+							JobStatus.runInProgress,
 							LocalDateTime.now(),
 							null);
 	}
 
 	public void parseFailed() {
-		setEndStatusNow(Status.parseFailed);
+		setEndStatusNow(JobStatus.parseFailed);
 	}
 
 	public void runFailed() {
-		setEndStatusNow(Status.runFailed);
+		setEndStatusNow(JobStatus.runFailed);
 	}
 
 	public void runSucceeded() {
-		setEndStatusNow(Status.runSucceeded);
+		setEndStatusNow(JobStatus.runSucceeded);
 	}
 
 	public void runTerminated() {
-		setEndStatusNow(Status.runTerminated);
+		setEndStatusNow(JobStatus.runTerminated);
 	}
 
 	public void controllerShutdown() {
-		setEndStatusNow(Status.controllerShutdown);
+		setEndStatusNow(JobStatus.controllerShutdown);
 	}
 
-	public void setEndStatusNow(Status status) {
-		state = new State(
+	public void setEndStatusNow(JobStatus status) {
+		state = new JobState(
 							status,
 							state.getStartTime(),
 							LocalDateTime.now());
@@ -187,7 +140,7 @@ public class JobRun {
 	 * State object with the new state.
 	 */
 	@JsonProperty
-	public State getState() {
+	public JobState getState() {
 		return state;
 	}
 }

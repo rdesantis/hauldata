@@ -27,7 +27,7 @@ import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManagerException.JobManagerAlreadyUnavailableException;
+import com.hauldata.dbpa.manage.JobManagerException.AlreadyUnavailable;
 
 import io.dropwizard.setup.Environment;
 
@@ -66,7 +66,7 @@ public class ServiceResource {
 
 			environment.getApplicationContext().getServer().stop();
 		}
-		catch (JobManagerAlreadyUnavailableException ex) {
+		catch (AlreadyUnavailable ex) {
 			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
 		}
 		catch (Exception ex) {

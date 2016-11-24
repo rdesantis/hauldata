@@ -48,6 +48,16 @@ public class ScriptValidation {
 		}
 	}
 
+	@Override
+	public String toString() {
+		return getClass().getSimpleName() + ":" +
+				"{" +
+				String.valueOf(valid) + "," +
+				String.valueOf(validationMessage) +
+				String.valueOf(parameters) +
+				"}";
+	}
+
 	@JsonProperty
 	public boolean isValid() {
 		return valid;

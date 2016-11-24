@@ -35,18 +35,17 @@ import com.hauldata.dbpa.manage.api.JobRun;
 import com.hauldata.dbpa.manage.api.ScriptArgument;
 
 @Path("/jobs")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
 public interface Jobs {
 
 	@PUT
 	@Path("{name}")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public int put(@PathParam("name") String name, Job job);
 
 	@GET
 	@Path("{name}")
-	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
 	public Job get(@PathParam("name") String name);
 
@@ -57,57 +56,53 @@ public interface Jobs {
 
 	@PUT
 	@Path("{name}/script")
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public void putScriptName(@PathParam("name") String name, String scriptName);
 
 	@PUT
 	@Path("{name}/propfile")
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public void putPropName(@PathParam("name") String name, String propName);
 
 	@PUT
 	@Path("{name}/arguments")
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public void putArguments(@PathParam("name") String name, List<ScriptArgument> arguments);
 
 	@PUT
 	@Path("{name}/schedules")
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public void putScheduleNames(@PathParam("name") String name, List<String> scheduleNames);
 
 	@PUT
 	@Path("{name}/enabled")
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public void putEnabled(@PathParam("name") String name, boolean enabled);
 
 	@GET
 	@Path("-/names")
-	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
 	public List<String> getNames(@QueryParam("like") String likeName);
 
 	@GET
 	@Path("-/runs")
-	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
 	public List<JobRun> getRuns(@QueryParam("like") String likeName, @QueryParam("latest") Boolean latest);
 
 	@GET
 	@Path("-/running")
-	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
 	public List<JobRun> getRunning();
 
 	@POST
 	@Path("-/running/{name}")
-	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
 	public int run(@PathParam("name") String name);
+
+	@GET
+	@Path("-/running/{id}")
+	@Timed
+	public JobRun getRunning(@PathParam("id") int id);
 
 	@DELETE
 	@Path("-/running/{id}")

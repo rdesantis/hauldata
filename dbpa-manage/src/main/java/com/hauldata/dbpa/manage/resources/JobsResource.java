@@ -48,13 +48,12 @@ import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManagerException.JobManagerNotAvailableException;
-import com.hauldata.dbpa.manage.JobManagerException.JobManagerNotStartedCantRunJobException;
-import com.hauldata.dbpa.manage.JobManagerException.JobManagerNotStartedNoJobRunningException;
+import com.hauldata.dbpa.manage.JobManagerException;
 import com.hauldata.dbpa.manage.api.Job;
 import com.hauldata.dbpa.manage.api.JobRun;
 import com.hauldata.dbpa.manage.api.ScriptArgument;
-import com.hauldata.dbpa.manage.api.JobRun.Status;
+import com.hauldata.dbpa.manage.api.JobStatus;
+import com.hauldata.dbpa.manage.api.JobState;
 import com.hauldata.dbpa.manage.sql.ArgumentSql;
 import com.hauldata.dbpa.manage.sql.CommonSql;
 import com.hauldata.dbpa.manage.sql.JobScheduleSql;
@@ -64,6 +63,8 @@ import com.hauldata.dbpa.manage.sql.ScheduleSql;
 import com.hauldata.dbpa.process.Context;
 
 @Path("/jobs")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
 public class JobsResource {
 
 	public static final String jobNotFoundMessageStem = "Job not found: ";
@@ -77,8 +78,6 @@ public class JobsResource {
 
 	@PUT
 	@Path("{name}")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public int put(@PathParam("name") String name, Job job) {
 		try {
@@ -87,7 +86,7 @@ public class JobsResource {
 		catch (NameNotFoundException ex) {
 			throw new NotFoundException(scheduleNotFoundMessageStem + name);
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -97,7 +96,6 @@ public class JobsResource {
 
 	@GET
 	@Path("{name}")
-	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
 	public Job get(@PathParam("name") String name) {
 		try {
@@ -106,7 +104,7 @@ public class JobsResource {
 		catch (NameNotFoundException ex) {
 			throw new NotFoundException(jobNotFoundMessageStem + name);
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -124,7 +122,7 @@ public class JobsResource {
 		catch (NameNotFoundException ex) {
 			throw new NotFoundException(jobNotFoundMessageStem + name);
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -134,14 +132,13 @@ public class JobsResource {
 
 	@PUT
 	@Path("{name}/script")
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public void putScriptName(@PathParam("name") String name, String scriptName) {
 		try {
 			// TODO!!!
 			return;
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -151,14 +148,13 @@ public class JobsResource {
 
 	@PUT
 	@Path("{name}/propfile")
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public void putPropName(@PathParam("name") String name, String propName) {
 		try {
 			// TODO!!!
 			return;
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -168,14 +164,13 @@ public class JobsResource {
 
 	@PUT
 	@Path("{name}/arguments")
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public void putArguments(@PathParam("name") String name, List<ScriptArgument> arguments) {
 		try {
 			// TODO!!!
 			return;
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -185,14 +180,13 @@ public class JobsResource {
 
 	@PUT
 	@Path("{name}/schedules")
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public void putScheduleNames(@PathParam("name") String name, List<String> scheduleNames) {
 		try {
 			// TODO!!!
 			return;
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -202,14 +196,13 @@ public class JobsResource {
 
 	@PUT
 	@Path("{name}/enabled")
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Timed
 	public void putEnabled(@PathParam("name") String name, boolean enabled) {
 		try {
 			// TODO!!!
 			return;
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -219,13 +212,12 @@ public class JobsResource {
 
 	@GET
 	@Path("-/names")
-	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
 	public List<String> getNames(@QueryParam("like") String likeName) {
 		try {
 			return getJobNames(likeName);
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -235,13 +227,12 @@ public class JobsResource {
 
 	@GET
 	@Path("-/runs")
-	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
 	public List<JobRun> getRuns(@QueryParam("like") String likeName, @QueryParam("latest") Boolean latest) {
 		try {
 			return getJobRuns(likeName, latest);
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -251,16 +242,15 @@ public class JobsResource {
 
 	@GET
 	@Path("-/running")
-	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
 	public List<JobRun> getRunning() {
 		try {
 			return JobManager.getInstance().getRunning();
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
-		catch (JobManagerNotStartedNoJobRunningException ex) {
+		catch (JobManagerException.NotStarted ex) {
 			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
 		}
 		catch (Exception ex) {
@@ -270,7 +260,6 @@ public class JobsResource {
 
 	@POST
 	@Path("-/running/{name}")
-	@Produces(MediaType.APPLICATION_JSON)
 	@Timed
 	public int run(@PathParam("name") String name) {
 		try {
@@ -280,10 +269,31 @@ public class JobsResource {
 		catch (NameNotFoundException ex) {
 			throw new NotFoundException(jobNotFoundMessageStem + name);
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
-		catch (JobManagerNotStartedCantRunJobException ex) {
+		catch (JobManagerException.NotStarted ex) {
+			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
+		}
+		catch (Exception ex) {
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
+		}
+	}
+
+	@GET
+	@Path("-/running/{id}")
+	@Timed
+	public JobRun getRunning(@PathParam("id") int id) {
+		try {
+			return JobManager.getInstance().getRunning(id);
+		}
+		catch (NoSuchElementException ex) {
+			throw new NotFoundException(runningNotFoundMessageStem + String.valueOf(id));
+		}
+		catch (JobManagerException.NotAvailable ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
+		}
+		catch (JobManagerException.NotStarted ex) {
 			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
 		}
 		catch (Exception ex) {
@@ -301,10 +311,10 @@ public class JobsResource {
 		catch (NoSuchElementException ex) {
 			throw new NotFoundException(runningNotFoundMessageStem + String.valueOf(id));
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
-		catch (JobManagerNotStartedNoJobRunningException ex) {
+		catch (JobManagerException.NotStarted ex) {
 			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
 		}
 		catch (Exception ex) {
@@ -776,11 +786,11 @@ public class JobsResource {
 
 				int runId = rs.getInt(1);
 				String jobName = rs.getString(2);
-				Status status = Status.valueOf(rs.getInt(3));
+				JobStatus status = JobStatus.valueOf(rs.getInt(3));
 				LocalDateTime startTime = getLocalDateTime(rs, 4);
 				LocalDateTime endTime = getLocalDateTime(rs, 5);
 
-				runs.add(new JobRun(runId, jobName, new JobRun.State(status, startTime, endTime)));
+				runs.add(new JobRun(runId, jobName, new JobState(status, startTime, endTime)));
 			}
 		}
 		finally {

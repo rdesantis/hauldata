@@ -30,6 +30,7 @@ import java.util.stream.Stream;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -40,6 +41,7 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 
 /**
@@ -49,6 +51,10 @@ public class WebClient {
 
 	/**
 	 * Instantiate web client for an interface having JAX-RS annotations
+	 * <p>
+	 * Only those methods in the interface annotated as GET, PUT, POST, or DELETE are implemented.
+	 * For PUT and POST, it is assumed that the final parameter of each method contains the
+	 * data to be posted, and all preceding parameters are annotated QueryParm or PathParam.
 	 *
 	 * @param clientInterface is class of the interface for which a web client is to be instantiated
 	 * @param baseUrl is the base URL of the web service to which the client will connect
@@ -144,6 +150,9 @@ abstract class WebMethod {
 		else if (method.getAnnotation(PUT.class) != null) {
 			return new PutMethod(method, baseTarget, defaultProduces, defaultConsumes);
 		}
+		else if (method.getAnnotation(POST.class) != null) {
+			return new PostMethod(method, baseTarget, defaultProduces, defaultConsumes);
+		}
 		else if (method.getAnnotation(DELETE.class) != null) {
 			return new DeleteMethod(method, baseTarget, defaultProduces);
 		}
@@ -154,9 +163,10 @@ abstract class WebMethod {
 
 	private WebTarget target;
 	private MediaType produces;
-	private Class<?> returnType;
+	private GenericType<?> returnType;
 	private Map<String, Integer> templateIndexes;
 
+	@SuppressWarnings("rawtypes")
 	protected WebMethod(Method method, WebTarget baseTarget, MediaType defaultProduces) {
 
 		// @Path("PATH")
@@ -175,7 +185,7 @@ abstract class WebMethod {
 		Annotation producesAnnotation = method.getAnnotation(Produces.class);
 		produces = AnnotationParser.parseMediaType(producesAnnotation, defaultProduces);
 
-		returnType = method.getReturnType();
+		returnType = new GenericType(method.getGenericReturnType());
 
 		// Parameters
 
@@ -222,7 +232,8 @@ abstract class WebMethod {
 			Map<String, Object> templateValues = new HashMap<String, Object>();
 
 			for (Entry<String, Integer> entry : templateIndexes.entrySet()) {
-				templateValues.put(entry.getKey(), args[entry.getValue()]);
+				Object value = args[entry.getValue()];
+				templateValues.put(entry.getKey(), (value != null) ? value : "null");
 			}
 
 			finalTarget = target.resolveTemplates(templateValues);
@@ -231,7 +242,7 @@ abstract class WebMethod {
 		return finalTarget.request(produces);
 	}
 
-	protected Class<?> getReturnType() {
+	protected GenericType<?> getReturnType() {
 		return returnType;
 	}
 
@@ -250,29 +261,6 @@ class GetMethod extends WebMethod {
 	}
 }
 
-class PutMethod extends WebMethod {
-
-	private MediaType consumes;
-	private int entityIndex;
-
-	PutMethod(Method method, WebTarget baseTarget, MediaType defaultProduces, MediaType defaultConsumes) {
-		super(method, baseTarget, defaultProduces);
-
-		// @Consumes(MediaType.TYPE)
-
-		Annotation consumesAnnotation = method.getAnnotation(Consumes.class);
-		consumes = AnnotationParser.parseMediaType(consumesAnnotation, defaultConsumes);
-
-		// WARNING: For a PUT method, it is assumed the last parameter contains the entity to put
-		entityIndex = method.getParameterCount() - 1;
-	}
-
-	@Override
-	public Object invoke(Object proxy, Object[] args) {
-		return request(args).put(Entity.entity(args[entityIndex], consumes), getReturnType());
-	}
-}
-
 class DeleteMethod extends WebMethod {
 
 	DeleteMethod(Method method, WebTarget baseTarget, MediaType defaultProduces) {
@@ -282,6 +270,51 @@ class DeleteMethod extends WebMethod {
 	@Override
 	public Object invoke(Object proxy, Object[] args) {
 		return request(args).delete(getReturnType());
+	}
+}
+
+abstract class EntityMethod extends WebMethod {
+
+	private MediaType consumes;
+	private int entityIndex;
+
+	EntityMethod(Method method, WebTarget baseTarget, MediaType defaultProduces, MediaType defaultConsumes) {
+		super(method, baseTarget, defaultProduces);
+
+		// @Consumes(MediaType.TYPE)
+
+		Annotation consumesAnnotation = method.getAnnotation(Consumes.class);
+		consumes = AnnotationParser.parseMediaType(consumesAnnotation, defaultConsumes);
+
+		entityIndex = method.getParameterCount() - 1;
+	}
+
+	public Entity<?> getEntity(Object[] args) {
+		return Entity.entity(args[entityIndex], consumes);
+	}
+}
+
+class PutMethod extends EntityMethod {
+
+	PutMethod(Method method, WebTarget baseTarget, MediaType defaultProduces, MediaType defaultConsumes) {
+		super(method, baseTarget, defaultProduces, defaultConsumes);
+	}
+
+	@Override
+	public Object invoke(Object proxy, Object[] args) {
+		return request(args).put(getEntity(args), getReturnType());
+	}
+}
+
+class PostMethod extends EntityMethod {
+
+	PostMethod(Method method, WebTarget baseTarget, MediaType defaultProduces, MediaType defaultConsumes) {
+		super(method, baseTarget, defaultProduces, defaultConsumes);
+	}
+
+	@Override
+	public Object invoke(Object proxy, Object[] args) {
+		return request(args).post(getEntity(args), getReturnType());
 	}
 }
 

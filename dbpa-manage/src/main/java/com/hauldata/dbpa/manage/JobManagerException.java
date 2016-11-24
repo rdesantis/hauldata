@@ -47,48 +47,39 @@ public class JobManagerException {
 
 	// Concrete classes
 
-	public static class JobManagerNotAvailableException extends AvailabilityException {
+	public static class NotAvailable extends AvailabilityException {
 		private static final long serialVersionUID = 1L;
-		public JobManagerNotAvailableException() { super(notAvailableMessage); }
+		public NotAvailable() { super(notAvailableMessage); }
 	}
 
-	public static class JobManagerAlreadyUnavailableException extends ConflictException {
+	public static class AlreadyUnavailable extends ConflictException {
 		private static final long serialVersionUID = 1L;
-		public JobManagerAlreadyUnavailableException() { super(alreadyUnavailableMessage); }
+		public AlreadyUnavailable() { super(alreadyUnavailableMessage); }
 	}
 
-	public static class SchemaPropertiesNotFoundException extends SchemaException {
+	public static class SchemaPropertiesNotFound extends SchemaException {
 		private static final long serialVersionUID = 1L;
-		public SchemaPropertiesNotFoundException() { super(schemaPropertiesNotFoundMessage); }
+		public SchemaPropertiesNotFound() { super(schemaPropertiesNotFoundMessage); }
 	}
 
-	public static class SchemaTablePrefixPropertyNotFoundException extends SchemaException {
+	public static class SchemaTablePrefixPropertyNotFound extends SchemaException {
 		private static final long serialVersionUID = 1L;
-		public SchemaTablePrefixPropertyNotFoundException() { super(schemaTablePrefixPropertyNotFoundMessage); }
+		public SchemaTablePrefixPropertyNotFound() { super(schemaTablePrefixPropertyNotFoundMessage); }
 	}
 
-	public static class JobSchedulerNotAvailableException extends AvailabilityException {
+	public static class SchedulerNotAvailable extends AvailabilityException {
 		private static final long serialVersionUID = 1L;
-		public JobSchedulerNotAvailableException() { super(schedulerNotAvailableMessage); }
+		public SchedulerNotAvailable() { super(schedulerNotAvailableMessage); }
 	}
 
-	public static class JobManagerAlreadyStartedException extends ConflictException {
+	public static class AlreadyStarted extends ConflictException {
 		private static final long serialVersionUID = 1L;
-		public JobManagerAlreadyStartedException() { super(alreadyStartedMessage); }
+		public AlreadyStarted() { super(alreadyStartedMessage); }
 	}
 
-	public static class JobManagerNotStartedCantRunJobException extends ConflictException {
+	public static class NotStarted extends ConflictException {
 		private static final long serialVersionUID = 1L;
-		public JobManagerNotStartedCantRunJobException() { super(mustStartupBeforeJobRunMessage); }
-	}
-
-	public static class JobManagerNotStartedNoJobRunningException extends ConflictException {
-		private static final long serialVersionUID = 1L;
-		public JobManagerNotStartedNoJobRunningException() { super(notStartedNoJobRunningMessage); }
-	}
-
-	public static class JobManagerNotStartedException extends ConflictException {
-		private static final long serialVersionUID = 1L;
-		public JobManagerNotStartedException() { super(notStartedMessage); }
+		public NotStarted() { super(notStartedMessage); }
+		public NotStarted(String message) { super(message); }
 	}
 }

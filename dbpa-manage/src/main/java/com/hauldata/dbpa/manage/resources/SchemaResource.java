@@ -32,7 +32,7 @@ import javax.ws.rs.core.MediaType;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManagerException.JobManagerNotAvailableException;
+import com.hauldata.dbpa.manage.JobManagerException.NotAvailable;
 import com.hauldata.dbpa.manage.JobManagerException.SchemaException;
 import com.hauldata.dbpa.process.Context;
 
@@ -52,7 +52,7 @@ public class SchemaResource {
 		try {
 			return confirmSchema();
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -66,7 +66,7 @@ public class SchemaResource {
 		try {
 			createSchema();
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
@@ -80,7 +80,7 @@ public class SchemaResource {
 		try {
 			deleteSchema();
 		}
-		catch (JobManagerNotAvailableException ex) {
+		catch (NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {

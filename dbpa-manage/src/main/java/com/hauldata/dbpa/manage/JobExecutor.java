@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.hauldata.dbpa.manage.api.JobRun;
-import com.hauldata.dbpa.manage.api.JobRun.Status;
+import com.hauldata.dbpa.manage.api.JobStatus;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.DbProcess;
 
@@ -146,19 +146,28 @@ public class JobExecutor {
 	 */
 	public List<JobRun> getRunning() {
 		synchronized (submissions) {
-			return submissions.values().stream().map(s -> s.run).filter(r -> (r.getState().getStatus() == JobRun.Status.runInProgress)).collect(Collectors.toList());
+			return submissions.values().stream().map(s -> s.run).filter(r -> (r.getState().getStatus() == JobStatus.runInProgress)).collect(Collectors.toList());
 		}
 	}
 
 	/**
 	 * Get a running job.
+	 *
 	 * @param runId is the ID of the job run.
-	 * @return the job run with the indicated ID if it is still being processed by the executor, otherwise null.
+	 * @return the job run with the indicated ID if it is still being processed by the executor.
+	 * @throws NoSuchElementException if the job is no longer being processed by the executor.
 	 */
 	public JobRun getRunning(int runId) {
+
 		synchronized (submissions) {
+
 			SubmittedRun submission = submissions.get(runId);
-			return (submission != null) ? submission.run : null;
+
+			if (submission == null) {
+				throw new NoSuchElementException("Run is not in progress");
+			}
+
+			return submission.run;
 		}
 	}
 
@@ -172,7 +181,7 @@ public class JobExecutor {
 		Future<JobRun> completedFuture = ecs.take();
 
 		JobRun completedRun = null;
-		Status exceptionStatus = null;
+		JobStatus exceptionStatus = null;
 
 		synchronized (submissions) {
 
@@ -180,10 +189,10 @@ public class JobExecutor {
 				completedRun = completedFuture.get();
 			}
 			catch (CancellationException cex) {
-				exceptionStatus = Status.runTerminated;
+				exceptionStatus = JobStatus.runTerminated;
 			}
 			catch (ExecutionException eex) {
-				exceptionStatus = Status.runFailed;
+				exceptionStatus = JobStatus.runFailed;
 			}
 
 			if (completedRun == null) {
@@ -215,6 +224,10 @@ public class JobExecutor {
 
 	/**
 	 * Stop a running job
+	 *
+	 * @param runId is the ID of the job run.
+	 * @return true if the job could be stopped, false otherwise.
+	 * @throws NoSuchElementException if the job is no longer being processed by the executor.
 	 */
 	public boolean stop(int runId) throws NoSuchElementException {
 

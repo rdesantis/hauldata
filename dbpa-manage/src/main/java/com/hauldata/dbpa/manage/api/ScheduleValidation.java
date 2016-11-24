@@ -35,6 +35,15 @@ public class ScheduleValidation {
 		this.validationMessage = validationMessage;
 	}
 
+	@Override
+	public String toString() {
+		return getClass().getSimpleName() + ":" +
+				"{" +
+				String.valueOf(valid) + "," +
+				String.valueOf(validationMessage) +
+				"}";
+	}
+
 	@JsonProperty
 	public boolean isValid() {
 		return valid;
