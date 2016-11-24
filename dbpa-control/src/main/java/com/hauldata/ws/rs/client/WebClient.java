@@ -164,7 +164,8 @@ abstract class WebMethod {
 	private WebTarget target;
 	private MediaType produces;
 	private GenericType<?> returnType;
-	private Map<String, Integer> templateIndexes;
+	private Map<String, Integer> queryParamIndexes;
+	private Map<String, Integer> pathParamIndexes;
 
 	@SuppressWarnings("rawtypes")
 	protected WebMethod(Method method, WebTarget baseTarget, MediaType defaultProduces) {
@@ -189,7 +190,8 @@ abstract class WebMethod {
 
 		// Parameters
 
-		templateIndexes = new HashMap<String, Integer>();
+		queryParamIndexes = new HashMap<String, Integer>();
+		pathParamIndexes = new HashMap<String, Integer>();
 
 		Annotation[][] parameterAnnotations = method.getParameterAnnotations();
 
@@ -202,19 +204,14 @@ abstract class WebMethod {
 
 			paramName = AnnotationParser.parse(annotations, QueryParam.class);
 			if (paramName != null) {
-
-				String paramTemplateName = "_" + paramName + "_";
-				target = target.queryParam(paramName, "{" + paramTemplateName + "}");
-
-				templateIndexes.put(paramTemplateName, index);
+				queryParamIndexes.put(paramName, index);
 			}
 
 			// @PathParam("NAME")
 
 			paramName = AnnotationParser.parse(annotations, PathParam.class);
 			if (paramName != null) {
-
-				templateIndexes.put(paramName, index);
+				pathParamIndexes.put(paramName, index);
 			}
 
 			index++;
@@ -225,15 +222,28 @@ abstract class WebMethod {
 
 		WebTarget finalTarget = target;
 
-		if (!templateIndexes.isEmpty()) {
+		if (!queryParamIndexes.isEmpty()) {
 
-			// Resolve template values from the actual method arguments.
+			// Add query parameters from the actual method arguments if not null.
+
+			for (Entry<String, Integer> entry : queryParamIndexes.entrySet()) {
+				Object value = args[entry.getValue()];
+				if (value != null) {
+					finalTarget = finalTarget.queryParam(entry.getKey(), value);
+				}
+			}
+		}
+
+		if (!pathParamIndexes.isEmpty()) {
+
+			// Resolve path parameter template values from the actual method arguments.
+			// Path argument values should never be null, but if so, replace with empty string.
 
 			Map<String, Object> templateValues = new HashMap<String, Object>();
 
-			for (Entry<String, Integer> entry : templateIndexes.entrySet()) {
+			for (Entry<String, Integer> entry : pathParamIndexes.entrySet()) {
 				Object value = args[entry.getValue()];
-				templateValues.put(entry.getKey(), (value != null) ? value : "null");
+				templateValues.put(entry.getKey(), (value != null) ? value : "");
 			}
 
 			finalTarget = target.resolveTemplates(templateValues);

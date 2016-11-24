@@ -196,7 +196,7 @@ public class ControlDbp {
 
 		// getNames
 
-		likeName = "%";
+		likeName = null;
 		names = null;
 
 		System.out.println();
