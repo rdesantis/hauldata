@@ -31,7 +31,7 @@ public class CommonSql {
 
 	/**
 	 * Use reflection to initialize data members from like-named members with "_" suffix
-	 * substituting tablePrefix where "%1$s" appears in the "_" member. 
+	 * substituting tablePrefix where "%1$s" appears in the "_" member.
 	 * @param tablePrefix
 	 */
 	protected CommonSql(String tablePrefix) {
@@ -57,7 +57,11 @@ public class CommonSql {
 	}
 
 	/**
-	 * For a query that returns a single INTEGER, this function returns that integer plus 1.
+	 * For a query that returns a single integer, this function returns that integer plus 1.
+	 * <p>
+	 * This is intended for generating a new entity ID, in which case it should be called
+	 * from code that is protected against concurrent operations.
+	 *
 	 * @param conn is the database connection to use for the query
 	 * @param selectLastId is the query
 	 * @return the result of the query plus 1, or 1 if the query returns SQL NULL.
@@ -90,10 +94,12 @@ public class CommonSql {
 	/**
 	 * For a query that takes a single string parameter and returns a single integer, this function returns that integer.
 	 * Optionally throws an exception if the string is not found.
+	 * <p>
+	 * This is intended for getting the entity ID of an existing entity given its name.
 	 *
 	 * @param conn is the database connection to use for the query
-	 * @param selectId is the query
-	 * @param name is the value to use for the single query parameter
+	 * @param selectId is the query with one ? parameter
+	 * @param name is the value to substitute for the single query parameter
 	 * @param entityName if not null and the query returns an empty result set, contains a string to use in the message
 	 * included with a NameNotFoundException thrown.  If null, no exception is thrown.
 	 * @return the result of the query or -1 if the query returns an empty result set.
@@ -136,6 +142,111 @@ public class CommonSql {
 		catch (NameNotFoundException ex) {
 			// This exception will never happen with this form of the call.
 			return -1;
+		}
+	}
+
+	/**
+	 * Execute a SQL statement after setting one integer parameter.
+	 * <p>
+	 * This is intended for executing a statement against an entity given its ID.
+	 *
+	 * @param conn is the connection
+	 * @param sql is the SQL to execute with one ? parameter
+	 * @param id is the integer value to substitute for the ? parameter
+	 * @throws SQLException
+	 */
+	public static void execute(
+			Connection conn,
+			String sql,
+			int id) throws SQLException {
+
+		PreparedStatement stmt = null;
+
+		try {
+			stmt = conn.prepareStatement(sql);
+
+			stmt.setInt(1, id);
+
+			stmt.executeUpdate();
+		}
+		finally {
+			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
+		}
+	}
+
+	/**
+	 * Execute a SQL statement after: a string textual substitution, a string parameter substitution,
+	 * and an integer parameter substitution.
+	 * <p>
+	 * This is intended for updating a string column of an entity identified by its ID,
+	 * where the column name is provided as an argument.
+	 *
+	 * @param conn is the connection
+	 * @param sql is the SQL to execute with one %1$s placeholder and two ? parameters
+	 * @param columnName is the string to substituted into the %1$s placeholder
+	 * @param value is the string value to substitute for the first ? parameter
+	 * @param id is the integer value to substitute for the second ? parameter
+	 * @throws SQLException
+	 */
+	public static void execute(
+			Connection conn,
+			String sql,
+			String columnName,
+			String value,
+			int id) throws SQLException {
+
+		PreparedStatement stmt = null;
+
+		try {
+			sql = String.format(sql, columnName);
+
+			stmt = conn.prepareStatement(sql);
+
+			stmt.setString(1, value);
+			stmt.setInt(2, id);
+
+			stmt.executeUpdate();
+		}
+		finally {
+			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
+		}
+	}
+
+	/**
+	 * Execute a SQL statement after: a string textual substitution, an integer parameter substitution,
+	 * and another integer parameter substitution.
+	 * <p>
+	 * This is intended for updating an integer column of an entity identified by its ID,
+	 * where the column name is provided as an argument.
+	 *
+	 * @param conn is the connection
+	 * @param sql is the SQL to execute with one %1$s placeholder and two ? parameters
+	 * @param columnName is the string to substituted into the %1$s placeholder
+	 * @param value is the integer value to substitute for the first ? parameter
+	 * @param id is the integer value to substitute for the second ? parameter
+	 * @throws SQLException
+	 */
+	public static void execute(
+			Connection conn,
+			String sql,
+			String columnName,
+			int value,
+			int id) throws SQLException {
+
+		PreparedStatement stmt = null;
+
+		try {
+			sql = String.format(sql, columnName);
+
+			stmt = conn.prepareStatement(sql);
+
+			stmt.setInt(1, value);
+			stmt.setInt(2, id);
+
+			stmt.executeUpdate();
+		}
+		finally {
+			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 		}
 	}
 }

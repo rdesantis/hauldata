@@ -22,6 +22,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -135,8 +136,10 @@ public class JobsResource {
 	@Timed
 	public void putScriptName(@PathParam("name") String name, String scriptName) {
 		try {
-			// TODO!!!
-			return;
+			putJobString(name, JobSql.scriptNameColumn, scriptName);
+		}
+		catch (NameNotFoundException ex) {
+			throw new NotFoundException(jobNotFoundMessageStem + name);
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -151,8 +154,10 @@ public class JobsResource {
 	@Timed
 	public void putPropName(@PathParam("name") String name, String propName) {
 		try {
-			// TODO!!!
-			return;
+			putJobString(name, JobSql.propNameColumn, propName);
+		}
+		catch (NameNotFoundException ex) {
+			throw new NotFoundException(jobNotFoundMessageStem + name);
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -167,8 +172,10 @@ public class JobsResource {
 	@Timed
 	public void putArguments(@PathParam("name") String name, List<ScriptArgument> arguments) {
 		try {
-			// TODO!!!
-			return;
+			putJobArguments(name, arguments);
+		}
+		catch (NameNotFoundException ex) {
+			throw new NotFoundException(jobNotFoundMessageStem + name);
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -181,10 +188,12 @@ public class JobsResource {
 	@PUT
 	@Path("{name}/schedules")
 	@Timed
-	public void putScheduleNames(@PathParam("name") String name, List<String> scheduleNames) {
+	public void putSchedules(@PathParam("name") String name, List<String> scheduleNames) {
 		try {
-			// TODO!!!
-			return;
+			putJobSchedules(name, scheduleNames);
+		}
+		catch (NameNotFoundException ex) {
+			throw new NotFoundException(jobNotFoundMessageStem + name);
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -199,8 +208,10 @@ public class JobsResource {
 	@Timed
 	public void putEnabled(@PathParam("name") String name, boolean enabled) {
 		try {
-			// TODO!!!
-			return;
+			putJobEnabled(name, enabled);
+		}
+		catch (NameNotFoundException ex) {
+			throw new NotFoundException(jobNotFoundMessageStem + name);
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -357,8 +368,8 @@ public class JobsResource {
 			if (id != -1) {
 				// Job exists.  Delete the job schedules and arguments.
 
-				execute(conn, jobScheduleSql.delete, id);
-				execute(conn, argumentSql.delete, id);
+				CommonSql.execute(conn, jobScheduleSql.delete, id);
+				CommonSql.execute(conn, argumentSql.delete, id);
 
 				// Update existing job.
 
@@ -399,40 +410,14 @@ public class JobsResource {
 
 			if ((job.getArguments() != null) && (!job.getArguments().isEmpty())) {
 
-				stmt = conn.prepareStatement(argumentSql.insert);
-
-				int argIndex = 1;
-				for (ScriptArgument argument : job.getArguments()) {
-
-					stmt.setInt(1, id);
-					stmt.setInt(2, argIndex++);
-					stmt.setString(3, argument.getName());
-					stmt.setString(4, argument.getValue());
-
-					stmt.addBatch();
-				}
-
-				stmt.executeBatch();
-
-				stmt.close();
-				stmt = null;
+				putArguments(conn, argumentSql, id, job.getArguments());
 			}
 
 			// Write the schedules.
 
 			if (!scheduleIds.isEmpty()) {
 
-				stmt = conn.prepareStatement(jobScheduleSql.insert);
-
-				for (int scheduleId : scheduleIds) {
-
-					stmt.setInt(1, id);
-					stmt.setInt(2, scheduleId);
-
-					stmt.addBatch();
-				}
-
-				stmt.executeBatch();
+				putSchedules(conn, jobScheduleSql, id, scheduleIds);
 			}
 
 			// Schedule the job if enabled.
@@ -482,6 +467,267 @@ public class JobsResource {
 
 			if (ids.size() != distinctNames.size()) {
 				throw new NameNotFoundException("Some schedule names not found");
+			}
+		}
+		finally {
+			try { if (rs != null) rs.close(); } catch (Exception exx) {}
+			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
+		}
+
+		return ids;
+	}
+
+	private void putArguments(Connection conn, ArgumentSql argumentSql, int id, List<ScriptArgument> arguments) throws SQLException {
+
+		PreparedStatement stmt = null;
+
+		try {
+			stmt = conn.prepareStatement(argumentSql.insert);
+
+			int argIndex = 1;
+			for (ScriptArgument argument : arguments) {
+
+				stmt.setInt(1, id);
+				stmt.setInt(2, argIndex++);
+				stmt.setString(3, argument.getName());
+				stmt.setString(4, argument.getValue());
+
+				stmt.addBatch();
+			}
+
+			stmt.executeBatch();
+		}
+		finally {
+			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
+		}
+	}
+
+	private void putSchedules(Connection conn, JobScheduleSql jobScheduleSql, int id, List<Integer> scheduleIds) throws SQLException {
+
+		PreparedStatement stmt = null;
+
+		try {
+			stmt = conn.prepareStatement(jobScheduleSql.insert);
+
+			for (int scheduleId : scheduleIds) {
+
+				stmt.setInt(1, id);
+				stmt.setInt(2, scheduleId);
+
+				stmt.addBatch();
+			}
+
+			stmt.executeBatch();
+		}
+		finally {
+			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
+		}
+	}
+
+	/**
+	 * Update a string-valued column in a job in the database.
+	 *
+	 * @param name is the job name.
+	 * @param columnName is the name of the column in which to store the new value.
+	 * @param value is the new value to store.
+	 * @throws NameNotFoundException if the job does not exist
+	 * @throws SQLException if the job cannot be stored for any reason
+	 */
+	private void putJobString(String name, String columnName, String value) throws NameNotFoundException, SQLException {
+
+		JobManager manager = JobManager.getInstance();
+		Context context = manager.getContext();
+		JobSql jobSql = manager.getJobSql();
+
+		Connection conn = null;
+
+		try {
+			conn = context.getConnection(null);
+
+			int id = CommonSql.getId(conn, jobSql.selectId, name, "Job");
+
+			CommonSql.execute(conn, jobSql.updateField, columnName, value, id);
+		}
+		finally {
+			if (conn != null) context.releaseConnection(null);
+		}
+	}
+
+	/**
+	 * Update the arguments in a job in the database.
+	 *
+	 * @param name is the job name.
+	 * @param arguments are the new arguments to store.
+	 * @throws NameNotFoundException if the job does not exist
+	 * @throws SQLException if the job cannot be updated for any reason
+	 */
+	private void putJobArguments(String name, List<ScriptArgument> arguments) throws NameNotFoundException, SQLException {
+
+		JobManager manager = JobManager.getInstance();
+		Context context = manager.getContext();
+		JobSql jobSql = manager.getJobSql();
+		ArgumentSql argumentSql = manager.getArgumentSql();
+
+		Connection conn = null;
+
+		try {
+			conn = context.getConnection(null);
+
+			// Delete the existing arguments and insert the new arguments.
+
+			int id = CommonSql.getId(conn, jobSql.selectId, name, "Job");
+
+			CommonSql.execute(conn, argumentSql.delete, id);
+
+			putArguments(conn, argumentSql, id, arguments);
+		}
+		finally {
+			if (conn != null) context.releaseConnection(null);
+		}
+	}
+
+	/**
+	 * Update the schedules in a job in the database.
+	 * This may cause the job to become scheduled.
+	 *
+	 * @param name is the job name.
+	 * @param scheduleNames are the names of the new schedules to store.  Schedules are stored by ID.
+	 * @throws NameNotFoundException if the job does not exist
+	 * @throws SQLException if the job cannot be updated for any reason
+	 */
+	public void putJobSchedules(String name, List<String> scheduleNames) throws NameNotFoundException, SQLException {
+
+		JobManager manager = JobManager.getInstance();
+		Context context = manager.getContext();
+		JobSql jobSql = manager.getJobSql();
+		JobScheduleSql jobScheduleSql = manager.getJobScheduleSql();
+		ScheduleSql scheduleSql = manager.getScheduleSql();
+
+		Connection conn = null;
+
+		try {
+			conn = context.getConnection(null);
+
+			// Validate the schedules.
+
+			List<Integer> scheduleIds = getScheduleIds(conn, scheduleSql, scheduleNames);
+
+			// Find the job ID and whether it is enabled for scheduling.
+
+			SimpleEntry<Integer, Boolean> idEnabled = getIdEnabled(conn, jobSql, name);
+
+			int id = idEnabled.getKey();
+			boolean enabled = idEnabled.getValue();
+
+			// Delete the existing schedules and insert the new schedules.
+
+			CommonSql.execute(conn, jobScheduleSql.delete, id);
+
+			putSchedules(conn, jobScheduleSql, id, scheduleIds);
+
+			// Schedule the job if enabled.
+
+			if (enabled) {
+				manager.getScheduler().addJobSchedules(scheduleIds);
+			}
+		}
+		finally {
+			if (conn != null) context.releaseConnection(null);
+		}
+	}
+
+	private SimpleEntry<Integer, Boolean> getIdEnabled(Connection conn, JobSql jobSql, String name) throws SQLException, NameNotFoundException {
+
+		int id = -1;
+		boolean enabled = false;
+
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+
+		try {
+			stmt = conn.prepareStatement(jobSql.selectIdEnabled, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+
+			stmt.setString(1, name);
+
+			rs = stmt.executeQuery();
+
+			if (rs.next()) {
+				id = rs.getInt(1);
+				enabled = (rs.getInt(2) == 1);
+			}
+			else {
+				throw new NameNotFoundException("Job not found: " + name);
+			}
+		}
+		finally {
+			try { if (rs != null) rs.close(); } catch (Exception exx) {}
+			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
+		}
+
+		return new SimpleEntry<Integer, Boolean>(id, enabled);
+	}
+
+	/**
+	 * Update the enabled status in a job in the database.
+	 * This may cause the job to become scheduled.
+	 *
+	 * @param name is the job name.
+	 * @param enabled is the new value to store.
+	 * @throws NameNotFoundException if the job does not exist
+	 * @throws SQLException if the job cannot be stored for any reason
+	 */
+	public void putJobEnabled(String name, boolean enabled) throws NameNotFoundException, SQLException {
+
+		JobManager manager = JobManager.getInstance();
+		Context context = manager.getContext();
+		JobSql jobSql = manager.getJobSql();
+		JobScheduleSql jobScheduleSql = manager.getJobScheduleSql();
+
+		Connection conn = null;
+
+		try {
+			conn = context.getConnection(null);
+
+			// Find the job ID and whether it is currently enabled for scheduling.
+			// Then update the job.
+
+			SimpleEntry<Integer, Boolean> idEnabled = getIdEnabled(conn, jobSql, name);
+
+			int id = idEnabled.getKey();
+			boolean wasEnabled = idEnabled.getValue();
+
+			CommonSql.execute(conn, jobSql.updateField, JobSql.enabledColumn, enabled ? 1 : 0, id);
+
+			// Schedule the job if it has become enabled.
+
+			if (!wasEnabled && enabled) {
+
+				List<Integer> scheduleIds = getScheduleIds(conn, jobScheduleSql, id);
+
+				manager.getScheduler().addJobSchedules(scheduleIds);
+			}
+		}
+		finally {
+			if (conn != null) context.releaseConnection(null);
+		}
+	}
+
+	private List<Integer> getScheduleIds(Connection conn, JobScheduleSql jobScheduleSql, int id) throws SQLException, NameNotFoundException {
+
+		List<Integer> ids = new LinkedList<Integer>();
+
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+
+		try {
+			stmt = conn.prepareStatement(jobScheduleSql.select, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+
+			stmt.setInt(1, id);
+
+			rs = stmt.executeQuery();
+
+			while (rs.next()) {
+				ids.add(rs.getInt(1));
 			}
 		}
 		finally {
@@ -709,28 +955,12 @@ public class JobsResource {
 
 			int jobId = CommonSql.getId(conn, jobSql.selectId, name, "Job");
 
-			execute(conn, jobScheduleSql.delete, jobId);
-			execute(conn, argumentSql.delete, jobId);
-			execute(conn, jobSql.delete, jobId);
+			CommonSql.execute(conn, jobScheduleSql.delete, jobId);
+			CommonSql.execute(conn, argumentSql.delete, jobId);
+			CommonSql.execute(conn, jobSql.delete, jobId);
 		}
 		finally {
 			if (conn != null) context.releaseConnection(null);
-		}
-	}
-
-	private void execute(Connection conn, String sql, int jobId) throws SQLException {
-
-		PreparedStatement stmt = null;
-
-		try {
-			stmt = conn.prepareStatement(sql);
-
-			stmt.setInt(1, jobId);
-
-			stmt.executeUpdate();
-		}
-		finally {
-			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 		}
 	}
 

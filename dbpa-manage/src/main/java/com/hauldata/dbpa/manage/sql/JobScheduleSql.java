@@ -41,6 +41,7 @@ public class JobScheduleSql extends CommonSql {
 			"INNER JOIN %1$s" + tableName + " AS js ON j.id = js.jobId " +
 			"WHERE js.scheduleId = ?";
 	public final static String selectEnabledJobNamesByScheduleId_ = selectJobNamesByScheduleId_ + " AND j.enabled = 1";
+	public final static String select_ = "SELECT scheduleId FROM %1$s" + tableName + " WHERE jobId = ?";
 	public final static String selectAllColumns_ = "SELECT jobId, scheduleId FROM %1$s" + tableName;
 	public final static String dropTable_ = "DROP TABLE %1$s" + tableName;
 
@@ -55,6 +56,7 @@ public class JobScheduleSql extends CommonSql {
 	public String delete;
 	public String selectJobNamesByScheduleId;
 	public String selectEnabledJobNamesByScheduleId;
+	public String select;
 	public String selectAllColumns;
 	public String dropTable;
 
