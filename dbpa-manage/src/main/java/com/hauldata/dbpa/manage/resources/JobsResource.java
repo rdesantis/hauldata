@@ -420,10 +420,10 @@ public class JobsResource {
 				putSchedules(conn, jobScheduleSql, id, scheduleIds);
 			}
 
-			// Schedule the job if enabled.
+			// Start the schedules if job is enabled.
 
 			if (job.isEnabled()) {
-				manager.getScheduler().addJobSchedules(scheduleIds);
+				manager.getScheduler().start(scheduleIds);
 			}
 
 			return id;
@@ -557,7 +557,7 @@ public class JobsResource {
 	 * Update the arguments in a job in the database.
 	 *
 	 * @param name is the job name.
-	 * @param arguments are the new arguments to store.
+	 * @param arguments are the new arguments to store or null to remove all arguments.
 	 * @throws NameNotFoundException if the job does not exist
 	 * @throws SQLException if the job cannot be updated for any reason
 	 */
@@ -579,7 +579,9 @@ public class JobsResource {
 
 			CommonSql.execute(conn, argumentSql.delete, id);
 
-			putArguments(conn, argumentSql, id, arguments);
+			if (arguments != null) {
+				putArguments(conn, argumentSql, id, arguments);
+			}
 		}
 		finally {
 			if (conn != null) context.releaseConnection(null);
@@ -591,7 +593,8 @@ public class JobsResource {
 	 * This may cause the job to become scheduled.
 	 *
 	 * @param name is the job name.
-	 * @param scheduleNames are the names of the new schedules to store.  Schedules are stored by ID.
+	 * @param scheduleNames are the names of the new schedules to store or null to remove all schedules.
+	 * Schedules are stored by ID.
 	 * @throws NameNotFoundException if the job does not exist
 	 * @throws SQLException if the job cannot be updated for any reason
 	 */
@@ -610,7 +613,10 @@ public class JobsResource {
 
 			// Validate the schedules.
 
-			List<Integer> scheduleIds = getScheduleIds(conn, scheduleSql, scheduleNames);
+			List<Integer> scheduleIds = null;
+			if (scheduleNames != null) {
+				scheduleIds = getScheduleIds(conn, scheduleSql, scheduleNames);
+			}
 
 			// Find the job ID and whether it is enabled for scheduling.
 
@@ -623,12 +629,15 @@ public class JobsResource {
 
 			CommonSql.execute(conn, jobScheduleSql.delete, id);
 
-			putSchedules(conn, jobScheduleSql, id, scheduleIds);
+			if (scheduleIds != null) {
 
-			// Schedule the job if enabled.
+				putSchedules(conn, jobScheduleSql, id, scheduleIds);
 
-			if (enabled) {
-				manager.getScheduler().addJobSchedules(scheduleIds);
+				// Start the schedules if job is enabled.
+
+				if (enabled) {
+					manager.getScheduler().start(scheduleIds);
+				}
 			}
 		}
 		finally {
@@ -698,13 +707,13 @@ public class JobsResource {
 
 			CommonSql.execute(conn, jobSql.updateField, JobSql.enabledColumn, enabled ? 1 : 0, id);
 
-			// Schedule the job if it has become enabled.
+			// Start the schedules if job is enabled.
 
 			if (!wasEnabled && enabled) {
 
 				List<Integer> scheduleIds = getScheduleIds(conn, jobScheduleSql, id);
 
-				manager.getScheduler().addJobSchedules(scheduleIds);
+				manager.getScheduler().start(scheduleIds);
 			}
 		}
 		finally {

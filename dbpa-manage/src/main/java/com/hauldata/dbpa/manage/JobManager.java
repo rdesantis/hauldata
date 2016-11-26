@@ -223,7 +223,7 @@ public class JobManager {
 			// Start job scheduling.
 
 			scheduler = new JobScheduler();
-			scheduler.startAllSchedules();
+			scheduler.startAll();
 		}
 	}
 
@@ -482,7 +482,7 @@ public class JobManager {
 
 		// Prevent any more scheduled jobs from kicking off.
 
-		scheduler.stopAllSchedules();
+		scheduler.stopAll();
 		scheduler = null;
 
 		// Interrupt the job monitor thread to terminate it,

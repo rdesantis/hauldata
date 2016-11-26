@@ -38,10 +38,12 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.core.MediaType;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
+import com.hauldata.dbpa.manage.JobManagerException;
 import com.hauldata.dbpa.manage.api.ScheduleValidation;
 import com.hauldata.dbpa.manage.sql.CommonSql;
 import com.hauldata.dbpa.manage.sql.JobScheduleSql;
@@ -65,6 +67,9 @@ public class SchedulesResource {
 		try {
 			return putSchedule(name, body);
 		}
+		catch (JobManagerException.NotAvailable ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
+		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
@@ -79,6 +84,9 @@ public class SchedulesResource {
 		}
 		catch (NameNotFoundException ex) {
 			throw new NotFoundException(scheduleNotFoundMessageStem + name);
+		}
+		catch (JobManagerException.NotAvailable ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -95,6 +103,9 @@ public class SchedulesResource {
 		catch (NameNotFoundException ex) {
 			throw new NotFoundException(scheduleNotFoundMessageStem + name);
 		}
+		catch (JobManagerException.NotAvailable ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
+		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
@@ -105,6 +116,9 @@ public class SchedulesResource {
 	public Map<String, String> getAll(@QueryParam("like") String likeName) {
 		try {
 			return getSchedules(likeName);
+		}
+		catch (JobManagerException.NotAvailable ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -122,13 +136,16 @@ public class SchedulesResource {
 			}
 			return schedules.keySet().stream().sorted().collect(Collectors.toList());
 		}
+		catch (JobManagerException.NotAvailable ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
+		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
 	}
 
 	@GET
-	@Path("validations/{name}")
+	@Path("-/validations/{name}")
 	@Timed
 	public ScheduleValidation validate(@PathParam("name") String name) {
 		try {
@@ -136,6 +153,24 @@ public class SchedulesResource {
 		}
 		catch (NameNotFoundException ex) {
 			throw new NotFoundException(scheduleNotFoundMessageStem + name);
+		}
+		catch (JobManagerException.NotAvailable ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
+		}
+		catch (Exception ex) {
+			throw new InternalServerErrorException(ex.getLocalizedMessage());
+		}
+	}
+
+	@GET
+	@Path("-/running")
+	@Timed
+	public List<String> getRunning() {
+		try {
+			return getRunningSchedules();
+		}
+		catch (JobManagerException.NotAvailable ex) {
+			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -174,6 +209,10 @@ public class SchedulesResource {
 				stmt.setInt(2, id);
 
 				stmt.executeUpdate();
+
+				// Let the job scheduler know that the schedule has been revised.
+
+				manager.getScheduler().revise(id, name, schedule);
 			}
 			else {
 				// Create new schedule.
@@ -284,7 +323,7 @@ public class SchedulesResource {
 	 * Delete a schedule
 	 *
 	 * @param name is the name of the schedule to delete
-	 * @throws SQLException 
+	 * @throws SQLException
 	 * @throws NameNotFoundException if the schedule does not exist
 	 * @throws SQLException if the schedule cannot be deleted
 	 */
@@ -374,5 +413,73 @@ public class SchedulesResource {
 		}
 
 		return new ScheduleValidation(valid, validationMessage);
+	}
+
+
+	/**
+	 * Return a list of the running schedules.
+	 * <p>
+	 * @return a list of names of running schedules.
+	 * @throws SQLException
+	 */
+	public List<String> getRunningSchedules() throws SQLException {
+
+		JobManager manager = JobManager.getInstance();
+		Context context = manager.getContext();
+		ScheduleSql sql = manager.getScheduleSql();
+
+		Connection conn = null;
+
+		List<String> names = new LinkedList<String>();
+
+		try {
+			List<Integer> ids = manager.getScheduler().getRunning();
+
+			if (!ids.isEmpty()) {
+
+				conn = context.getConnection(null);
+
+				names = getScheduleNames(conn, sql, ids);
+			}
+		}
+		finally {
+			if (conn != null) context.releaseConnection(null);
+		}
+
+		return names;
+	}
+
+	private List<String> getScheduleNames(Connection conn, ScheduleSql scheduleSql, List<Integer> ids) throws SQLException {
+
+		List<String> names = new LinkedList<String>();
+
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+
+		try {
+			String paramList = ids.stream().map(id -> "?").collect(Collectors.joining(","));
+
+			String selectNames = String.format(scheduleSql.selectNames, paramList);
+
+			stmt = conn.prepareStatement(selectNames, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+
+			int paramIndex = 1;
+			for (int id : ids) {
+				stmt.setInt(paramIndex++, id);
+			}
+
+			rs = stmt.executeQuery();
+
+			while (rs.next()) {
+
+				names.add(rs.getString(1));
+			}
+		}
+		finally {
+			try { if (rs != null) rs.close(); } catch (Exception exx) {}
+			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
+		}
+
+		return names;
 	}
 }

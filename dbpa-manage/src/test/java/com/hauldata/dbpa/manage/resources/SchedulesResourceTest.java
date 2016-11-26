@@ -17,11 +17,15 @@
 package com.hauldata.dbpa.manage.resources;
 
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.ws.rs.WebApplicationException;
 
 import com.hauldata.dbpa.manage.JobManager;
+import com.hauldata.dbpa.manage.JobManagerException.NotAvailable;
 import com.hauldata.dbpa.manage.api.ScheduleValidation;
 
 import junit.framework.TestCase;
@@ -198,6 +202,39 @@ public class SchedulesResourceTest extends TestCase {
 		}
 
 		assertFalse(isNonExistentValidated);
+	}
+
+	public void testGetNoneRunning() {
+		List<String> names = schedulesResource.getRunning();
+		assertTrue(names.isEmpty());
+	}
+
+	public void testGetSomeRunning() throws NotAvailable, SQLException, InterruptedException {
+
+		String name = "quickie";
+
+		LocalDateTime sooner = LocalDateTime.now().plusSeconds(2);
+		LocalDateTime later = sooner.plusSeconds(2);
+		String schedule =
+				"TODAY EVERY 2 SECONDS FROM '" +
+				sooner.format(DateTimeFormatter.ofPattern("HH:mm:ss")) + "' UNTIL '" +
+				later.format(DateTimeFormatter.ofPattern("HH:mm:ss")) + "'";
+
+		int id = schedulesResource.put(name, schedule);
+
+		List<Integer> ids = new LinkedList<Integer>();
+		ids.add(id);
+
+		JobManager.getInstance().getScheduler().start(ids);
+
+		List<String> names = schedulesResource.getRunning();
+
+		assertEquals(1, names.size());
+		assertEquals(name, names.get(0));
+
+		Thread.sleep(5000);
+
+		testGetNoneRunning();
 	}
 
 	private void deleteNoError(String name) {

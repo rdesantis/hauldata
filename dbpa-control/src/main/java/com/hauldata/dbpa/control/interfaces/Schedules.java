@@ -62,7 +62,12 @@ public interface Schedules {
 	public List<String> getNames(@QueryParam("like") String likeName);
 
 	@GET
-	@Path("validations/{name}")
+	@Path("-/validations/{name}")
 	@Timed
 	public ScheduleValidation validate(@PathParam("name") String name);
+
+	@GET
+	@Path("-/running")
+	@Timed
+	public List<String> getRunning();
 }

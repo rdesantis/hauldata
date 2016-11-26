@@ -20,9 +20,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import com.hauldata.dbpa.manage.resources.JobsResource;
@@ -33,7 +33,7 @@ import com.hauldata.util.schedule.ScheduleSet;
 
 public class JobScheduler {
 
-	private static final int shutdownWaitSeconds = 30;
+	private static final int shutdownWaitSeconds = 10;
 	private static final long shutdownWaitMillis = shutdownWaitSeconds * 1000L;
 
 	private Map<Integer, Thread> scheduleThreads;
@@ -54,11 +54,11 @@ public class JobScheduler {
 
 			try {
 				if (schedules.isImmediate()) {
-					runScheduledJobs(scheduleId);
+					runJobs(scheduleId);
 				}
 
 				while (schedules.sleepUntilNext()) {
-					runScheduledJobs(scheduleId);
+					runJobs(scheduleId);
 				}
 			}
 			catch (InterruptedException ex) {
@@ -71,7 +71,10 @@ public class JobScheduler {
 	}
 
 	public JobScheduler() {
-		scheduleThreads = new ConcurrentHashMap<Integer, Thread>();
+		// Time-critical testing must be done on the thread map that cannot be protected using ConcurrentHashMap alone.
+		// So use regular HashMap and explicitly synchronize access.
+
+		scheduleThreads = new HashMap<Integer, Thread>();
 		jobsResource = new JobsResource(); 
 	}
 
@@ -86,7 +89,7 @@ public class JobScheduler {
 	 * If the schedule has an end time, the schedule thread dies after the last start time.
 	 * @throws SQLException 
 	 */
-	public void startAllSchedules() throws SQLException {
+	public void startAll() throws SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -109,7 +112,7 @@ public class JobScheduler {
 				String name = rs.getString(2);
 				String schedule = rs.getString(3);
 
-				startSchedule(id, name, schedule);
+				start(id, name, schedule);
 			}
 		}
 		finally {
@@ -126,7 +129,7 @@ public class JobScheduler {
 	 * @param name
 	 * @param schedule
 	 */
-	private void startSchedule(int id, String name, String schedule) {
+	private void start(int id, String name, String schedule) {
 
 		ScheduleSet schedules;
 		try {
@@ -138,7 +141,9 @@ public class JobScheduler {
 		}
 
 		Thread scheduleThread = new Thread(new RunningSchedule(id, schedules));
-		scheduleThreads.put(id, scheduleThread);
+		synchronized (scheduleThreads) {
+			scheduleThreads.put(id, scheduleThread);
+		}
 		scheduleThread.start();
 	}
 
@@ -147,13 +152,15 @@ public class JobScheduler {
 	 * <p>
 	 * If the schedule with the indicated id was previously started and not subsequently stopped by
 	 * stopSchedule() or stopAllSchedules(), the scheduled is stopped if running and restarted as revised.
+	 * If the schedule expired but was not explicitly stopped, it is restarted on the assumption that
+	 * after the revised it may now run.
 	 * @param id identifies the schedule that was revised
 	 */
-	public void reviseSchedule(int id, String name, String schedule) {
+	public void revise(int id, String name, String schedule) {
 
 		try {
-			if (stopSchedule(id)) {
-				startSchedule(id, name, schedule);
+			if (stop(id)) {
+				start(id, name, schedule);
 			}
 		}
 		catch (InterruptedException ex) {
@@ -162,27 +169,43 @@ public class JobScheduler {
 	}
 
 	/**
+	 * Return a list of the running schedules.
+	 * <p>
+	 * @return a list of IDs of running schedules.
+	 */
+	public List<Integer> getRunning() {
+		return scheduleThreads.entrySet().stream().filter(e -> e.getValue().isAlive()).map(e -> e.getKey()).collect(Collectors.toList());
+	}
+
+	/**
 	 * Stop the specific schedule if it is running.
 	 * <p>
 	 * @param id
 	 * @return true if the schedule was previously started and not subsequently stopped by stopSchedule()
-	 * or stopAllSchedules(), false otherwise.
+	 * or stopAllSchedules(), false otherwise.  Will return true if the schedule expired but was not explicitly stopped.
 	 * @throws InterruptedException if this thread is interrupted while waiting for the schedule to stop
 	 */
-	private boolean stopSchedule(int id) throws InterruptedException {
+	private boolean stop(int id) throws InterruptedException {
 
-		Thread scheduleThread = scheduleThreads.get(id);
-		if (scheduleThread == null) {
-			return false;
+		// If the thread is running, remove it from the map, interrupt it, and wait a modest time
+		// for it to die so the caller has some likelihood that any jobs that happen to have been
+		// running on the schedule have terminated.
+
+		Thread scheduleThread;
+
+		synchronized (scheduleThreads) {
+
+			scheduleThread = scheduleThreads.get(id);
+
+			if (scheduleThread == null) {
+				return false;
+			}
+
+			scheduleThreads.remove(id, scheduleThread);
 		}
 
-		// Remove the thread from the map, interrupt it, and wait a modest time for the thread
-		// to die so the caller has some likelihood that any jobs that happen to have been running
-		// on the schedule have terminated.
 		// Note that the thread may already have died, in which case interrupt() and join()
 		// have no effect.
-
-		scheduleThreads.remove(id, scheduleThread);
 
 		scheduleThread.interrupt();
 
@@ -194,32 +217,37 @@ public class JobScheduler {
 	/**
 	 * Stop all running schedules.
 	 * <p>
-	 * It is assumed that the caller takes action to assure no other thread adds, removes,
-	 * starts, or stops schedules while this function is running.
-	 * <p>
 	 * This function interrupts each schedule thread which should cause it to
 	 * promptly terminate, but it takes no action to stop jobs that may have been 
 	 * launched by a schedule.  Caller is responsible for stopping the jobs.
 	 */
-	public void stopAllSchedules() {
+	public void stopAll() {
 
-		for (Thread scheduleThread : scheduleThreads.values()) {
-			scheduleThread.interrupt();
+		synchronized (scheduleThreads) {
+			for (Thread scheduleThread : scheduleThreads.values()) {
+				scheduleThread.interrupt();
+			}
+			scheduleThreads.clear();
 		}
-		scheduleThreads.clear();
 	}
 
 	/**
-	 * Start the indicated schedules if not already started.
+	 * Start the indicated schedules if not running.
 	 * <p>
-	 * Some or all of the schedules for the indicated job may already be running.
-	 * If so, no action is taken on those schedules.
+	 * Some or all of the schedules may already be running.  If so, no action is taken on them.
+	 * If any of indicated schedules have expired but were not explicitly stopped, they are restarted
+	 * on the assumption that any of them may have been revised and will now run.
 	 * @param scheduleIds is the list of IDs of schedules to run
 	 * @throws SQLException 
 	 */
-	public void addJobSchedules(List<Integer> scheduleIds) throws SQLException {
+	public void start(List<Integer> scheduleIds) throws SQLException {
 
-		List<Integer> notRunningIds = scheduleIds.stream().filter(id -> !scheduleThreads.containsKey(id)).collect(Collectors.toList());
+		List<Integer> notRunningIds;
+		synchronized (scheduleThreads) {
+			notRunningIds = scheduleIds.stream()
+					.filter(id -> (!scheduleThreads.containsKey(id) || !scheduleThreads.get(id).isAlive()))
+					.collect(Collectors.toList());
+		}
 		if (notRunningIds.isEmpty()) {
 			return;
 		}
@@ -253,7 +281,7 @@ public class JobScheduler {
 				String name = rs.getString(2);
 				String schedule = rs.getString(3);
 
-				startSchedule(id, name, schedule);
+				start(id, name, schedule);
 			}
 		}
 		finally {
@@ -285,7 +313,7 @@ public class JobScheduler {
 	 * Run the jobs on the indicated schedule
 	 * @param scheduleId
 	 */
-	private void runScheduledJobs(int scheduleId) {
+	private void runJobs(int scheduleId) {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();

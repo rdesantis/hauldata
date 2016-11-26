@@ -16,6 +16,9 @@
 
 package com.hauldata.dbpa;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedList;
 import java.util.List;
 
 import com.hauldata.dbpa.control.interfaces.Jobs;
@@ -371,6 +374,107 @@ public class ControlDbp {
 			for (JobRun jobRun : runs) {
 				System.out.println(jobRun.toString());
 			}
+		}
+
+		// Schedules - put
+
+		putName = "quickie";
+
+		LocalDateTime sooner = LocalDateTime.now().plusSeconds(2);
+		LocalDateTime later = sooner.plusSeconds(2);
+		putSchedule =
+				"TODAY EVERY 2 SECONDS FROM '" +
+				sooner.format(DateTimeFormatter.ofPattern("HH:mm:ss")) + "' UNTIL '" +
+				later.format(DateTimeFormatter.ofPattern("HH:mm:ss")) + "'";
+
+		System.out.println();
+
+		id = -1;
+		try {
+			id = schedules.put(putName, putSchedule);
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("Schedule '" + putName + "' id: " + String.valueOf(id));
+
+		// Jobs - putScheduleNames, putEnabled(true)
+
+		name = "NotGarbage";
+
+		List<String> putNames = new LinkedList<String>();
+		putNames.add(putName);
+
+		System.out.println();
+
+		try {
+			jobs.putScheduleNames(name, putNames);
+			jobs.putEnabled(name, true);
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("Job '" + name + "' added schedule '" + putName + "'");
+
+		// Schedules - getRunning
+
+		names = null;
+
+		System.out.println();
+
+		try {
+			names = schedules.getRunning();
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("List of schedules running:");
+		if (names == null) {
+			System.out.println("[empty]");
+		}
+		else {
+			for (String scheduleName : names) {
+				System.out.println(scheduleName);
+			}
+		}
+
+		// Wait for schedule to expire.
+
+		try { Thread.sleep(5000); } catch (Exception ex) {}
+
+		// getRunning again
+
+		names = null;
+
+		System.out.println();
+
+		try {
+			names = schedules.getRunning();
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
+		}
+
+		System.out.println("List of schedules running:");
+		if (names == null) {
+			System.out.println("[empty]");
+		}
+		else {
+			for (String scheduleName : names) {
+				System.out.println(scheduleName);
+			}
+		}
+
+		// Jobs - putEnabled(false)
+
+		try {
+			jobs.putEnabled(name, false);
+		}
+		catch (Exception ex) {
+			System.out.println(ex.getLocalizedMessage());
 		}
 	}
 }
