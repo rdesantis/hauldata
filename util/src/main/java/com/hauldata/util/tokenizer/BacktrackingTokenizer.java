@@ -83,16 +83,17 @@ public class BacktrackingTokenizer extends Tokenizer {
 	@Override
 	public Token nextToken() throws IOException, InputMismatchException {
 
+		Token token;
 		if (position.hasNext()) {
-			return position.next();
+			token = position.next();
 		}
 		else {
-			Token token = super.getToken();
+			token = super.getToken();
 			if (token != null) {
 				position.add(token);
 			}
-			return token;
 		}
+		return rememberToken(token);
 	}
 
 	@Override

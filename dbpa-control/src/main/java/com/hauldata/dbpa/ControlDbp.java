@@ -16,19 +16,24 @@
 
 package com.hauldata.dbpa;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.LinkedList;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.InputMismatchException;
 import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+
+import javax.ws.rs.NotFoundException;
 
 import com.hauldata.dbpa.control.interfaces.Jobs;
 import com.hauldata.dbpa.control.interfaces.Manager;
 import com.hauldata.dbpa.control.interfaces.Schedules;
 import com.hauldata.dbpa.control.interfaces.Schema;
 import com.hauldata.dbpa.control.interfaces.Scripts;
-import com.hauldata.dbpa.manage.api.Job;
-import com.hauldata.dbpa.manage.api.JobRun;
-import com.hauldata.dbpa.manage.api.ScheduleValidation;
+import com.hauldata.util.tokenizer.BacktrackingTokenizer;
+import com.hauldata.util.tokenizer.EndOfLine;
+import com.hauldata.util.tokenizer.Token;
 import com.hauldata.ws.rs.client.WebClient;
 
 public class ControlDbp {
@@ -43,11 +48,13 @@ public class ControlDbp {
 		LIST,
 		VALIDATE,
 		SHOW,
-		ALTER,
+		UPDATE,
 		RUN,
 		STOP,
 		START,
 		CONFIRM,
+
+		EXIT,
 
 		// Objects
 
@@ -68,6 +75,7 @@ public class ControlDbp {
 
 		// Other
 
+		LIKE,
 		FROM,
 		TO,
 		ON,
@@ -75,406 +83,397 @@ public class ControlDbp {
 		NO
 	}
 
+	static Map<String, Command> commands;
+	static Map<String, Command> putCommands;
+	static Map<String, Command> showCommands;
+	static Map<String, ResourceList> resourceLists;
+
+	static Manager manager;
+	static Schema schema;
+	static Scripts scripts;
+	static Schedules schedules;
+	static Jobs jobs;
+
 	public static void main(String[] args) throws ReflectiveOperationException {
+
+		initialize();
+		interpretCommands();
+		cleanup();
+	}
+
+	static void initialize() {
+
+		// Commands
+
+		commands = new HashMap<String, Command>();
+		commands.put(KW.PUT.name(), new PutCommand());
+		commands.put(KW.GET.name(), new GetCommand());
+		commands.put(KW.DELETE.name(), new DeleteCommand());
+		commands.put(KW.LIST.name(), new ListCommand());
+		commands.put(KW.VALIDATE.name(), new ValidateCommand());
+		commands.put(KW.SHOW.name(), new ShowCommand());
+		commands.put(KW.UPDATE.name(), new UpdateCommand());
+		commands.put(KW.RUN.name(), new RunCommand());
+		commands.put(KW.STOP.name(), new StopCommand());
+		commands.put(KW.START.name(), new StartCommand());
+		commands.put(KW.CONFIRM.name(), new ConfirmCommand());
+		commands.put(KW.EXIT.name(), new ExitCommand());
+
+		putCommands = new HashMap<String, Command>();
+		putCommands.put(KW.SCRIPT.name(), new PutScriptCommand());
+		putCommands.put(KW.PROPERTIES.name(), new PutPropertiesCommand());
+		putCommands.put(KW.SCHEDULE.name(), new PutScheduleCommand());
+		putCommands.put(KW.JOB.name(), new PutJobCommand());
+
+		showCommands = new HashMap<String, Command>();
+		showCommands.put(KW.SCHEDULE.name(), new ShowScheduleCommand());
+		showCommands.put(KW.JOB.name(), new ShowJobCommand());
+		showCommands.put(KW.RUN.name(), new ShowRunCommand());
+
+		// Resource lists
+
+		resourceLists = new HashMap<String, ResourceList>();
+		resourceLists.put(KW.SCRIPT.name() + "S", new ScriptsList());
+		resourceLists.put(KW.SCHEDULE.name() + "S", new SchedulesList());
+		resourceLists.put(KW.JOB.name() + "S", new JobsList());
+
+		// Resources
 
 		String baseUrl = "http://localhost:8080";
 
 		WebClient client = new WebClient(baseUrl);
 
-		Manager manager = (Manager)client.getResource(Manager.class);
-		Schema schema = (Schema)client.getResource(Schema.class);
-		Scripts scripts = (Scripts)client.getResource(Scripts.class);
-		Schedules schedules = (Schedules)client.getResource(Schedules.class);
-		Jobs jobs = (Jobs)client.getResource(Jobs.class);
+		try {
+			manager = (Manager)client.getResource(Manager.class);
+			schema = (Schema)client.getResource(Schema.class);
+			scripts = (Scripts)client.getResource(Scripts.class);
+			schedules = (Schedules)client.getResource(Schedules.class);
+			jobs = (Jobs)client.getResource(Jobs.class);
 
-		List<String> names;
-		String name;
-		String likeName;
+			boolean isStarted = manager.isStarted();
+			System.out.printf("Manager is %sstarted.\n", isStarted ? "" : "not ");
+		}
+		catch (ReflectiveOperationException ex) {
+			System.err.println("Error instantiating resources.");
+			System.exit(2);
+		}
 
-		// Manager
+	}
 
-		boolean isStarted = manager.isStarted();
+	static void interpretCommands() {
 
-		System.out.println();
-		System.out.println("Manager is started? " + String.valueOf(isStarted));
-
-		// Schema
-
-		boolean isConfirmed = schema.confirm();
-
-		System.out.println();
-		System.out.println("Schema is confirmed? " + String.valueOf(isConfirmed));
-
-		// Scripts
-
-		// getNames
-
-		likeName = null;
-		names = null;
-
-		System.out.println();
+		BacktrackingTokenizer tokenizer = new BacktrackingTokenizer(new InputStreamReader(System.in));
+		tokenizer.eolIsSignificant(true);
+		tokenizer.wordChars('_', '_');
 
 		try {
-			names = scripts.getNames(likeName);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+			boolean done = false;
+			do {
+				try {
+					System.out.print("Command: ");
 
-		System.out.println("List of script names:");
-		if (names == null) {
-			System.out.println("[empty]");
+					String commandName = tokenizer.nextWordUpperCase();
+					Command command = commands.get(commandName);
+
+					if (command == null) {
+						throw new NoSuchElementException("Unrecognized command: " + commandName);
+					}
+
+					done = command.interpret(tokenizer);
+				}
+				catch (NoSuchElementException | NotFoundException e) {
+					System.err.println(e.getMessage());
+
+					while (!EndOfLine.value.equals(tokenizer.lastToken())) {
+						tokenizer.nextToken();
+					}
+				}
+			} while (!done);
 		}
-		else {
-			//System.out.println(names.toString());
-			for (String scriptName : names) {
-				System.out.println(scriptName);
+		catch (IOException e) {
+			System.err.println(e.getMessage());
+			System.exit(3);
+		}
+		finally {
+			try { tokenizer.close(); } catch (IOException e) {}
+		}
+	}
+
+	static void cleanup() {
+		// Nothing to do.
+	}
+
+	static interface Command  { boolean interpret(BacktrackingTokenizer tokenizer) throws IOException; }
+
+	static class PutCommand implements Command {
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+
+			String typeName = tokenizer.nextWordUpperCase();
+
+			Command putCommand = putCommands.get(typeName);
+			if (putCommand == null) {
+				throw new InputMismatchException("Can't put this: " + typeName);
 			}
+
+			return putCommand.interpret(tokenizer);
 		}
+	}
 
-		// Schedules
+	static class PutScriptCommand implements Command {
 
-		// get
-
-		name = "NotGarbage";
-		String schedule = "[get failed]";
-
-		System.out.println();
-
-		try {
-			schedule = schedules.get(name);
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
 		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
+	}
+
+	static class PutPropertiesCommand implements Command {
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
 		}
+	}
 
-		System.out.println("Schedule '" + name + "' = " + schedule);
+	static class PutScheduleCommand implements Command {
 
-		// getNames
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
 
-		likeName = "garbage%";
+			String name = nextEntityName(tokenizer);
+			String schedule = tokenizer.nextQuoted().getBody();
+			endOfLine(tokenizer);
 
-		System.out.println();
+			schedules.put(name, schedule);
 
-		try {
-			names = schedules.getNames(likeName);
+			return false;
 		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+	}
 
-		System.out.println("List of schedule names:");
-		if (names == null) {
-			System.out.println("[empty]");
+	static class PutJobCommand implements Command {
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
 		}
-		else {
-			//System.out.println(names.toString());
-			for (String scheduleName : names) {
-				System.out.println(scheduleName);
+	}
+
+	static class GetCommand implements Command {
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
+		}
+	}
+
+	static class DeleteCommand implements Command {
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
+		}
+	}
+
+	static class ListCommand implements Command {
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+
+			// Parse the command.
+
+			String typeName = tokenizer.nextWordUpperCase();
+			if (!typeName.endsWith("S")) {
+				typeName += "S";
 			}
-		}
 
-		// validate
-
-		String validateName = "invalid";
-		ScheduleValidation validation = null;
-
-		System.out.println();
-
-		try {
-			validation = schedules.validate(validateName);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
-
-		System.out.println("Schedule '" + validateName + "' validation:");
-		if (validation == null) {
-			System.out.println("[empty]");
-		}
-		else {
-			System.out.println(validation.toString());
-		}
-
-		// put
-
-		String putName = "Weekly Friday";
-		String putSchedule = "WEEKLY FRIDAY";
-
-		System.out.println();
-
-		int id = -1;
-		try {
-			id = schedules.put(putName, putSchedule);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
-
-		System.out.println("Schedule '" + putName + "' id: " + String.valueOf(id));
-
-		// delete
-
-		String deletedName = "Doesn't exist";
-		boolean deleted = false;
-
-		System.out.println();
-
-		try {
-			schedules.delete(deletedName);
-			deleted = true;
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
-
-		System.out.println("Schedule '" + deletedName + "' deleted? " + String.valueOf(deleted));
-
-		// get doesn't exist
-
-		name = deletedName;
-		schedule = "[get failed]";
-
-		System.out.println();
-
-		try {
-			schedule = schedules.get(name);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
-
-		System.out.println("Schedule '" + name + "' = " + schedule);
-
-		// Jobs
-
-		// getNames
-
-		likeName = null;
-		names = null;
-
-		System.out.println();
-
-		try {
-			names = jobs.getNames(likeName);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
-
-		System.out.println("List of job names:");
-		if (names == null) {
-			System.out.println("[empty]");
-		}
-		else {
-			//System.out.println(names.toString());
-			for (String jobName : names) {
-				System.out.println(jobName);
+			ResourceList resourceList = resourceLists.get(typeName);
+			if (resourceList == null) {
+				throw new InputMismatchException("Can't list this: " + typeName);
 			}
-		}
 
-		// get
-
-		name = "NotGarbage";
-		Job job = null;
-
-		System.out.println();
-
-		try {
-			job = jobs.get(name);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
-
-		System.out.println("Job '" + name + "' = " + String.valueOf(job));
-
-		JobRun run = null;
-
-		// run
-
-		String runName = "sleep5";
-
-		System.out.println();
-
-		id = -1;
-		try {
-			id = jobs.run(runName);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
-
-		System.out.println("Job run '" + runName + "' id: " + String.valueOf(id));
-
-		// getRunning
-
-		run = null;
-
-		System.out.println();
-
-		try {
-			run = jobs.getRunning(id);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
-
-		System.out.println("Job now running:");
-		if (run == null) {
-			System.out.println("[get failed]");
-		}
-		else {
-			System.out.println(run.toString());
-		}
-
-		List<JobRun> runs = null;
-
-		// getRunning
-
-		runs = null;
-
-		System.out.println();
-
-		try {
-			runs = jobs.getRunning();
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
-
-		System.out.println("List of jobs running:");
-		if (runs == null) {
-			System.out.println("[empty]");
-		}
-		else {
-			for (JobRun jobRun : runs) {
-				System.out.println(jobRun.toString());
+			String likeName = null;
+			if (tokenizer.skipWordIgnoreCase(KW.LIKE.name())) {
+				likeName = tokenizer.nextQuoted().getBody();
 			}
-		}
 
-		// getRuns
+			endOfLine(tokenizer);
 
-		runs = null;
+			// Execute the command.
 
-		System.out.println();
+			List<String> names = resourceList.get(likeName);
 
-		try {
-			runs = jobs.getRuns("%", true);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
-
-		System.out.println("List of latest job runs:");
-		if (runs == null) {
-			System.out.println("[empty]");
-		}
-		else {
-			for (JobRun jobRun : runs) {
-				System.out.println(jobRun.toString());
+			for (String name : names) {
+				System.out.printf("%s\n", name);
 			}
+
+			return false;
 		}
+	}
 
-		// Schedules - put
+	static interface ResourceList { List<String> get(String likeName); }
 
-		putName = "quickie";
+	static class ScriptsList implements ResourceList {
 
-		LocalDateTime sooner = LocalDateTime.now().plusSeconds(2);
-		LocalDateTime later = sooner.plusSeconds(2);
-		putSchedule =
-				"TODAY EVERY 2 SECONDS FROM '" +
-				sooner.format(DateTimeFormatter.ofPattern("HH:mm:ss")) + "' UNTIL '" +
-				later.format(DateTimeFormatter.ofPattern("HH:mm:ss")) + "'";
-
-		System.out.println();
-
-		id = -1;
-		try {
-			id = schedules.put(putName, putSchedule);
+		@Override
+		public List<String> get(String likeName) {
+			return scripts.getNames(likeName);
 		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
+	}
+
+	static class SchedulesList implements ResourceList {
+
+		@Override
+		public List<String> get(String likeName) {
+			return schedules.getNames(likeName);
 		}
+	}
 
-		System.out.println("Schedule '" + putName + "' id: " + String.valueOf(id));
+	static class JobsList implements ResourceList {
 
-		// Jobs - putScheduleNames, putEnabled(true)
-
-		name = "NotGarbage";
-
-		List<String> putNames = new LinkedList<String>();
-		putNames.add(putName);
-
-		System.out.println();
-
-		try {
-			jobs.putScheduleNames(name, putNames);
-			jobs.putEnabled(name, true);
+		@Override
+		public List<String> get(String likeName) {
+			return jobs.getNames(likeName);
 		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
+	}
+
+	static class ValidateCommand implements Command {
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
 		}
+	}
 
-		System.out.println("Job '" + name + "' added schedule '" + putName + "'");
+	static class ShowCommand implements Command {
 
-		// Schedules - getRunning
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
 
-		names = null;
+			String typeName = tokenizer.nextWordUpperCase();
 
-		System.out.println();
-
-		try {
-			names = schedules.getRunning();
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
-
-		System.out.println("List of schedules running:");
-		if (names == null) {
-			System.out.println("[empty]");
-		}
-		else {
-			for (String scheduleName : names) {
-				System.out.println(scheduleName);
+			Command showCommand = showCommands.get(typeName);
+			if (showCommand == null) {
+				throw new InputMismatchException("Can't show this: " + typeName);
 			}
+
+			return showCommand.interpret(tokenizer);
 		}
+	}
 
-		// Wait for schedule to expire.
+	static class ShowScheduleCommand implements Command {
 
-		try { Thread.sleep(5000); } catch (Exception ex) {}
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
 
-		// getRunning again
+			String name = nextEntityName(tokenizer);
+			endOfLine(tokenizer);
 
-		names = null;
+			String schedule = schedules.get(name);
 
-		System.out.println();
+			System.out.printf("%s\n", schedule);
 
-		try {
-			names = schedules.getRunning();
+			return false;
 		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+	}
 
-		System.out.println("List of schedules running:");
-		if (names == null) {
-			System.out.println("[empty]");
-		}
-		else {
-			for (String scheduleName : names) {
-				System.out.println(scheduleName);
-			}
-		}
+	static class ShowJobCommand implements Command {
 
-		// Jobs - putEnabled(false)
-
-		try {
-			jobs.putEnabled(name, false);
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
 		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
+	}
+
+	static class ShowRunCommand implements Command {
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
+		}
+	}
+
+	static class UpdateCommand implements Command {
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
+		}
+	}
+
+	static class RunCommand implements Command {
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
+		}
+	}
+
+	static class StopCommand implements Command {
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
+		}
+	}
+
+	static class StartCommand implements Command {
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
+		}
+	}
+
+	static class ConfirmCommand implements Command {
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
+		}
+	}
+
+	static class ExitCommand implements Command {
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+
+			endOfLine(tokenizer);
+			return true;
+		}
+	}
+
+	private static String nextEntityName(BacktrackingTokenizer tokenizer) throws InputMismatchException, IOException {
+		if (!tokenizer.hasNextOnLine()) {
+			throw new InputMismatchException("Expected entity name, found end of line");
+		}
+		if (tokenizer.hasNextWord()) {
+			return tokenizer.nextWordUpperCase();
+		}
+		if (tokenizer.hasNextQuoted()) {
+			return tokenizer.nextQuoted().getBody();
+		}
+		throw new InputMismatchException("Expected entity name, found: " + tokenizer.nextToken().getImage());
+	}
+
+	private static void endOfLine(BacktrackingTokenizer tokenizer) throws InputMismatchException, IOException {
+		Token token = tokenizer.nextTokenOnLine();
+		if (token != null) {
+			throw new InputMismatchException("Unexpected token on line: " + token.getImage());
 		}
 	}
 }

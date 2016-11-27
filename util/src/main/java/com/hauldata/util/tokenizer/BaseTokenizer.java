@@ -27,24 +27,25 @@ public abstract class BaseTokenizer {
 
 	private Reader reader;
 
-	protected enum CharType { unknown, whitespace, alphabetic, numeric, quote, delimiter, endOfLine };
+	enum CharType { unknown, whitespace, alphabetic, numeric, quote, delimiter, endOfLine };
 	
-	protected final int maxSupportedCharCode = 255;
+	final static char cr = '\r';
+	final static char lf = '\n';
+
+	private final static char decimalPoint = '.';
+	private final static char minusSign = '-';
+	private final static char exponential = 'E';
+
+	final static int maxSupportedCharCode = 255;
 	protected CharType[] charType = new CharType[maxSupportedCharCode + 1];
 
 	private boolean eolIsSignificant;
 	private boolean splitQuoteIsAllowed;
 	private boolean negativeIsRespected;
 	
-	private final char cr = '\r';
-	private final char lf = '\n';
-
-	private final char decimalPoint = '.';
-	private final char minusSign = '-';
-	private final char exponential = 'E';
-
 	private int lookaheadChar;
 	private Token lookaheadToken;
+	private Token lookbackToken;
 	private int lineNumber;
 
 	protected BaseTokenizer(Reader reader) {
@@ -69,6 +70,7 @@ public abstract class BaseTokenizer {
 
 		lookaheadChar = noChar;
 		lookaheadToken = null;
+		lookbackToken = null;
 	}
 
     /**
@@ -218,9 +220,9 @@ public abstract class BaseTokenizer {
      * @see		BaseTokenizer#useDelimiter(String)
      */
 	public Token nextToken() throws IOException, InputMismatchException {
-		Token result = peekToken();
+		Token token = peekToken();
 		lookaheadToken = null;
-		return result;
+		return rememberToken(token);
 	}
 
     /**
@@ -254,10 +256,25 @@ public abstract class BaseTokenizer {
      */
 	public Token nextTokenOnLine() throws IOException, InputMismatchException {
 		Token token = peekToken();
-		if (token == null) return null;
-		nextToken();
-		if (token instanceof EndOfLine) return null;
-		return token;
+		if (token != null) {
+			nextToken();
+			if (token instanceof EndOfLine) {
+				token = null;
+			}
+		}
+		return rememberToken(token);
+	}
+
+	protected Token rememberToken(Token scannedToken) {
+		lookbackToken = scannedToken;
+		return scannedToken;
+	}
+
+	/**
+	 * @return the last token scanned
+	 */
+	public Token lastToken() {
+		return lookbackToken;
 	}
 
 	/**
