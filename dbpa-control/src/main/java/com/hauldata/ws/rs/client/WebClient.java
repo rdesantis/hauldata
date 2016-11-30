@@ -309,7 +309,9 @@ abstract class EntityMethod extends WebMethod {
 	}
 
 	public Entity<?> getEntity(Object[] args) {
-		return Entity.entity(args[entityIndex], consumes);
+		final Boolean nothing = true;
+		Object arg = (0 <= entityIndex) ? args[entityIndex] : nothing;
+		return Entity.entity(arg, consumes);
 	}
 }
 

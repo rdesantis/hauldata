@@ -221,6 +221,27 @@ public class JobsResource {
 		}
 	}
 
+	@DELETE
+	@Path("{name}/propfile")
+	@Timed
+	public void deletePropName(@PathParam("name") String name) {
+		putPropName(name, null);
+	}
+
+	@DELETE
+	@Path("{name}/arguments")
+	@Timed
+	public void deleteArguments(@PathParam("name") String name) {
+		putArguments(name, null);
+	}
+
+	@DELETE
+	@Path("{name}/schedules")
+	@Timed
+	public void deleteScheduleNames(@PathParam("name") String name) {
+		putSchedules(name, null);
+	}
+
 	@GET
 	@Path("-/names")
 	@Timed

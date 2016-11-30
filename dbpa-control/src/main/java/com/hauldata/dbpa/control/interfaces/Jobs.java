@@ -79,6 +79,21 @@ public interface Jobs {
 	@Timed
 	public void putEnabled(@PathParam("name") String name, boolean enabled);
 
+	@DELETE
+	@Path("{name}/propfile")
+	@Timed
+	public void deletePropName(@PathParam("name") String name);
+
+	@DELETE
+	@Path("{name}/arguments")
+	@Timed
+	public void deleteArguments(@PathParam("name") String name);
+
+	@DELETE
+	@Path("{name}/schedules")
+	@Timed
+	public void deleteScheduleNames(@PathParam("name") String name);
+
 	@GET
 	@Path("-/names")
 	@Timed
