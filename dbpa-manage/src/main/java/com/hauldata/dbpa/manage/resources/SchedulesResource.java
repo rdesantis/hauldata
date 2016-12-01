@@ -316,7 +316,7 @@ public class SchedulesResource {
 			throw new IllegalArgumentException();
 		}
 
-		return schedules.get(name);
+		return schedules.values().stream().findFirst().orElse(null);
 	}
 
 	/**

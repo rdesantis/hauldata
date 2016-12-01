@@ -138,7 +138,7 @@ public class JobsResourceTest extends TestCase {
 		assertEquals(id, newId);
 	}
 
-	public void testGetPostive() {
+	public void testGetPositive() {
 
 		// Positive test: can get an existing job
 
@@ -158,6 +158,20 @@ public class JobsResourceTest extends TestCase {
 			assertEquals(detritusJob.getScheduleNames().get(i), checkJob.getScheduleNames().get(i));
 		}
 		assertEquals(detritusJob.isEnabled(), checkJob.isEnabled());
+	}
+
+	public void testGetCaseMismatch() {
+
+		// Try getting an existing job with the wrong case in the name.
+		// The initial JobsResource.get(String) threw an exception for this case.
+		// The actual result would depend on whether the database is case-sensitive
+		// for string comparisons.  We don't care here whether the job is actually
+		// found or not.  We just want to be sure the call doesn't throw an exception.
+
+		testPut();
+
+		String wrongCaseName = detritusName.toUpperCase();
+		jobsResource.get(wrongCaseName);
 	}
 
 	public void testGetNegative() {

@@ -910,7 +910,7 @@ public class JobsResource {
 			throw new IllegalArgumentException();
 		}
 
-		return jobs.get(name);
+		return jobs.values().stream().findFirst().orElse(null);
 	}
 
 	/**
