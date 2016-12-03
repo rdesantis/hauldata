@@ -293,12 +293,19 @@ public class ControlDbp {
 
 					done = command.interpret(tokenizer);
 				}
-				catch (NoSuchElementException | NotFoundException e) {
-					System.err.println(e.getMessage());
+				catch (NoSuchElementException ex) {
+					// Command parsing error.
+
+					System.err.println(ex.getMessage());
 
 					while (!EndOfLine.value.equals(tokenizer.lastToken())) {
 						tokenizer.nextToken();
 					}
+				}
+				catch (NotFoundException ex) {
+					// Command execution error.
+
+					System.err.println(ex.getLocalizedMessage());
 				}
 			} while (!done);
 		}
