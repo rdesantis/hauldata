@@ -110,6 +110,7 @@ public class ControlDbp {
 	static Map<String, TransitiveCommand> deleteCommands;
 	static Map<String, TransitiveCommand> startCommands;
 	static Map<String, TransitiveCommand> stopCommands;
+	static Map<String, TransitiveCommand> listRunningCommands;
 	static Map<String, TransitiveCommand> createCommands;
 	static Map<String, TransitiveCommand> confirmCommands;
 	static Map<String, Map<String, TransitiveCommand>> transitiveCommandMaps;
@@ -145,6 +146,7 @@ public class ControlDbp {
 		validateCommands = new HashMap<String, TransitiveCommand>();
 		startCommands = new HashMap<String, TransitiveCommand>();
 		stopCommands = new HashMap<String, TransitiveCommand>();
+		listRunningCommands = new HashMap<String, TransitiveCommand>();
 		confirmCommands = new HashMap<String, TransitiveCommand>();
 		createCommands = new HashMap<String, TransitiveCommand>();
 
@@ -161,10 +163,11 @@ public class ControlDbp {
 		listCommands.put(KW.PROPERTIES.name(), new ListPropertiesCommand());
 
 		putCommands.put(KW.SCHEDULE.name(), new PutScheduleCommand());
-		showCommands.put(KW.SCHEDULE.name(), new ShowSchedulesCommand());
+		showCommands.put(KW.SCHEDULE.name(), new ShowScheduleCommand());
 		deleteCommands.put(KW.SCHEDULE.name(), new DeleteScheduleCommand());
 		validateCommands.put(KW.SCHEDULE.name(), new ValidateScheduleCommand());
 		listCommands.put(KW.SCHEDULE.name(), new ListSchedulesCommand());
+		listRunningCommands.put(KW.SCHEDULE.name(), new ListRunningSchedulesCommand());
 
 		putCommands.put(KW.JOB.name(), new PutJobCommand());
 		updateCommands.put(KW.JOB.name(), new UpdateJobCommand());
@@ -173,6 +176,7 @@ public class ControlDbp {
 		listCommands.put(KW.JOB.name(), new ListJobsCommand());
 		startCommands.put(KW.JOB.name(), new StartJobCommand());
 		stopCommands.put(KW.JOB.name(), new StopJobCommand());
+		listRunningCommands.put(KW.JOB.name(), new ListRunningJobsCommand());
 
 		showCommands.put(KW.RUNNING.name(), new ShowRunningCommand());
 		listCommands.put(KW.RUNNING.name(), new ListRunningCommand());
@@ -431,12 +435,11 @@ public class ControlDbp {
 		}
 	}
 
-	static class ShowSchedulesCommand extends StandardListCommand {
+	static class ShowScheduleCommand extends StandardDisplayCommand {
 
 		@Override
-		public Collection<?> getObjects(String likeName) {
-			Map<String, String> scheduleMap = schedules.getAll(likeName);
-			return scheduleMap.entrySet();
+		protected String get(String name) {
+			return schedules.get(name);
 		}
 	}
 
@@ -449,19 +452,31 @@ public class ControlDbp {
 		}
 	}
 
-	static class ListSchedulesCommand extends StandardListCommand {
-
-		@Override
-		public Collection<?> getObjects(String likeName) {
-			return schedules.getNames(likeName);
-		}
-	}
-
 	static class ValidateScheduleCommand extends StandardDisplayCommand {
 
 		@Override
 		protected String get(String name) {
 			return schedules.validate(name).toString();
+		}
+	}
+
+	static class ListSchedulesCommand extends StandardListCommand {
+
+		@Override
+		public Collection<?> getObjects(String likeName) {
+			Map<String, String> scheduleMap = schedules.getAll(likeName);
+			return scheduleMap.entrySet();
+		}
+	}
+
+	static class ListRunningSchedulesCommand extends StandardListCommand {
+
+		@Override
+		public Collection<?> getObjects(String likeName) {
+			if (likeName != null) {
+				throw new InputMismatchException("LIKE is not implemented for this command");
+			}
+			return schedules.getRunning();
 		}
 	}
 
@@ -691,6 +706,17 @@ public class ControlDbp {
 			System.out.printf("Job stopped\n");
 
 			return false;
+		}
+	}
+
+	static class ListRunningJobsCommand extends StandardListCommand {
+
+		@Override
+		public Collection<?> getObjects(String likeName) {
+			if (likeName != null) {
+				throw new InputMismatchException("LIKE is not implemented for this command");
+			}
+			return jobs.getRunning();
 		}
 	}
 
