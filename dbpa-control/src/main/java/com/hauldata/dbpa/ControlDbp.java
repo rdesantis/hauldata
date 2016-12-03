@@ -162,6 +162,8 @@ public class ControlDbp {
 		deleteCommands.put(KW.PROPERTIES.name(), new DeletePropertiesCommand());
 		listCommands.put(KW.PROPERTIES.name(), new ListPropertiesCommand());
 
+		listCommands.put(KW.RUNNING.name(), new ListRunningCommand());
+
 		putCommands.put(KW.SCHEDULE.name(), new PutScheduleCommand());
 		showCommands.put(KW.SCHEDULE.name(), new ShowScheduleCommand());
 		deleteCommands.put(KW.SCHEDULE.name(), new DeleteScheduleCommand());
@@ -178,12 +180,10 @@ public class ControlDbp {
 		stopCommands.put(KW.JOB.name(), new StopJobCommand());
 		listRunningCommands.put(KW.JOB.name(), new ListRunningJobsCommand());
 
-		showCommands.put(KW.RUNNING.name(), new ShowRunningCommand());
-		listCommands.put(KW.RUNNING.name(), new ListRunningCommand());
-
-		listCommands.put(KW.LATEST.name(), new ListLatestCommand());
-
+		listCommands.put(KW.LATEST.name(), new ListLatestRunsCommand());
 		listCommands.put(KW.RUN.name(), new ListRunsCommand());
+
+		showCommands.put(KW.RUNNING.name(), new ShowRunningJobCommand());
 
 		startCommands.put(KW.MANAGER.name(), new StartManagerCommand());
 		stopCommands.put(KW.MANAGER.name(), new StopManagerCommand());
@@ -723,28 +723,26 @@ public class ControlDbp {
 	static class ListRunningCommand implements TransitiveCommand {
 
 		@Override
-		public boolean supportsPlural() { return true; }
+		public boolean supportsPlural() { return false; }
 
 		@Override
 		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
 
-			endOfLine(tokenizer);
+			String noun = tokenizer.nextWordUpperCase();
+			String singularNoun = getSingular(noun);
+			TransitiveCommand transitiveCommand = listRunningCommands.get(singularNoun);
 
-			// Execute.
-
-			List<JobRun> runs = jobs.getRunning();
-
-			for (JobRun run : runs) {
-				System.out.printf("%s\n", run.toString());
+			if (transitiveCommand == null) {
+				throw new NoSuchElementException("Unrecognized object for " + KW.LIST.name() + " " + KW.RUNNING.name() + " command: " + noun);
 			}
 
-			return false;
+			return transitiveCommand.interpret(tokenizer);
 		}
 	}
 
-	static class ListLatestCommand extends ListAnyRunsCommand {
+	static class ListLatestRunsCommand extends ListAnyRunsCommand {
 
-		public ListLatestCommand() {
+		public ListLatestRunsCommand() {
 			super(true);
 		}
 
@@ -781,13 +779,18 @@ public class ControlDbp {
 		}
 	}
 
-	static class ShowRunningCommand implements TransitiveCommand {
+	static class ShowRunningJobCommand implements TransitiveCommand {
 
 		@Override
 		public boolean supportsPlural() { return false; }
 
 		@Override
 		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+
+			String noun = tokenizer.nextWordUpperCase();
+			if (noun.equals(KW.RUN.name())) {
+				throw new NoSuchElementException("Unrecognized object for " + KW.SHOW.name() + " " + KW.RUNNING.name() + " command: " + noun);
+			}
 
 			int id = tokenizer.nextInt();
 
