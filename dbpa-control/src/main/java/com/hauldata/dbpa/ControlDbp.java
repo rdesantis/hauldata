@@ -137,56 +137,57 @@ public class ControlDbp {
 		// Commands
 
 		putCommands = new HashMap<String, TransitiveCommand>();
-		putCommands.put(KW.SCRIPT.name(), new PutScriptCommand());
-		putCommands.put(KW.PROPERTIES.name(), new PutPropertiesCommand());
-		putCommands.put(KW.SCHEDULE.name(), new PutScheduleCommand());
-		putCommands.put(KW.JOB.name(), new PutJobCommand());
-
 		updateCommands = new HashMap<String, TransitiveCommand>();
-		updateCommands.put(KW.JOB.name(), new UpdateJobCommand());
-
-		validateCommands = new HashMap<String, TransitiveCommand>();
-		validateCommands.put(KW.SCRIPT.name(), new ValidateScriptCommand());
-		validateCommands.put(KW.SCHEDULE.name(), new ValidateScheduleCommand());
-
 		getCommands = new HashMap<String, TransitiveCommand>();
-		getCommands.put(KW.SCRIPT.name(), new GetScriptCommand());
-		getCommands.put(KW.PROPERTIES.name(), new GetPropertiesCommand());
-
+		showCommands = new HashMap<String, TransitiveCommand>();
+		deleteCommands = new HashMap<String, TransitiveCommand>();
 		listCommands = new HashMap<String, TransitiveCommand>();
+		validateCommands = new HashMap<String, TransitiveCommand>();
+		startCommands = new HashMap<String, TransitiveCommand>();
+		stopCommands = new HashMap<String, TransitiveCommand>();
+		confirmCommands = new HashMap<String, TransitiveCommand>();
+		createCommands = new HashMap<String, TransitiveCommand>();
+
+		putCommands.put(KW.SCRIPT.name(), new PutScriptCommand());
+		getCommands.put(KW.SCRIPT.name(), new GetScriptCommand());
+		showCommands.put(KW.SCRIPT.name(), new ShowScriptCommand());
+		deleteCommands.put(KW.SCRIPT.name(), new DeleteScriptCommand());
 		listCommands.put(KW.SCRIPT.name(), new ListScriptsCommand());
+		validateCommands.put(KW.SCRIPT.name(), new ValidateScriptCommand());
+
+		putCommands.put(KW.PROPERTIES.name(), new PutPropertiesCommand());
+		getCommands.put(KW.PROPERTIES.name(), new GetPropertiesCommand());
+		deleteCommands.put(KW.PROPERTIES.name(), new DeletePropertiesCommand());
 		listCommands.put(KW.PROPERTIES.name(), new ListPropertiesCommand());
+
+		putCommands.put(KW.SCHEDULE.name(), new PutScheduleCommand());
+		showCommands.put(KW.SCHEDULE.name(), new ShowSchedulesCommand());
+		deleteCommands.put(KW.SCHEDULE.name(), new DeleteScheduleCommand());
+		validateCommands.put(KW.SCHEDULE.name(), new ValidateScheduleCommand());
 		listCommands.put(KW.SCHEDULE.name(), new ListSchedulesCommand());
+
+		putCommands.put(KW.JOB.name(), new PutJobCommand());
+		updateCommands.put(KW.JOB.name(), new UpdateJobCommand());
+		showCommands.put(KW.JOB.name(), new ShowJobCommand());
+		deleteCommands.put(KW.JOB.name(), new DeleteJobCommand());
 		listCommands.put(KW.JOB.name(), new ListJobsCommand());
+		startCommands.put(KW.JOB.name(), new StartJobCommand());
+		stopCommands.put(KW.JOB.name(), new StopJobCommand());
+
+		showCommands.put(KW.RUNNING.name(), new ShowRunningCommand());
 		listCommands.put(KW.RUNNING.name(), new ListRunningCommand());
+
 		listCommands.put(KW.LATEST.name(), new ListLatestCommand());
+
 		listCommands.put(KW.RUN.name(), new ListRunsCommand());
 
-		showCommands = new HashMap<String, TransitiveCommand>();
-		showCommands.put(KW.SCHEDULE.name(), new ShowSchedulesCommand());
-		showCommands.put(KW.JOB.name(), new ShowJobCommand());
-		showCommands.put(KW.RUNNING.name(), new ShowRunningCommand());
-
-		deleteCommands = new HashMap<String, TransitiveCommand>();
-		deleteCommands.put(KW.SCRIPT.name(), new DeleteScriptCommand());
-		deleteCommands.put(KW.PROPERTIES.name(), new DeletePropertiesCommand());
-		deleteCommands.put(KW.SCHEDULE.name(), new DeleteScheduleCommand());
-		deleteCommands.put(KW.JOB.name(), new DeleteJobCommand());
-
-		startCommands = new HashMap<String, TransitiveCommand>();
-		startCommands.put(KW.JOB.name(), new StartJobCommand());
 		startCommands.put(KW.MANAGER.name(), new StartManagerCommand());
-
-		stopCommands = new HashMap<String, TransitiveCommand>();
-		stopCommands.put(KW.JOB.name(), new StopJobCommand());
 		stopCommands.put(KW.MANAGER.name(), new StopManagerCommand());
+		confirmCommands.put(KW.MANAGER.name(), new ConfirmManagerCommand());
+
 		stopCommands.put(KW.SERVICE.name(), new StopServiceCommand());
 
-		createCommands = new HashMap<String, TransitiveCommand>();
 		createCommands.put(KW.SCHEMA.name(), new CreateSchemaCommand());
-
-		confirmCommands = new HashMap<String, TransitiveCommand>();
-		confirmCommands.put(KW.MANAGER.name(), new ConfirmManagerCommand());
 		confirmCommands.put(KW.SCHEMA.name(), new ConfirmSchemaCommand());
 
 		transitiveCommandMaps = new HashMap<String, Map<String, TransitiveCommand>>();
@@ -322,10 +323,88 @@ public class ControlDbp {
 		}
 	}
 
+	static class ShowScriptCommand extends StandardDisplayCommand {
+
+		@Override
+		protected String get(String name) {
+			return scripts.get(name);
+		}
+	}
+
+	static class GetScriptCommand implements TransitiveCommand {
+
+		@Override
+		public boolean supportsPlural() { return false; }
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
+		}
+	}
+
+	static class DeleteScriptCommand extends StandardDeleteCommand {
+
+		@Override
+		protected KW delete(String name) {
+			scripts.delete(name);
+			return KW.SCRIPT;
+		}
+	}
+
+	static class ListScriptsCommand extends StandardListCommand {
+
+		@Override
+		protected Collection<?> getObjects(String likeName) {
+			return scripts.getNames(likeName);
+		}
+	}
+
+	static class ValidateScriptCommand extends StandardDisplayCommand {
+
+		@Override
+		protected String get(String name) {
+			return scripts.validate(name).toString();
+		}
+	}
+
 	static class PutPropertiesCommand implements TransitiveCommand {
 
 		@Override
 		public boolean supportsPlural() { return false; }
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
+		}
+	}
+
+	static class GetPropertiesCommand implements TransitiveCommand {
+
+		@Override
+		public boolean supportsPlural() { return false; }
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
+		}
+	}
+
+	static class DeletePropertiesCommand extends StandardDeleteCommand {
+
+		@Override
+		protected KW delete(String name) {
+			// TODO: Must implement!
+			throw new InputMismatchException("Command is not implemented");
+		}
+	}
+
+	static class ListPropertiesCommand implements TransitiveCommand {
+
+		@Override
+		public boolean supportsPlural() { return true; }
 
 		@Override
 		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
@@ -349,6 +428,40 @@ public class ControlDbp {
 			schedules.put(name, schedule);
 
 			return false;
+		}
+	}
+
+	static class ShowSchedulesCommand extends StandardListCommand {
+
+		@Override
+		public Collection<?> getObjects(String likeName) {
+			Map<String, String> scheduleMap = schedules.getAll(likeName);
+			return scheduleMap.entrySet();
+		}
+	}
+
+	static class DeleteScheduleCommand extends StandardDeleteCommand {
+
+		@Override
+		protected KW delete(String name) {
+			schedules.delete(name);
+			return KW.SCHEDULE;
+		}
+	}
+
+	static class ListSchedulesCommand extends StandardListCommand {
+
+		@Override
+		public Collection<?> getObjects(String likeName) {
+			return schedules.getNames(likeName);
+		}
+	}
+
+	static class ValidateScheduleCommand extends StandardDisplayCommand {
+
+		@Override
+		protected String get(String name) {
+			return schedules.validate(name).toString();
 		}
 	}
 
@@ -523,56 +636,20 @@ public class ControlDbp {
 		return names;
 	}
 
-	static class ValidateScriptCommand extends StandardDisplayCommand {
+	static class ShowJobCommand extends StandardDisplayCommand {
 
 		@Override
 		protected String get(String name) {
-			return scripts.validate(name).toString();
+			return jobs.get(name).toString();
 		}
 	}
 
-	static class ValidateScheduleCommand extends StandardDisplayCommand {
+	static class DeleteJobCommand extends StandardDeleteCommand {
 
 		@Override
-		protected String get(String name) {
-			return schedules.validate(name).toString();
-		}
-	}
-
-	static class GetScriptCommand extends StandardDisplayCommand {
-
-		@Override
-		protected String get(String name) {
-			// TODO: This is a temporary implementation.  Actual implementation should write script to file.
-			return scripts.get(name);
-		}
-	}
-
-	static class GetPropertiesCommand implements TransitiveCommand {
-
-		@Override
-		public boolean supportsPlural() { return false; }
-
-		@Override
-		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
-			// TODO: Must implement!
-			throw new InputMismatchException("Command is not implemented");
-		}
-	}
-
-	static class ListScriptsCommand extends StandardListCommand {
-
-		@Override
-		protected Collection<?> getObjects(String likeName) {
-			return scripts.getNames(likeName);
-		}
-	}
-
-	static class ListSchedulesCommand extends StandardListCommand {
-
-		@Override
-		public Collection<?> getObjects(String likeName) {
-			return schedules.getNames(likeName);
+		protected KW delete(String name) {
+			jobs.delete(name);
+			return KW.JOB;
 		}
 	}
 
@@ -584,15 +661,36 @@ public class ControlDbp {
 		}
 	}
 
-	static class ListPropertiesCommand implements TransitiveCommand {
+	static class StartJobCommand extends StandardNamedObjectCommand {
 
 		@Override
-		public boolean supportsPlural() { return true; }
+		protected String execute(String name) {
+
+			int id = jobs.run(name);
+
+			String message = String.format("Running job \"%s\" with ID %d\n", name, id);
+
+			return message;
+		}
+	}
+
+	static class StopJobCommand implements TransitiveCommand {
+
+		@Override
+		public boolean supportsPlural() { return false; }
 
 		@Override
 		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
-			// TODO: Must implement!
-			throw new InputMismatchException("Command is not implemented");
+
+			int id = tokenizer.nextInt();
+
+			endOfLine(tokenizer);
+
+			jobs.stop(id);
+
+			System.out.printf("Job stopped\n");
+
+			return false;
 		}
 	}
 
@@ -657,23 +755,6 @@ public class ControlDbp {
 		}
 	}
 
-	static class ShowSchedulesCommand extends StandardListCommand {
-
-		@Override
-		public Collection<?> getObjects(String likeName) {
-			Map<String, String> scheduleMap = schedules.getAll(likeName);
-			return scheduleMap.entrySet();
-		}
-	}
-
-	static class ShowJobCommand extends StandardDisplayCommand {
-
-		@Override
-		protected String get(String name) {
-			return jobs.get(name).toString();
-		}
-	}
-
 	static class ShowRunningCommand implements TransitiveCommand {
 
 		@Override
@@ -694,70 +775,6 @@ public class ControlDbp {
 		}
 	}
 
-	static class DeleteScriptCommand extends StandardDeleteCommand {
-
-		@Override
-		protected KW delete(String name) {
-			scripts.delete(name);
-			return KW.SCRIPT;
-		}
-	}
-
-	static class DeletePropertiesCommand extends StandardDeleteCommand {
-
-		@Override
-		protected KW delete(String name) {
-			// TODO: Must implement!
-			throw new InputMismatchException("Command is not implemented");
-		}
-	}
-
-	static class DeleteScheduleCommand extends StandardDeleteCommand {
-
-		@Override
-		protected KW delete(String name) {
-			schedules.delete(name);
-			return KW.SCHEDULE;
-		}
-	}
-
-	static class DeleteJobCommand extends StandardDeleteCommand {
-
-		@Override
-		protected KW delete(String name) {
-			jobs.delete(name);
-			return KW.JOB;
-		}
-	}
-
-	static abstract class StandardDeleteCommand extends StandardNamedObjectCommand {
-
-		@Override
-		protected String execute(String name) {
-
-			KW kw = delete(name);
-
-			String message = String.format("Deleted %s: %s\n", kw.name().toLowerCase(), name);
-
-			return message;
-		}
-
-		protected abstract KW delete(String name);
-	}
-
-	static class StartJobCommand extends StandardNamedObjectCommand {
-
-		@Override
-		protected String execute(String name) {
-
-			int id = jobs.run(name);
-
-			String message = String.format("Running job \"%s\" with ID %d\n", name, id);
-
-			return message;
-		}
-	}
-
 	static class StartManagerCommand extends StandardSingletonCommand {
 
 		@Override
@@ -767,7 +784,16 @@ public class ControlDbp {
 		}
 	}
 
-	static class StopJobCommand implements TransitiveCommand {
+	static class StopManagerCommand extends StandardSingletonCommand {
+
+		@Override
+		protected String execute() {
+			manager.shutdown();
+			return "Manager stopped\n";
+		}
+	}
+
+	static class ConfirmManagerCommand implements TransitiveCommand {
 
 		@Override
 		public boolean supportsPlural() { return false; }
@@ -775,24 +801,12 @@ public class ControlDbp {
 		@Override
 		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
 
-			int id = tokenizer.nextInt();
-
 			endOfLine(tokenizer);
 
-			jobs.stop(id);
-
-			System.out.printf("Job stopped\n");
+			boolean isStarted = manager.isStarted();
+			System.out.printf("Manager is %sstarted.\n", isStarted ? "" : "not ");
 
 			return false;
-		}
-	}
-
-	static class StopManagerCommand extends StandardSingletonCommand {
-
-		@Override
-		protected String execute() {
-			manager.shutdown();
-			return "Manager stopped\n";
 		}
 	}
 
@@ -811,23 +825,6 @@ public class ControlDbp {
 		protected String execute() {
 			schema.create();
 			return "Schema created\n";
-		}
-	}
-
-	static class ConfirmManagerCommand implements TransitiveCommand {
-
-		@Override
-		public boolean supportsPlural() { return false; }
-
-		@Override
-		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
-
-			endOfLine(tokenizer);
-
-			boolean isStarted = manager.isStarted();
-			System.out.printf("Manager is %sstarted.\n", isStarted ? "" : "not ");
-
-			return false;
 		}
 	}
 
@@ -856,6 +853,21 @@ public class ControlDbp {
 			endOfLine(tokenizer);
 			return true;
 		}
+	}
+
+	static abstract class StandardDeleteCommand extends StandardNamedObjectCommand {
+
+		@Override
+		protected String execute(String name) {
+
+			KW kw = delete(name);
+
+			String message = String.format("Deleted %s: %s\n", kw.name().toLowerCase(), name);
+
+			return message;
+		}
+
+		protected abstract KW delete(String name);
 	}
 
 	static abstract class StandardDisplayCommand implements TransitiveCommand {
