@@ -357,9 +357,8 @@ public class ControlDbp {
 	static class DeleteScriptCommand extends StandardDeleteCommand {
 
 		@Override
-		protected KW delete(String name) {
+		protected void delete(String name) {
 			scripts.delete(name);
-			return KW.SCRIPT;
 		}
 	}
 
@@ -406,7 +405,7 @@ public class ControlDbp {
 	static class DeletePropertiesCommand extends StandardDeleteCommand {
 
 		@Override
-		protected KW delete(String name) {
+		protected void delete(String name) {
 			// TODO: Must implement!
 			throw new InputMismatchException("Command is not implemented");
 		}
@@ -453,9 +452,8 @@ public class ControlDbp {
 	static class DeleteScheduleCommand extends StandardDeleteCommand {
 
 		@Override
-		protected KW delete(String name) {
+		protected void delete(String name) {
 			schedules.delete(name);
-			return KW.SCHEDULE;
 		}
 	}
 
@@ -669,9 +667,8 @@ public class ControlDbp {
 	static class DeleteJobCommand extends StandardDeleteCommand {
 
 		@Override
-		protected KW delete(String name) {
+		protected void delete(String name) {
 			jobs.delete(name);
-			return KW.JOB;
 		}
 	}
 
@@ -896,14 +893,16 @@ public class ControlDbp {
 		@Override
 		protected String execute(String name) {
 
-			KW kw = delete(name);
+			String noun = deleteCommands.entrySet().stream().filter(e -> e.getValue() == this).findFirst().get().getKey();
 
-			String message = String.format("Deleted %s: %s\n", kw.name().toLowerCase(), name);
+			delete(name);
+
+			String message = String.format("Deleted %s: %s\n", noun.toLowerCase(), name);
 
 			return message;
 		}
 
-		protected abstract KW delete(String name);
+		protected abstract void delete(String name);
 	}
 
 	static abstract class StandardDisplayCommand implements TransitiveCommand {
