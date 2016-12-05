@@ -29,10 +29,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.codahale.metrics.annotation.Timed;
-import com.hauldata.dbpa.manage.api.Job;
-import com.hauldata.dbpa.manage.api.JobRun;
-import com.hauldata.dbpa.manage.api.ScriptArgument;
+import com.hauldata.dbpa.manage_control.api.Job;
+import com.hauldata.dbpa.manage_control.api.JobRun;
+import com.hauldata.dbpa.manage_control.api.ScriptArgument;
 
 @Path("/jobs")
 @Produces(MediaType.APPLICATION_JSON)
@@ -41,86 +40,69 @@ public interface Jobs {
 
 	@PUT
 	@Path("{name}")
-	@Timed
 	public int put(@PathParam("name") String name, Job job);
 
 	@GET
 	@Path("{name}")
-	@Timed
 	public Job get(@PathParam("name") String name);
 
 	@DELETE
 	@Path("{name}")
-	@Timed
 	public void delete(@PathParam("name") String name);
 
 	@PUT
 	@Path("{name}/script")
-	@Timed
 	public void putScriptName(@PathParam("name") String name, String scriptName);
 
 	@PUT
 	@Path("{name}/propfile")
-	@Timed
 	public void putPropName(@PathParam("name") String name, String propName);
 
 	@PUT
 	@Path("{name}/arguments")
-	@Timed
 	public void putArguments(@PathParam("name") String name, List<ScriptArgument> arguments);
 
 	@PUT
 	@Path("{name}/schedules")
-	@Timed
 	public void putScheduleNames(@PathParam("name") String name, List<String> scheduleNames);
 
 	@PUT
 	@Path("{name}/enabled")
-	@Timed
 	public void putEnabled(@PathParam("name") String name, boolean enabled);
 
 	@DELETE
 	@Path("{name}/propfile")
-	@Timed
 	public void deletePropName(@PathParam("name") String name);
 
 	@DELETE
 	@Path("{name}/arguments")
-	@Timed
 	public void deleteArguments(@PathParam("name") String name);
 
 	@DELETE
 	@Path("{name}/schedules")
-	@Timed
 	public void deleteScheduleNames(@PathParam("name") String name);
 
 	@GET
 	@Path("-/names")
-	@Timed
 	public List<String> getNames(@QueryParam("like") String likeName);
 
 	@GET
 	@Path("-/runs")
-	@Timed
 	public List<JobRun> getRuns(@QueryParam("like") String likeName, @QueryParam("latest") Boolean latest);
 
 	@GET
 	@Path("-/running")
-	@Timed
 	public List<JobRun> getRunning();
 
 	@POST
 	@Path("-/running/{name}")
-	@Timed
 	public int run(@PathParam("name") String name);
 
 	@GET
 	@Path("-/running/{id}")
-	@Timed
 	public JobRun getRunning(@PathParam("id") int id);
 
 	@DELETE
 	@Path("-/running/{id}")
-	@Timed
 	public void stop(@PathParam("id") int id);
 }

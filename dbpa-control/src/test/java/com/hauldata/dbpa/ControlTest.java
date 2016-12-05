@@ -26,9 +26,9 @@ import com.hauldata.dbpa.control.interfaces.Manager;
 import com.hauldata.dbpa.control.interfaces.Schedules;
 import com.hauldata.dbpa.control.interfaces.Schema;
 import com.hauldata.dbpa.control.interfaces.Scripts;
-import com.hauldata.dbpa.manage.api.Job;
-import com.hauldata.dbpa.manage.api.JobRun;
-import com.hauldata.dbpa.manage.api.ScheduleValidation;
+import com.hauldata.dbpa.manage_control.api.Job;
+import com.hauldata.dbpa.manage_control.api.JobRun;
+import com.hauldata.dbpa.manage_control.api.ScheduleValidation;
 import com.hauldata.ws.rs.client.WebClient;
 
 import junit.framework.TestCase;

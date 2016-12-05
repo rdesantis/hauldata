@@ -31,8 +31,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.hauldata.dbpa.manage.api.JobRun;
-import com.hauldata.dbpa.manage.api.JobStatus;
+import com.hauldata.dbpa.manage_control.api.JobRun;
+import com.hauldata.dbpa.manage_control.api.JobStatus;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.DbProcess;
 

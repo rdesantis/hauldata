@@ -30,7 +30,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.codahale.metrics.annotation.Timed;
-import com.hauldata.dbpa.manage.api.PropertiesTuple;
+import com.hauldata.dbpa.manage_control.api.PropertiesTuple;
 
 @Path("/propfiles")
 @Produces(MediaType.APPLICATION_JSON)

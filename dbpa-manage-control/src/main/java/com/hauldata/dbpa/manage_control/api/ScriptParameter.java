@@ -14,43 +14,43 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.manage.api;
+package com.hauldata.dbpa.manage_control.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class ScheduleValidation {
+public class ScriptParameter {
 
-	private boolean valid;
-	private String validationMessage;
+	private String name;
+	private String typeName;
 
-	public ScheduleValidation() {
+	public ScriptParameter() {
 		// Jackson deserialization
 	}
 
-	public ScheduleValidation(
-			boolean valid,
-			String validationMessage) {
+	public ScriptParameter(
+			String name,
+			String typeName) {
 
-		this.valid = valid;
-		this.validationMessage = validationMessage;
+		this.name = name;
+		this.typeName = typeName;
 	}
 
 	@Override
 	public String toString() {
 		return getClass().getSimpleName() + ":" +
 				"{" +
-				String.valueOf(valid) + "," +
-				String.valueOf(validationMessage) +
+				String.valueOf(name) + "," +
+				String.valueOf(typeName) +
 				"}";
 	}
 
 	@JsonProperty
-	public boolean isValid() {
-		return valid;
+	public String getName() {
+		return name;
 	}
 
 	@JsonProperty
-	public String getValidationMessage() {
-		return validationMessage;
+	public String getTypeName() {
+		return typeName;
 	}
 }

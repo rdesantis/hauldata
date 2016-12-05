@@ -26,7 +26,7 @@ import javax.ws.rs.WebApplicationException;
 
 import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.JobManagerException.NotAvailable;
-import com.hauldata.dbpa.manage.api.ScheduleValidation;
+import com.hauldata.dbpa.manage_control.api.ScheduleValidation;
 
 import junit.framework.TestCase;
 

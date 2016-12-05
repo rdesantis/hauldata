@@ -14,43 +14,36 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.manage.api;
+package com.hauldata.dbpa.manage_control.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class ScriptParameter {
+public enum JobStatus {
 
-	private String name;
-	private String typeName;
+	notRun(0), parseFailed(1), runInProgress(2), runFailed(3), runSucceeded(4), runTerminated(5), controllerShutdown(6);
 
-	public ScriptParameter() {
+	private int id;
+
+	JobStatus() {
 		// Jackson deserialization
 	}
 
-	public ScriptParameter(
-			String name,
-			String typeName) {
-
-		this.name = name;
-		this.typeName = typeName;
-	}
+	JobStatus(int id) { this.id = id; }
 
 	@Override
 	public String toString() {
 		return getClass().getSimpleName() + ":" +
-				"{" +
-				String.valueOf(name) + "," +
-				String.valueOf(typeName) +
-				"}";
+				name() + "(" +
+				String.valueOf(id) +
+				")";
+	}
+
+	public static JobStatus valueOf(int id) {
+		return values()[id];
 	}
 
 	@JsonProperty
-	public String getName() {
-		return name;
-	}
-
-	@JsonProperty
-	public String getTypeName() {
-		return typeName;
+	public int getId() {
+		return id;
 	}
 }

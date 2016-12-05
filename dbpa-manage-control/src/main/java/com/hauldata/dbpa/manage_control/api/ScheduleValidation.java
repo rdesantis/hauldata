@@ -14,36 +14,43 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.manage.api;
+package com.hauldata.dbpa.manage_control.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public enum JobStatus {
+public class ScheduleValidation {
 
-	notRun(0), parseFailed(1), runInProgress(2), runFailed(3), runSucceeded(4), runTerminated(5), controllerShutdown(6);
+	private boolean valid;
+	private String validationMessage;
 
-	private int id;
-
-	JobStatus() {
+	public ScheduleValidation() {
 		// Jackson deserialization
 	}
 
-	JobStatus(int id) { this.id = id; }
+	public ScheduleValidation(
+			boolean valid,
+			String validationMessage) {
+
+		this.valid = valid;
+		this.validationMessage = validationMessage;
+	}
 
 	@Override
 	public String toString() {
 		return getClass().getSimpleName() + ":" +
-				name() + "(" +
-				String.valueOf(id) +
-				")";
-	}
-
-	public static JobStatus valueOf(int id) {
-		return values()[id];
+				"{" +
+				String.valueOf(valid) + "," +
+				String.valueOf(validationMessage) +
+				"}";
 	}
 
 	@JsonProperty
-	public int getId() {
-		return id;
+	public boolean isValid() {
+		return valid;
+	}
+
+	@JsonProperty
+	public String getValidationMessage() {
+		return validationMessage;
 	}
 }

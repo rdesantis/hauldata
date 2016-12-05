@@ -29,8 +29,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.codahale.metrics.annotation.Timed;
-import com.hauldata.dbpa.manage.api.ScheduleValidation;
+import com.hauldata.dbpa.manage_control.api.ScheduleValidation;
 
 @Path("/schedules")
 @Produces(MediaType.APPLICATION_JSON)
@@ -39,35 +38,28 @@ public interface Schedules {
 
 	@PUT
 	@Path("{name}")
-	@Timed
 	public int put(@PathParam("name") String name, String body);
 
 	@GET
 	@Path("{name}")
-	@Timed
 	public String get(@PathParam("name") String name);
 
 	@DELETE
 	@Path("{name}")
-	@Timed
 	public void delete(@PathParam("name") String name);
 
 	@GET
-	@Timed
 	public Map<String, String> getAll(@QueryParam("like") String likeName);
 
 	@GET
 	@Path("-/names")
-	@Timed
 	public List<String> getNames(@QueryParam("like") String likeName);
 
 	@GET
 	@Path("-/validations/{name}")
-	@Timed
 	public ScheduleValidation validate(@PathParam("name") String name);
 
 	@GET
 	@Path("-/running")
-	@Timed
 	public List<String> getRunning();
 }

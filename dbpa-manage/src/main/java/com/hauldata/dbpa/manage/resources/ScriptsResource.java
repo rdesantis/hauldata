@@ -51,7 +51,8 @@ import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.loader.FileLoader;
 import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.JobManagerException.NotAvailable;
-import com.hauldata.dbpa.manage.api.ScriptValidation;
+import com.hauldata.dbpa.manage_control.api.ScriptParameter;
+import com.hauldata.dbpa.manage_control.api.ScriptValidation;
 import com.hauldata.dbpa.process.DbProcess;
 import com.hauldata.dbpa.variable.VariableBase;
 
@@ -308,6 +309,17 @@ public class ScriptsResource {
 			throw ex;
 		}
 
-		return new ScriptValidation(process != null, validationMessage, parameters);
+		return new ScriptValidation(process != null, validationMessage, toScriptParameters(parameters));
+	}
+	
+	private List<ScriptParameter> toScriptParameters(List<VariableBase> parameters) {
+
+		List<ScriptParameter> scriptParameters = new LinkedList<ScriptParameter>();
+		if (parameters != null) {
+			for (VariableBase parameter : parameters) {
+				scriptParameters.add(new ScriptParameter(parameter.getName(), parameter.getType().getName()));
+			}
+		}
+		return scriptParameters;
 	}
 }

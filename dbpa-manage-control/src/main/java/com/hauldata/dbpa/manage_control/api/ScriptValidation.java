@@ -14,13 +14,11 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.manage.api;
+package com.hauldata.dbpa.manage_control.api;
 
-import java.util.LinkedList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.hauldata.dbpa.variable.VariableBase;
 
 public class ScriptValidation {
 
@@ -35,17 +33,11 @@ public class ScriptValidation {
 	public ScriptValidation(
 			boolean valid,
 			String validationMessage,
-			List<VariableBase> parameters) {
+			List<ScriptParameter> parameters) {
 
 		this.valid = valid;
 		this.validationMessage = validationMessage;
-
-		this.parameters = new LinkedList<ScriptParameter>();
-		if (parameters != null) {
-			for (VariableBase parameter : parameters) {
-				this.parameters.add(new ScriptParameter(parameter.getName(), parameter.getType().getName()));
-			}
-		}
+		this.parameters = parameters;
 	}
 
 	@Override

@@ -28,8 +28,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.codahale.metrics.annotation.Timed;
-import com.hauldata.dbpa.manage.api.PropertiesTuple;
+import com.hauldata.dbpa.manage_control.api.PropertiesTuple;
 
 @Path("/propfiles")
 @Produces(MediaType.APPLICATION_JSON)
@@ -38,21 +37,17 @@ public interface PropertiesFiles {
 
 	@PUT
 	@Path("{name}")
-	@Timed
 	public void put(@PathParam("name") String name, PropertiesTuple tuple);
 
 	@GET
 	@Path("{name}")
-	@Timed
 	public PropertiesTuple get(@PathParam("name") String name);
 
 	@DELETE
 	@Path("{name}")
-	@Timed
 	public void delete(@PathParam("name") String name);
 
 	@GET
 	@Path("-/names")
-	@Timed
 	public List<String> getNames(@QueryParam("like") String likeName);
 }

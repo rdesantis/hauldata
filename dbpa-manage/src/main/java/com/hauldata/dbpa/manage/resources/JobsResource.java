@@ -50,17 +50,17 @@ import javax.ws.rs.core.Response;
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.JobManagerException;
-import com.hauldata.dbpa.manage.api.Job;
-import com.hauldata.dbpa.manage.api.JobRun;
-import com.hauldata.dbpa.manage.api.ScriptArgument;
-import com.hauldata.dbpa.manage.api.JobStatus;
-import com.hauldata.dbpa.manage.api.JobState;
 import com.hauldata.dbpa.manage.sql.ArgumentSql;
 import com.hauldata.dbpa.manage.sql.CommonSql;
 import com.hauldata.dbpa.manage.sql.JobScheduleSql;
 import com.hauldata.dbpa.manage.sql.JobSql;
 import com.hauldata.dbpa.manage.sql.RunSql;
 import com.hauldata.dbpa.manage.sql.ScheduleSql;
+import com.hauldata.dbpa.manage_control.api.Job;
+import com.hauldata.dbpa.manage_control.api.JobRun;
+import com.hauldata.dbpa.manage_control.api.ScriptArgument;
+import com.hauldata.dbpa.manage_control.api.JobStatus;
+import com.hauldata.dbpa.manage_control.api.JobState;
 import com.hauldata.dbpa.process.Context;
 
 @Path("/jobs")

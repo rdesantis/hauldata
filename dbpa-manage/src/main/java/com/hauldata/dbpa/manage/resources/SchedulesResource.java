@@ -44,10 +44,10 @@ import javax.ws.rs.core.MediaType;
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.JobManagerException;
-import com.hauldata.dbpa.manage.api.ScheduleValidation;
 import com.hauldata.dbpa.manage.sql.CommonSql;
 import com.hauldata.dbpa.manage.sql.JobScheduleSql;
 import com.hauldata.dbpa.manage.sql.ScheduleSql;
+import com.hauldata.dbpa.manage_control.api.ScheduleValidation;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.util.schedule.ScheduleSet;
 

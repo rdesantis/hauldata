@@ -14,7 +14,7 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.manage.api;
+package com.hauldata.dbpa.manage_control.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

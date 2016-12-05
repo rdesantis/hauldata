@@ -32,10 +32,10 @@ import javax.naming.NamingException;
 
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.manage.JobManagerException;
-import com.hauldata.dbpa.manage.api.Job;
-import com.hauldata.dbpa.manage.api.JobRun;
-import com.hauldata.dbpa.manage.api.ScriptArgument;
-import com.hauldata.dbpa.manage.api.JobState;
+import com.hauldata.dbpa.manage_control.api.Job;
+import com.hauldata.dbpa.manage_control.api.JobRun;
+import com.hauldata.dbpa.manage_control.api.ScriptArgument;
+import com.hauldata.dbpa.manage_control.api.JobState;
 import com.hauldata.dbpa.manage.sql.JobSql;
 import com.hauldata.dbpa.manage.sql.ArgumentSql;
 import com.hauldata.dbpa.manage.sql.CommonSql;

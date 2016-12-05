@@ -28,11 +28,11 @@ import javax.ws.rs.WebApplicationException;
 
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.api.Job;
-import com.hauldata.dbpa.manage.api.JobRun;
-import com.hauldata.dbpa.manage.api.ScriptArgument;
-import com.hauldata.dbpa.manage.api.JobStatus;
-import com.hauldata.dbpa.manage.api.JobState;
+import com.hauldata.dbpa.manage_control.api.Job;
+import com.hauldata.dbpa.manage_control.api.JobRun;
+import com.hauldata.dbpa.manage_control.api.ScriptArgument;
+import com.hauldata.dbpa.manage_control.api.JobStatus;
+import com.hauldata.dbpa.manage_control.api.JobState;
 
 import junit.framework.TestCase;
 
