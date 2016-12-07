@@ -24,10 +24,11 @@ import org.apache.commons.vfs2.FileSystemException;
 import com.hauldata.dbpa.connection.FtpConnection;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
+import com.hauldata.dbpa.process.Files;
 
-public class PutTask extends FtpTask {
+public class GetTask extends FtpTask {
 
-	public PutTask(
+	public GetTask(
 			Prologue prologue,
 			boolean isBinary,
 			FtpConnection connection,
@@ -44,14 +45,14 @@ public class PutTask extends FtpTask {
 			String fromFileName,
 			String toDirectoryName) throws FileSystemException
 	{
-		Path localFilePath = context.getWritePath(fromFileName);
+		String fileName = Files.getFileName(fromFileName); 
+		String toFileName = (toDirectoryName != null) ? toDirectoryName + "/" + fileName : fileName;
+
+		Path localFilePath = context.getWritePath(toFileName);
 		context.files.assureNotOpen(localFilePath);
 
 		String localFileName = localFilePath.toString();
 
-		String fileName = localFilePath.getFileName().toString();
-		String remoteFileName = (toDirectoryName != null) ? toDirectoryName + "/" + fileName : fileName;
-
-		manager.copyLocalToRemote(localFileName, remoteFileName);
+		manager.copyLocalFromRemote(localFileName, fromFileName);
 	}
 }

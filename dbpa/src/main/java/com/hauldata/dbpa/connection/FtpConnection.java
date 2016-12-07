@@ -29,27 +29,44 @@ import org.apache.commons.vfs2.provider.sftp.SftpFileSystemConfigBuilder;
 public class FtpConnection extends Connection {
 
 	public class Manager {
-		
+
 		private FileSystemOptions options = null;
 		private StandardFileSystemManager manager = null;
 
 		Manager(boolean isBinary) throws FileSystemException {
-			
+
 			options = getOptions(isBinary);
 
 			manager = new StandardFileSystemManager();
 			manager.init();
 		}
 
-		public void copy(String localFileName, String remoteFileName) throws FileSystemException {
-			
-			FileObject localFile = manager.resolveFile(localFileName);
+		public void copyLocalToRemote(String localFileName, String remoteFileName) throws FileSystemException {
 
-			String remoteFileURI = getRemoteFileURI(remoteFileName);
+			ResolvedFiles files = new ResolvedFiles(localFileName, remoteFileName);
 
-			FileObject remoteFile = manager.resolveFile(remoteFileURI, options);
+			files.remote.copyFrom(files.local, Selectors.SELECT_SELF);
+		}
 
-			remoteFile.copyFrom(localFile, Selectors.SELECT_SELF);
+		public void copyLocalFromRemote(String localFileName, String remoteFileName) throws FileSystemException {
+
+			ResolvedFiles files = new ResolvedFiles(localFileName, remoteFileName);
+
+			files.local.copyFrom(files.remote, Selectors.SELECT_SELF);
+		}
+
+		private class ResolvedFiles {
+			FileObject local;
+			FileObject remote;
+
+			public ResolvedFiles(String localFileName, String remoteFileName) throws FileSystemException {
+
+				local = manager.resolveFile(localFileName);
+
+				String remoteFileURI = getRemoteFileURI(remoteFileName);
+
+				remote = manager.resolveFile(remoteFileURI, options);
+			}
 		}
 
 		public void close() {
@@ -109,14 +126,14 @@ public class FtpConnection extends Connection {
 
 		configBuilder.setPassiveMode(options, Boolean.parseBoolean(passiveModeString));
 		if (dataTimeoutString != null) {
-			configBuilder.setDataTimeout(options, Integer.parseInt(dataTimeoutString)); 
+			configBuilder.setDataTimeout(options, Integer.parseInt(dataTimeoutString));
 		}
 		if (socketTimeoutString != null) {
-			configBuilder.setSoTimeout(options, Integer.parseInt(socketTimeoutString)); 
+			configBuilder.setSoTimeout(options, Integer.parseInt(socketTimeoutString));
 		}
 // The following are available in VFS2.1:
 //		if (connectTimeoutString != null) {
-//			configBuilder.setConnectTimeout(options, Integer.parseInt(connectTimeoutString)); 
+//			configBuilder.setConnectTimeout(options, Integer.parseInt(connectTimeoutString));
 //		}
 //		configBuilder.setFileType(opts, isBinary ? FtpFileType.BINARY : FtpFileType.ASCII);
 
@@ -152,7 +169,7 @@ public class FtpConnection extends Connection {
 		String hostname = getProperties().getProperty("hostname").trim();
 		String user = getProperties().getProperty("user").trim();
 		String password = getProperties().getProperty("password").trim();
-		
+
 		String cleanedFileName = remoteFileName.replaceAll(" ", "%20");
 
 		return protocol + "://" + user + ":" + password +  "@" + hostname + cleanedFileName;

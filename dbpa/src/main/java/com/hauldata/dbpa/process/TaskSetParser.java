@@ -44,6 +44,7 @@ import com.hauldata.dbpa.connection.FtpConnection;
 import com.hauldata.dbpa.expression.*;
 import com.hauldata.dbpa.file.*;
 import com.hauldata.dbpa.task.*;
+import com.hauldata.dbpa.task.Task.Prologue;
 import com.hauldata.dbpa.variable.*;
 import com.hauldata.util.schedule.ScheduleSet;
 import com.hauldata.util.tokenizer.*;
@@ -118,6 +119,7 @@ abstract class TaskSetParser {
 		ZIP,
 		UNZIP,
 		PUT,
+		GET,
 		EMAIL,
 		DELETE,
 		RENAME,
@@ -134,7 +136,6 @@ abstract class TaskSetParser {
 		CONNECT,
 		// Future:
 		CLOSE,
-		GET,
 		REMOVE,
 		SEND,
 		RECEIVE,
@@ -150,10 +151,10 @@ abstract class TaskSetParser {
 		TABLE,
 		SCRIPT,
 		VALUES,
+		FILES,
 		// Future:
 		PROCEDURE,
 		FILE,
-		FILES,
 		VARIABLE,
 
 		// Task parameters
@@ -429,6 +430,7 @@ abstract class TaskSetParser {
 		taskParsers.put(KW.ZIP.name(), new ZipTaskParser());
 		taskParsers.put(KW.UNZIP.name(), new UnzipTaskParser());
 		taskParsers.put(KW.PUT.name(), new PutTaskParser());
+		taskParsers.put(KW.GET.name(), new GetTaskParser());
 		taskParsers.put(KW.EMAIL.name(), new EmailTaskParser());
 		taskParsers.put(KW.DELETE.name(), new DeleteTaskParser());
 		taskParsers.put(KW.RENAME.name(), new RenameTaskParser());
@@ -667,7 +669,7 @@ abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
-			DatabaseConnection connection = parseOptionalDatabaseConnection(KW.THROUGH.name());
+			DatabaseConnection connection = parseDatabaseConnection(KW.THROUGH.name());
 
 			if (tokenizer.skipWordIgnoreCase(KW.SCRIPT.name())) {
 				return parseRunScript(prologue, connection);
@@ -714,7 +716,7 @@ abstract class TaskSetParser {
 				variables.add(parseVariableReference());
 			} while (tokenizer.skipDelimiter(","));
 
-			DatabaseConnection connection = parseOptionalDatabaseConnection(KW.FROM.name());
+			DatabaseConnection connection = parseDatabaseConnection(KW.FROM.name());
 
 			if (hasSQL(KW.UPDATE.name())) {
 				return parseUpdateFromParameterizedStatement(prologue, variables, connection);
@@ -764,7 +766,7 @@ abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(true);
 
-			DatabaseConnection connection = parseOptionalDatabaseConnection(KW.FROM.name());
+			DatabaseConnection connection = parseDatabaseConnection(KW.FROM.name());
 
 			if (hasSQL(KW.APPEND.name())) {
 				return parseAppendFromParameterizedStatement(prologue, page, connection);
@@ -805,7 +807,7 @@ abstract class TaskSetParser {
 
 			WriteHeaderExpressions headers = parseWriteHeaders(KW.FROM.name());
 
-			DatabaseConnection connection = parseOptionalDatabaseConnection(KW.FROM.name());
+			DatabaseConnection connection = parseDatabaseConnection(KW.FROM.name());
 
 			if (tokenizer.skipWordIgnoreCase(KW.TABLE.name())) {
 				return parseWriteFromTable(prologue, page, headers, connection);
@@ -874,7 +876,7 @@ abstract class TaskSetParser {
 
 			ColumnExpressions columns = parseColumns();
 
-			DatabaseConnection connection = parseOptionalDatabaseConnection(KW.INTO.name());
+			DatabaseConnection connection = parseDatabaseConnection(KW.INTO.name());
 
 			if (hasSQL(KW.LOAD.name())) {
 				return parseLoadIntoTokenizedStatement(prologue, page, columns, connection);
@@ -920,7 +922,7 @@ abstract class TaskSetParser {
 
 			columns.validate(headers);
 
-			DatabaseConnection connection = parseOptionalDatabaseConnection(KW.INTO.name());
+			DatabaseConnection connection = parseDatabaseConnection(KW.INTO.name());
 
 			if (tokenizer.skipWordIgnoreCase(KW.TABLE.name())) {
 				return parseReadIntoTable(prologue, page, headers, columns, connection);
@@ -1017,7 +1019,41 @@ abstract class TaskSetParser {
 		}
 	}
 
-	class PutTaskParser implements TaskParser {
+	class PutTaskParser extends FtpTaskParser {
+
+		public PutTaskParser() { super(true); }
+
+		@Override
+		public Task makeTask(
+				Prologue prologue,
+				boolean isBinary,
+				FtpConnection connection,
+				List<Expression<String>> fromNames,
+				Expression<String> toName) {
+			return new PutTask(prologue, isBinary, connection, fromNames, toName);
+		}
+	}
+
+	class GetTaskParser extends FtpTaskParser {
+
+		public GetTaskParser() { super(false); }
+
+		@Override
+		public Task makeTask(
+				Prologue prologue,
+				boolean isBinary,
+				FtpConnection connection,
+				List<Expression<String>> fromNames,
+				Expression<String> toName) {
+			return new GetTask(prologue, isBinary, connection, fromNames, toName);
+		}
+	}
+
+	abstract class FtpTaskParser implements TaskParser {
+
+		private boolean putNotGet;
+
+		protected FtpTaskParser(boolean putNotGet) { this.putNotGet = putNotGet; }
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
@@ -1026,17 +1062,37 @@ abstract class TaskSetParser {
 				tokenizer.skipWordIgnoreCase(KW.ASCII.name());
 			}
 
-			List<Expression<String>> localNames = new LinkedList<Expression<String>>();
+			FtpConnection connection = null;
+
+			tokenizer.skipWordIgnoreCase(KW.FROM.name());
+			if (!putNotGet) {
+				connection = parseFtpConnection();
+			}
+
+			List<Expression<String>> fromNames = new LinkedList<Expression<String>>();
 			do {
-				localNames.add(parseStringExpression());
+				fromNames.add(parseStringExpression());
 			} while (tokenizer.skipDelimiter(","));
 
 			tokenizer.skipWordIgnoreCase(KW.TO.name());
-			FtpConnection connection = (FtpConnection)parseOptionalConnection(KW.FTP.name(), FtpConnection.class.getName());
-			Expression<String> remoteName = parseStringExpression();
+			if (putNotGet) {
+				connection = parseFtpConnection();
+			}
 
-			return new PutTask(prologue, isBinary, localNames, connection, remoteName);
+			Expression<String> toName = null;
+			if (!hasNextEnd(KW.TASK.name())) {
+				toName = parseStringExpression();
+			}
+
+			return makeTask(prologue, isBinary, connection, fromNames, toName);
 		}
+
+		public abstract Task makeTask(
+				Prologue prologue,
+				boolean isBinary,
+				FtpConnection connection,
+				List<Expression<String>> fromNames,
+				Expression<String> toName);
 	}
 
 	class EmailTaskParser implements TaskParser {
@@ -1045,7 +1101,7 @@ abstract class TaskSetParser {
 
 			EmailConnection connection = null;
 			if (tokenizer.skipWordIgnoreCase(KW.THROUGH.name())) {
-				connection = (EmailConnection)parseOptionalConnection(KW.EMAIL.name(), EmailConnection.class.getName());
+				connection = parseEmailConnection();
 				if (connection == null) {
 					throw new RuntimeException("Missing connection on " + KW.THROUGH.name() + " in " + KW.EMAIL.name());
 				}
@@ -1081,7 +1137,7 @@ abstract class TaskSetParser {
 			}
 
 			List<Expression<String>> attachments = new LinkedList<Expression<String>>();
-			if (tokenizer.skipWordIgnoreCase(KW.ATTACH.name())) {
+			if (tokenizer.skipWordIgnoreCase(KW.ATTACH.name()) || tokenizer.skipWordIgnoreCase(KW.ATTACHMENT.name())) {
 				do {
 					attachments.add(parseStringExpression());
 				} while (tokenizer.skipDelimiter(","));
@@ -1238,8 +1294,11 @@ abstract class TaskSetParser {
 			else if (tokenizer.skipWordIgnoreCase(KW.VALUES.name())) {
 				return parseForValues(prologue, variables);
 			}
+			else if (tokenizer.skipWordIgnoreCase(KW.FILES.name())) {
+				return parseForFiles(prologue, variables);
+			}
 			else {
-				DatabaseConnection connection = parseOptionalDatabaseConnection(null);
+				DatabaseConnection connection = parseDatabaseConnection(null);
 
 				if (hasSQL(KW.FOR.name())) {
 					return parseForParameterizedStatement(prologue, variables, connection);
@@ -1323,6 +1382,22 @@ abstract class TaskSetParser {
 
 			tokenizer.nextDelimiter(")");
 			return expressionList;
+		}
+
+		@SuppressWarnings("unchecked")
+		private Task parseForFiles(
+				Task.Prologue prologue,
+				ArrayList<VariableBase> variables) throws IOException, NamingException {
+
+			if ((variables.size() != 1) || (variables.get(0).getType() != VariableType.VARCHAR)) {
+				throw new RuntimeException(KW.FOR.name() + " " + KW.FILES.name() + " must have a single VARCHAR variable in the list");
+			}
+
+			Expression<String> filename = parseStringExpression();
+
+			NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
+
+			return new ForFilesTask(prologue, (Variable<String>)variables.get(0), filename, taskSet);
 		}
 	}
 
@@ -1561,6 +1636,22 @@ abstract class TaskSetParser {
 		return connection;
 	}
 
+	private DatabaseConnection parseDatabaseConnection(String introWord) throws InputMismatchException, NoSuchElementException, IOException {
+
+		if (introWord != null) {
+			tokenizer.skipWordIgnoreCase(introWord);
+		}
+		return (DatabaseConnection)parseOptionalConnection(KW.DATABASE.name(), DatabaseConnection.class.getName());
+	}
+
+	private FtpConnection parseFtpConnection() throws InputMismatchException, NoSuchElementException, IOException {
+		return (FtpConnection)parseOptionalConnection(KW.FTP.name(), FtpConnection.class.getName());
+	}
+
+	private EmailConnection parseEmailConnection() throws InputMismatchException, NoSuchElementException, IOException {
+		return (EmailConnection)parseOptionalConnection(KW.EMAIL.name(), EmailConnection.class.getName());
+	}
+
 	private Connection parseOptionalConnection(String typeName, String className) throws InputMismatchException, NoSuchElementException, IOException {
 
 		Connection connection = null;
@@ -1593,14 +1684,6 @@ abstract class TaskSetParser {
 			}
 		}
 		return connection;
-	}
-
-	private DatabaseConnection parseOptionalDatabaseConnection(String introWord) throws InputMismatchException, NoSuchElementException, IOException {
-
-		if (introWord != null) {
-			tokenizer.skipWordIgnoreCase(introWord);
-		}
-		return (DatabaseConnection)parseOptionalConnection(KW.DATABASE.name(), DatabaseConnection.class.getName());
 	}
 
 	/**

@@ -16,7 +16,6 @@
 
 package com.hauldata.dbpa.task;
 
-import java.nio.file.Path;
 import java.util.List;
 
 import org.apache.commons.vfs2.FileSystemException;
@@ -25,33 +24,55 @@ import com.hauldata.dbpa.connection.FtpConnection;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
 
-public class PutTask extends FtpTask {
+public abstract class FtpTask extends Task {
 
-	public PutTask(
+	private boolean isBinary;
+	private FtpConnection connection;
+	private List<Expression<String>> fromNames;
+	private Expression<String> toName;
+
+	public FtpTask(
 			Prologue prologue,
 			boolean isBinary,
 			FtpConnection connection,
 			List<Expression<String>> fromNames,
 			Expression<String> toName) {
 		
-		super(prologue, isBinary, connection, fromNames, toName);
+		super(prologue);
+		this.isBinary = isBinary;
+		this.connection = connection;
+		this.fromNames = fromNames;
+		this.toName = toName;
 	}
 
 	@Override
-	protected void copy(
+	protected void execute(Context context) {
+
+		String toDirectoryName = (toName != null) ? toName.evaluate() : null;
+
+		FtpConnection.Manager manager = null;
+		try {
+			manager = context.getManager(connection, isBinary);
+
+			for (Expression<String> fromName : fromNames) {
+				
+				String fromFileName = fromName.evaluate();
+
+				copy(context, manager, fromFileName, toDirectoryName);
+			}
+		}
+		catch (Exception ex) {
+			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
+			throw new RuntimeException("Error attempting to transfer file: " + message, ex);
+		}
+		finally {
+			if (manager != null) manager.close();
+		}
+	}
+
+	protected abstract void copy(
 			Context context,
 			FtpConnection.Manager manager,
 			String fromFileName,
-			String toDirectoryName) throws FileSystemException
-	{
-		Path localFilePath = context.getWritePath(fromFileName);
-		context.files.assureNotOpen(localFilePath);
-
-		String localFileName = localFilePath.toString();
-
-		String fileName = localFilePath.getFileName().toString();
-		String remoteFileName = (toDirectoryName != null) ? toDirectoryName + "/" + fileName : fileName;
-
-		manager.copyLocalToRemote(localFileName, remoteFileName);
-	}
+			String toDirectoryName) throws FileSystemException;
 }
