@@ -16,8 +16,16 @@
 
 package com.hauldata.dbpa;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.Writer;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -322,15 +330,39 @@ public class ControlDbp {
 		// Nothing to do.
 	}
 
-	static class PutScriptCommand implements TransitiveCommand {
+	static class PutScriptCommand extends StandardNamedObjectCommand {
 
 		@Override
-		public boolean supportsPlural() { return false; }
+		protected String execute(String name) {
 
-		@Override
-		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
-			// TODO: Must implement!
-			throw new InputMismatchException("Command is not implemented");
+			String processFilePathName = getProcessFilePathName(name);
+
+			Reader reader = null;
+			try {
+				reader = new BufferedReader(new InputStreamReader(new FileInputStream(processFilePathName)));
+
+				final int bufferLength = 2048;
+				char[] charBuffer = new char[bufferLength];
+				StringBuilder bodyBuilder = new StringBuilder();
+
+				int count;
+				while((count = reader.read(charBuffer, 0, bufferLength)) != -1) {
+					bodyBuilder.append(charBuffer, 0, count);
+				}
+
+				scripts.put(name, bodyBuilder.toString());
+			} catch (FileNotFoundException ex) {
+				throw new NotFoundException(KW.SCRIPT.name() + " file not found: " + processFilePathName);
+			} catch (IOException ex) {
+				throw new NotFoundException(ex.getLocalizedMessage());
+			}
+			finally {
+				if (reader != null) {
+					try { reader.close(); } catch (Exception ex) {}
+				}
+			}
+
+			return String.format("%s file sent: %s\n", KW.SCRIPT.name(), processFilePathName);
 		}
 	}
 
@@ -342,15 +374,30 @@ public class ControlDbp {
 		}
 	}
 
-	static class GetScriptCommand implements TransitiveCommand {
+	static class GetScriptCommand extends StandardNamedObjectCommand {
 
 		@Override
-		public boolean supportsPlural() { return false; }
+		protected String execute(String name) {
 
-		@Override
-		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
-			// TODO: Must implement!
-			throw new InputMismatchException("Command is not implemented");
+			String processFilePathName = getProcessFilePathName(name);
+
+			Writer writer = null;
+			try {
+				String body = scripts.get(name);
+
+				writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(processFilePathName)));
+
+				writer.write(body);
+			} catch (IOException ex) {
+				throw new NotFoundException(ex.getLocalizedMessage());
+			}
+			finally {
+				if (writer != null) {
+					try { writer.close(); } catch (Exception ex) {}
+				}
+			}
+
+			return String.format("%s file received: %s\n", KW.SCRIPT.name(), processFilePathName);
 		}
 	}
 
@@ -1031,4 +1078,12 @@ public class ControlDbp {
 			throw new InputMismatchException("Unexpected token on line: " + token.getImage());
 		}
 	}
+
+	private static String getProcessFilePathName(String name) {
+
+		final String processFileExt = "dbp";
+
+		return name + "." + processFileExt;
+	}
+
 }
