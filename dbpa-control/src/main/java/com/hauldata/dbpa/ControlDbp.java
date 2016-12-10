@@ -54,6 +54,8 @@ import com.hauldata.ws.rs.client.WebClient;
 
 public class ControlDbp {
 
+	static final String defaultBaseUrl = "http://localhost:8080";
+
 	enum KW {
 
 		// Verbs
@@ -136,12 +138,12 @@ public class ControlDbp {
 
 	public static void main(String[] args) throws ReflectiveOperationException {
 
-		initialize();
+		initialize(args);
 		interpretCommands();
 		cleanup();
 	}
 
-	static void initialize() {
+	static void initialize(String[] args) {
 
 		// Commands
 
@@ -227,7 +229,7 @@ public class ControlDbp {
 
 		// Resources
 
-		String baseUrl = "http://localhost:8080";
+		String baseUrl = (args.length > 0) ? args[0] : defaultBaseUrl;
 
 		WebClient client = new WebClient(baseUrl);
 
