@@ -129,7 +129,7 @@ public class ForDataTaskTest extends TaskTest {
 
 	public void testForTable() throws Exception {
 
-		String processId = "ForProcedureTest";
+		String processId = "ForTableTest";
 		String script =
 				"VARIABLES id INT, name VARCHAR, scriptName VARCHAR, propName VARCHAR, enabled INT END VARIABLES \n" +
 						"TASK Loop FOR id, name, scriptName, propName, enabled FROM TABLE 'test.dbpjob' \n" +
