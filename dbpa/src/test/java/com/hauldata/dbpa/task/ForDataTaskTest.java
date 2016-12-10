@@ -25,13 +25,22 @@ public class ForDataTaskTest extends TaskTest {
 		super(name);
 	}
 
+	/* MySQL stored proc:
+	DELIMITER //
+	CREATE PROCEDURE test.passer (INOUT bumped INT, i INT, v VARCHAR(255), d DATETIME)
+	BEGIN
+		SELECT i, v, d;
+	    SET bumped = bumped + 1;
+	END//
+	*/
+
 	public void testForProcedure() throws Exception {
 
 		String processId = "ForProcedureTest";
-		String script = 
+		String script =
 				"VARIABLES anInt INT, aString VARCHAR, aDateTime DATETIME, five INT, now DATETIME END VARIABLES \n" +
 				"TASK SET five = 5, now = GETDATE() END TASK \n" +
-				"TASK Loop AFTER FOR anInt, aString, aDateTime FROM PROCEDURE 'test.passer' WITH five + 1 IN, 'What have you!', now \n" +
+				"TASK Loop AFTER FOR anInt, aString, aDateTime FROM PROCEDURE 'test.passer' WITH 0, five + 4 IN, 'What have you!', now \n" +
 					"TASK Echo LOG FORMAT(anInt, 'd') + ',''' + aString + ''',' + FORMAT(aDateTime, 'yyyy-MM-dd HH:mm:ss') END TASK \n" +
 				"END TASK \n" +
 				"";
@@ -39,7 +48,7 @@ public class ForDataTaskTest extends TaskTest {
 		Level logLevel = Level.info;
 		boolean logToConsole = true;
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null); 
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
 
 		Analyzer.RecordIterator recordIterator = analyzer.recordIterator(processId, "LOOP.ECHO");
 		Analyzer.Record record = null;
@@ -47,15 +56,53 @@ public class ForDataTaskTest extends TaskTest {
 		record = recordIterator.next();
 		String[] parts = record.message.split(",");
 		assertEquals(3, parts.length);
-		assertEquals("6", parts[0]);
+		assertEquals("9", parts[0]);
 		assertEquals("'What have you!'", parts[1]);
+
+		assertFalse(recordIterator.hasNext());
+	}
+
+	public void testForProcedureInOut() throws Exception {
+
+		String processId = "ForProcedureInOutTest";
+		String script =
+				"VARIABLES anInt INT, aString VARCHAR, aDateTime DATETIME, bumpee INT, now DATETIME END VARIABLES \n" +
+				"TASK SET bumpee = 5, now = GETDATE() END TASK \n" +
+				"TASK Loop AFTER FOR anInt, aString, aDateTime FROM PROCEDURE 'test.passer' WITH bumpee INOUT, 3 * 7, 'non' + ('sense'), now \n" +
+					"TASK Echo LOG FORMAT(anInt, 'd') + ',''' + aString + ''',' + FORMAT(aDateTime, 'yyyy-MM-dd HH:mm:ss') END TASK \n" +
+				"END TASK \n" +
+				"TASK Changed AFTER LOG FORMAT(bumpee, 'd') END TASK \n" +
+				"";
+
+		Level logLevel = Level.info;
+		boolean logToConsole = true;
+
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
+
+		Analyzer.RecordIterator recordIterator = null;
+		Analyzer.Record record = null;
+
+		recordIterator = analyzer.recordIterator(processId, "LOOP.ECHO");
+
+		record = recordIterator.next();
+		String[] parts = record.message.split(",");
+		assertEquals(3, parts.length);
+		assertEquals("21", parts[0]);
+		assertEquals("'nonsense'", parts[1]);
+
+		assertFalse(recordIterator.hasNext());
+
+		recordIterator = analyzer.recordIterator(processId, "CHANGED");
+
+		record = recordIterator.next();
+		assertEquals("6", record.message);
 
 		assertFalse(recordIterator.hasNext());
 	}
 
 	public void testForProcedureSyntax() throws Exception {
 
-		String rawScript = 
+		String rawScript =
 				"VARIABLES anInt INT, aString VARCHAR END VARIABLES \n" +
 				"TASK Loop FOR anInt FROM PROCEDURE aString WITH anInt + 1 %s \n" +
 					"TASK GO END TASK \n" +
@@ -83,7 +130,7 @@ public class ForDataTaskTest extends TaskTest {
 	public void testForTable() throws Exception {
 
 		String processId = "ForProcedureTest";
-		String script = 
+		String script =
 				"VARIABLES id INT, name VARCHAR, scriptName VARCHAR, propName VARCHAR, enabled INT END VARIABLES \n" +
 						"TASK Loop FOR id, name, scriptName, propName, enabled FROM TABLE 'test.dbpjob' \n" +
 					"TASK Echo LOG FORMAT(id, 'd') + ', ' + name + ', ' + scriptName + ', ' + ISNULL(propName, '') + ', ' + FORMAT(enabled, 'd') END TASK \n" +
@@ -93,6 +140,6 @@ public class ForDataTaskTest extends TaskTest {
 		Level logLevel = Level.info;
 		boolean logToConsole = true;
 
-		runScript(processId, logLevel, logToConsole, script, null, null, null); 
+		runScript(processId, logLevel, logToConsole, script, null, null, null);
 	}
 }

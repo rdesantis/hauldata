@@ -17,7 +17,7 @@
 package com.hauldata.dbpa.datasource;
 
 import java.sql.CallableStatement;
-import java.sql.JDBCType;
+import java.sql.Types;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -51,12 +51,12 @@ public class ProcedureDataSource extends DataSource {
 	private Expression<String> procedure;
 	private List<DirectionalParam> params;
 
-	private static Map<VariableType, JDBCType> sqlTypes;
+	private static Map<VariableType, Integer> sqlTypes;
 	static {
-		sqlTypes = new HashMap<VariableType, JDBCType>();
-		sqlTypes.put(VariableType.INTEGER, JDBCType.INTEGER);
-		sqlTypes.put(VariableType.VARCHAR, JDBCType.VARCHAR);
-		sqlTypes.put(VariableType.DATETIME, JDBCType.TIMESTAMP);
+		sqlTypes = new HashMap<VariableType, Integer>();
+		sqlTypes.put(VariableType.INTEGER, Types.INTEGER);
+		sqlTypes.put(VariableType.VARCHAR, Types.VARCHAR);
+		sqlTypes.put(VariableType.DATETIME, Types.TIMESTAMP);
 	}
 
 	public ProcedureDataSource(
