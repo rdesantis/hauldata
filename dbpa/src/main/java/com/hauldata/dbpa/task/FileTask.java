@@ -112,6 +112,29 @@ public abstract class FileTask extends DatabaseTask {
 		} }
 	}
 
+	protected void writeFromData(
+			Context context,
+			DataSource dataSource,
+			WritePage page) {
+
+		try {
+			ResultSet rs = dataSource.getResultSet(context);
+
+			page.write(rs);
+
+			dataSource.done(context);
+		}
+		catch (SQLException ex) {
+			throwDatabaseExecutionFailed(ex);
+		}
+		catch (InterruptedException ex) {
+			throw new RuntimeException("File write terminated due to interruption");
+		}
+		finally {
+			dataSource.close(context);
+		}
+	}
+
 	protected void readIntoStatement(
 			Context context,
 			DatabaseConnection connection,

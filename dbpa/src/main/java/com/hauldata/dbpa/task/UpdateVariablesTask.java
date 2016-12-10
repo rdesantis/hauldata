@@ -18,6 +18,8 @@ package com.hauldata.dbpa.task;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
 
 import com.hauldata.dbpa.variable.VariableBase;
@@ -44,7 +46,7 @@ public abstract class UpdateVariablesTask extends DatabaseTask {
 
 			int columnIndex = 1;
 			for (VariableBase variable : variables) {
-				variable.setValueChecked(rs.getObject(columnIndex++));
+				variable.setValueChecked(fromSQL(rs.getObject(columnIndex++)));
 			}
 		}
 
@@ -57,8 +59,22 @@ public abstract class UpdateVariablesTask extends DatabaseTask {
 		else if (hasAnyRows && !hasRightNumberOfColumns) {
 			throw new RuntimeException("Database query returned different number of columns than variables to update");
 		}
-		
+
 		return hasAnyRows;
+	}
+
+	/**
+	 * Return a value retrieved from ResultSet.getObject() converted if necessary
+	 * to an object type acceptable to VariableBase.setValueObject(Object).
+	 * TODO: THIS IS DUPLICATED FROM DataSource.java. Consolidate them.
+	 */
+	protected Object fromSQL(Object value) {
+		if (value instanceof Date) {
+			return ((Date)value).toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+		}
+		else {
+			return value;
+		}
 	}
 
 	/**

@@ -100,4 +100,35 @@ public abstract class TaskTest extends TestCase {
 
 		return analyzer;
 	}
+
+	protected void assertBadSyntax(String script, String expectedMessage) {
+
+		DbProcess process = null;
+		String message = null;
+
+		try {
+			process = DbProcess.parse(new StringReader(script));
+		}
+		catch (Exception ex) {
+			message = ex.getMessage();
+		}
+
+		assertNull(process);
+		if (expectedMessage != null) {
+			assertEquals(expectedMessage, message);
+		}
+	}
+
+	protected void assertGoodSyntax(String script) {
+
+		DbProcess process = null;
+
+		try {
+			process = DbProcess.parse(new StringReader(script));
+		}
+		catch (Exception ex) {
+		}
+
+		assertNotNull(process);
+	}
 }

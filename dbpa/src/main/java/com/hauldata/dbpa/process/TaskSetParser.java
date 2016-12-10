@@ -44,6 +44,8 @@ import com.hauldata.dbpa.connection.FtpConnection;
 import com.hauldata.dbpa.expression.*;
 import com.hauldata.dbpa.file.*;
 import com.hauldata.dbpa.task.*;
+import com.hauldata.dbpa.task.ProcedureDataSource.DirectionalParam;
+import com.hauldata.dbpa.task.ProcedureDataSource.ParamDirection;
 import com.hauldata.dbpa.task.Task.Prologue;
 import com.hauldata.dbpa.variable.*;
 import com.hauldata.util.schedule.ScheduleSet;
@@ -148,12 +150,12 @@ abstract class TaskSetParser {
 
 		STATEMENT,
 		SQL,
+		PROCEDURE,
 		TABLE,
 		SCRIPT,
 		VALUES,
 		FILES,
 		// Future:
-		PROCEDURE,
 		FILE,
 		VARIABLE,
 
@@ -162,6 +164,12 @@ abstract class TaskSetParser {
 		CONNECTION,
 		NAME,
 		FROM,
+		ARGUMENTS,
+		IN,
+		INOUT,
+		OUT,
+		OUTPUT,
+		RETURNING,
 		INTO,
 		CSV,
 		TSV,
@@ -182,6 +190,7 @@ abstract class TaskSetParser {
 		SUBJECT,
 		BODY,
 		ATTACH,
+		ATTACHMENT,
 		DIRECTORY,
 		SYNC,
 		SYNCHRONOUSLY,
@@ -193,11 +202,6 @@ abstract class TaskSetParser {
 		TIME,
 		DEFAULT,
 		SUBSTITUTING,
-		// Future:
-		ATTACHMENT,
-		IN,
-		OUT,
-		OUTPUT,
 
 		// Functions
 
@@ -807,52 +811,9 @@ abstract class TaskSetParser {
 
 			WriteHeaderExpressions headers = parseWriteHeaders(KW.FROM.name());
 
-			DatabaseConnection connection = parseDatabaseConnection(KW.FROM.name());
+			DataSource dataSource = parseDataSource(KW.WRITE.name(), KW.FROM.name());
 
-			if (tokenizer.skipWordIgnoreCase(KW.TABLE.name())) {
-				return parseWriteFromTable(prologue, page, headers, connection);
-			}
-			else if (hasSQL(KW.WRITE.name())) {
-				return parseWriteFromParameterizedStatement(prologue, page, headers, connection);
-			}
-			else {
-				return parseWriteFromStatement(prologue, page, headers, connection);
-			}
-		}
-
-		private Task parseWriteFromStatement(
-				Task.Prologue prologue,
-				PageIdentifierExpression page,
-				WriteHeaderExpressions headers,
-				DatabaseConnection connection) throws IOException {
-
-			Expression<String> statement = parseStringExpression();
-
-			return new WriteFromStatementTask(prologue, page, headers, connection, statement);
-		}
-
-		private Task parseWriteFromParameterizedStatement(
-				Task.Prologue prologue,
-				PageIdentifierExpression page,
-				WriteHeaderExpressions headers,
-				DatabaseConnection connection) throws IOException {
-
-			List<ExpressionBase> expressions = new ArrayList<ExpressionBase>();
-			StringBuilder statement = new StringBuilder();
-			parseParameterizedStatement(expressions, statement);
-
-			return new WriteFromParameterizedStatementTask(prologue, page, headers, connection, expressions, statement.toString());
-		}
-
-		private Task parseWriteFromTable(
-				Task.Prologue prologue,
-				PageIdentifierExpression page,
-				WriteHeaderExpressions headers,
-				DatabaseConnection connection) throws IOException {
-
-			Expression<String> table = parseStringExpression();
-
-			return new WriteFromTableTask(prologue, page, headers, connection, table);
+			return new WriteFromDataTask(prologue, page, headers, dataSource);
 		}
 	}
 
@@ -1298,41 +1259,12 @@ abstract class TaskSetParser {
 				return parseForFiles(prologue, variables);
 			}
 			else {
-				DatabaseConnection connection = parseDatabaseConnection(null);
+				DataSource dataSource = parseDataSource(KW.FOR.name(), null);
 
-				if (hasSQL(KW.FOR.name())) {
-					return parseForParameterizedStatement(prologue, variables, connection);
-				}
-				else {
-					return parseForStatement(prologue, variables, connection);
-				}
+				NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
+
+				return new ForDataTask(prologue, variables, dataSource, taskSet);
 			}
-		}
-
-		private Task parseForStatement(
-				Task.Prologue prologue,
-				List<VariableBase> variables,
-				DatabaseConnection connection) throws IOException, NamingException {
-
-			Expression<String> statement = parseStringExpression();
-
-			NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
-
-			return new ForStatementTask(prologue, variables, connection, statement, taskSet);
-		}
-
-		private Task parseForParameterizedStatement(
-				Task.Prologue prologue,
-				List<VariableBase> variables,
-				DatabaseConnection connection) throws IOException, NamingException {
-
-			List<ExpressionBase> expressions = new ArrayList<ExpressionBase>();
-			StringBuilder statement = new StringBuilder();
-			parseParameterizedStatement(expressions, statement);
-
-			NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
-
-			return new ForParameterizedStatementTask(prologue, variables, connection, expressions, statement.toString(), taskSet);
 		}
 
 		private Task parseForReadFile(
@@ -1500,6 +1432,113 @@ abstract class TaskSetParser {
 				throws NoSuchElementException {
 
 			throw new NoSuchElementException("Use NAME keyword before a name reserved for a future task type: " + taskTypeName);
+		}
+	}
+
+	private DataSource parseDataSource(String taskTypeName, String introWord) throws IOException {
+
+		DatabaseConnection connection = parseDatabaseConnection(introWord);
+
+		if (tokenizer.skipWordIgnoreCase(KW.STATEMENT.name())) {
+			return parseStatementDataSource(connection);
+		}
+		else if (tokenizer.skipWordIgnoreCase(KW.SQL.name())) {
+			return parseParameterizedStatementDataSource(connection);
+		}
+		else if (tokenizer.skipWordIgnoreCase(KW.TABLE.name())) {
+			return parseTableDataSource(connection);
+		}
+		else if (tokenizer.skipWordIgnoreCase(KW.PROCEDURE.name())) {
+			return parseProcedureDataSource(connection);
+		}
+		else {
+			throw new InputMismatchException("Invalid data source in " + taskTypeName + " " + KW.TASK.name());
+		}
+	}
+
+	private StatementDataSource parseStatementDataSource(DatabaseConnection connection) throws IOException {
+
+		Expression<String> statement = parseStringExpression();
+
+		return new StatementDataSource(connection, statement);
+	}
+
+	private ParameterizedStatementDataSource parseParameterizedStatementDataSource(DatabaseConnection connection) throws IOException {
+
+		List<ExpressionBase> expressions = new ArrayList<ExpressionBase>();
+		StringBuilder statement = new StringBuilder();
+		parseParameterizedStatement(expressions, statement);
+
+		return new ParameterizedStatementDataSource(connection, expressions, statement.toString());
+	}
+
+	private TableDataSource parseTableDataSource(DatabaseConnection connection) throws IOException {
+
+		Expression<String> table = parseStringExpression();
+
+		return new TableDataSource(connection, table);
+	}
+
+	private ProcedureDataSource parseProcedureDataSource(DatabaseConnection connection) throws IOException {
+
+		Expression<String> procedure = parseStringExpression();
+
+		List<DirectionalParam> params = new LinkedList<DirectionalParam>();
+		if (hasNextArgument()) {
+			do {
+				params.add(parseArgument());
+			} while (tokenizer.skipDelimiter(","));
+		}
+
+		VariableBase resultParam = null;
+		if (tokenizer.skipWordIgnoreCase(KW.RETURNING.name())) {
+			resultParam = parseVariableReference();
+		}
+
+		return new ProcedureDataSource(connection, resultParam, procedure, params);
+	}
+
+	private boolean hasNextArgument() throws IOException {
+
+		if (tokenizer.skipWordIgnoreCase(KW.ARGUMENTS.name())) {
+			return true;
+		}
+		else if (tokenizer.hasNextWordIgnoreCase(KW.RETURNING.name())) {
+			return false;
+		}
+		else {
+			return !hasNextBeginOrEnd(KW.TASK.name());
+		}
+	}
+
+	private DirectionalParam parseArgument() throws IOException {
+
+		ExpressionBase expression = parseAnyExpression();
+		ParamDirection direction = parseDirection();
+
+		if (
+				(direction.equals(ParamDirection.OUT) || direction.equals(ParamDirection.INOUT)) &&
+				!(expression instanceof Reference)) {
+
+			throw new InputMismatchException(KW.OUT.name() + " or " + KW.INOUT.name() + " argument must be a variable");
+		}
+
+		return new DirectionalParam(expression, direction);
+	}
+
+	private ParamDirection parseDirection() throws IOException {
+
+		if (tokenizer.skipWordIgnoreCase(KW.IN.name())) {
+			return ParamDirection.IN;
+		}
+		else if (tokenizer.skipWordIgnoreCase(KW.OUT.name()) || tokenizer.skipWordIgnoreCase(KW.OUTPUT.name())) {
+			return ParamDirection.OUT;
+		}
+		else if (tokenizer.skipWordIgnoreCase(KW.INOUT.name())) {
+			return ParamDirection.INOUT;
+		}
+		else {
+			return ParamDirection.IN;
 		}
 	}
 

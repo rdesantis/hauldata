@@ -16,59 +16,46 @@
 
 package com.hauldata.dbpa.task;
 
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.List;
 
-import com.hauldata.dbpa.connection.DatabaseConnection;
-import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.NestedTaskSet;
 import com.hauldata.dbpa.variable.VariableBase;
 
-public class ForStatementTask extends UpdateVariablesTask {
-	
+public class ForDataTask extends UpdateVariablesTask {
+
 	private List<VariableBase> variables;
-	private DatabaseConnection connection;
-	private Expression<String> statement;
+	private DataSource dataSource;
 	private NestedTaskSet taskSet;
 
-	public ForStatementTask(
+	public ForDataTask(
 			Prologue prologue,
 			List<VariableBase> variables,
-			DatabaseConnection connection,
-			Expression<String> statement,
+			DataSource dataSource,
 			NestedTaskSet taskSet) {
-	
+
 		super(prologue);
-	
+
 		this.variables = variables;
-		this.connection = connection;
-		this.statement = statement;
+		this.dataSource = dataSource;
 		this.taskSet = taskSet;
 	}
-	
+
 	@Override
 	protected void execute(Context context) {
-	
+
 		Context nestedContext = context.makeNestedContext(getName());
 
-		Connection conn = null;
-		Statement stmt = null;
-		ResultSet rs = null;
-	
 		try {
-			conn = context.getConnection(connection);
-
-			stmt = createStatement(conn);
-
-			rs = stmt.executeQuery(statement.evaluate());
+			ResultSet rs = dataSource.getResultSet(context);
 			
 			while (updateVariables(rs, variables)) {
 				taskSet.runForRerun(nestedContext);
 			}
+
+			dataSource.done(context);
 		}
 		catch (SQLException ex) {
 			throwDatabaseExecutionFailed(ex);
@@ -80,18 +67,10 @@ public class ForStatementTask extends UpdateVariablesTask {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 			throw new RuntimeException("Error attempting to run nested tasks - " + message, ex);
 		}
-		finally { try {
-	
-			if (rs != null) rs.close();
-			if (stmt != null) stmt.close();
-		}
-		catch (SQLException ex) {
-			throwDatabaseCloseFailed(ex);
-		}
 		finally {
-			if (conn != null) context.releaseConnection(connection);
+			dataSource.close(context);
 
 			nestedContext.close();
-		} }
+		}
 	}
 }

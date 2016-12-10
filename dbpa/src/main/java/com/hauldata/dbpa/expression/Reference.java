@@ -17,8 +17,11 @@
 package com.hauldata.dbpa.expression;
 
 import com.hauldata.dbpa.variable.Variable;
+import com.hauldata.dbpa.variable.VariableBase;
 
 public class Reference<Type> extends Expression<Type> {
+
+	private Variable<Type> variable;
 
 	public Reference(Variable<Type> variable) {
 		super(variable.getType());
@@ -30,5 +33,7 @@ public class Reference<Type> extends Expression<Type> {
 		return variable.getValue();
 	}
 
-	private Variable<Type> variable;
+	public VariableBase getVariable() {
+		return variable;
+	}
 }

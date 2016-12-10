@@ -17,39 +17,28 @@
 package com.hauldata.dbpa.task;
 
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.stream.Collectors;
 
-import com.hauldata.dbpa.connection.DatabaseConnection;
-import com.hauldata.dbpa.expression.ExpressionBase;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.WriteHeaders;
 import com.hauldata.dbpa.file.WritePage;
 import com.hauldata.dbpa.process.Context;
 
-public class WriteFromParameterizedStatementTask extends FileTask {
+public class WriteFromDataTask extends FileTask {
 
 	private PageIdentifierExpression page;
 	private WriteHeaderExpressions headers;
-	private DatabaseConnection connection;
-	private List<ExpressionBase> expressions;
-	private String statement;
+	private DataSource dataSource;
 
-	public WriteFromParameterizedStatementTask(
+	public WriteFromDataTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
 			WriteHeaderExpressions headers,
-			DatabaseConnection connection,
-			List<ExpressionBase> expressions,
-			String statement) {
+			DataSource dataSource) {
 
 		super(prologue);
 		this.page = page;
 		this.headers = headers;
-		this.connection = connection;
-		this.expressions = expressions;
-		this.statement = statement;
+		this.dataSource = dataSource;
 	}
 
 	@Override
@@ -57,11 +46,10 @@ public class WriteFromParameterizedStatementTask extends FileTask {
 
 		PageIdentifier page = this.page.evaluate(context, true);
 		WriteHeaders headers = this.headers.evaluate();
-		List<Object> values = this.expressions.stream().map(e -> e.getEvaluationObject()).collect(Collectors.toCollection(LinkedList::new));
 
 		try {
 			WritePage writePage = page.write(context.files, headers);
-			writeFromParameterizedStatement(context, connection, writePage, values, statement);
+			writeFromData(context, dataSource, writePage);
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
