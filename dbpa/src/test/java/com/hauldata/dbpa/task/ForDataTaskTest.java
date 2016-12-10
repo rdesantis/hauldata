@@ -31,7 +31,7 @@ public class ForDataTaskTest extends TaskTest {
 		String script = 
 				"VARIABLES anInt INT, aString VARCHAR, aDateTime DATETIME, five INT, now DATETIME END VARIABLES \n" +
 				"TASK SET five = 5, now = GETDATE() END TASK \n" +
-				"TASK Loop AFTER FOR anInt, aString, aDateTime FROM PROCEDURE 'test.passer' ARGUMENTS five + 1 IN, 'What have you!', now \n" +
+				"TASK Loop AFTER FOR anInt, aString, aDateTime FROM PROCEDURE 'test.passer' WITH five + 1 IN, 'What have you!', now \n" +
 					"TASK Echo LOG FORMAT(anInt, 'd') + ',''' + aString + ''',' + FORMAT(aDateTime, 'yyyy-MM-dd HH:mm:ss') END TASK \n" +
 				"END TASK \n" +
 				"";
@@ -57,7 +57,7 @@ public class ForDataTaskTest extends TaskTest {
 
 		String rawScript = 
 				"VARIABLES anInt INT, aString VARCHAR END VARIABLES \n" +
-				"TASK Loop FOR anInt FROM PROCEDURE aString ARGUMENTS anInt + 1 %s \n" +
+				"TASK Loop FOR anInt FROM PROCEDURE aString WITH anInt + 1 %s \n" +
 					"TASK GO END TASK \n" +
 				"END TASK \n" +
 				"";

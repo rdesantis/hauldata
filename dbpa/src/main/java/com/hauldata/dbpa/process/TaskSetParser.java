@@ -169,7 +169,6 @@ abstract class TaskSetParser {
 		CONNECTION,
 		NAME,
 		FROM,
-		ARGUMENTS,
 		IN,
 		INOUT,
 		OUT,
@@ -1440,7 +1439,7 @@ abstract class TaskSetParser {
 
 	private boolean hasNextArgument() throws IOException {
 
-		if (tokenizer.skipWordIgnoreCase(KW.ARGUMENTS.name())) {
+		if (tokenizer.skipWordIgnoreCase(KW.WITH.name())) {
 			return true;
 		}
 		else if (tokenizer.hasNextWordIgnoreCase(KW.RETURNING.name())) {
