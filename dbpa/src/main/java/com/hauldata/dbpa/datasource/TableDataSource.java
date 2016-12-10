@@ -14,7 +14,7 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.task;
+package com.hauldata.dbpa.datasource;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,22 +29,28 @@ public class TableDataSource extends DataSource {
 
 	public TableDataSource(
 			DatabaseConnection connection,
-			Expression<String> table) {
+			Expression<String> table,
+			boolean singleRow) {
 
-		super(connection);
+		super(connection, singleRow);
 		this.table = table;
 	}
 
 	@Override
-	public ResultSet getResultSet(Context context) throws SQLException {
+	public void executeUpdate(Context context) throws SQLException {
+		throw new RuntimeException("Internal error: call to TableDataSource.executeUpdate(Context)");
+	}
+
+	@Override
+	public ResultSet executeQuery(Context context) throws SQLException, InterruptedException {
 
 		String statement = "SELECT * FROM " + table.evaluate();
 
 		conn = context.getConnection(connection);
 
-		stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+		stmt = conn.createStatement(getResultSetType(), ResultSet.CONCUR_READ_ONLY);
 
-		rs = stmt.executeQuery(statement);
+		rs = executeQuery(stmt, statement);
 
 		return rs;
 	}

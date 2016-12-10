@@ -41,11 +41,16 @@ import com.hauldata.dbpa.connection.Connection;
 import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.connection.EmailConnection;
 import com.hauldata.dbpa.connection.FtpConnection;
+import com.hauldata.dbpa.datasource.DataSource;
+import com.hauldata.dbpa.datasource.ParameterizedStatementDataSource;
+import com.hauldata.dbpa.datasource.ProcedureDataSource;
+import com.hauldata.dbpa.datasource.StatementDataSource;
+import com.hauldata.dbpa.datasource.TableDataSource;
+import com.hauldata.dbpa.datasource.ProcedureDataSource.DirectionalParam;
+import com.hauldata.dbpa.datasource.ProcedureDataSource.ParamDirection;
 import com.hauldata.dbpa.expression.*;
 import com.hauldata.dbpa.file.*;
 import com.hauldata.dbpa.task.*;
-import com.hauldata.dbpa.task.ProcedureDataSource.DirectionalParam;
-import com.hauldata.dbpa.task.ProcedureDataSource.ParamDirection;
 import com.hauldata.dbpa.task.Task.Prologue;
 import com.hauldata.dbpa.variable.*;
 import com.hauldata.util.schedule.ScheduleSet;
@@ -673,40 +678,28 @@ abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
-			DatabaseConnection connection = parseDatabaseConnection(KW.THROUGH.name());
-
 			if (tokenizer.skipWordIgnoreCase(KW.SCRIPT.name())) {
-				return parseRunScript(prologue, connection);
-			}
-			else if (hasSQL(KW.RUN.name())) {
-				return parseRunParameterizedStatement(prologue, connection);
+				return parseRunScript(prologue);
 			}
 			else {
-				return parseRunStatement(prologue, connection);
+				return parseRun(prologue);
 			}
 		}
 
-		private Task parseRunScript(Task.Prologue prologue, DatabaseConnection connection) throws IOException {
+		private Task parseRunScript(Task.Prologue prologue) throws IOException {
 
 			Expression<String> source = parseStringExpression();
+
+			DatabaseConnection connection = parseDatabaseConnection(KW.ON.name());
 
 			return new RunScriptTask(prologue, connection, source);
 		}
 
-		private Task parseRunStatement(Task.Prologue prologue, DatabaseConnection connection) throws IOException {
+		private Task parseRun(Task.Prologue prologue) throws IOException {
 
-			Expression<String> statement = parseStringExpression();
+			DataSource dataSource = parseDataSource(KW.RUN.name(), null, false, false);
 
-			return new RunStatementTask(prologue, connection, statement);
-		}
-
-		private Task parseRunParameterizedStatement(Task.Prologue prologue, DatabaseConnection connection) throws IOException {
-
-			List<ExpressionBase> expressions = new ArrayList<ExpressionBase>();
-			StringBuilder statement = new StringBuilder();
-			parseParameterizedStatement(expressions, statement);
-
-			return new RunParameterizedStatementTask(prologue, connection, expressions, statement.toString());
+			return new RunTask(prologue, dataSource);
 		}
 	}
 
@@ -720,35 +713,9 @@ abstract class TaskSetParser {
 				variables.add(parseVariableReference());
 			} while (tokenizer.skipDelimiter(","));
 
-			DatabaseConnection connection = parseDatabaseConnection(KW.FROM.name());
+			DataSource dataSource = parseDataSource(KW.UPDATE.name(), KW.FROM.name(), true, true);
 
-			if (hasSQL(KW.UPDATE.name())) {
-				return parseUpdateFromParameterizedStatement(prologue, variables, connection);
-			}
-			else {
-				return parseUpdateFromStatement(prologue, variables, connection);
-			}
-		}
-
-		private Task parseUpdateFromStatement(
-				Task.Prologue prologue,
-				List<VariableBase> variables,
-				DatabaseConnection connection) throws IOException {
-
-			Expression<String> statement = parseStringExpression();
-			return new UpdateFromStatementTask(prologue, variables, connection, statement);
-		}
-
-		private Task parseUpdateFromParameterizedStatement(
-				Task.Prologue prologue,
-				List<VariableBase> variables,
-				DatabaseConnection connection) throws IOException {
-
-			List<ExpressionBase> expressions = new ArrayList<ExpressionBase>();
-			StringBuilder statement = new StringBuilder();
-
-			parseParameterizedStatement(expressions, statement);
-			return new UpdateFromParameterizedStatementTask(prologue, variables, connection, expressions, statement.toString());
+			return new UpdateTask(prologue, variables, dataSource);
 		}
 	}
 
@@ -770,36 +737,9 @@ abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(true);
 
-			DatabaseConnection connection = parseDatabaseConnection(KW.FROM.name());
+			DataSource dataSource = parseDataSource(KW.APPEND.name(), KW.FROM.name(), false, true);
 
-			if (hasSQL(KW.APPEND.name())) {
-				return parseAppendFromParameterizedStatement(prologue, page, connection);
-			}
-			else {
-				return parseAppendFromStatement(prologue, page, connection);
-			}
-		}
-
-		private Task parseAppendFromStatement(
-				Task.Prologue prologue,
-				PageIdentifierExpression page,
-				DatabaseConnection connection) throws IOException {
-
-			Expression<String> statement = parseStringExpression();
-
-			return new AppendFromStatementTask(prologue, page, connection, statement);
-		}
-
-		private Task parseAppendFromParameterizedStatement(
-				Task.Prologue prologue,
-				PageIdentifierExpression page,
-				DatabaseConnection connection) throws IOException {
-
-			List<ExpressionBase> expressions = new ArrayList<ExpressionBase>();
-			StringBuilder statement = new StringBuilder();
-			parseParameterizedStatement(expressions, statement);
-
-			return new AppendFromParameterizedStatementTask(prologue, page, connection, expressions, statement.toString());
+			return new AppendTask(prologue, page, dataSource);
 		}
 	}
 
@@ -811,9 +751,9 @@ abstract class TaskSetParser {
 
 			WriteHeaderExpressions headers = parseWriteHeaders(KW.FROM.name());
 
-			DataSource dataSource = parseDataSource(KW.WRITE.name(), KW.FROM.name());
+			DataSource dataSource = parseDataSource(KW.WRITE.name(), KW.FROM.name(), false, true);
 
-			return new WriteFromDataTask(prologue, page, headers, dataSource);
+			return new WriteTask(prologue, page, headers, dataSource);
 		}
 	}
 
@@ -1259,7 +1199,7 @@ abstract class TaskSetParser {
 				return parseForFiles(prologue, variables);
 			}
 			else {
-				DataSource dataSource = parseDataSource(KW.FOR.name(), null);
+				DataSource dataSource = parseDataSource(KW.FOR.name(), null, false, true);
 
 				NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
 
@@ -1435,51 +1375,51 @@ abstract class TaskSetParser {
 		}
 	}
 
-	private DataSource parseDataSource(String taskTypeName, String introWord) throws IOException {
+	private DataSource parseDataSource(String taskTypeName, String introWord, boolean singleRow, boolean allowTable) throws IOException {
 
 		DatabaseConnection connection = parseDatabaseConnection(introWord);
 
 		if (tokenizer.skipWordIgnoreCase(KW.STATEMENT.name())) {
-			return parseStatementDataSource(connection);
+			return parseStatementDataSource(connection, singleRow);
 		}
 		else if (tokenizer.skipWordIgnoreCase(KW.SQL.name())) {
-			return parseParameterizedStatementDataSource(connection);
-		}
-		else if (tokenizer.skipWordIgnoreCase(KW.TABLE.name())) {
-			return parseTableDataSource(connection);
+			return parseParameterizedStatementDataSource(connection, singleRow);
 		}
 		else if (tokenizer.skipWordIgnoreCase(KW.PROCEDURE.name())) {
-			return parseProcedureDataSource(connection);
+			return parseProcedureDataSource(connection, singleRow);
+		}
+		else if (allowTable && tokenizer.skipWordIgnoreCase(KW.TABLE.name())) {
+			return parseTableDataSource(connection, singleRow);
 		}
 		else {
 			throw new InputMismatchException("Invalid data source in " + taskTypeName + " " + KW.TASK.name());
 		}
 	}
 
-	private StatementDataSource parseStatementDataSource(DatabaseConnection connection) throws IOException {
+	private StatementDataSource parseStatementDataSource(DatabaseConnection connection, boolean singleRow) throws IOException {
 
 		Expression<String> statement = parseStringExpression();
 
-		return new StatementDataSource(connection, statement);
+		return new StatementDataSource(connection, statement, singleRow);
 	}
 
-	private ParameterizedStatementDataSource parseParameterizedStatementDataSource(DatabaseConnection connection) throws IOException {
+	private ParameterizedStatementDataSource parseParameterizedStatementDataSource(DatabaseConnection connection, boolean singleRow) throws IOException {
 
 		List<ExpressionBase> expressions = new ArrayList<ExpressionBase>();
 		StringBuilder statement = new StringBuilder();
 		parseParameterizedStatement(expressions, statement);
 
-		return new ParameterizedStatementDataSource(connection, expressions, statement.toString());
+		return new ParameterizedStatementDataSource(connection, expressions, statement.toString(), singleRow);
 	}
 
-	private TableDataSource parseTableDataSource(DatabaseConnection connection) throws IOException {
+	private TableDataSource parseTableDataSource(DatabaseConnection connection, boolean singleRow) throws IOException {
 
 		Expression<String> table = parseStringExpression();
 
-		return new TableDataSource(connection, table);
+		return new TableDataSource(connection, table, singleRow);
 	}
 
-	private ProcedureDataSource parseProcedureDataSource(DatabaseConnection connection) throws IOException {
+	private ProcedureDataSource parseProcedureDataSource(DatabaseConnection connection, boolean singleRow) throws IOException {
 
 		Expression<String> procedure = parseStringExpression();
 
@@ -1495,7 +1435,7 @@ abstract class TaskSetParser {
 			resultParam = parseVariableReference();
 		}
 
-		return new ProcedureDataSource(connection, resultParam, procedure, params);
+		return new ProcedureDataSource(connection, resultParam, procedure, params, singleRow);
 	}
 
 	private boolean hasNextArgument() throws IOException {

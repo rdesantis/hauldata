@@ -14,9 +14,8 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.task;
+package com.hauldata.dbpa.datasource;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -36,33 +35,42 @@ public class ParameterizedStatementDataSource extends DataSource {
 	public ParameterizedStatementDataSource(
 			DatabaseConnection connection,
 			List<ExpressionBase> expressions,
-			String statement) {
+			String statement,
+			boolean singleRow) {
 
-		super(connection);
+		super(connection, singleRow);
 		this.expressions = expressions;
 		this.statement = statement;
 	}
 
 	@Override
-	public ResultSet getResultSet(Context context) throws SQLException {
+	public void executeUpdate(Context context) throws SQLException, InterruptedException {
 
-		List<Object> values = expressions.stream().map(e -> e.getEvaluationObject()).collect(Collectors.toCollection(LinkedList::new));
+		stmt = prepareStatement(context);
 
-		conn = context.getConnection(connection);
+		executeUpdate((PreparedStatement)stmt);
+	}
 
-		stmt = prepareParameterizedStatement(values, statement, conn);
+	@Override
+	public ResultSet executeQuery(Context context) throws SQLException, InterruptedException {
 
-		rs = ((PreparedStatement)stmt).executeQuery();
+		stmt = prepareStatement(context);
+
+		rs = executeQuery((PreparedStatement)stmt);
 
 		return rs;
 	}
 
 	/**
-	 * Prepare a PreparedStatement whose result set will return an indeterminate number of rows.
+	 * This function has a side effect!
 	 */
-	private PreparedStatement prepareParameterizedStatement(List<Object> values, String statement, Connection conn) throws SQLException {
+	private PreparedStatement prepareStatement(Context context) throws SQLException {
 
-		PreparedStatement stmt = conn.prepareStatement(statement, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+		List<Object> values = expressions.stream().map(e -> e.getEvaluationObject()).collect(Collectors.toCollection(LinkedList::new));
+
+		conn = context.getConnection(connection);
+
+		PreparedStatement stmt = conn.prepareStatement(statement, getResultSetType(), ResultSet.CONCUR_READ_ONLY);
 
 		int parameterIndex = 1;
 		for (Object value : values) {

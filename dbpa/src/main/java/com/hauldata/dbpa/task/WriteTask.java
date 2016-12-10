@@ -17,50 +17,44 @@
 package com.hauldata.dbpa.task;
 
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.stream.Collectors;
 
-import com.hauldata.dbpa.connection.DatabaseConnection;
-import com.hauldata.dbpa.expression.ExpressionBase;
+import com.hauldata.dbpa.datasource.DataSource;
 import com.hauldata.dbpa.file.PageIdentifier;
+import com.hauldata.dbpa.file.WriteHeaders;
 import com.hauldata.dbpa.file.WritePage;
 import com.hauldata.dbpa.process.Context;
 
-public class AppendFromParameterizedStatementTask extends FileTask {
+public class WriteTask extends FileTask {
 
 	private PageIdentifierExpression page;
-	private DatabaseConnection connection;
-	private List<ExpressionBase> expressions;
-	private String statement;
+	private WriteHeaderExpressions headers;
+	private DataSource dataSource;
 
-	public AppendFromParameterizedStatementTask(
+	public WriteTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
-			DatabaseConnection connection,
-			List<ExpressionBase> expressions,
-			String statement) {
+			WriteHeaderExpressions headers,
+			DataSource dataSource) {
 
 		super(prologue);
 		this.page = page;
-		this.connection = connection;
-		this.expressions = expressions;
-		this.statement = statement;
+		this.headers = headers;
+		this.dataSource = dataSource;
 	}
 
 	@Override
 	protected void execute(Context context) {
 
 		PageIdentifier page = this.page.evaluate(context, true);
-		List<Object> values = this.expressions.stream().map(e -> e.getEvaluationObject()).collect(Collectors.toCollection(LinkedList::new));
+		WriteHeaders headers = this.headers.evaluate();
 
 		try {
-			WritePage writePage = page.append(context.files);
-			writeFromParameterizedStatement(context, connection, writePage, values, statement);
+			WritePage writePage = page.write(context.files, headers);
+			write(context, dataSource, writePage);
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
-			throw new RuntimeException("Error occurred appending " + page.getName() + ": " + message);
+			throw new RuntimeException("Error occurred writing " + page.getName() + ": " + message);
 		}
 	}
 }

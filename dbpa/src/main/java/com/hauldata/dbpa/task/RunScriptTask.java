@@ -23,6 +23,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import com.hauldata.dbpa.connection.DatabaseConnection;
+import com.hauldata.dbpa.datasource.DataSource;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.TextFile;
 import com.hauldata.dbpa.process.Context;
@@ -70,7 +71,7 @@ public class RunScriptTask extends DatabaseTask {
 
 			stmt = conn.createStatement();
 			
-		    executeUpdate(stmt, body);
+		    DataSource.executeUpdate(stmt, body);
 		}
 		catch (SQLException ex) {
 			throwDatabaseExecutionFailed(ex);

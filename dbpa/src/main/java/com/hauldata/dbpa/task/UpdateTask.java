@@ -16,64 +16,47 @@
 
 package com.hauldata.dbpa.task;
 
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.List;
 
-import com.hauldata.dbpa.connection.DatabaseConnection;
-import com.hauldata.dbpa.expression.Expression;
+import com.hauldata.dbpa.datasource.DataSource;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.variable.VariableBase;
 
-public class UpdateFromStatementTask extends UpdateVariablesTask {
+public class UpdateTask extends UpdateVariablesTask {
 
 	private List<VariableBase> variables;
-	private DatabaseConnection connection;
-	private Expression<String> statement;
+	private DataSource dataSource;
 
-	public UpdateFromStatementTask(
+	public UpdateTask(
 			Prologue prologue,
 			List<VariableBase> variables,
-			DatabaseConnection connection,
-			Expression<String> statement) {
+			DataSource dataSource) {
 
 		super(prologue);
 		this.variables = variables;
-		this.connection = connection;
-		this.statement = statement;
+		this.dataSource = dataSource;
 	}
 
 	@Override
 	protected void execute(Context context) {
 
-		Connection conn = null;
-		Statement stmt = null;
-		ResultSet rs = null;
-
 		try {
-			conn = context.getConnection(connection);
-
-			stmt = createOneRowStatement(conn);
-
-			rs = stmt.executeQuery(statement.evaluate());
+			ResultSet rs = dataSource.executeQuery(context);
 
 			updateVariablesOnce(rs, variables);
+			
+			dataSource.done(context);
 		}
 		catch (SQLException ex) {
 			throwDatabaseExecutionFailed(ex);
 		}
-		finally { try {
-
-			if (rs != null) rs.close();
-			if (stmt != null) stmt.close();
-		}
-		catch (SQLException ex) {
-			throwDatabaseCloseFailed(ex);
+		catch (InterruptedException ex) {
+			throw new RuntimeException("Database query terminated due to interruption");
 		}
 		finally {
-			if (conn != null) context.releaseConnection(connection);
-		} }
+			dataSource.close(context);
+		}
 	}
 }

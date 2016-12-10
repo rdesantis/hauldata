@@ -18,26 +18,23 @@ package com.hauldata.dbpa.task;
 
 import java.io.IOException;
 
+import com.hauldata.dbpa.datasource.DataSource;
 import com.hauldata.dbpa.file.PageIdentifier;
-import com.hauldata.dbpa.file.WriteHeaders;
 import com.hauldata.dbpa.file.WritePage;
 import com.hauldata.dbpa.process.Context;
 
-public class WriteFromDataTask extends FileTask {
+public class AppendTask extends FileTask {
 
 	private PageIdentifierExpression page;
-	private WriteHeaderExpressions headers;
 	private DataSource dataSource;
 
-	public WriteFromDataTask(
+	public AppendTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
-			WriteHeaderExpressions headers,
 			DataSource dataSource) {
 
 		super(prologue);
 		this.page = page;
-		this.headers = headers;
 		this.dataSource = dataSource;
 	}
 
@@ -45,15 +42,14 @@ public class WriteFromDataTask extends FileTask {
 	protected void execute(Context context) {
 
 		PageIdentifier page = this.page.evaluate(context, true);
-		WriteHeaders headers = this.headers.evaluate();
 
 		try {
-			WritePage writePage = page.write(context.files, headers);
-			writeFromData(context, dataSource, writePage);
+			WritePage writePage = page.append(context.files);
+			write(context, dataSource, writePage);
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
-			throw new RuntimeException("Error occurred writing " + page.getName() + ": " + message);
+			throw new RuntimeException("Error occurred appending " + page.getName() + ": " + message);
 		}
 	}
 }

@@ -16,36 +16,39 @@
 
 package com.hauldata.dbpa.task;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import com.hauldata.dbpa.connection.DatabaseConnection;
-import com.hauldata.dbpa.expression.Expression;
+import com.hauldata.dbpa.datasource.DataSource;
 import com.hauldata.dbpa.process.Context;
 
-public class StatementDataSource extends DataSource {
+public class RunTask extends DatabaseTask {
 
-	private Expression<String> statement;
+	private DataSource dataSource;
 
-	public StatementDataSource(
-			DatabaseConnection connection,
-			Expression<String> statement) {
+	public RunTask(
+			Prologue prologue,
+			DataSource dataSource) {
 
-		super(connection);
-		this.statement = statement;
+		super(prologue);
+		this.dataSource = dataSource;
 	}
 
 	@Override
-	public ResultSet getResultSet(Context context) throws SQLException {
+	protected void execute(Context context) {
 
-		String evaluatedStatement = statement.evaluate();
+		try {
+			dataSource.executeUpdate(context);
 
-		conn = context.getConnection(connection);
-
-		stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-
-		rs = stmt.executeQuery(evaluatedStatement);
-
-		return rs;
+			dataSource.done(context);
+		}
+		catch (SQLException ex) {
+			throwDatabaseExecutionFailed(ex);
+		}
+		catch (InterruptedException ex) {
+			throw new RuntimeException("Database query terminated due to interruption");
+		}
+		finally {
+			dataSource.close(context);
+		}
 	}
 }

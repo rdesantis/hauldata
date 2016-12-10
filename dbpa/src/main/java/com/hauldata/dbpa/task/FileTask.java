@@ -20,10 +20,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.List;
 
 import com.hauldata.dbpa.connection.DatabaseConnection;
+import com.hauldata.dbpa.datasource.DataSource;
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.ReadPage;
 import com.hauldata.dbpa.file.WritePage;
@@ -35,90 +34,13 @@ public abstract class FileTask extends DatabaseTask {
 		super(prologue);
 	}
 
-	protected void writeFromStatement(
-			Context context,
-			DatabaseConnection connection,
-			WritePage page,
-			String statement) {
-
-		Connection conn = null;
-		Statement stmt = null;
-		ResultSet rs = null;
-
-		try {
-			conn = context.getConnection(connection);
-
-			stmt = conn.createStatement();
-
-			rs = executeQuery(stmt, statement);
-
-			page.write(rs);
-		}
-		catch (SQLException ex) {
-			throwDatabaseExecutionFailed(ex);
-		}
-		catch (InterruptedException ex) {
-			throw new RuntimeException("File write terminated due to interruption");
-		}
-		finally { try {
-
-			if (rs != null) rs.close();
-			if (stmt != null) stmt.close();
-		}
-		catch (SQLException ex) {
-			throwDatabaseCloseFailed(ex);
-		}
-		finally {
-			if (conn != null) context.releaseConnection(connection);
-		} }
-	}
-
-	protected void writeFromParameterizedStatement(
-			Context context,
-			DatabaseConnection connection,
-			WritePage page,
-			List<Object> values,
-			String statement) {
-
-		Connection conn = null;
-		PreparedStatement stmt = null;
-		ResultSet rs = null;
-
-		try {
-			conn = context.getConnection(connection);
-
-			stmt = prepareParameterizedStatement(values, statement, conn);
-
-			rs = executeQuery(stmt);
-
-			page.write(rs);
-		}
-		catch (SQLException ex) {
-			throwDatabaseExecutionFailed(ex);
-		}
-		catch (InterruptedException ex) {
-			throw new RuntimeException("File write terminated due to interruption");
-		}
-		finally { try {
-
-			if (rs != null) rs.close();
-			if (stmt != null) stmt.close();
-		}
-		catch (SQLException ex) {
-			throwDatabaseCloseFailed(ex);
-		}
-		finally {
-			if (conn != null) context.releaseConnection(connection);
-		} }
-	}
-
-	protected void writeFromData(
+	protected void write(
 			Context context,
 			DataSource dataSource,
 			WritePage page) {
 
 		try {
-			ResultSet rs = dataSource.getResultSet(context);
+			ResultSet rs = dataSource.executeQuery(context);
 
 			page.write(rs);
 

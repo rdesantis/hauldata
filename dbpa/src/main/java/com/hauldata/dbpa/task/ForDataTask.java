@@ -20,6 +20,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
+import com.hauldata.dbpa.datasource.DataSource;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.NestedTaskSet;
 import com.hauldata.dbpa.variable.VariableBase;
@@ -49,7 +50,7 @@ public class ForDataTask extends UpdateVariablesTask {
 		Context nestedContext = context.makeNestedContext(getName());
 
 		try {
-			ResultSet rs = dataSource.getResultSet(context);
+			ResultSet rs = dataSource.executeQuery(context);
 			
 			while (updateVariables(rs, variables)) {
 				taskSet.runForRerun(nestedContext);

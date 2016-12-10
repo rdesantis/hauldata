@@ -14,7 +14,7 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.task;
+package com.hauldata.dbpa.datasource;
 
 import java.sql.CallableStatement;
 import java.sql.JDBCType;
@@ -63,16 +63,37 @@ public class ProcedureDataSource extends DataSource {
 			DatabaseConnection connection,
 			VariableBase resultParam,
 			Expression<String> procedure,
-			List<DirectionalParam> params) {
+			List<DirectionalParam> params,
+			boolean singleRow) {
 
-		super(connection);
+		super(connection, singleRow);
 		this.resultParam = resultParam;
 		this.procedure = procedure;
 		this.params = params;
 	}
 
 	@Override
-	public ResultSet getResultSet(Context context) throws SQLException {
+	public void executeUpdate(Context context) throws SQLException, InterruptedException {
+
+		stmt = prepareCall(context);
+
+		executeUpdate((CallableStatement)stmt);
+	}
+
+	@Override
+	public ResultSet executeQuery(Context context) throws SQLException, InterruptedException {
+
+		stmt = prepareCall(context);
+
+		rs = executeQuery((CallableStatement)stmt);
+
+		return rs;
+	}
+
+	/**
+	 * This function has a side effect!
+	 */
+	private CallableStatement prepareCall(Context context) throws SQLException {
 
 		String result = (resultParam != null) ? "? = " : "";
 		String procName = procedure.evaluate();
@@ -82,14 +103,12 @@ public class ProcedureDataSource extends DataSource {
 
 		conn = context.getConnection(connection);
 
-		CallableStatement thisStmt = conn.prepareCall(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-
-		stmt = thisStmt;
+		CallableStatement stmt = conn.prepareCall(sql, getResultSetType(), ResultSet.CONCUR_READ_ONLY);
 
 		int paramIndex = 1;
 		if (resultParam != null) {
 
-			thisStmt.registerOutParameter(paramIndex, sqlTypes.get(resultParam.getType()));
+			stmt.registerOutParameter(paramIndex, sqlTypes.get(resultParam.getType()));
 
 			paramIndex++;
 		}
@@ -97,32 +116,30 @@ public class ProcedureDataSource extends DataSource {
 		for (DirectionalParam param : params) {
 
 			if (param.direction == ParamDirection.INOUT || param.direction == ParamDirection.OUT) {
-				thisStmt.registerOutParameter(paramIndex, sqlTypes.get(param.expression.getType()));
+				stmt.registerOutParameter(paramIndex, sqlTypes.get(param.expression.getType()));
 			}
 
 			if (param.direction == ParamDirection.IN || param.direction == ParamDirection.INOUT) {
-				thisStmt.setObject(paramIndex, toSQL(param.expression.getEvaluationObject()));
+				stmt.setObject(paramIndex, toSQL(param.expression.getEvaluationObject()));
 			}
 
 			paramIndex++;
 		}
 
-		rs = thisStmt.executeQuery();
-
-		return rs;
+		return stmt;
 	}
 
 	@Override
 	public void done(Context context) throws SQLException {
 
-		CallableStatement thisStmt = (CallableStatement)stmt;
+		CallableStatement stmt = (CallableStatement)this.stmt;
 
 		// Get OUT parameter values.
 
 		int paramIndex = 1;
 		if (resultParam != null) {
 
-			resultParam.setValueObject(fromSQL(thisStmt.getObject(paramIndex)));
+			resultParam.setValueObject(fromSQL(stmt.getObject(paramIndex)));
 
 			paramIndex++;
 		}
@@ -131,7 +148,7 @@ public class ProcedureDataSource extends DataSource {
 
 			if (param.direction == ParamDirection.INOUT || param.direction == ParamDirection.OUT) {
 
-				((Reference<?>)param.expression).getVariable().setValueObject(fromSQL(thisStmt.getObject(paramIndex)));
+				((Reference<?>)param.expression).getVariable().setValueObject(fromSQL(stmt.getObject(paramIndex)));
 			}
 
 			paramIndex++;
