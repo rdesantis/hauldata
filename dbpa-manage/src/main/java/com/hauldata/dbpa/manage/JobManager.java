@@ -48,14 +48,13 @@ import com.hauldata.dbpa.process.DbProcess;
 
 public class JobManager {
 
-	//	private static final String programName = "ManageDbp";
-	private static final String programName = "RunDbp";		// To simplify testing
+	private static final String managerProgramName = "ManageDbp";
+	private static final String jobProgramName = "RunDbp";
 
 	private static JobManager manager;
 
 	private Analyzer analyzer;
 
-	private ContextProperties contextProps;
 	private Context context;
 
 	private JobSql jobSql;
@@ -68,6 +67,8 @@ public class JobManager {
 	private Thread monitorThread;
 
 	private JobScheduler scheduler;
+
+	private ContextProperties jobContextProps;
 
 	/**
 	 * Instantiate the singleton job manager instance
@@ -126,10 +127,14 @@ public class JobManager {
 
 		this.analyzer = withLogAnalyzer ? new Analyzer() : null;
 
-		contextProps = new ContextProperties(programName);
-		context = contextProps.createContext(null);
+		// Job default context properties.
 
-		// Get schema specifications.
+		jobContextProps = new ContextProperties(jobProgramName);
+
+		// Manager context.
+
+		ContextProperties contextProps = new ContextProperties(managerProgramName);
+		context = contextProps.createContext(null);
 
 		Properties schemaProps = contextProps.getProperties("schema");
 		if (schemaProps == null) {
@@ -287,10 +292,10 @@ public class JobManager {
 		}
 
 		ContextProperties props =
-				(job.getPropName() == null) ? contextProps :
-				new ContextProperties(job.getPropName(), contextProps);
+				(job.getPropName() == null) ? jobContextProps :
+				new ContextProperties(job.getPropName() + "/" + jobProgramName, jobContextProps);
 
-		jobContext = props.createContext(jobName, context);
+		jobContext = props.createContext(jobName);
 
 		if (analyzer != null) {
 			jobContext.logger.addAppender(analyzer);

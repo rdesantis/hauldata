@@ -37,25 +37,17 @@ import javax.naming.NameAlreadyBoundException;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
-import com.hauldata.dbpa.connection.Connection;
-import com.hauldata.dbpa.connection.DatabaseConnection;
-import com.hauldata.dbpa.connection.EmailConnection;
-import com.hauldata.dbpa.connection.FtpConnection;
-import com.hauldata.dbpa.datasource.DataSource;
-import com.hauldata.dbpa.datasource.ParameterizedStatementDataSource;
-import com.hauldata.dbpa.datasource.ProcedureDataSource;
-import com.hauldata.dbpa.datasource.StatementDataSource;
-import com.hauldata.dbpa.datasource.TableDataSource;
-import com.hauldata.dbpa.datasource.ProcedureDataSource.DirectionalParam;
-import com.hauldata.dbpa.datasource.ProcedureDataSource.ParamDirection;
+import com.hauldata.dbpa.connection.*;
+import com.hauldata.dbpa.datasource.*;
+import com.hauldata.dbpa.datasource.ProcedureDataSource.*;
 import com.hauldata.dbpa.expression.*;
+import com.hauldata.dbpa.expression.strings.*;
 import com.hauldata.dbpa.file.*;
 import com.hauldata.dbpa.task.*;
 import com.hauldata.dbpa.task.Task.Prologue;
 import com.hauldata.dbpa.variable.*;
 import com.hauldata.util.schedule.ScheduleSet;
 import com.hauldata.util.tokenizer.*;
-
 
 /**
  * Base class parser for a set of tasks at either outer process level or inner nested level
@@ -224,6 +216,19 @@ abstract class TaskSetParser {
 		DATEADD,
 		DATEFROMPARTS,
 		DATETIMEFROMPARTS,
+
+		CHARINDEX,
+		LEFT,
+		LTRIM,
+		LEN,
+		LOWER,
+		REPLACE,
+		REPLICATE,
+		RIGHT,
+		RTRIM,
+		SPACE,
+		SUBSTRING,
+		UPPER,
 
 		IS,
 		NULL,
@@ -1990,6 +1995,28 @@ abstract class TaskSetParser {
 
 				return new IntegerFromDatetime(datetime, field);
 			}
+			else if (name.equals(KW.CHARINDEX.name())) {
+
+				tokenizer.skipDelimiter("(");
+				Expression<String> toFind = parseStringExpression();
+				tokenizer.skipDelimiter(",");
+				Expression<String> toSearch = parseStringExpression();
+				Expression<Integer> startIndex = null;
+				if (tokenizer.skipDelimiter(",")) {
+					startIndex = parseIntegerExpression();
+				}
+				tokenizer.skipDelimiter(")");
+
+				return new CharIndex(toFind, toSearch, startIndex);
+			}
+			else if (name.equals(KW.LEN.name())) {
+
+				tokenizer.skipDelimiter("(");
+				Expression<String> string = parseStringExpression();
+				tokenizer.skipDelimiter(")");
+
+				return new Length(string);
+			}
 			else {
 				throw new InputMismatchException("Unrecognized " + KW.INTEGER.name() + " function: " + name);
 			}
@@ -2051,6 +2078,100 @@ abstract class TaskSetParser {
 				else {
 					throw new InputMismatchException("Internal error - unsupported argument type for " + KW.FORMAT.name());
 				}
+			}
+			else if (name.equals(KW.LEFT.name())) {
+
+				tokenizer.skipDelimiter("(");
+				Expression<String> string = parseStringExpression();
+				tokenizer.skipDelimiter(",");
+				Expression<Integer> length = parseIntegerExpression();
+				tokenizer.skipDelimiter(")");
+
+				return new Left(string, length);
+			}
+			else if (name.equals(KW.LTRIM.name())) {
+
+				tokenizer.skipDelimiter("(");
+				Expression<String> string = parseStringExpression();
+				tokenizer.skipDelimiter(")");
+
+				return new LeftTrim(string);
+			}
+			else if (name.equals(KW.LOWER.name())) {
+
+				tokenizer.skipDelimiter("(");
+				Expression<String> string = parseStringExpression();
+				tokenizer.skipDelimiter(")");
+
+				return new Lower(string);
+			}
+			else if (name.equals(KW.REPLACE.name())) {
+
+				tokenizer.skipDelimiter("(");
+				Expression<String> string = parseStringExpression();
+				tokenizer.skipDelimiter(",");
+				Expression<String> pattern = parseStringExpression();
+				tokenizer.skipDelimiter(",");
+				Expression<String> replacement = parseStringExpression();
+				tokenizer.skipDelimiter(")");
+
+				return new Replace(string, pattern, replacement);
+			}
+			else if (name.equals(KW.REPLICATE.name())) {
+
+				tokenizer.skipDelimiter("(");
+				Expression<String> string = parseStringExpression();
+				tokenizer.skipDelimiter(",");
+				Expression<Integer> repeats = parseIntegerExpression();
+				tokenizer.skipDelimiter(")");
+
+				return new Replicate(string, repeats);
+			}
+			else if (name.equals(KW.RIGHT.name())) {
+
+				tokenizer.skipDelimiter("(");
+				Expression<String> string = parseStringExpression();
+				tokenizer.skipDelimiter(",");
+				Expression<Integer> length = parseIntegerExpression();
+				tokenizer.skipDelimiter(")");
+
+				return new Right(string, length);
+			}
+			else if (name.equals(KW.RTRIM.name())) {
+
+				tokenizer.skipDelimiter("(");
+				Expression<String> string = parseStringExpression();
+				tokenizer.skipDelimiter(")");
+
+				return new RightTrim(string);
+			}
+			else if (name.equals(KW.SPACE.name())) {
+
+				tokenizer.skipDelimiter("(");
+				Expression<Integer> repeats = parseIntegerExpression();
+				tokenizer.skipDelimiter(")");
+
+				return new Space(repeats);
+			}
+			else if (name.equals(KW.SUBSTRING.name())) {
+
+				tokenizer.skipDelimiter("(");
+				Expression<String> string = parseStringExpression();
+				tokenizer.skipDelimiter(",");
+				Expression<Integer> start = parseIntegerExpression();
+				tokenizer.skipDelimiter(",");
+				Expression<Integer> length = parseIntegerExpression();
+				tokenizer.skipDelimiter(")");
+
+				return new Substring(string, start, length);
+			}
+			else if (name.equals(KW.UPPER.name())) {
+
+				tokenizer.skipDelimiter("(");
+				Expression<String> string = parseStringExpression();
+				tokenizer.skipDelimiter(")");
+
+				return new Upper(string);
 			}
 			else {
 				throw new InputMismatchException("Unrecognized " + KW.VARCHAR.name() + " function: " + name);

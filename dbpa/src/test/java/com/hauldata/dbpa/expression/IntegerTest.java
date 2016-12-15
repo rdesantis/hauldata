@@ -20,6 +20,8 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoField;
 
 import com.hauldata.dbpa.expression.IntegerBinary.Operator;
+import com.hauldata.dbpa.expression.strings.CharIndex;
+import com.hauldata.dbpa.expression.strings.Length;
 
 import junit.framework.TestCase;
 
@@ -77,5 +79,58 @@ public class IntegerTest extends TestCase {
 
 		datepart = new IntegerFromDatetime(nullExpression, ChronoField.YEAR);
 		assertNull(datepart.evaluate());
+	}
+
+	public void testCharIndex() {
+
+		final StringConstant toSearch = new StringConstant("abcdefgabcdefg");
+		final StringConstant findable = new StringConstant("efg");
+		final StringConstant notFindable = new StringConstant("notme");
+		final StringConstant nullString = new StringConstant(null);
+
+		final IntegerConstant negativeOne = new IntegerConstant(-1);
+		final IntegerConstant eight = new IntegerConstant(8);
+		final IntegerConstant thirteen = new IntegerConstant(13);
+		final IntegerConstant sixteen = new IntegerConstant(16);
+		final IntegerConstant nullInteger = new IntegerConstant(null);
+
+		CharIndex charIndex;
+
+		charIndex = new CharIndex(findable, toSearch, null);
+		assertEquals((Integer)5, charIndex.evaluate());
+		charIndex = new CharIndex(findable, toSearch, negativeOne);
+		assertEquals((Integer)5, charIndex.evaluate());
+		charIndex = new CharIndex(findable, toSearch, eight);
+		assertEquals((Integer)12, charIndex.evaluate());
+		charIndex = new CharIndex(findable, toSearch, thirteen);
+		assertEquals((Integer)0, charIndex.evaluate());
+		charIndex = new CharIndex(findable, toSearch, sixteen);
+		assertEquals((Integer)0, charIndex.evaluate());
+
+		charIndex = new CharIndex(notFindable,toSearch, null);
+		assertEquals((Integer)0, charIndex.evaluate());
+
+		charIndex = new CharIndex(nullString, toSearch, null);
+		assertNull(charIndex.evaluate());
+		charIndex = new CharIndex(findable, nullString, null);
+		assertNull(charIndex.evaluate());
+		charIndex = new CharIndex(findable, toSearch, nullInteger);
+		assertNull(charIndex.evaluate());
+	}
+
+	public void testLength() {
+
+		final StringConstant fiveChars = new StringConstant("12345");
+		final StringConstant noChars = new StringConstant("");
+		final StringConstant nullString = new StringConstant(null);
+
+		Length length;
+
+		length = new Length(fiveChars);
+		assertEquals((Integer)5, length.evaluate());
+		length = new Length(noChars);
+		assertEquals((Integer)0, length.evaluate());
+		length = new Length(nullString);
+		assertNull(length.evaluate());
 	}
 }

@@ -378,19 +378,17 @@ public class JobsResourceTest extends TestCase {
 		catch (InterruptedException e) {}
 
 		// Analyze the job log.
-		// See DbProcessTest.testSchedule() for comprehensive log analysis code for this case.
+		// See TaskSetTest#testSchedule() for comprehensive log analysis code for this case.
 
 		Analyzer analyzer = JobManager.getInstance().getAnalyzer();
 		Analyzer.RecordIterator recordIterator = analyzer.recordIterator(jobName, taskName);
-		Analyzer.Record record;
 
-		record = recordIterator.next();
-		record = recordIterator.next();
-		record = recordIterator.next();
-		record = recordIterator.next();
-		// TODO: Still having trouble with Analyzer.  Seems like multiple copies of some log entries are getting written.
-		// The following line fails; there IS another matching record.
-		//assertFalse(recordIterator.hasNext());
+		recordIterator.next();
+		recordIterator.next();
+		recordIterator.next();
+		recordIterator.next();
+
+		assertFalse(recordIterator.hasNext());
 
 		// Delete the job so it doesn't run the next time the job manager is started.
 
