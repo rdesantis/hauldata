@@ -26,7 +26,7 @@ import java.sql.SQLException;
 import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.resources.JobsResource;
 import com.hauldata.dbpa.manage.resources.ManagerResource;
-import com.hauldata.dbpa.manage.resources.PropertiesFilesResource;
+import com.hauldata.dbpa.manage.resources.PropertiesGroupsResource;
 import com.hauldata.dbpa.manage.resources.SchedulesResource;
 import com.hauldata.dbpa.manage.resources.SchemaResource;
 import com.hauldata.dbpa.manage.resources.ScriptsResource;
@@ -71,7 +71,7 @@ public class ManageDbp extends Application<Configuration> {
 		final ManagerResource manager = new ManagerResource();
 		final SchemaResource schema = new SchemaResource();
 		final ScriptsResource scripts = new ScriptsResource();
-		final PropertiesFilesResource propFiles = new PropertiesFilesResource();
+		final PropertiesGroupsResource propFiles = new PropertiesGroupsResource();
 		final SchedulesResource schedules = new SchedulesResource();
 		final JobsResource jobs = new JobsResource();
 

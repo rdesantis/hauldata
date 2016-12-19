@@ -40,12 +40,14 @@ import javax.ws.rs.NotFoundException;
 
 import com.hauldata.dbpa.control.interfaces.Jobs;
 import com.hauldata.dbpa.control.interfaces.Manager;
+import com.hauldata.dbpa.control.interfaces.PropertiesGroups;
 import com.hauldata.dbpa.control.interfaces.Schedules;
 import com.hauldata.dbpa.control.interfaces.Schema;
 import com.hauldata.dbpa.control.interfaces.Scripts;
 import com.hauldata.dbpa.control.interfaces.Service;
 import com.hauldata.dbpa.manage_control.api.Job;
 import com.hauldata.dbpa.manage_control.api.JobRun;
+import com.hauldata.dbpa.manage_control.api.PropertiesGroup;
 import com.hauldata.dbpa.manage_control.api.ScriptArgument;
 import com.hauldata.util.tokenizer.BacktrackingTokenizer;
 import com.hauldata.util.tokenizer.EndOfLine;
@@ -132,6 +134,7 @@ public class ControlDbp {
 	static Manager manager;
 	static Schema schema;
 	static Scripts scripts;
+	static PropertiesGroups groups;
 	static Schedules schedules;
 	static Jobs jobs;
 	static Service service;
@@ -237,6 +240,7 @@ public class ControlDbp {
 			manager = (Manager)client.getResource(Manager.class);
 			schema = (Schema)client.getResource(Schema.class);
 			scripts = (Scripts)client.getResource(Scripts.class);
+			groups = (PropertiesGroups)client.getResource(PropertiesGroups.class);
 			schedules = (Schedules)client.getResource(Schedules.class);
 			jobs = (Jobs)client.getResource(Jobs.class);
 			service = (Service)client.getResource(Service.class);
@@ -427,27 +431,41 @@ public class ControlDbp {
 		}
 	}
 
-	static class PutPropertiesCommand implements TransitiveCommand {
+	static class PutPropertiesCommand extends StandardNamedObjectCommand {
 
 		@Override
-		public boolean supportsPlural() { return false; }
+		protected String execute(String name) {
 
-		@Override
-		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
-			// TODO: Must implement!
-			throw new InputMismatchException("Command is not implemented");
+			PropertiesGroup group;
+
+			try {
+				group = PropertiesGroup.load(name);
+
+			} catch (IOException ex) {
+				throw new NotFoundException("Error reading properties file: " + ex.getLocalizedMessage());
+			}
+
+			groups.put(name, group);
+
+			return String.format("%s files sent for group $s: %s\n", KW.PROPERTIES.name(), name, group.getGroup().keySet().toString());
 		}
 	}
 
-	static class GetPropertiesCommand implements TransitiveCommand {
+	static class GetPropertiesCommand extends StandardNamedObjectCommand {
 
 		@Override
-		public boolean supportsPlural() { return false; }
+		protected String execute(String name) {
 
-		@Override
-		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
-			// TODO: Must implement!
-			throw new InputMismatchException("Command is not implemented");
+			PropertiesGroup group = groups.get(name);
+
+			try {
+				group.store(name);
+
+			} catch (IOException ex) {
+				throw new NotFoundException("Error writing properties file: " + ex.getLocalizedMessage());
+			}
+
+			return String.format("%s files received for group $s: %s\n", KW.PROPERTIES.name(), name, group.getGroup().keySet().toString());
 		}
 	}
 
@@ -455,20 +473,15 @@ public class ControlDbp {
 
 		@Override
 		protected void delete(String name) {
-			// TODO: Must implement!
-			throw new InputMismatchException("Command is not implemented");
+			groups.delete(name);
 		}
 	}
 
-	static class ListPropertiesCommand implements TransitiveCommand {
+	static class ListPropertiesCommand extends StandardListCommand {
 
 		@Override
-		public boolean supportsPlural() { return true; }
-
-		@Override
-		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
-			// TODO: Must implement!
-			throw new InputMismatchException("Command is not implemented");
+		protected Collection<?> getObjects(String likeName) {
+			return groups.getNames(likeName);
 		}
 	}
 

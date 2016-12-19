@@ -21,6 +21,7 @@ import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.util.Properties;
 
+import com.hauldata.dbpa.DBPA;
 import com.hauldata.dbpa.loader.FileLoader;
 import com.hauldata.dbpa.loader.Loader;
 import com.hauldata.dbpa.log.ConsoleAppender;
@@ -40,14 +41,6 @@ public class ContextProperties {
 	private Properties pathProps;
 	private Properties logProps;
 
-	private static final String dbpaHomeName = "DBPA_HOME";
-	private static final String dbpaHome;
-
-	static {
-		String dbpaHomeValue = System.getenv(dbpaHomeName);
-		dbpaHome = (dbpaHomeValue != null) ? dbpaHomeValue : ".";
-	}
-
 	private ContextProperties() {
 
 		contextName = null;
@@ -63,9 +56,9 @@ public class ContextProperties {
 
 		Properties props = new Properties();
 		// Don't set "read" or "write" defaults.  If either of these is missing, the "data" default will be used.
-		props.setProperty("data", dbpaHome);
-		props.setProperty("process", dbpaHome);
-		props.setProperty("log", dbpaHome);
+		props.setProperty("data", DBPA.home);
+		props.setProperty("process", DBPA.home);
+		props.setProperty("log", DBPA.home);
 		return props;
 	}
 
@@ -117,7 +110,7 @@ public class ContextProperties {
 	 * Return properties that apply to the indicated usage in this context.
 	 * If this ContextProperties object was created with the constructor that
 	 * specifies defaults, the defaults are ignored by this function.
-	 * 
+	 *
 	 * @param usage is the usage for the properties
 	 * @return the properties
 	 */
@@ -130,7 +123,7 @@ public class ContextProperties {
 		Properties props = (defaults != null) ? new Properties(defaults) : new Properties();
 
 		String fileName = contextName + "." + usage + ".properties";
-		Path path = Files.getPath(dbpaHome, fileName); 
+		Path path = Files.getPath(DBPA.home, fileName);
 
 		FileInputStream in = null;
 		try {
@@ -154,12 +147,12 @@ public class ContextProperties {
 
 	private String getPathname(String usage) {
 		// Defensive: The == null path should never execute because of how ContextProperties() default constructor is defined.
-		return (pathProps != null) ? pathProps.getProperty(usage, ".") : dbpaHome;
+		return (pathProps != null) ? pathProps.getProperty(usage, ".") : DBPA.home;
 	}
 
 	private Logger setupLog(String processID, Context context) {
-		
-		String logTypeList = (logProps != null) ? logProps.getProperty("type") : null; 
+
+		String logTypeList = (logProps != null) ? logProps.getProperty("type") : null;
 		if ((logTypeList == null) || logTypeList.equals("null")) {
 			return NullLogger.logger;
 		}
@@ -167,7 +160,7 @@ public class ContextProperties {
 		try {
 			String loggerLevelName = (logProps != null) ? logProps.getProperty("level") : null;
 			Logger.Level level = (loggerLevelName != null) ? Logger.Level.valueOf(loggerLevelName) : Logger.Level.values()[0];
-			
+
 			RootLogger log = new RootLogger(processID, level);
 
 			String[] logTypes = logTypeList.split(",");

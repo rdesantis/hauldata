@@ -12,6 +12,7 @@
 	<modules>
 		<module>util</module>
 		<module>dbpa</module>
+		<module>dbpa-common</module>
 		<module>dbpa-run</module>
 		<module>dbpa-manage</module>
 		<module>dbpa-control</module>

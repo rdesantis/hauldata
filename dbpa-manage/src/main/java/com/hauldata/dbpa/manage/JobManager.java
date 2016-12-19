@@ -30,6 +30,7 @@ import java.util.Properties;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
+import com.hauldata.dbpa.DBPA;
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.manage.JobManagerException;
 import com.hauldata.dbpa.manage_control.api.Job;
@@ -49,7 +50,6 @@ import com.hauldata.dbpa.process.DbProcess;
 public class JobManager {
 
 	private static final String managerProgramName = "ManageDbp";
-	private static final String jobProgramName = "RunDbp";
 
 	private static JobManager manager;
 
@@ -129,7 +129,7 @@ public class JobManager {
 
 		// Job default context properties.
 
-		jobContextProps = new ContextProperties(jobProgramName);
+		jobContextProps = new ContextProperties(DBPA.runProgramName);
 
 		// Manager context.
 
@@ -293,7 +293,7 @@ public class JobManager {
 
 		ContextProperties props =
 				(job.getPropName() == null) ? jobContextProps :
-				new ContextProperties(job.getPropName() + "/" + jobProgramName, jobContextProps);
+				new ContextProperties(job.getPropName() + "/" + DBPA.runProgramName, jobContextProps);
 
 		jobContext = props.createContext(jobName);
 
