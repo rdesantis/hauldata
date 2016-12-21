@@ -203,6 +203,7 @@ abstract class TaskSetParser {
 
 		ISNULL,
 		IIF,
+		CHOOSE,
 		DATEPART,
 		YEAR,
 		MONTH,
@@ -309,6 +310,10 @@ abstract class TaskSetParser {
 	protected TermParser<LocalDateTime> datetimeTermParser;
 
 	protected Map<String, TaskParser> taskParsers;
+
+	protected Map<String, FunctionParser<Integer>> integerFunctionParsers;
+	protected Map<String, FunctionParser<String>> stringFunctionParsers;
+	protected Map<String, FunctionParser<LocalDateTime>> datetimeFunctionParsers;
 
 	// Parse-time through run-time data
 
@@ -425,9 +430,9 @@ abstract class TaskSetParser {
 
 		tokenizer.eolIsSignificant(false);
 
-		integerTermParser = new TermParser<Integer>() { public Expression<Integer> parseExpression() throws IOException { return parseIntegerExpression(); } };
-		stringTermParser = new TermParser<String>() { public Expression<String> parseExpression() throws IOException { return parseStringExpression(); } };
-		datetimeTermParser = new TermParser<LocalDateTime>() { public Expression<LocalDateTime> parseExpression() throws IOException { return parseDatetimeExpression(); } };
+		integerTermParser = new TermParser<Integer>(VariableType.INTEGER) { public Expression<Integer> parseExpression() throws IOException { return parseIntegerExpression(); } };
+		stringTermParser = new TermParser<String>(VariableType.VARCHAR) { public Expression<String> parseExpression() throws IOException { return parseStringExpression(); } };
+		datetimeTermParser = new TermParser<LocalDateTime>(VariableType.DATETIME) { public Expression<LocalDateTime> parseExpression() throws IOException { return parseDatetimeExpression(); } };
 
 		taskParsers = new HashMap<String, TaskParser>();
 
@@ -467,6 +472,36 @@ abstract class TaskSetParser {
 			taskParsers.put(notImplemented.name(), new NotImplementedTaskParser(notImplemented));
 		}
 
+		integerFunctionParsers = new HashMap<String, FunctionParser<Integer>>();
+		integerFunctionParsers.put(KW.ISNULL.name(), new IsNullParser<Integer>(integerTermParser));
+		integerFunctionParsers.put(KW.IIF.name(), new IfParser<Integer>(integerTermParser));
+		integerFunctionParsers.put(KW.DATEPART.name(), new DatePartParser());
+		integerFunctionParsers.put(KW.CHARINDEX.name(), new CharIndexParser());
+		integerFunctionParsers.put(KW.LEN.name(), new LengthParser());
+
+		stringFunctionParsers = new HashMap<String, FunctionParser<String>>();
+		stringFunctionParsers.put(KW.ISNULL.name(), new IsNullParser<String>(stringTermParser));
+		stringFunctionParsers.put(KW.IIF.name(), new IfParser<String>(stringTermParser));
+		stringFunctionParsers.put(KW.FORMAT.name(), new FormatParser());
+		stringFunctionParsers.put(KW.LEFT.name(), new LeftParser());
+		stringFunctionParsers.put(KW.LTRIM.name(), new LeftTrimParser());
+		stringFunctionParsers.put(KW.LOWER.name(), new LowerParser());
+		stringFunctionParsers.put(KW.REPLACE.name(), new ReplaceParser());
+		stringFunctionParsers.put(KW.REPLICATE.name(), new ReplicateParser());
+		stringFunctionParsers.put(KW.RIGHT.name(), new RightParser());
+		stringFunctionParsers.put(KW.RTRIM.name(), new RightTrimParser());
+		stringFunctionParsers.put(KW.SPACE.name(), new SpaceParser());
+		stringFunctionParsers.put(KW.SUBSTRING.name(), new SubstringParser());
+		stringFunctionParsers.put(KW.UPPER.name(), new UpperParser());
+
+		datetimeFunctionParsers = new HashMap<String, FunctionParser<LocalDateTime>>();
+		datetimeFunctionParsers.put(KW.ISNULL.name(), new IsNullParser<LocalDateTime>(datetimeTermParser));
+		datetimeFunctionParsers.put(KW.IIF.name(), new IfParser<LocalDateTime>(datetimeTermParser));
+		datetimeFunctionParsers.put(KW.GETDATE.name(), new GetDateParser());
+		datetimeFunctionParsers.put(KW.DATEADD.name(), new DateAddParser());
+		datetimeFunctionParsers.put(KW.DATEFROMPARTS.name(), new DateFromPartsParser());
+		datetimeFunctionParsers.put(KW.DATETIMEFROMPARTS.name(), new DateTimeFromPartsParser());
+
 		CsvFile.registerHandler(KW.CSV.name());
 		TsvFile.registerHandler(KW.TSV.name());
 		TxtFile.registerHandler(KW.TXT.name());
@@ -479,16 +514,28 @@ abstract class TaskSetParser {
 		stringTermParser = null;
 		datetimeTermParser = null;
 
+		taskParsers = null;
+
+		integerFunctionParsers = null;
+		stringFunctionParsers = null;
+		datetimeFunctionParsers = null;
+
 		tokenizer.close();
 		tokenizer = null;
 	}
 
 	private void reuseParsing(TaskSetParser parent) {
 		this.tokenizer = parent.tokenizer;
+
 		this.integerTermParser = parent.integerTermParser;
 		this.stringTermParser = parent.stringTermParser;
 		this.datetimeTermParser = parent.datetimeTermParser;
+
 		this.taskParsers = parent.taskParsers;
+
+		this.integerFunctionParsers = parent.integerFunctionParsers;
+		this.stringFunctionParsers = parent.stringFunctionParsers;
+		this.datetimeFunctionParsers = parent.datetimeFunctionParsers;
 	}
 
 	interface TaskParser {
@@ -1967,62 +2014,21 @@ abstract class TaskSetParser {
 		else if (hasNextFunction()) {
 			String name = tokenizer.nextWordUpperCase();
 
-			if (name.equals(KW.ISNULL.name())) {
-				return integerTermParser.parseIsNull(VariableType.INTEGER);
-			}
-			else if (name.equals(KW.IIF.name())) {
-				return integerTermParser.parseIf();
-			}
-			else if (name.equals(KW.DATEPART.name())) {
+			FunctionParser<Integer> functionParser = integerFunctionParsers.get(name);
+			if (functionParser != null) {
 
 				tokenizer.skipDelimiter("(");
-				ChronoField field =
-						tokenizer.skipWordIgnoreCase(KW.YEAR.name()) ? ChronoField.YEAR :
-						tokenizer.skipWordIgnoreCase(KW.MONTH.name()) ? ChronoField.MONTH_OF_YEAR :
-						tokenizer.skipWordIgnoreCase(KW.DAY.name()) ? ChronoField.DAY_OF_MONTH :
-						tokenizer.skipWordIgnoreCase(KW.WEEKDAY.name()) ? ChronoField.DAY_OF_WEEK :
-						tokenizer.skipWordIgnoreCase(KW.HOUR.name()) ? ChronoField.HOUR_OF_DAY :
-						tokenizer.skipWordIgnoreCase(KW.MINUTE.name()) ? ChronoField.MINUTE_OF_HOUR :
-						tokenizer.skipWordIgnoreCase(KW.SECOND.name()) ? ChronoField.SECOND_OF_MINUTE :
-						null;
-				if (field == null) {
-					throw new InputMismatchException("Unrecognized date part name for " + KW.DATEPART.name());
-				}
-
-				tokenizer.skipDelimiter(",");
-				Expression<LocalDateTime> datetime = parseDatetimeExpression();
+				Expression<Integer> result = functionParser.parse();
 				tokenizer.skipDelimiter(")");
 
-				return new IntegerFromDatetime(datetime, field);
-			}
-			else if (name.equals(KW.CHARINDEX.name())) {
-
-				tokenizer.skipDelimiter("(");
-				Expression<String> toFind = parseStringExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<String> toSearch = parseStringExpression();
-				Expression<Integer> startIndex = null;
-				if (tokenizer.skipDelimiter(",")) {
-					startIndex = parseIntegerExpression();
-				}
-				tokenizer.skipDelimiter(")");
-
-				return new CharIndex(toFind, toSearch, startIndex);
-			}
-			else if (name.equals(KW.LEN.name())) {
-
-				tokenizer.skipDelimiter("(");
-				Expression<String> string = parseStringExpression();
-				tokenizer.skipDelimiter(")");
-
-				return new Length(string);
+				return result;
 			}
 			else {
 				throw new InputMismatchException("Unrecognized " + KW.INTEGER.name() + " function: " + name);
 			}
 		}
 		else if (hasNextVariable()) {
-			return integerTermParser.parseReference(VariableType.INTEGER);
+			return integerTermParser.parseReference();
 		}
 		else if (tokenizer.skipDelimiter("(")) {
 			return integerTermParser.parseParenthesized();
@@ -2032,7 +2038,57 @@ abstract class TaskSetParser {
 		}
 	}
 
-	Expression<String> parseStringExpression() throws IOException {
+	private class DatePartParser implements FunctionParser<Integer> {
+
+		public Expression<Integer> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			ChronoField field =
+					tokenizer.skipWordIgnoreCase(KW.YEAR.name()) ? ChronoField.YEAR :
+					tokenizer.skipWordIgnoreCase(KW.MONTH.name()) ? ChronoField.MONTH_OF_YEAR :
+					tokenizer.skipWordIgnoreCase(KW.DAY.name()) ? ChronoField.DAY_OF_MONTH :
+					tokenizer.skipWordIgnoreCase(KW.WEEKDAY.name()) ? ChronoField.DAY_OF_WEEK :
+					tokenizer.skipWordIgnoreCase(KW.HOUR.name()) ? ChronoField.HOUR_OF_DAY :
+					tokenizer.skipWordIgnoreCase(KW.MINUTE.name()) ? ChronoField.MINUTE_OF_HOUR :
+					tokenizer.skipWordIgnoreCase(KW.SECOND.name()) ? ChronoField.SECOND_OF_MINUTE :
+					null;
+			if (field == null) {
+				throw new InputMismatchException("Unrecognized date part name for " + KW.DATEPART.name());
+			}
+
+			tokenizer.skipDelimiter(",");
+			Expression<LocalDateTime> datetime = parseDatetimeExpression();
+
+			return new IntegerFromDatetime(datetime, field);
+		}
+	}
+
+	private class CharIndexParser implements FunctionParser<Integer> {
+
+		public Expression<Integer> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<String> toFind = parseStringExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<String> toSearch = parseStringExpression();
+			Expression<Integer> startIndex = null;
+			if (tokenizer.skipDelimiter(",")) {
+				startIndex = parseIntegerExpression();
+			}
+
+			return new CharIndex(toFind, toSearch, startIndex);
+		}
+	}
+
+	private class LengthParser implements FunctionParser<Integer> {
+
+		public Expression<Integer> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<String> string = parseStringExpression();
+
+			return new Length(string);
+		}
+	}
+
+	private Expression<String> parseStringExpression() throws IOException {
 
 		Expression<String> left = parseStringTerm();
 		while (tokenizer.skipDelimiter("+")) {
@@ -2042,7 +2098,6 @@ abstract class TaskSetParser {
 		return left;
 	}
 
-	@SuppressWarnings("unchecked")
 	private Expression<String> parseStringTerm()
 			throws InputMismatchException, NoSuchElementException, IOException {
 
@@ -2055,130 +2110,21 @@ abstract class TaskSetParser {
 		else if (hasNextFunction()) {
 			String name = tokenizer.nextWordUpperCase();
 
-			if (name.equals(KW.ISNULL.name())) {
-				return stringTermParser.parseIsNull(VariableType.VARCHAR);
-			}
-			else if (name.equals(KW.IIF.name())) {
-				return stringTermParser.parseIf();
-			}
-			else if (name.equals(KW.FORMAT.name())) {
+			FunctionParser<String> functionParser = stringFunctionParsers.get(name);
+			if (functionParser != null) {
 
 				tokenizer.skipDelimiter("(");
-				ExpressionBase source = parseFormatableExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<String> format = parseStringExpression();
+				Expression<String> result = functionParser.parse();
 				tokenizer.skipDelimiter(")");
 
-				if (source.getType() == VariableType.INTEGER) {
-					return new StringFromInteger((Expression<Integer>)source, format);
-				}
-				else if (source.getType() == VariableType.DATETIME) {
-					return new StringFromDatetime((Expression<LocalDateTime>)source, format);
-				}
-				else {
-					throw new InputMismatchException("Internal error - unsupported argument type for " + KW.FORMAT.name());
-				}
-			}
-			else if (name.equals(KW.LEFT.name())) {
-
-				tokenizer.skipDelimiter("(");
-				Expression<String> string = parseStringExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<Integer> length = parseIntegerExpression();
-				tokenizer.skipDelimiter(")");
-
-				return new Left(string, length);
-			}
-			else if (name.equals(KW.LTRIM.name())) {
-
-				tokenizer.skipDelimiter("(");
-				Expression<String> string = parseStringExpression();
-				tokenizer.skipDelimiter(")");
-
-				return new LeftTrim(string);
-			}
-			else if (name.equals(KW.LOWER.name())) {
-
-				tokenizer.skipDelimiter("(");
-				Expression<String> string = parseStringExpression();
-				tokenizer.skipDelimiter(")");
-
-				return new Lower(string);
-			}
-			else if (name.equals(KW.REPLACE.name())) {
-
-				tokenizer.skipDelimiter("(");
-				Expression<String> string = parseStringExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<String> pattern = parseStringExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<String> replacement = parseStringExpression();
-				tokenizer.skipDelimiter(")");
-
-				return new Replace(string, pattern, replacement);
-			}
-			else if (name.equals(KW.REPLICATE.name())) {
-
-				tokenizer.skipDelimiter("(");
-				Expression<String> string = parseStringExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<Integer> repeats = parseIntegerExpression();
-				tokenizer.skipDelimiter(")");
-
-				return new Replicate(string, repeats);
-			}
-			else if (name.equals(KW.RIGHT.name())) {
-
-				tokenizer.skipDelimiter("(");
-				Expression<String> string = parseStringExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<Integer> length = parseIntegerExpression();
-				tokenizer.skipDelimiter(")");
-
-				return new Right(string, length);
-			}
-			else if (name.equals(KW.RTRIM.name())) {
-
-				tokenizer.skipDelimiter("(");
-				Expression<String> string = parseStringExpression();
-				tokenizer.skipDelimiter(")");
-
-				return new RightTrim(string);
-			}
-			else if (name.equals(KW.SPACE.name())) {
-
-				tokenizer.skipDelimiter("(");
-				Expression<Integer> repeats = parseIntegerExpression();
-				tokenizer.skipDelimiter(")");
-
-				return new Space(repeats);
-			}
-			else if (name.equals(KW.SUBSTRING.name())) {
-
-				tokenizer.skipDelimiter("(");
-				Expression<String> string = parseStringExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<Integer> start = parseIntegerExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<Integer> length = parseIntegerExpression();
-				tokenizer.skipDelimiter(")");
-
-				return new Substring(string, start, length);
-			}
-			else if (name.equals(KW.UPPER.name())) {
-
-				tokenizer.skipDelimiter("(");
-				Expression<String> string = parseStringExpression();
-				tokenizer.skipDelimiter(")");
-
-				return new Upper(string);
+				return result;
 			}
 			else {
 				throw new InputMismatchException("Unrecognized " + KW.VARCHAR.name() + " function: " + name);
 			}
 		}
 		else if (hasNextVariable()) {
-			return stringTermParser.parseReference(VariableType.VARCHAR);
+			return stringTermParser.parseReference();
 		}
 		else if (tokenizer.skipDelimiter("(")) {
 			return stringTermParser.parseParenthesized();
@@ -2188,7 +2134,142 @@ abstract class TaskSetParser {
 		}
 	}
 
-	Expression<LocalDateTime> parseDatetimeExpression()
+	private class FormatParser implements FunctionParser<String> {
+
+		@SuppressWarnings("unchecked")
+		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			ExpressionBase source = parseFormatableExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<String> format = parseStringExpression();
+
+			if (source.getType() == VariableType.INTEGER) {
+				return new StringFromInteger((Expression<Integer>)source, format);
+			}
+			else if (source.getType() == VariableType.DATETIME) {
+				return new StringFromDatetime((Expression<LocalDateTime>)source, format);
+			}
+			else {
+				throw new InputMismatchException("Internal error - unsupported argument type for " + KW.FORMAT.name());
+			}
+		}
+	}
+
+	private class LeftParser implements FunctionParser<String> {
+
+		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<String> string = parseStringExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<Integer> length = parseIntegerExpression();
+
+			return new Left(string, length);
+		}
+	}
+
+	private class LeftTrimParser implements FunctionParser<String> {
+
+		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<String> string = parseStringExpression();
+
+			return new LeftTrim(string);
+		}
+	}
+
+	private class LowerParser implements FunctionParser<String> {
+
+		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<String> string = parseStringExpression();
+
+			return new Lower(string);
+		}
+	}
+
+	private class ReplaceParser implements FunctionParser<String> {
+
+		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<String> string = parseStringExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<String> pattern = parseStringExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<String> replacement = parseStringExpression();
+
+			return new Replace(string, pattern, replacement);
+		}
+	}
+
+	private class ReplicateParser implements FunctionParser<String> {
+
+		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<String> string = parseStringExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<Integer> repeats = parseIntegerExpression();
+
+			return new Replicate(string, repeats);
+		}
+	}
+
+	private class RightParser implements FunctionParser<String> {
+
+		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<String> string = parseStringExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<Integer> length = parseIntegerExpression();
+
+			return new Right(string, length);
+		}
+	}
+
+	private class RightTrimParser implements FunctionParser<String> {
+
+		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<String> string = parseStringExpression();
+
+			return new RightTrim(string);
+		}
+	}
+
+	private class SpaceParser implements FunctionParser<String> {
+
+		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<Integer> repeats = parseIntegerExpression();
+
+			return new Space(repeats);
+		}
+	}
+
+	private class SubstringParser implements FunctionParser<String> {
+
+		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<String> string = parseStringExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<Integer> start = parseIntegerExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<Integer> length = parseIntegerExpression();
+
+			return new Substring(string, start, length);
+		}
+	}
+
+	private class UpperParser implements FunctionParser<String> {
+
+		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<String> string = parseStringExpression();
+
+			return new Upper(string);
+		}
+	}
+
+	private Expression<LocalDateTime> parseDatetimeExpression()
 			throws InputMismatchException, NoSuchElementException, IOException {
 
 		if (tokenizer.skipWordIgnoreCase(KW.NULL.name())) {
@@ -2198,70 +2279,14 @@ abstract class TaskSetParser {
 			BacktrackingTokenizerMark mark = tokenizer.mark();
 			String name = tokenizer.nextWordUpperCase();
 
-			if (name.equals(KW.ISNULL.name())) {
-				return datetimeTermParser.parseIsNull(VariableType.DATETIME);
-			}
-			else if (name.equals(KW.IIF.name())) {
-				return datetimeTermParser.parseIf();
-			}
-			else if (name.equals(KW.GETDATE.name())) {
-				tokenizer.skipDelimiter("(");
-				tokenizer.skipDelimiter(")");
-				return new DatetimeNullary();
-			}
-			else if (name.equals(KW.DATEADD.name())) {
+			FunctionParser<LocalDateTime> functionParser = datetimeFunctionParsers.get(name);
+			if (functionParser != null) {
 
 				tokenizer.skipDelimiter("(");
-				ChronoUnit unit =
-						tokenizer.skipWordIgnoreCase(KW.YEAR.name()) ? ChronoUnit.YEARS :
-						tokenizer.skipWordIgnoreCase(KW.MONTH.name()) ? ChronoUnit.MONTHS :
-						tokenizer.skipWordIgnoreCase(KW.DAY.name()) ? ChronoUnit.DAYS :
-						tokenizer.skipWordIgnoreCase(KW.HOUR.name()) ? ChronoUnit.HOURS :
-						tokenizer.skipWordIgnoreCase(KW.MINUTE.name()) ? ChronoUnit.MINUTES :
-						tokenizer.skipWordIgnoreCase(KW.SECOND.name()) ? ChronoUnit.SECONDS :
-						null;
-				if (unit == null) {
-					throw new InputMismatchException("Unrecognized date part name for " + KW.DATEADD.name());
-				}
-
-				tokenizer.skipDelimiter(",");
-				Expression<Integer> increment = parseIntegerExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<LocalDateTime> datetime = parseDatetimeExpression();
+				Expression<LocalDateTime> result = functionParser.parse();
 				tokenizer.skipDelimiter(")");
 
-				return new DatetimeAdd(datetime, unit, increment);
-			}
-			else if (name.equals(KW.DATEFROMPARTS.name())) {
-
-				tokenizer.skipDelimiter("(");
-				Expression<Integer> year = parseIntegerExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<Integer> month = parseIntegerExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<Integer> day = parseIntegerExpression();
-				tokenizer.skipDelimiter(")");
-
-				return new DateFromParts(year, month, day);
-			}
-			else if (name.equals(KW.DATETIMEFROMPARTS.name())) {
-
-				tokenizer.skipDelimiter("(");
-				Expression<Integer> year = parseIntegerExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<Integer> month = parseIntegerExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<Integer> day = parseIntegerExpression();
-				Expression<Integer> hour = parseIntegerExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<Integer> minute = parseIntegerExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<Integer> seconds = parseIntegerExpression();
-				tokenizer.skipDelimiter(",");
-				Expression<Integer> milliseconds = parseIntegerExpression();
-				tokenizer.skipDelimiter(")");
-
-				return new DatetimeFromParts(year, month, day, hour, minute, seconds, milliseconds);
+				return result;
 			}
 			else {
 				// Could be a string function
@@ -2292,11 +2317,78 @@ abstract class TaskSetParser {
 			catch (Exception ex) { tokenizer.reset(mark); }
 
 			if (hasNextVariable()) {
-				return datetimeTermParser.parseReference(VariableType.DATETIME);
+				return datetimeTermParser.parseReference();
 			}
 			else {
 				throw new InputMismatchException("Invalid " + KW.DATETIME.name() + " expression term: " + tokenizer.nextToken().render());
 			}
+		}
+	}
+
+	private class GetDateParser implements FunctionParser<LocalDateTime> {
+
+		public Expression<LocalDateTime> parse() throws InputMismatchException, NoSuchElementException, IOException {
+			return new DatetimeNullary();
+		}
+	}
+
+	private class DateAddParser implements FunctionParser<LocalDateTime> {
+
+		public Expression<LocalDateTime> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			ChronoUnit unit =
+					tokenizer.skipWordIgnoreCase(KW.YEAR.name()) ? ChronoUnit.YEARS :
+					tokenizer.skipWordIgnoreCase(KW.MONTH.name()) ? ChronoUnit.MONTHS :
+					tokenizer.skipWordIgnoreCase(KW.DAY.name()) ? ChronoUnit.DAYS :
+					tokenizer.skipWordIgnoreCase(KW.HOUR.name()) ? ChronoUnit.HOURS :
+					tokenizer.skipWordIgnoreCase(KW.MINUTE.name()) ? ChronoUnit.MINUTES :
+					tokenizer.skipWordIgnoreCase(KW.SECOND.name()) ? ChronoUnit.SECONDS :
+					null;
+			if (unit == null) {
+				throw new InputMismatchException("Unrecognized date part name for " + KW.DATEADD.name());
+			}
+
+			tokenizer.skipDelimiter(",");
+			Expression<Integer> increment = parseIntegerExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<LocalDateTime> datetime = parseDatetimeExpression();
+
+			return new DatetimeAdd(datetime, unit, increment);
+		}
+	}
+
+	private class DateFromPartsParser implements FunctionParser<LocalDateTime> {
+
+		public Expression<LocalDateTime> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<Integer> year = parseIntegerExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<Integer> month = parseIntegerExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<Integer> day = parseIntegerExpression();
+
+			return new DateFromParts(year, month, day);
+		}
+	}
+
+	private class DateTimeFromPartsParser implements FunctionParser<LocalDateTime> {
+
+		public Expression<LocalDateTime> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<Integer> year = parseIntegerExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<Integer> month = parseIntegerExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<Integer> day = parseIntegerExpression();
+			Expression<Integer> hour = parseIntegerExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<Integer> minute = parseIntegerExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<Integer> seconds = parseIntegerExpression();
+			tokenizer.skipDelimiter(",");
+			Expression<Integer> milliseconds = parseIntegerExpression();
+
+			return new DatetimeFromParts(year, month, day, hour, minute, seconds, milliseconds);
 		}
 	}
 
@@ -2331,17 +2423,53 @@ abstract class TaskSetParser {
 		return result;
 	}
 
+	interface FunctionParser<Type> {
+		Expression<Type> parse() throws InputMismatchException, NoSuchElementException, IOException;
+	}
+
+	class IsNullParser<Type> implements FunctionParser<Type> {
+
+		private TermParser<Type> termParser;
+
+		public IsNullParser(TermParser<Type> termParser) {
+			this.termParser = termParser;
+		}
+
+		@Override
+		public Expression<Type> parse() throws InputMismatchException, NoSuchElementException, IOException {
+			return termParser.parseIsNull();
+		}
+	}
+
+	class IfParser<Type> implements FunctionParser<Type> {
+
+		private TermParser<Type> termParser;
+
+		public IfParser(TermParser<Type> termParser) {
+			this.termParser = termParser;
+		}
+
+		@Override
+		public Expression<Type> parse() throws InputMismatchException, NoSuchElementException, IOException {
+			return termParser.parseIf();
+		}
+	}
+
 	abstract class TermParser<Type> {
+
+		private VariableType type;
+
+		public TermParser(VariableType type) {
+			this.type = type;
+		}
 
 		public abstract Expression<Type> parseExpression() throws IOException;
 
-		public Expression<Type> parseIsNull(VariableType type) throws IOException {
+		public Expression<Type> parseIsNull() throws IOException {
 
-			tokenizer.skipDelimiter("(");
 			Expression<Type> left = parseExpression();
 			tokenizer.skipDelimiter(",");
 			Expression<Type> right = parseExpression();
-			tokenizer.skipDelimiter(")");
 
 			return new NullReplace<Type>(left, right);
 		}
@@ -2349,18 +2477,16 @@ abstract class TaskSetParser {
 		public Expression<Type> parseIf()
 				throws InputMismatchException, NoSuchElementException, IOException {
 
-			tokenizer.skipDelimiter("(");
 			Expression<Boolean> condition = parseBooleanExpression();
 			tokenizer.skipDelimiter(",");
 			Expression<Type> left = parseExpression();
 			tokenizer.skipDelimiter(",");
 			Expression<Type> right = parseExpression();
-			tokenizer.skipDelimiter(")");
 
 			return new IfExpression<Type>(condition, left, right);
 		}
 
-		public Expression<Type> parseReference(VariableType type)
+		public Expression<Type> parseReference()
 				throws InputMismatchException, NoSuchElementException, IOException {
 
 			Variable<Type> variable = parseVariable(type);
