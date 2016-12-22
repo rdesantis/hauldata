@@ -18,7 +18,13 @@ package com.hauldata.dbpa.expression;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoField;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.AbstractMap.SimpleEntry;
 
+import com.hauldata.dbpa.expression.Expression.Comparison;
 import com.hauldata.dbpa.expression.IntegerBinary.Operator;
 import com.hauldata.dbpa.expression.strings.CharIndex;
 import com.hauldata.dbpa.expression.strings.Length;
@@ -132,5 +138,108 @@ public class IntegerTest extends TestCase {
 		assertEquals((Integer)0, length.evaluate());
 		length = new Length(nullString);
 		assertNull(length.evaluate());
+	}
+
+	public void testSearchedCase() {
+
+		final IntegerConstant zero = new IntegerConstant(0);
+		final IntegerConstant one = new IntegerConstant(1);
+		final IntegerConstant two = new IntegerConstant(2);
+		final IntegerConstant three = new IntegerConstant(3);
+		final IntegerConstant four = new IntegerConstant(4);
+		final IntegerConstant nullInteger = new IntegerConstant(null);
+
+		final Expression<Boolean> yes = new BooleanFromIntegers(one, one, Comparison.eq);
+		final Expression<Boolean> no = new BooleanFromIntegers(zero, one, Comparison.eq);
+
+		SearchedCase<Integer> searchedCase;
+
+		List<Map.Entry<Expression<Boolean>, Expression<Integer>>> whenClauses;
+
+		whenClauses = new ArrayList<Entry<Expression<Boolean>, Expression<Integer>>>();
+		whenClauses.add(new SimpleEntry<Expression<Boolean>, Expression<Integer>>(no, two));
+		whenClauses.add(new SimpleEntry<Expression<Boolean>, Expression<Integer>>(yes, three));
+		searchedCase = new SearchedCase<Integer>(whenClauses, null);
+		assertEquals((Integer)3, searchedCase.evaluate());
+
+		whenClauses = new ArrayList<Entry<Expression<Boolean>, Expression<Integer>>>();
+		whenClauses.add(new SimpleEntry<Expression<Boolean>, Expression<Integer>>(no, two));
+		whenClauses.add(new SimpleEntry<Expression<Boolean>, Expression<Integer>>(no, three));
+		searchedCase = new SearchedCase<Integer>(whenClauses, four);
+		assertEquals((Integer)4, searchedCase.evaluate());
+
+		whenClauses = new ArrayList<Entry<Expression<Boolean>, Expression<Integer>>>();
+		whenClauses.add(new SimpleEntry<Expression<Boolean>, Expression<Integer>>(yes, nullInteger));
+		whenClauses.add(new SimpleEntry<Expression<Boolean>, Expression<Integer>>(no, three));
+		searchedCase = new SearchedCase<Integer>(whenClauses, four);
+		assertNull(searchedCase.evaluate());
+	}
+
+	public void testSimpleCase() {
+
+		final IntegerConstant zero = new IntegerConstant(0);
+		final IntegerConstant one = new IntegerConstant(1);
+		final IntegerConstant two = new IntegerConstant(2);
+		final IntegerConstant three = new IntegerConstant(3);
+		final IntegerConstant four = new IntegerConstant(4);
+		final IntegerConstant five = new IntegerConstant(5);
+		final IntegerConstant nullInteger = new IntegerConstant(null);
+
+		SimpleCase<Integer> simpleCase;
+
+		List<Map.Entry<ExpressionBase, Expression<Integer>>> whenClauses;
+
+		whenClauses = new ArrayList<Entry<ExpressionBase, Expression<Integer>>>();
+		whenClauses.add(new SimpleEntry<ExpressionBase, Expression<Integer>>(one, three));
+		whenClauses.add(new SimpleEntry<ExpressionBase, Expression<Integer>>(two, four));
+		simpleCase = new SimpleCase<Integer>(two, whenClauses, null);
+		assertEquals((Integer)4, simpleCase.evaluate());
+
+		whenClauses = new ArrayList<Entry<ExpressionBase, Expression<Integer>>>();
+		whenClauses.add(new SimpleEntry<ExpressionBase, Expression<Integer>>(zero, one));
+		whenClauses.add(new SimpleEntry<ExpressionBase, Expression<Integer>>(two, three));
+		simpleCase = new SimpleCase<Integer>(four, whenClauses, five);
+		assertEquals((Integer)5, simpleCase.evaluate());
+
+		simpleCase = new SimpleCase<Integer>(nullInteger, whenClauses, five);
+		assertEquals((Integer)5, simpleCase.evaluate());
+
+		simpleCase = new SimpleCase<Integer>(nullInteger, whenClauses, null);
+		assertNull(simpleCase.evaluate());
+
+		simpleCase = new SimpleCase<Integer>(nullInteger, whenClauses, nullInteger);
+		assertNull(simpleCase.evaluate());
+	}
+
+	public void testChoose() {
+
+		final IntegerConstant zero = new IntegerConstant(0);
+		final IntegerConstant one = new IntegerConstant(1);
+		final IntegerConstant two = new IntegerConstant(2);
+		final IntegerConstant three = new IntegerConstant(3);
+		final IntegerConstant four = new IntegerConstant(4);
+		final IntegerConstant five = new IntegerConstant(5);
+		final IntegerConstant nullInteger = new IntegerConstant(null);
+
+		Choose<Integer> choose;
+
+		List<Expression<Integer>> expressions;
+
+		expressions = new ArrayList<Expression<Integer>>();
+		expressions.add(two);
+		expressions.add(three);
+		expressions.add(four);
+		expressions.add(one);
+		choose = new Choose<Integer>(two, expressions);
+		assertEquals((Integer)3, choose.evaluate());
+
+		choose = new Choose<Integer>(zero, expressions);
+		assertNull(choose.evaluate());
+
+		choose = new Choose<Integer>(five, expressions);
+		assertNull(choose.evaluate());
+
+		choose = new Choose<Integer>(nullInteger, expressions);
+		assertNull(choose.evaluate());
 	}
 }

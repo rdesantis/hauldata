@@ -35,6 +35,7 @@ public class SetTest extends TaskTest {
 					"i1 INT, \n" +
 					"i2 INT, \n" +
 					"i3 INT, \n" +
+					"i4 INT, \n" +
 					"s1 VARCHAR, \n" +
 					"s2 VARCHAR, \n" +
 					"s3 VARCHAR, \n" +
@@ -44,7 +45,9 @@ public class SetTest extends TaskTest {
 					"s7 VARCHAR, \n" +
 					"s8 VARCHAR, \n" +
 					"s9 VARCHAR, \n" +
-					"s10 VARCHAR \n" +
+					"s10 VARCHAR, \n" +
+					"s11 VARCHAR, \n" +
+					"d1 DATETIME \n" +
 				"END VARIABLES \n" +
 				"TASK SET \n" +
 					"i1 = CHARINDEX('678', '12345678901234567890'), \n" +
@@ -59,7 +62,10 @@ public class SetTest extends TaskTest {
 					"s7 = RTRIM('123   '), \n" +
 					"s8 = SPACE(3), \n" +
 					"s9 = SUBSTRING('1234567890', 4, 3), \n" +
-					"s10 = UPPER('xyz') \n" +
+					"s10 = UPPER('xyz'), \n" +
+					"s11 = CHOOSE(1 + 2, 'a', 'b', 'c' + 'd', 'e'), \n" +
+					"d1 = CASE WHEN 0 = 1 THEN GETDATE() WHEN 1 = 1 THEN '12/25/2016' END, \n" +
+					"i4 = CASE 'x' + 'y' WHEN 'ab' THEN 1 WHEN 'xy' THEN 22 ELSE 333 END \n" +
 				"END TASK \n" +
 				"TASK Show AFTER DO \n" +
 					"TASK LOG FORMAT(i1, 'd') END TASK \n" +
@@ -75,6 +81,9 @@ public class SetTest extends TaskTest {
 					"TASK AFTER LOG s8 END TASK \n" +
 					"TASK AFTER LOG s9 END TASK \n" +
 					"TASK AFTER LOG s10 END TASK \n" +
+					"TASK AFTER LOG s11 END TASK \n" +
+					"TASK AFTER LOG FORMAT(d1, 'MM/dd/yyyy') END TASK \n" +
+					"TASK AFTER LOG FORMAT(i4, 'd') END TASK \n" +
 				"END TASK \n" +
 				"";
 
@@ -112,6 +121,12 @@ public class SetTest extends TaskTest {
 		assertEquals("456", record.message);
 		record = recordIterator.next();
 		assertEquals("XYZ", record.message);
+		record = recordIterator.next();
+		assertEquals("cd", record.message);
+		record = recordIterator.next();
+		assertEquals("12/25/2016", record.message);
+		record = recordIterator.next();
+		assertEquals("22", record.message);
 
 		assertFalse(recordIterator.hasNext());
 	}

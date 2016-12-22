@@ -234,7 +234,6 @@ abstract class TaskSetParser {
 		IS,
 		NULL,
 
-		// Future:
 		CASE,
 		WHEN,
 		THEN,
@@ -475,6 +474,7 @@ abstract class TaskSetParser {
 		integerFunctionParsers = new HashMap<String, FunctionParser<Integer>>();
 		integerFunctionParsers.put(KW.ISNULL.name(), new IsNullParser<Integer>(integerTermParser));
 		integerFunctionParsers.put(KW.IIF.name(), new IfParser<Integer>(integerTermParser));
+		integerFunctionParsers.put(KW.CHOOSE.name(), new ChooseParser<Integer>(integerTermParser));
 		integerFunctionParsers.put(KW.DATEPART.name(), new DatePartParser());
 		integerFunctionParsers.put(KW.CHARINDEX.name(), new CharIndexParser());
 		integerFunctionParsers.put(KW.LEN.name(), new LengthParser());
@@ -482,6 +482,7 @@ abstract class TaskSetParser {
 		stringFunctionParsers = new HashMap<String, FunctionParser<String>>();
 		stringFunctionParsers.put(KW.ISNULL.name(), new IsNullParser<String>(stringTermParser));
 		stringFunctionParsers.put(KW.IIF.name(), new IfParser<String>(stringTermParser));
+		stringFunctionParsers.put(KW.CHOOSE.name(), new ChooseParser<String>(stringTermParser));
 		stringFunctionParsers.put(KW.FORMAT.name(), new FormatParser());
 		stringFunctionParsers.put(KW.LEFT.name(), new LeftParser());
 		stringFunctionParsers.put(KW.LTRIM.name(), new LeftTrimParser());
@@ -497,6 +498,7 @@ abstract class TaskSetParser {
 		datetimeFunctionParsers = new HashMap<String, FunctionParser<LocalDateTime>>();
 		datetimeFunctionParsers.put(KW.ISNULL.name(), new IsNullParser<LocalDateTime>(datetimeTermParser));
 		datetimeFunctionParsers.put(KW.IIF.name(), new IfParser<LocalDateTime>(datetimeTermParser));
+		datetimeFunctionParsers.put(KW.CHOOSE.name(), new ChooseParser<LocalDateTime>(datetimeTermParser));
 		datetimeFunctionParsers.put(KW.GETDATE.name(), new GetDateParser());
 		datetimeFunctionParsers.put(KW.DATEADD.name(), new DateAddParser());
 		datetimeFunctionParsers.put(KW.DATEFROMPARTS.name(), new DateFromPartsParser());
@@ -2011,6 +2013,9 @@ abstract class TaskSetParser {
 		else if (tokenizer.skipWordIgnoreCase(KW.NULL.name())) {
 			return new IntegerConstant(null);
 		}
+		else if (tokenizer.skipWordIgnoreCase(KW.CASE.name())) {
+			return integerTermParser.parseCase();
+		}
 		else if (hasNextFunction()) {
 			String name = tokenizer.nextWordUpperCase();
 
@@ -2034,7 +2039,7 @@ abstract class TaskSetParser {
 			return integerTermParser.parseParenthesized();
 		}
 		else {
-			throw new InputMismatchException("Invalid " + KW.INTEGER.name() + " expression term: " + tokenizer.nextToken().render());
+			throw new InputMismatchException("Invalid " + KW.INTEGER.name() + " expression term: " + tokenizer.nextToken().getImage());
 		}
 	}
 
@@ -2107,6 +2112,9 @@ abstract class TaskSetParser {
 		else if (tokenizer.skipWordIgnoreCase(KW.NULL.name())) {
 			return new StringConstant(null);
 		}
+		else if (tokenizer.skipWordIgnoreCase(KW.CASE.name())) {
+			return stringTermParser.parseCase();
+		}
 		else if (hasNextFunction()) {
 			String name = tokenizer.nextWordUpperCase();
 
@@ -2130,7 +2138,7 @@ abstract class TaskSetParser {
 			return stringTermParser.parseParenthesized();
 		}
 		else {
-			throw new InputMismatchException("Invalid " + KW.VARCHAR.name() + " expression term: " + tokenizer.nextToken().render());
+			throw new InputMismatchException("Invalid " + KW.VARCHAR.name() + " expression term: " + tokenizer.nextToken().getImage());
 		}
 	}
 
@@ -2275,6 +2283,9 @@ abstract class TaskSetParser {
 		if (tokenizer.skipWordIgnoreCase(KW.NULL.name())) {
 			return new DatetimeConstant(null);
 		}
+		else if (tokenizer.skipWordIgnoreCase(KW.CASE.name())) {
+			return datetimeTermParser.parseCase();
+		}
 		else if (hasNextFunction()) {
 			BacktrackingTokenizerMark mark = tokenizer.mark();
 			String name = tokenizer.nextWordUpperCase();
@@ -2320,7 +2331,7 @@ abstract class TaskSetParser {
 				return datetimeTermParser.parseReference();
 			}
 			else {
-				throw new InputMismatchException("Invalid " + KW.DATETIME.name() + " expression term: " + tokenizer.nextToken().render());
+				throw new InputMismatchException("Invalid " + KW.DATETIME.name() + " expression term: " + tokenizer.nextToken().getImage());
 			}
 		}
 	}
@@ -2455,6 +2466,20 @@ abstract class TaskSetParser {
 		}
 	}
 
+	class ChooseParser<Type> implements FunctionParser<Type> {
+
+		private TermParser<Type> termParser;
+
+		public ChooseParser(TermParser<Type> termParser) {
+			this.termParser = termParser;
+		}
+
+		@Override
+		public Expression<Type> parse() throws InputMismatchException, NoSuchElementException, IOException {
+			return termParser.parseChoose();
+		}
+	}
+
 	abstract class TermParser<Type> {
 
 		private VariableType type;
@@ -2484,6 +2509,96 @@ abstract class TaskSetParser {
 			Expression<Type> right = parseExpression();
 
 			return new IfExpression<Type>(condition, left, right);
+		}
+
+		public Expression<Type> parseCase() throws IOException {
+
+			Expression<Type> result;
+			if (tokenizer.skipWordIgnoreCase(KW.WHEN.name())) {
+				result = parseSearchedCase();
+			}
+			else {
+				result = parseSimpleCase();
+			}
+
+			skipKeywordOrFail(KW.END);
+
+			return result;
+		}
+
+		private Expression<Type> parseSearchedCase() throws IOException {
+
+			List<Map.Entry<Expression<Boolean>, Expression<Type>>> whenClauses = new LinkedList<Map.Entry<Expression<Boolean>, Expression<Type>>>();
+
+			do {
+				Expression<Boolean> when = parseBooleanExpression();
+
+				skipKeywordOrFail(KW.THEN);
+
+				Expression<Type> result = parseExpression();
+
+				whenClauses.add(new SimpleEntry<Expression<Boolean>, Expression<Type>>(when, result));
+
+			} while (tokenizer.skipWordIgnoreCase(KW.WHEN.name()));
+
+
+			Expression<Type> elseResult = null;
+			if (tokenizer.skipWordIgnoreCase(KW.ELSE.name())) {
+				elseResult = parseExpression();
+			}
+
+			return new SearchedCase<Type>(whenClauses, elseResult);
+		}
+
+		private Expression<Type> parseSimpleCase() throws InputMismatchException, NoSuchElementException, IOException {
+
+			ExpressionBase input = parseAnyExpression();
+
+			skipKeywordOrFail(KW.WHEN);
+
+			List<Map.Entry<ExpressionBase, Expression<Type>>> whenClauses = new LinkedList<Map.Entry<ExpressionBase, Expression<Type>>>();
+
+			do {
+				ExpressionBase when = thisTaskParser.parseExpression(input.getType());
+
+				skipKeywordOrFail(KW.THEN);
+
+				Expression<Type> result = parseExpression();
+
+				whenClauses.add(new SimpleEntry<ExpressionBase, Expression<Type>>(when, result));
+
+			} while (tokenizer.skipWordIgnoreCase(KW.WHEN.name()));
+
+
+			Expression<Type> elseResult = null;
+			if (tokenizer.skipWordIgnoreCase(KW.ELSE.name())) {
+				elseResult = parseExpression();
+			}
+
+			return new SimpleCase<Type>(input, whenClauses, elseResult);
+		}
+
+		private void skipKeywordOrFail(KW keyword) throws InputMismatchException, IOException {
+
+			if (!tokenizer.skipWordIgnoreCase(keyword.name())) {
+				throw new InputMismatchException("Expecting " + KW.WHEN.name() + ", found " + tokenizer.nextToken().getImage());
+			}
+		}
+
+		public Expression<Type> parseChoose()
+				throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<Integer> index = parseIntegerExpression();
+
+			tokenizer.nextDelimiter(",");
+
+			List<Expression<Type>> expressions = new ArrayList<Expression<Type>>();
+			do {
+				Expression<Type> expression = parseExpression();
+				expressions.add(expression);
+			} while (tokenizer.skipDelimiter(","));
+
+			return new Choose<Type>(index, expressions);
 		}
 
 		public Expression<Type> parseReference()

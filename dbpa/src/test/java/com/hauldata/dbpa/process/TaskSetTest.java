@@ -440,7 +440,7 @@ public class TaskSetTest extends TaskTest {
 		script =
 				"VARIABLES x INTEGER END VARIABLES\n" +
 				"TASK SET x = ISNULL (x, 0) END TASK\n";
-		message = "At line 2: Invalid INTEGER expression term:  ISNULL";
+		message = "At line 2: Invalid INTEGER expression term: ISNULL";
 		assertBadSyntax(script, message);
 	}
 }
