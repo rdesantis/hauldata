@@ -4,11 +4,10 @@
 	<parent>
 		<groupId>com.hauldata</groupId>
 		<artifactId>dbpa-parent</artifactId>
-		<version>1.0</version>
+		<version>1.3</version>
 	</parent>
 
 	<artifactId>dbpa-manage-control</artifactId>
-	<version>1.0</version>
 	<packaging>jar</packaging>
 
 	<name>DBPA Manage-Control APIs</name>
@@ -22,7 +21,7 @@
 		<dependency>
 			<groupId>com.hauldata</groupId>
 			<artifactId>dbpa-common</artifactId>
-			<version>1.0</version>
+			<version>[1.3,2.0)</version>
 		</dependency>
 
 		<dependency>
