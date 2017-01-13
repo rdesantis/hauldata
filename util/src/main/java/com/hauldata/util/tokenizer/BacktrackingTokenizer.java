@@ -93,7 +93,21 @@ public class BacktrackingTokenizer extends Tokenizer {
 				position.add(token);
 			}
 		}
-		return rememberToken(token);
+		return token;
+	}
+
+	@Override
+	public Token lastToken() {
+
+		Token token;
+		if (position.hasPrevious()) {
+			token = position.previous();
+			position.next();
+		}
+		else {
+			token = null;
+		}
+		return token;
 	}
 
 	@Override

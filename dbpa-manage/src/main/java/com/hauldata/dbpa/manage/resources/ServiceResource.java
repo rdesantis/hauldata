@@ -29,17 +29,12 @@ import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.JobManagerException.AlreadyUnavailable;
 
-import io.dropwizard.setup.Environment;
-
 @Path("/service")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class ServiceResource {
 
-	private Environment environment;
-
-	public ServiceResource(Environment environment) {
-		this.environment = environment;
+	public ServiceResource() {
 		serviceResource = this;
 	}
 
@@ -62,9 +57,28 @@ public class ServiceResource {
 			JobManager.killInstance();
 
 			// Stop this server.
-			// See http://stackoverflow.com/questions/15989008/dropwizard-how-to-stop-service-programmatically
 
-			environment.getApplicationContext().getServer().stop();
+			// According to http://stackoverflow.com/questions/15989008/dropwizard-how-to-stop-service-programmatically,
+			// this should stop the server cleanly, but after about 30 seconds it results in a huge stack dump on the
+			// server side and a connection refused exception on the client side.  The "environment" variable
+			// would be passed to the ServiceResource constructor from ManageDbp.run(Configuration, Environment).
+
+//			environment.getApplicationContext().getServer().stop();
+
+			// Create a separate thread that waits a short time for the server to respond to this service call before
+			// shutting down the server.
+
+			final long waitToRespondMillis = 3000;
+
+			Thread shutdownThread = new Thread() {
+				@Override
+				public void run() {
+					try { Thread.sleep(waitToRespondMillis); } catch (InterruptedException ex) {}
+					System.exit(0);
+				}
+			};
+
+			shutdownThread.start();
 		}
 		catch (AlreadyUnavailable ex) {
 			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);

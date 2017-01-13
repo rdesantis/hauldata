@@ -278,10 +278,14 @@ public class ControlDbp {
 					String verb = tokenizer.nextWordUpperCase();
 					Command command = intransitiveCommands.get(verb);
 
-					if (command == null && tokenizer.hasNextWord()) {
+					if (command == null) {
 
 						Map<String, TransitiveCommand> transitiveCommands = transitiveCommandMaps.get(verb);
 						if (transitiveCommands != null) {
+
+							if (!tokenizer.hasNextWord()) {
+								throw new InputMismatchException("Missing object for " + verb + " command");
+							}
 
 							String noun = tokenizer.nextWordUpperCase();
 							String singularNoun = getSingular(noun);

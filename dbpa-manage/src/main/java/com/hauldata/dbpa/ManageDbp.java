@@ -67,7 +67,7 @@ public class ManageDbp extends Application<Configuration> {
 		// Eventually may subclass Configuration as ServiceConfiguration and use members
 		// as parameters when instantiating resources.
 
-		final ServiceResource service = new ServiceResource(environment);
+		final ServiceResource service = new ServiceResource();
 		final ManagerResource manager = new ManagerResource();
 		final SchemaResource schema = new SchemaResource();
 		final ScriptsResource scripts = new ScriptsResource();
