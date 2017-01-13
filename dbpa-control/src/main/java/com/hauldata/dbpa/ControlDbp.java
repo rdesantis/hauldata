@@ -327,8 +327,8 @@ public class ControlDbp {
 				}
 			} while (!done);
 		}
-		catch (IOException e) {
-			System.err.println(e.getMessage());
+		catch (Exception ex) {
+			System.err.println((ex.getMessage() != null) ? ex.getMessage() : ex.getLocalizedMessage());
 			System.exit(3);
 		}
 		finally {
@@ -451,7 +451,7 @@ public class ControlDbp {
 
 			groups.put(name, group);
 
-			return String.format("%s files sent for group $s: %s\n", KW.PROPERTIES.name(), name, group.getGroup().keySet().toString());
+			return String.format("%s files sent for group %s: %s\n", KW.PROPERTIES.name(), name, group.getGroup().keySet().toString());
 		}
 	}
 
@@ -469,7 +469,7 @@ public class ControlDbp {
 				throw new NotFoundException("Error writing properties file: " + ex.getLocalizedMessage());
 			}
 
-			return String.format("%s files received for group $s: %s\n", KW.PROPERTIES.name(), name, group.getGroup().keySet().toString());
+			return String.format("%s files received for group %s: %s\n", KW.PROPERTIES.name(), name, group.getGroup().keySet().toString());
 		}
 	}
 
