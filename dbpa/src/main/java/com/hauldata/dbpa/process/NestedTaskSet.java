@@ -38,9 +38,9 @@ public class NestedTaskSet extends TaskSet {
 	/**
 	 * Instantiate a NestedTaskSet object by parsing at the parent parser hand-off
 	 */
-	public static NestedTaskSet parse(TaskSetParser parentParser) throws IOException, NamingException {
+	public static NestedTaskSet parse(TaskSetParser parentParser, Task parentTask) throws IOException, NamingException {
 
-		NestedTaskSetParser parser = new NestedTaskSetParser(parentParser);
+		NestedTaskSetParser parser = new NestedTaskSetParser(parentParser, parentTask);
 		
 		return parser.parse();
 	}
@@ -106,8 +106,11 @@ public class NestedTaskSet extends TaskSet {
  */
 class NestedTaskSetParser extends TaskSetParser {
 
-	public NestedTaskSetParser(TaskSetParser parent) {
+	private Task parentTask;
+
+	public NestedTaskSetParser(TaskSetParser parent, Task parentTask) {
 		super(parent);
+		this.parentTask = parentTask;
 	}
 
 	/**
@@ -124,5 +127,10 @@ class NestedTaskSetParser extends TaskSetParser {
 
 		parseTasks();
 		return new NestedTaskSet(tasks);
+	}
+
+	@Override
+	protected Task getParentTask() {
+		return parentTask;
 	}
 }

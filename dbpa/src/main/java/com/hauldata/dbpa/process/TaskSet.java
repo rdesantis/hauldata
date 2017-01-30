@@ -39,6 +39,10 @@ public abstract class TaskSet {
 		this.tasks = tasks;
 	}
 
+	public Map<String, Task> getTasks() {
+		return tasks;
+	}
+
 	protected void runTasks(Context context) throws InterruptedException {
 
 		// Queue up the tasks that have no predecessors for execution.
@@ -61,28 +65,28 @@ public abstract class TaskSet {
 
 		try {
 			// While any tasks are waiting on predecessors, process tasks as they complete.
-	
+
 			Task.Result lastResult = Task.Result.waiting;
-	
+
 			while (!waiting.isEmpty()) {
 				Task task = executor.getCompleted();
-	
+
 				lastResult = task.getResult();
-	
+
 				List<Task> successors = task.getSuccessors();
 				for (Task successor : successors) {
 					if (waiting.contains(successor)) {
-	
+
 						if (successor.canRunAfterRemovePredecessor(task)) {
 							waiting.remove(successor);
-	
+
 							executor.submit(successor, context);
 						}
 						else if (successor.getResult() == Task.Result.orphaned) {
 							// This predecessor did not complete in the status required by this successor
 							// and this successor has become orphaned, as may have some or all of its successors.
 							// Remove all orphaned tasks from the waiting queue.
-	
+
 							for (ListIterator<Task> waitingIterator = waiting.listIterator(); waitingIterator.hasNext(); ) {
 								Task waiter = waitingIterator.next();
 								if (waiter.getResult() == Task.Result.orphaned) {
@@ -94,21 +98,21 @@ public abstract class TaskSet {
 					}
 				}
 			}
-	
+
 			// Tasks with no successors may still be running; wait for them to finish and check their results.
-	
+
 			while (!executor.allCompleted()) {
 				Task task = executor.getCompleted();
-	
+
 				lastResult = task.getResult();
 			}
-	
+
 			if (lastResult != Task.Result.success) {
 				throw new RuntimeException("Last task failed");
 			}
 		}
 		catch (InterruptedException iex) {
-			// This thread was interrupted.  Cancel all tasks. 
+			// This thread was interrupted.  Cancel all tasks.
 
 			context.logger.error("process", interruptedMessage);
 
@@ -121,11 +125,11 @@ public abstract class TaskSet {
 					context.logger.error(task.getName(), cancelledMessage);
 				}
 			}
-			
+
 			for (Task waiter : waiting) {
 				context.logger.warn(waiter.getName(), orphanedMessage);
 			}
-			
+
 			throw iex;
 		}
 	}

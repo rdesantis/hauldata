@@ -367,4 +367,9 @@ class DbProcessParser extends TaskSetParser {
 
 		connections.put(name, connection);
 	}
+
+	@Override
+	protected Task getParentTask() {
+		return null;
+	}
 }

@@ -31,6 +31,16 @@ public abstract class Task {
 	public static final String terminateMessage = "Task terminated";
 	public static final String failMessage = "Task failed";
 
+	public enum Result { waiting, running, success, failure, completed, terminated, orphaned };
+
+	private String name;
+	private Map<Task, Result> predecessors;
+	private Expression.Combination combination;
+	private Expression<Boolean> condition;
+	private Task parent;
+	private List<Task> successors;
+	private Result result;
+
 	/**
 	 * Prologue to each task constructor
 	 * @param name is the task name
@@ -43,16 +53,19 @@ public abstract class Task {
 		public Map<Task, Task.Result> predecessors;
 		public Expression.Combination combination;
 		public Expression<Boolean> condition;
-		
+		public Task parent;
+
 		public Prologue(
 				String name,
 				Map<Task, Result> predecessors,
 				Expression.Combination combination,
-				Expression<Boolean> condition) {
+				Expression<Boolean> condition,
+				Task parent) {
 			this.name = name;
 			this.predecessors = predecessors;
 			this.combination = combination;
 			this.condition = condition;
+			this.parent = parent;
 		}
 	}
 
@@ -64,22 +77,48 @@ public abstract class Task {
 		this.predecessors = prologue.predecessors;
 		this.combination = prologue.combination;
 		this.condition = prologue.condition;
+		this.parent = prologue.parent;
 
 		this.successors = new LinkedList<Task>();
-		this.result = Result.waiting; 
+		this.result = Result.waiting;
 	}
 
 	// Getters and setters.
-	
+
 	public String getName() {
 		return name;
 	}
 
-	public void setAnonymousIndex(int taskIndex) {
+	public String getPath() {
+		StringBuilder path = new StringBuilder();
+		path.append(getName());
+
+		Task node = this;
+		while ((node = node.getParent()) != null) {
+			path.insert(0, ".");
+			path.insert(0, node.getName());
+		}
+
+		return path.toString();
+	}
+
+	public Task getParent() {
+		return parent;
+	}
+
+	public void setNameFromIndex(int taskIndex) {
 		this.name = String.valueOf(taskIndex);
 	}
 
-	public enum Result { waiting, running, success, failure, completed, terminated, orphaned };
+	// Predecessors
+
+	public void setPredecessors(Map<Task, Result> predecessors) {
+		this.predecessors = predecessors;
+	}
+
+	public void putPredecessor(Task predecessor, Result result) {
+		predecessors.put(predecessor, result);
+	}
 
 	/**
 	 * @return the set of predecessor tasks that must complete with their required result states
@@ -89,9 +128,11 @@ public abstract class Task {
 		return predecessors;
 	}
 
-	public void setPredecessors(Map<Task, Result> predecessors) {
-		this.predecessors = predecessors;
+	public Expression.Combination getCombination() {
+		return combination;
 	}
+
+	// Successors
 
 	public void addSuccessor(Task task) {
 		successors.add(task);
@@ -103,11 +144,11 @@ public abstract class Task {
 
 	/**
 	 * Run the task.
-	 * 
+	 *
 	 * It is assumed that the predecessor completion requirements are met.
 	 * If the task enable condition evaluates to false, the task completes immediately
 	 * with success result.
-	 * 
+	 *
 	 * @param context is the context is which the task will run.
 	 */
 	public void run(Context context) {
@@ -157,7 +198,7 @@ public abstract class Task {
 
 	/**
 	 * Execute the task body.
-	 * 
+	 *
 	 * Subclasses must throw an exception to indicate task failure. Base class will catch the exception and mark the task with failure status.
 	 * @param context is the context is which the task will run.
 	 */
@@ -165,28 +206,28 @@ public abstract class Task {
 
 	/**
 	 * @return the completion result of the task.  Values are:
-	 * 
+	 *
 	 * waiting - the task has not yet run;
 	 * success - the task ran to successful completion;
 	 * failure - the task failed while running;
 	 * terminated - the task was terminated by an interrupt
 	 * orphaned - the task cannot run because predecessor(s) completed in state(s)
-	 * that don't meet this task's requirements 
+	 * that don't meet this task's requirements
 	 */
 	public Result getResult() {
 		return result;
-	} 
+	}
 
 	/**
 	 * Remove a completed predecessor and test if this task can run.
-	 * 
+	 *
 	 * If the predecessor is orphaned, this task may not ever be able to run,
 	 * nor may its successors.
-	 * 
+	 *
 	 * On return, this task will have updated its result to orphaned
 	 * if it can never run.  It will also have updated its successors
 	 * if any of them can never run.
-	 * 
+	 *
 	 * @param task is the predecessor to remove
 	 * @return true if this task can run after removing the predecessor
 	 */
@@ -220,13 +261,4 @@ public abstract class Task {
 
 		return canRun;
 	}
-	
-	// Private members
-
-	private String name;
-	private Map<Task, Result> predecessors;
-	private Expression.Combination combination;
-	private Expression<Boolean> condition;
-	private List<Task> successors;
-	private Result result;
 }

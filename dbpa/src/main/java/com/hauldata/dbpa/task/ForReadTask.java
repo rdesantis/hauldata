@@ -28,7 +28,7 @@ import com.hauldata.dbpa.process.NestedTaskSet;
 import com.hauldata.dbpa.variable.VariableBase;
 import com.hauldata.util.tokenizer.EndOfLine;
 
-public class ForReadTask extends FileTask {
+public class ForReadTask extends FileTask implements TaskSetParent {
 
 	private ArrayList<VariableBase> variables;
 	private PageIdentifierExpression page;
@@ -41,15 +41,24 @@ public class ForReadTask extends FileTask {
 			ArrayList<VariableBase> variables,
 			PageIdentifierExpression page,
 			ReadHeaderExpressions headers,
-			ColumnExpressions columns,
-			NestedTaskSet taskSet) {
+			ColumnExpressions columns) {
 
 		super(prologue);
 		this.variables = variables;
 		this.page = page;
 		this.headers = headers;
 		this.columns = columns;
+	}
+
+	@Override
+	public Task setTaskSet(NestedTaskSet taskSet) {
 		this.taskSet = taskSet;
+		return this;
+	}
+
+	@Override
+	public NestedTaskSet getTaskSet() {
+		return taskSet;
 	}
 
 	@Override

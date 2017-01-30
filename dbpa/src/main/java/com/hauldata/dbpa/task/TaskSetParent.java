@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,27 +16,17 @@
 
 package com.hauldata.dbpa.task;
 
-import java.util.Map;
+import com.hauldata.dbpa.process.NestedTaskSet;
 
-import com.hauldata.dbpa.connection.Connection;
-import com.hauldata.dbpa.process.Context;
-import com.hauldata.util.schedule.ScheduleSet;
+public interface TaskSetParent {
 
-public class OnTask extends ScheduleTask {
+	/**
+	 * Set task set owned by this parent task
+	 * 
+	 * @param taskSet is the task set owned.
+	 * @return this parent task
+	 */
+	Task setTaskSet(NestedTaskSet taskSet);
 
-	private ScheduleSet schedules;
-
-	public OnTask(
-			Prologue prologue,
-			ScheduleSet schedules,
-			Map<String, Connection> connections) {
-
-		super(prologue, connections);
-		this.schedules = schedules;
-	}
-
-	@Override
-	protected void execute(Context context) {
-		execute(context, schedules);
-	}
+	NestedTaskSet getTaskSet();
 }

@@ -352,6 +352,8 @@ abstract class TaskSetParser {
 		reuseParsing(parent);
 	}
 
+	abstract protected Task getParentTask();
+
 	/**
 	 * Parse a set of tasks
 	 *
@@ -372,7 +374,7 @@ abstract class TaskSetParser {
 
 			Task task = parseTask(previousTask);
 			if (task.getName() == null) {
-				task.setAnonymousIndex(taskIndex);
+				task.setNameFromIndex(taskIndex);
 			}
 			tasks.put(task.getName(), task);
 
@@ -604,7 +606,7 @@ abstract class TaskSetParser {
 			throw new InputMismatchException("Invalid " + KW.TASK.name() +" type: " + taskTypeName);
 		}
 
-		Task task = parser.parse(new Task.Prologue(name, predecessors, combination, condition));
+		Task task = parser.parse(new Task.Prologue(name, predecessors, combination, condition, thisTaskParser.getParentTask()));
 
 		nextEnd(section);
 
@@ -1224,9 +1226,9 @@ abstract class TaskSetParser {
 				whileCondition = parseBooleanExpression();
 			}
 
-			NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
+			DoTask thisTask = new DoTask(prologue, whileCondition);
 
-			return new DoTask(prologue, whileCondition, taskSet);
+			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskParser, thisTask));
 		}
 	}
 
@@ -1254,9 +1256,9 @@ abstract class TaskSetParser {
 			else {
 				DataSource dataSource = parseDataSource(KW.FOR.name(), null, false, true);
 
-				NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
+				ForDataTask thisTask = new ForDataTask(prologue, variables, dataSource);
 
-				return new ForDataTask(prologue, variables, dataSource, taskSet);
+				return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskParser, thisTask));
 			}
 		}
 
@@ -1272,9 +1274,9 @@ abstract class TaskSetParser {
 
 			columns.validate(headers);
 
-			NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
+			ForReadTask thisTask = new ForReadTask(prologue, variables, page, headers, columns);
 
-			return new ForReadTask(prologue, variables, page, headers, columns, taskSet);
+			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskParser, thisTask));
 		}
 
 		private Task parseForValues(
@@ -1286,9 +1288,9 @@ abstract class TaskSetParser {
 				values.add(parseExpressionList(variables));
 			} while (tokenizer.skipDelimiter(","));
 
-			NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
+			ForValuesTask thisTask = new ForValuesTask(prologue, variables, values);
 
-			return new ForValuesTask(prologue, variables, values, taskSet);
+			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskParser, thisTask));
 		}
 
 		private ExpressionBase[] parseExpressionList(ArrayList<VariableBase> variables)
@@ -1320,9 +1322,9 @@ abstract class TaskSetParser {
 
 			Expression<String> filename = parseStringExpression();
 
-			NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
+			ForFilesTask thisTask = new ForFilesTask(prologue, (Variable<String>)variables.get(0), filename);
 
-			return new ForFilesTask(prologue, (Variable<String>)variables.get(0), filename, taskSet);
+			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskParser, thisTask));
 		}
 	}
 
@@ -1343,18 +1345,18 @@ abstract class TaskSetParser {
 
 			Expression<String> schedule = parseStringExpression();
 
-			NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
+			OnScheduleTask thisTask = new OnScheduleTask(prologue, schedule, connections);
 
-			return new OnScheduleTask(prologue, schedule, taskSet, connections);
+			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskParser, thisTask));
 		}
 
 		private Task parseOn(Task.Prologue prologue) throws IOException, NamingException {
 
 			ScheduleSet schedules = ScheduleSet.parse(tokenizer);
 
-			NestedTaskSet taskSet = NestedTaskSet.parse(thisTaskParser);
+			OnTask thisTask = new OnTask(prologue, schedules, connections);
 
-			return new OnTask(prologue, schedules, taskSet, connections);
+			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskParser, thisTask));
 		}
 	}
 
@@ -1368,6 +1370,9 @@ abstract class TaskSetParser {
 			}
 			if (tokenizer.skipWordIgnoreCase(KW.TIME.name())) {
 				return parseWaitforTime(prologue);
+			}
+			if (tokenizer.skipWordIgnoreCase(KW.ASYNC.name())) {
+				return parseWaitforAsync(prologue);
 			}
 			else {
 				throw new InputMismatchException("Invalid argument in " + KW.WAITFOR.name() + " " + KW.TASK.name());
@@ -1386,6 +1391,91 @@ abstract class TaskSetParser {
 			Expression<String> time = parseStringExpression();
 
 			return new WaitforTimeTask(prologue, time, connections);
+		}
+
+		private Task parseWaitforAsync(Task.Prologue prologue) throws IOException, NamingException {
+
+			GoTask thisTask = new GoTask(prologue, null);
+
+			if (!updateAsyncPredecessors(thisTask, thisTask, false)) {
+				throw new InputMismatchException(
+						KW.WAITFOR.name() + " " + KW.ASYNC.name() + " " + KW.TASK.name() +
+						" must have direct or indirect predecessor or predecessor descendent that is " +
+						KW.PROCESS.name() + " " + KW.ASYNC.name() + " " + KW.TASK.name());
+			}
+
+			return thisTask;
+		}
+
+		/**
+		 * Find all AsyncProcessTask instances that are direct and indirect predecessors of this task
+		 * and descendants of direct and indirect predecessors of this task.
+		 * Call predecessor.addAsyncSuccessor(thisTask) on each such AsyncProcessTask instance.
+		 * <p>
+		 * Indirect predecessors are predecessors of direct predecessors of this task
+		 * and direct or indirect predecessors of enclosing tasks of this task.
+		 * <p>
+		 * When this task runs, we can't allow any doubt about whether any AsyncProcessTask instances
+		 * that it waits for have been launched or not.  If there is doubt, we can have race conditions.
+		 * To avoid this, the path through direct and indirect predecessors to any AsyncProcessTask
+		 * or its ancestor must be a pure AND path.
+		 * <p>
+		 * On the other hand, the path from an ancestor through descendants to an AsyncProcessTask
+		 * may be any mix of AND or OR paths, because the ancestor cannot complete until all its
+		 * descendants have either completed or become orphaned, which means any AsyncProcessTask
+		 * that could be launched has been launched already.
+		 * <p>
+		 * @param waitTask is the WAITFOR ASYNC task
+		 * @param task is waitTask or a direct or indirect predecessor
+		 * @param updated is true if any AsyncProcessTask has been updated before this call
+		 * @return true if any AsyncProcessTask has been updated before or by this call
+		 */
+		private boolean updateAsyncPredecessors(Task waitTask, Task task, boolean updated) {
+
+			do {
+				if (!task.getPredecessors().isEmpty()) {
+
+					if (Expression.Combination.or.equals(task.getCombination())) {
+						throw new InputMismatchException(
+								KW.WAITFOR.name() + " " + KW.ASYNC.name() + " " + KW.TASK.name() +
+								" or direct or indirect predecessor cannot combine predecessors with " + KW.OR.name());
+					}
+
+					for (Task predecessor : task.getPredecessors().keySet()) {
+						if (predecessor instanceof AsyncProcessTask) {
+							((AsyncProcessTask)predecessor).addAsyncSuccessor(waitTask);
+							updated = true;
+						}
+						else {
+							updated = updated || updateAsyncPredecessors(waitTask, predecessor, updated);
+						}
+
+						if (predecessor instanceof TaskSetParent) {
+							updated = updated || updateNestedAsyncPredecessors(waitTask, (TaskSetParent)predecessor, updated);
+						}
+					}
+				}
+			}
+			while ((task = task.getParent()) != null);
+
+			return updated;
+		}
+
+		private boolean updateNestedAsyncPredecessors(Task waitTask, TaskSetParent parent, boolean updated) {
+
+			for (Task task : parent.getTaskSet().getTasks().values()) {
+
+				if (task instanceof AsyncProcessTask) {
+					((AsyncProcessTask)task).addAsyncSuccessor(waitTask);
+					updated = true;
+				}
+
+				if (task instanceof TaskSetParent) {
+					updated = updated || updateNestedAsyncPredecessors(waitTask, (TaskSetParent)task, updated);
+				}
+			}
+
+			return updated;
 		}
 	}
 

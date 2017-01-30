@@ -27,7 +27,7 @@ import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.NestedTaskSet;
 import com.hauldata.dbpa.variable.Variable;
 
-public class ForFilesTask extends Task {
+public class ForFilesTask extends Task implements TaskSetParent {
 
 	private Variable<String> variable;
 	private Expression<String> filename;
@@ -36,13 +36,22 @@ public class ForFilesTask extends Task {
 	public ForFilesTask(
 			Task.Prologue prologue,
 			Variable<String> variable,
-			Expression<String> filename,
-			NestedTaskSet taskSet) {
+			Expression<String> filename) {
 
 		super(prologue);
 		this.variable = variable;
 		this.filename = filename;
+	}
+
+	@Override
+	public Task setTaskSet(NestedTaskSet taskSet) {
 		this.taskSet = taskSet;
+		return this;
+	}
+
+	@Override
+	public NestedTaskSet getTaskSet() {
+		return taskSet;
 	}
 
 	@Override

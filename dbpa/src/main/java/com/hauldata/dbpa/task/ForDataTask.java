@@ -25,7 +25,7 @@ import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.NestedTaskSet;
 import com.hauldata.dbpa.variable.VariableBase;
 
-public class ForDataTask extends UpdateVariablesTask {
+public class ForDataTask extends UpdateVariablesTask implements TaskSetParent {
 
 	private List<VariableBase> variables;
 	private DataSource dataSource;
@@ -34,14 +34,23 @@ public class ForDataTask extends UpdateVariablesTask {
 	public ForDataTask(
 			Prologue prologue,
 			List<VariableBase> variables,
-			DataSource dataSource,
-			NestedTaskSet taskSet) {
+			DataSource dataSource) {
 
 		super(prologue);
 
 		this.variables = variables;
 		this.dataSource = dataSource;
+	}
+
+	@Override
+	public Task setTaskSet(NestedTaskSet taskSet) {
 		this.taskSet = taskSet;
+		return this;
+	}
+
+	@Override
+	public NestedTaskSet getTaskSet() {
+		return taskSet;
 	}
 
 	@Override

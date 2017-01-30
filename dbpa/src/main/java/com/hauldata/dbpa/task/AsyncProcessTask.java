@@ -16,8 +16,10 @@
 
 package com.hauldata.dbpa.task;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.expression.ExpressionBase;
@@ -26,12 +28,19 @@ import com.hauldata.dbpa.process.Context;
 
 public class AsyncProcessTask extends ProcessTask {
 
+	private Set<Task> asyncSuccessors;
+
 	public AsyncProcessTask(
 			Prologue prologue,
 			Expression<String> name,
 			List<ExpressionBase> arguments) {
 
 		super(prologue, name, arguments);
+		asyncSuccessors = new HashSet<Task>();
+	}
+
+	public void addAsyncSuccessor(Task task) {
+		asyncSuccessors.add(task);
 	}
 
 	@Override
@@ -45,8 +54,14 @@ public class AsyncProcessTask extends ProcessTask {
 			evaluatedArguments.add(new StringConstant(argumentValue != null ? argumentValue.toString() : null));
 		}
 		
-		String asyncTaskName = getName() + ".async";
-		SyncProcessTask task = new SyncProcessTask(new Prologue(asyncTaskName, null, null, null), evaluatedName, evaluatedArguments);
-		context.rootExecutor.submit(task, context);
+		String asyncTaskName = getPath() + ".async";
+		SyncProcessTask processTask = new SyncProcessTask(new Prologue(asyncTaskName, null, null, null, null), evaluatedName, evaluatedArguments);
+
+		for (Task waitTask : asyncSuccessors) {
+			waitTask.putPredecessor(processTask, Result.completed);
+			processTask.addSuccessor(waitTask);
+		}
+
+		context.rootExecutor.submit(processTask, context);
 	}
 }

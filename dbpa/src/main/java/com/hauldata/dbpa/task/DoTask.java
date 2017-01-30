@@ -20,17 +20,29 @@ import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.NestedTaskSet;
 
-public class DoTask extends Task {
+public class DoTask extends Task implements TaskSetParent {
+
+	private Expression<Boolean> whileCondition;
+	private NestedTaskSet taskSet;
 
 	public DoTask(
 			Prologue prologue,
-			Expression<Boolean> whileCondition,
-			NestedTaskSet taskSet) {
+			Expression<Boolean> whileCondition) {
 
 		super(prologue);
 
 		this.whileCondition = whileCondition;
+	}
+
+	@Override
+	public Task setTaskSet(NestedTaskSet taskSet) {
 		this.taskSet = taskSet;
+		return this;
+	}
+
+	@Override
+	public NestedTaskSet getTaskSet() {
+		return taskSet;
 	}
 
 	@Override
@@ -60,6 +72,4 @@ public class DoTask extends Task {
 		}
 	}
 
-	private Expression<Boolean> whileCondition;
-	private NestedTaskSet taskSet;
 }

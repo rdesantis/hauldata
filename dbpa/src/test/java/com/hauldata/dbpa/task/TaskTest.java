@@ -127,6 +127,7 @@ public abstract class TaskTest extends TestCase {
 			process = DbProcess.parse(new StringReader(script));
 		}
 		catch (Exception ex) {
+			System.err.println(ex.getMessage());
 		}
 
 		assertNotNull(process);

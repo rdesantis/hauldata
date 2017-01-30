@@ -21,7 +21,6 @@ import java.util.Map;
 import com.hauldata.dbpa.connection.Connection;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
-import com.hauldata.dbpa.process.NestedTaskSet;
 import com.hauldata.util.schedule.ScheduleSet;
 
 public class OnScheduleTask extends ScheduleTask {
@@ -31,10 +30,9 @@ public class OnScheduleTask extends ScheduleTask {
 	public OnScheduleTask(
 			Prologue prologue,
 			Expression<String> schedule,
-			NestedTaskSet taskSet,
 			Map<String, Connection> connections) {
 
-		super(prologue, taskSet, connections);
+		super(prologue, connections);
 		this.schedule = schedule;
 	}
 

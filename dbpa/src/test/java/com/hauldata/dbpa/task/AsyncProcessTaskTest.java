@@ -35,20 +35,23 @@ public class AsyncProcessTaskTest extends TaskTest {
 	}
 
 	protected void setUp() throws Exception {
-		
+
 		if (analyzer != null) return;
 
 		final String script =
 				"TASK TEST1 PROCESS ASYNC 'NESTED_PROCESS1' 'ethel' END TASK\n" +
-				"TASK TEST2 PROCESS ASYNC 'NESTED_PROCESS2' 123 END TASK";
+				"TASK TEST2 PROCESS ASYNC 'NESTED_PROCESS2' 123 END TASK\n" +
+				"TASK NAME WAIT AFTER TEST1 AND TEST2 WAITFOR ASYNC END TASK";
 
 		final String nestedScript1 =
 				"PARAMETERS name VARCHAR END PARAMETERS\n" +
-				"TASK NESTED_TASK1 LOG name END TASK";
+				"TASK NESTED_TASK1 LOG name END TASK\n" +
+				"TASK NAME PAUSE1 AFTER WAITFOR DELAY '0:00:02' END TASK";
 
 		final String nestedScript2 =
 				"PARAMETERS number INT END PARAMETERS\n" +
-				"TASK NESTED_TASK2 LOG FORMAT(number, 'd') END TASK";
+				"TASK NESTED_TASK2 LOG FORMAT(number, 'd') END TASK\n" +
+				"TASK NAME PAUSE2 AFTER WAITFOR DELAY '0:00:04' END TASK";
 
 		Map<String, String> nestedScripts = new HashMap<String, String>();
 		nestedScripts.put("NESTED_PROCESS1", nestedScript1);
@@ -57,7 +60,7 @@ public class AsyncProcessTaskTest extends TaskTest {
 		Level logLevel = Level.info;
 		boolean logToConsole = true;
 
-		analyzer = runScript(processId, logLevel, logToConsole, script, null, nestedScripts, null); 
+		analyzer = runScript(processId, logLevel, logToConsole, script, null, nestedScripts, null);
 	}
 
 	private void testAsyncProcessLaunch(String taskId) throws Exception {
@@ -94,7 +97,7 @@ public class AsyncProcessTaskTest extends TaskTest {
 		assertFalse(iterator.hasNext());
 	}
 
-	private void testAsyncProcessRun(String nestedProcessId, String taskId, String message) throws Exception {
+	private void testAsyncProcessRun(String nestedProcessId, String taskId, String message, String pauseTaskId) throws Exception {
 
 		String qualifiedProcessId = processId + "." + nestedProcessId;
 
@@ -108,6 +111,14 @@ public class AsyncProcessTaskTest extends TaskTest {
 		record = iterator.next();
 		assertEquals(taskId, record.taskId);
 		assertEquals(message, record.message);
+
+		record = iterator.next();
+		assertEquals(pauseTaskId, record.taskId);
+		assertEquals(Task.startMessage, record.message);
+
+		record = iterator.next();
+		assertEquals(pauseTaskId, record.taskId);
+		assertEquals(Task.succeedMessage, record.message);
 
 		record = iterator.next();
 		assertEquals(DbProcess.processTaskId, record.taskId);
@@ -126,7 +137,65 @@ public class AsyncProcessTaskTest extends TaskTest {
 	}
 
 	public void testAsyncProcessRun() throws Exception {
-		testAsyncProcessRun("NESTED_PROCESS1", "NESTED_TASK1", "ethel");
-		testAsyncProcessRun("NESTED_PROCESS2", "NESTED_TASK2", "123");
+		testAsyncProcessRun("NESTED_PROCESS1", "NESTED_TASK1", "ethel", "PAUSE1");
+		testAsyncProcessRun("NESTED_PROCESS2", "NESTED_TASK2", "123", "PAUSE2");
+	}
+
+	public void testAsyncProcessSyntax() {
+		String script;
+
+		final String missingPredecessorMessage = "At line %d: WAITFOR ASYNC TASK must have direct or indirect predecessor or predecessor descendent that is PROCESS ASYNC TASK";
+		final String invalidCombinationMessage = "At line %d: WAITFOR ASYNC TASK or direct or indirect predecessor cannot combine predecessors with OR";
+
+		script =
+				"TASK Parent1 DO\n" +
+				"	TASK GO END TASK\n" +
+				"	TASK AFTER PROCESS ASYNC 'dummy' END TASK\n" +
+				"	TASK AFTER GO END TASK\n" +
+				"END TASK\n" +
+				"TASK Parent2 AFTER Parent1 DO\n" +
+				"	TASK WAITFOR ASYNC END TASK\n" +
+				"END TASK\n";
+
+		assertGoodSyntax(script);
+
+		script =
+				"TASK UnrelatedAsync PROCESS ASYNC 'dummy' END TASK\n" +
+				"TASK Parent1 DO\n" +
+				"	TASK GO END TASK\n" +
+				"	TASK AFTER PROCESS SYNC 'dummy' END TASK\n" +
+				"	TASK AFTER GO END TASK\n" +
+				"END TASK\n" +
+				"TASK Parent2 AFTER Parent1 DO\n" +
+				"	TASK WAITFOR ASYNC END TASK\n" +
+				"END TASK\n";
+
+		assertBadSyntax(script, String.format(missingPredecessorMessage, 8));
+
+		script =
+				"TASK AnotherAsync PROCESS ASYNC 'dummy' END TASK\n" +
+				"TASK Parent1 DO\n" +
+				"	TASK GO END TASK\n" +
+				"	TASK AFTER PROCESS ASYNC 'dummy' END TASK\n" +
+				"	TASK AFTER GO END TASK\n" +
+				"END TASK\n" +
+				"TASK Parent2 AFTER Parent1 OR AnotherAsync DO\n" +
+				"	TASK WAITFOR ASYNC END TASK\n" +
+				"END TASK\n";
+
+		assertBadSyntax(script, String.format(invalidCombinationMessage, 8));
+
+		script =
+				"TASK AnotherAsync PROCESS ASYNC 'dummy' END TASK\n" +
+				"TASK Parent1 DO\n" +
+				"	TASK GO END TASK\n" +
+				"	TASK AFTER PROCESS ASYNC 'dummy' END TASK\n" +
+				"	TASK AFTER GO END TASK\n" +
+				"END TASK\n" +
+				"TASK Parent2 AFTER Parent1 AND AnotherAsync DO\n" +
+				"	TASK WAITFOR ASYNC END TASK\n" +
+				"END TASK\n";
+
+		assertGoodSyntax(script);
 	}
 }

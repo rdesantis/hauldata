@@ -23,19 +23,28 @@ import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.NestedTaskSet;
 import com.hauldata.util.schedule.ScheduleSet;
 
-public abstract class ScheduleTask extends Task {
+public abstract class ScheduleTask extends Task implements TaskSetParent {
 
 	private NestedTaskSet taskSet;
 	private Map<String, Connection> connections;
 
 	public ScheduleTask(
 			Prologue prologue,
-			NestedTaskSet taskSet,
 			Map<String, Connection> connections) {
 
 		super(prologue);
-		this.taskSet = taskSet;
 		this.connections = connections;
+	}
+
+	@Override
+	public Task setTaskSet(NestedTaskSet taskSet) {
+		this.taskSet = taskSet;
+		return this;
+	}
+
+	@Override
+	public NestedTaskSet getTaskSet() {
+		return taskSet;
 	}
 
 	protected void execute(Context context, ScheduleSet schedules) {
