@@ -127,8 +127,7 @@ public class DbProcessTest extends TaskTest {
 				"TASK NewWriteXlsx3 AFTER NewWriteXlsx2 WRITE XLSX 'written headers.xlsx' 'yet another sheet' FROM SQL SELECT * FROM test.things END TASK \n" +
 				"TASK NewWriteXlsx4 AFTER NewWriteXlsx3 WRITE XLSX 'written headers.xlsx' 'final sheet' NO HEADERS FROM SQL SELECT * FROM test.things END TASK \n" +
 				"TASK Appender APPEND CSV 'append me.csv' FROM SQL SELECT * FROM test.things END TASK \n" +
-				"TASK CopyZip COPY '../../../../src/test/resources/data/sql200n.zip' TO 'sql200n.zip' END TASK \n" +
-				"TASK UnZipper AFTER CopyZip UNZIP 'sql200n.zip' TO 'trash' END TASK \n" +
+				"TASK UnZipper UNZIP 'sql200n.zip' TO '../../../../target/test/resources/data/trash' END TASK \n" +
 				"TASK Deleter DELETE 'final target.csv', 'target.csv' END TASK \n" +
 				"TASK Copier AFTER Appender SUCCEEDS AND Deleter COMPLETES COPY 'append me.csv' TO 'target.csv' END TASK \n" +
 				"TASK Renamer AFTER Copier SUCCEEDS AND Deleter COMPLETES RENAME 'target.csv' TO 'final target.csv' END TASK \n" +

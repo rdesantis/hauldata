@@ -52,11 +52,11 @@ public class UnzipTask extends Task {
 		BufferedOutputStream out = null;
 
 		try {
-			String targetDirectory = context.getWritePath(target.evaluate()).toString();
+			String targetDirectory = context.getReadPath(target.evaluate()).toString();
 			
 			in = new ZipInputStream(
 					new BufferedInputStream(
-							new FileInputStream(context.getWritePath(source.evaluate()).toString())));
+							new FileInputStream(context.getReadPath(source.evaluate()).toString())));
 
 			byte data[] = new byte[BUFFER];
 

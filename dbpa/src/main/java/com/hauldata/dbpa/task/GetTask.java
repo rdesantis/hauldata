@@ -48,7 +48,7 @@ public class GetTask extends FtpTask {
 		String fileName = Files.getFileName(fromFileName); 
 		String toFileName = (toDirectoryName != null) ? toDirectoryName + "/" + fileName : fileName;
 
-		Path localFilePath = context.getWritePath(toFileName);
+		Path localFilePath = context.getReadPath(toFileName);
 		context.files.assureNotOpen(localFilePath);
 
 		String localFileName = localFilePath.toString();
