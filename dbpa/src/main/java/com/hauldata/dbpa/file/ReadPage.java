@@ -28,14 +28,14 @@ public abstract class ReadPage {
 		/**
 		 * Physically open the file or sheet with the indicated headers and
 		 * return the page for reading.  Throw an exception if the file or
-		 * sheet can't be opened either physically or logically. 
+		 * sheet can't be opened either physically or logically.
 		 */
 		ReadPage open(File.Owner fileOwner, PageIdentifier id, ReadHeaders headers) throws IOException;
 
 		/**
 		 * Physically position the open file or sheet for loading and
 		 * return the page for reading.  Throw an exception if the file or
-		 * sheet can't be positioned either physically or logically. 
+		 * sheet can't be positioned either physically or logically.
 		 */
 		ReadPage load(File.Owner fileOwner, PageIdentifier id) throws IOException;
 
@@ -43,7 +43,7 @@ public abstract class ReadPage {
 		 * Physically open the file or sheet with the indicated headers or position
 		 * it for loading, depending on whether it has already been opened, and
 		 * return the page for reading.  Throw an exception if the file or
-		 * sheet can't be opened or loaded either physically or logically. 
+		 * sheet can't be opened or loaded either physically or logically.
 		 */
 		ReadPage read(File.Owner fileOwner, PageIdentifier id, ReadHeaders headers) throws IOException;
 	}
@@ -114,7 +114,7 @@ public abstract class ReadPage {
 					}
 					stmt.addBatch();
 				}
-				stmt.executeBatch();					
+				stmt.executeBatch();
 			}
 		}
 		catch (IOException ex) {

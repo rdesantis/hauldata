@@ -41,7 +41,7 @@ public class StatementDataSource extends DataSource {
 
 		String evaluatedStatement = evaluateStatement(context);
 
-		executeUpdate(stmt, evaluatedStatement);
+		executeUpdate(evaluatedStatement);
 	}
 
 	@Override
@@ -49,14 +49,11 @@ public class StatementDataSource extends DataSource {
 
 		String evaluatedStatement = evaluateStatement(context);
 
-		rs = executeQuery(stmt, evaluatedStatement);
+		rs = executeQuery(evaluatedStatement);
 
 		return rs;
 	}
 
-	/**
-	 * This function has side effects!
-	 */
 	private String evaluateStatement(Context context) throws SQLException {
 
 		conn = context.getConnection(connection);

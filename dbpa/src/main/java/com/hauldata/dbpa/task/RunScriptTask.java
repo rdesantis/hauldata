@@ -18,13 +18,13 @@ package com.hauldata.dbpa.task;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.datasource.DataSource;
+import com.hauldata.dbpa.datasource.StatementDataSource;
 import com.hauldata.dbpa.expression.Expression;
+import com.hauldata.dbpa.expression.StringConstant;
 import com.hauldata.dbpa.file.TextFile;
 import com.hauldata.dbpa.process.Context;
 
@@ -63,15 +63,10 @@ public class RunScriptTask extends DatabaseTask {
 
 		// Execute the script body.
 
-		Connection conn = null;
-		Statement stmt = null;
+		DataSource dataSource = new StatementDataSource(connection, new StringConstant(body), false);
 
 		try {
-			conn = context.getConnection(connection);
-
-			stmt = conn.createStatement();
-			
-		    DataSource.executeUpdate(stmt, body);
+		    dataSource.executeUpdate(context);
 		}
 		catch (SQLException ex) {
 			throwDatabaseExecutionFailed(ex);
@@ -79,15 +74,9 @@ public class RunScriptTask extends DatabaseTask {
 		catch (InterruptedException ex) {
 			throw new RuntimeException("Script execution terminated due to interruption");
 		}
-		finally { try {
-
-			if (stmt != null) stmt.close();
-		}
-		catch (SQLException ex) {
-			throwDatabaseCloseFailed(ex);
-		}
 		finally {
-			if (conn != null) context.releaseConnection(connection);
-		} }
+			try { dataSource.done(context); } catch (Exception ex) {}
+			try { dataSource.close(context); } catch (Exception ex) {}
+		}
 	}
 }

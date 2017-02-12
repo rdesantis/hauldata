@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,42 +16,29 @@
 
 package com.hauldata.dbpa.datasource;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
 
-public class TableDataSource extends DataSource {
+public class StatementDataTarget extends DataTarget {
 
-	private Expression<String> table;
+	Expression<String> statement;
 
-	public TableDataSource(
+	public StatementDataTarget(
 			DatabaseConnection connection,
-			Expression<String> table,
-			boolean singleRow) {
+			Expression<String> statement) {
 
-		super(connection, singleRow);
-		this.table = table;
+		super(connection);
+		this.statement = statement;
 	}
 
 	@Override
-	public void executeUpdate(Context context) throws SQLException {
-		throw new RuntimeException("Internal error: call to TableDataSource.executeUpdate(Context)");
-	}
+	public void prepareStatement(Context context) throws SQLException {
 
-	@Override
-	public ResultSet executeQuery(Context context) throws SQLException, InterruptedException {
+		String sql = statement.evaluate();
 
-		String statement = "SELECT * FROM " + table.evaluate();
-
-		conn = context.getConnection(connection);
-
-		stmt = conn.createStatement(getResultSetType(), ResultSet.CONCUR_READ_ONLY);
-
-		rs = executeQuery(statement);
-
-		return rs;
+		prepareStatement(context, sql);
 	}
 }
