@@ -22,7 +22,7 @@ import java.util.List;
 import com.hauldata.dbpa.datasource.DataSource;
 import com.hauldata.dbpa.variable.VariableBase;
 
-public abstract class UpdateVariablesTask extends DatabaseTask {
+public abstract class UpdateVariablesTask extends Task {
 
 	public UpdateVariablesTask(Prologue prologue) {
 		super(prologue);

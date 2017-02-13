@@ -28,7 +28,7 @@ import com.hauldata.dbpa.expression.StringConstant;
 import com.hauldata.dbpa.file.TextFile;
 import com.hauldata.dbpa.process.Context;
 
-public class RunScriptTask extends DatabaseTask {
+public class RunScriptTask extends Task {
 
 	private Expression<String> source;
 	DatabaseConnection connection;
@@ -69,7 +69,7 @@ public class RunScriptTask extends DatabaseTask {
 		    dataSource.executeUpdate(context);
 		}
 		catch (SQLException ex) {
-			throwDatabaseExecutionFailed(ex);
+			DataSource.throwDatabaseExecutionFailed(ex);
 		}
 		catch (InterruptedException ex) {
 			throw new RuntimeException("Script execution terminated due to interruption");

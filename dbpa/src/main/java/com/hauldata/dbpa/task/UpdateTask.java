@@ -49,7 +49,7 @@ public class UpdateTask extends UpdateVariablesTask {
 			source.done(context);
 		}
 		catch (SQLException ex) {
-			throwDatabaseExecutionFailed(ex);
+			DataSource.throwDatabaseExecutionFailed(ex);
 		}
 		catch (InterruptedException ex) {
 			throw new RuntimeException("Database query terminated due to interruption");

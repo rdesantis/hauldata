@@ -67,7 +67,7 @@ public class ForDataTask extends UpdateVariablesTask implements TaskSetParent {
 			source.done(context);
 		}
 		catch (SQLException ex) {
-			throwDatabaseExecutionFailed(ex);
+			DataSource.throwDatabaseExecutionFailed(ex);
 		}
 		catch (InterruptedException ex) {
 			throw new RuntimeException("Loop terminated due to interruption");

@@ -21,7 +21,7 @@ import java.sql.SQLException;
 import com.hauldata.dbpa.datasource.DataSource;
 import com.hauldata.dbpa.process.Context;
 
-public class RunTask extends DatabaseTask {
+public class RunTask extends Task {
 
 	private DataSource dataSource;
 
@@ -42,7 +42,7 @@ public class RunTask extends DatabaseTask {
 			dataSource.done(context);
 		}
 		catch (SQLException ex) {
-			throwDatabaseExecutionFailed(ex);
+			DataSource.throwDatabaseExecutionFailed(ex);
 		}
 		catch (InterruptedException ex) {
 			throw new RuntimeException("Database query terminated due to interruption");

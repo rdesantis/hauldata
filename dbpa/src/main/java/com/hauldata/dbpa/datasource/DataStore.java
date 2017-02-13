@@ -28,6 +28,8 @@ import com.hauldata.dbpa.process.Context;
 
 public abstract class DataStore {
 
+	// Static methods
+
 	/**
 	 * Return a value retrieved from ExpressionBase.getEvaluationObject() converted if necessary
 	 * to an object type acceptable to PreparedStatement.setObject(Object) on all database systems.
@@ -53,6 +55,21 @@ public abstract class DataStore {
 			return value;
 		}
 	}
+
+	public static void throwDatabaseExecutionFailed(Exception ex) {
+		throwDatabaseFailed("execution", ex);
+	}
+
+	public static void throwDatabaseCloseFailed(Exception ex) {
+		throwDatabaseFailed("close", ex);
+	}
+
+	private static void throwDatabaseFailed(String operation, Exception ex) {
+		String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
+		throw new RuntimeException("Database statement " + operation + " failed: " + message, ex);
+	}
+
+	// End of static methods
 
 	protected DatabaseConnection connection;
 

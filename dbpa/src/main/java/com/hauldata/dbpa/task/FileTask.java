@@ -26,7 +26,7 @@ import com.hauldata.dbpa.file.ReadPage;
 import com.hauldata.dbpa.file.WritePage;
 import com.hauldata.dbpa.process.Context;
 
-public abstract class FileTask extends DatabaseTask {
+public abstract class FileTask extends Task {
 
 	public FileTask(Prologue prologue) {
 		super(prologue);
@@ -45,7 +45,7 @@ public abstract class FileTask extends DatabaseTask {
 			source.done(context);
 		}
 		catch (SQLException ex) {
-			throwDatabaseExecutionFailed(ex);
+			DataSource.throwDatabaseExecutionFailed(ex);
 		}
 		catch (InterruptedException ex) {
 			throw new RuntimeException("File write terminated due to interruption");
@@ -68,7 +68,7 @@ public abstract class FileTask extends DatabaseTask {
 			page.read(columns, target);
 		}
 		catch (SQLException ex) {
-			throwDatabaseExecutionFailed(ex);
+			DataTarget.throwDatabaseExecutionFailed(ex);
 		}
 		catch (InterruptedException ex) {
 			throw new RuntimeException("File read terminated due to interruption");
