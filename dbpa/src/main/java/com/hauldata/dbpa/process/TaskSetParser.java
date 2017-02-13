@@ -969,7 +969,7 @@ abstract class TaskSetParser {
 			}
 
 			Expression<String> toName = null;
-			if (!hasNextEnd(KW.TASK.name())) {
+			if (!atEndOfTask()) {
 				toName = parseStringExpression();
 			}
 
@@ -1101,7 +1101,7 @@ abstract class TaskSetParser {
 		public Task parse(Task.Prologue prologue) throws IOException {
 
 			Expression<String> expression = null;
-			if (!hasNextEnd(KW.TASK.name())) {
+			if (!atEndOfTask()) {
 				expression = parseStringExpression();
 			}
 			return new GoTask(prologue, expression);
@@ -1113,7 +1113,7 @@ abstract class TaskSetParser {
 		public Task parse(Task.Prologue prologue) throws IOException {
 
 			Expression<String> expression = null;
-			if (!hasNextEnd(KW.TASK.name())) {
+			if (!atEndOfTask()) {
 				expression = parseStringExpression();
 			}
 			return new FailTask(prologue, expression);
@@ -1135,7 +1135,7 @@ abstract class TaskSetParser {
 			Expression<String> name = parseStringExpression();
 
 			List<ExpressionBase> arguments = new LinkedList<ExpressionBase>();
-			if (tokenizer.skipWordIgnoreCase(KW.WITH.name()) || !hasNextEnd(KW.TASK.name())) {
+			if (tokenizer.skipWordIgnoreCase(KW.WITH.name()) || !atEndOfTask()) {
 				do {
 					arguments.add(parseAnyExpression());
 				} while (tokenizer.skipDelimiter(","));
@@ -1686,7 +1686,7 @@ abstract class TaskSetParser {
 			return false;
 		}
 		else {
-			return !hasNextBeginOrEnd(KW.TASK.name());
+			return !atEndOrStartOfTask();
 		}
 	}
 
@@ -1870,7 +1870,7 @@ abstract class TaskSetParser {
 
 		BacktrackingTokenizerMark mark = tokenizer.mark();
 
-		while (!hasNextBeginOrEnd(KW.TASK.name())) {
+		while (!atEndOfSQL()) {
 			Token nextToken = tokenizer.nextToken();
 			statement.append(nextToken.render());
 
@@ -1965,7 +1965,11 @@ abstract class TaskSetParser {
 		return true;
 	}
 
-	private boolean hasNextEnd(String section) throws IOException {
+	private boolean atEndOfTask() throws IOException {
+		return atEndOf(KW.TASK);
+	}
+
+	private boolean atEndOf(KW keyword) throws IOException {
 
 		if (!tokenizer.hasNextWordIgnoreCase(KW.END.name())) {
 			return false;
@@ -1974,34 +1978,54 @@ abstract class TaskSetParser {
 		BacktrackingTokenizerMark mark = tokenizer.mark();
 		tokenizer.nextToken();
 
-		boolean result = tokenizer.hasNextWordIgnoreCase(section);
+		boolean result = tokenizer.hasNextWordIgnoreCase(keyword.name());
 
 		tokenizer.reset(mark);
 		return result;
 	}
 
-	private boolean hasNextBeginOrEnd(String section) throws IOException {
+	private boolean atStartOfTask() throws IOException {
 
-		if (tokenizer.hasNextWordIgnoreCase(KW.END.name())) {
-			return hasNextEnd(section);
-		}
-		else if (tokenizer.hasNextWordIgnoreCase(section)) {
-			if (section == KW.TASK.name()) {
-				BacktrackingTokenizerMark mark = tokenizer.mark();
-				tokenizer.nextToken();
-
-				boolean result = tokenizer.hasNextWord();
-
-				tokenizer.reset(mark);
-				return result;
-			}
-			else {
-				return true;
-			}
-		}
-		else {
+		if (!tokenizer.hasNextWordIgnoreCase(KW.TASK.name())) {
 			return false;
 		}
+
+		BacktrackingTokenizerMark mark = tokenizer.mark();
+		tokenizer.nextToken();
+
+		boolean result = tokenizer.hasNextWord();
+
+		tokenizer.reset(mark);
+		return result;
+	}
+
+	private boolean atEndOrStartOfTask() throws IOException {
+		return atEndOfTask() || atStartOfTask();
+	}
+
+	/**
+	 * @return true if tokenizer is positioned past the last token of a SQL token list.
+	 * This can happen in three ways:
+	 * <p>
+	 * 1. "END TASK" is found; the tokenizer does not advance past any input; or<br>
+	 * 2. "TASK {identifier}" is found; the tokenizer does not advance past any input; or<br>
+	 * 3. "END SQL" is found; the tokenizer <b>is</b> advanced past "END SQL".
+	 * @throws IOException
+	 */
+	private boolean atEndOfSQL() throws IOException {
+
+		if (atEndOrStartOfTask()) {
+			return true;
+		}
+
+		boolean result = atEndOf(KW.SQL);
+
+		if (result) {
+			tokenizer.nextToken();
+			tokenizer.nextToken();
+		}
+
+		return result;
 	}
 
 	private ExpressionBase parseExpression(VariableType type)
