@@ -14,30 +14,19 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.datasource;
+package com.hauldata.dbpa.task;
 
-import java.sql.SQLException;
-
-import com.hauldata.dbpa.connection.DatabaseConnection;
-import com.hauldata.dbpa.file.Columns;
-import com.hauldata.dbpa.file.ReadHeaders;
 import com.hauldata.dbpa.process.Context;
 
-public class TokenizedStatementDataTarget extends DataTarget {
+public class RequestPostTask extends RequestWithBodyTask {
 
-	String statement;
-
-	public TokenizedStatementDataTarget(
-			DatabaseConnection connection,
-			String statement) {
-
-		super(connection);
-		this.statement = statement;
+	public RequestPostTask(Prologue prologue, ParametersWithBody parameters) {
+		super(prologue, parameters);
 	}
 
 	@Override
-	public void prepareStatement(Context context, ReadHeaders headers, Columns columns) throws SQLException {
+	protected void execute(Context context) throws Exception {
+		// TODO Auto-generated method stub
 
-		prepareStatement(context, statement);
 	}
 }

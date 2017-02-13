@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -18,48 +18,43 @@ package com.hauldata.dbpa.task;
 
 import java.io.IOException;
 
-import com.hauldata.dbpa.connection.DatabaseConnection;
-import com.hauldata.dbpa.expression.Expression;
+import com.hauldata.dbpa.datasource.DataTarget;
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.ReadPage;
 import com.hauldata.dbpa.process.Context;
 
-public class LoadIntoStatementTask extends FileTask {
+public class LoadTask extends FileTask {
 
 	private PageIdentifierExpression page;
 	private ColumnExpressions columns;
-	private DatabaseConnection connection;
-	private Expression<String> statement;
+	private DataTarget target;
 
-	public LoadIntoStatementTask(
+	public LoadTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
 			ColumnExpressions columns,
-			DatabaseConnection connection,
-			Expression<String> statement) {
+			DataTarget target) {
 
 		super(prologue);
 		this.page = page;
 		this.columns = columns;
-		this.connection = connection;
-		this.statement = statement;
+		this.target = target;
 	}
 
 	@Override
-	protected void execute(Context context) {
+	protected void execute(Context context) throws Exception {
 
 		PageIdentifier page = this.page.evaluate(context, false);
-		String statement = this.statement.evaluate();
 
 		try {
 			ReadPage readPage = page.load(context.files);
 			Columns columns = this.columns.evaluate(readPage.getReadHeaders());
-			readIntoStatement(context, connection, readPage, columns, statement);
+			read(context, readPage, null, columns, target);
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
-			throw new RuntimeException("Error occurred loading " + page.getName() + ": " + message);
+			throw new RuntimeException("Error occurred reading " + page.getName() + ": " + message);
 		}
 	}
 }

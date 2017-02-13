@@ -16,7 +16,6 @@
 
 package com.hauldata.dbpa.task;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -27,27 +26,27 @@ import com.hauldata.dbpa.variable.VariableBase;
 public class UpdateTask extends UpdateVariablesTask {
 
 	private List<VariableBase> variables;
-	private DataSource dataSource;
+	private DataSource source;
 
 	public UpdateTask(
 			Prologue prologue,
 			List<VariableBase> variables,
-			DataSource dataSource) {
+			DataSource source) {
 
 		super(prologue);
 		this.variables = variables;
-		this.dataSource = dataSource;
+		this.source = source;
 	}
 
 	@Override
 	protected void execute(Context context) {
 
 		try {
-			ResultSet rs = dataSource.executeQuery(context);
+			source.executeQuery(context);
 
-			updateVariablesOnce(rs, variables);
+			updateVariablesOnce(source, variables);
 			
-			dataSource.done(context);
+			source.done(context);
 		}
 		catch (SQLException ex) {
 			throwDatabaseExecutionFailed(ex);
@@ -56,7 +55,7 @@ public class UpdateTask extends UpdateVariablesTask {
 			throw new RuntimeException("Database query terminated due to interruption");
 		}
 		finally {
-			dataSource.close(context);
+			source.close(context);
 		}
 	}
 }

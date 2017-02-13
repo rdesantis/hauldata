@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017 Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ public class TableDataSource extends DataSource {
 	}
 
 	@Override
-	public ResultSet executeQuery(Context context) throws SQLException, InterruptedException {
+	public void executeQuery(Context context) throws SQLException, InterruptedException {
 
 		String statement = "SELECT * FROM " + table.evaluate();
 
@@ -51,7 +51,5 @@ public class TableDataSource extends DataSource {
 		stmt = conn.createStatement(getResultSetType(), ResultSet.CONCUR_READ_ONLY);
 
 		rs = executeQuery(statement);
-
-		return rs;
 	}
 }

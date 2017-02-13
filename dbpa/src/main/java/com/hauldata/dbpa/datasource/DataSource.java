@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -41,7 +41,30 @@ public abstract class DataSource extends DataStore {
 
 	public abstract void executeUpdate(Context context) throws SQLException, InterruptedException;
 
-	public abstract ResultSet executeQuery(Context context) throws SQLException, InterruptedException;
+	public abstract void executeQuery(Context context) throws SQLException, InterruptedException;
+
+	public int getColumnCount() throws SQLException {
+		return rs.getMetaData().getColumnCount();
+	}
+
+	public String getColumnLabel(int column) throws SQLException {
+		return rs.getMetaData().getColumnLabel(column);
+	}
+
+	public boolean next() throws SQLException, InterruptedException {
+		if (Thread.interrupted()) {
+			throw new InterruptedException();
+		}
+		return rs.next();
+	}
+
+	public Object getObject(int columnIndex) throws SQLException {
+		return rs.getObject(columnIndex);
+	}
+
+	public boolean isLast() throws SQLException {
+		return rs.isLast();
+	}
 
 	public void done(Context context) throws SQLException {}
 

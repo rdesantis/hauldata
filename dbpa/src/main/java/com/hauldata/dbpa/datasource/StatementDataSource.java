@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017 Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -45,13 +45,11 @@ public class StatementDataSource extends DataSource {
 	}
 
 	@Override
-	public ResultSet executeQuery(Context context) throws SQLException, InterruptedException {
+	public void executeQuery(Context context) throws SQLException, InterruptedException {
 
 		String evaluatedStatement = evaluateStatement(context);
 
 		rs = executeQuery(evaluatedStatement);
-
-		return rs;
 	}
 
 	private String evaluateStatement(Context context) throws SQLException {

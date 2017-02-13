@@ -19,6 +19,7 @@ package com.hauldata.dbpa.task;
 import java.util.List;
 
 import com.hauldata.dbpa.datasource.DataSource;
+import com.hauldata.dbpa.datasource.DataTarget;
 import com.hauldata.dbpa.expression.Expression;
 
 public abstract class RequestTask extends Task {
@@ -27,10 +28,11 @@ public abstract class RequestTask extends Task {
 	protected Expression<String> header;
 
 	protected List<Expression<String>> requestFields;
-	protected DataSource dataSource;
+	protected DataSource source;
 	protected List<Expression<String>> keepFields;
 	protected List<Expression<String>> responseFields;
 	protected Expression<String> statusField;
+	protected DataTarget target;
 
 	public static class Parameters {
 
@@ -38,10 +40,11 @@ public abstract class RequestTask extends Task {
 		public Expression<String> header;
 
 		public List<Expression<String>> requestFields;
-		public DataSource dataSource;
+		public DataSource source;
 		public List<Expression<String>> keepFields;
 		public List<Expression<String>> responseFields;
 		public Expression<String> statusField;
+		public DataTarget target;
 	}
 
 	protected RequestTask(Prologue prologue, Parameters parameters) {
@@ -49,10 +52,12 @@ public abstract class RequestTask extends Task {
 		
 		url = parameters.url;
 		header = parameters.header;
+
 		requestFields = parameters.requestFields;
-		dataSource = parameters.dataSource;
+		source = parameters.source;
 		keepFields = parameters.keepFields;
 		responseFields = parameters.responseFields;
 		statusField = parameters.statusField;
+		target = parameters.target;
 	}
 }

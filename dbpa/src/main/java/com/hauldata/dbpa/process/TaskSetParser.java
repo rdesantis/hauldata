@@ -768,9 +768,9 @@ abstract class TaskSetParser {
 
 		private Task parseRun(Task.Prologue prologue) throws IOException {
 
-			DataSource dataSource = parseDataSource(KW.RUN.name(), null, false, false);
+			DataSource source = parseDataSource(KW.RUN.name(), null, false, false);
 
-			return new RunTask(prologue, dataSource);
+			return new RunTask(prologue, source);
 		}
 	}
 
@@ -784,9 +784,9 @@ abstract class TaskSetParser {
 				variables.add(parseVariableReference());
 			} while (tokenizer.skipDelimiter(","));
 
-			DataSource dataSource = parseDataSource(KW.UPDATE.name(), KW.FROM.name(), true, true);
+			DataSource source = parseDataSource(KW.UPDATE.name(), KW.FROM.name(), true, true);
 
-			return new UpdateTask(prologue, variables, dataSource);
+			return new UpdateTask(prologue, variables, source);
 		}
 	}
 
@@ -808,9 +808,9 @@ abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(true);
 
-			DataSource dataSource = parseDataSource(KW.APPEND.name(), KW.FROM.name(), false, true);
+			DataSource source = parseDataSource(KW.APPEND.name(), KW.FROM.name(), false, true);
 
-			return new AppendTask(prologue, page, dataSource);
+			return new AppendTask(prologue, page, source);
 		}
 	}
 
@@ -822,9 +822,9 @@ abstract class TaskSetParser {
 
 			WriteHeaderExpressions headers = parseWriteHeaders(KW.FROM.name());
 
-			DataSource dataSource = parseDataSource(KW.WRITE.name(), KW.FROM.name(), false, true);
+			DataSource source = parseDataSource(KW.WRITE.name(), KW.FROM.name(), false, true);
 
-			return new WriteTask(prologue, page, headers, dataSource);
+			return new WriteTask(prologue, page, headers, source);
 		}
 	}
 
@@ -848,37 +848,9 @@ abstract class TaskSetParser {
 
 			ColumnExpressions columns = parseColumns();
 
-			DatabaseConnection connection = parseDatabaseConnection(KW.INTO.name());
+			DataTarget target = parseDataTarget(KW.LOAD.name(), KW.INTO.name(), false, false);
 
-			if (hasSQL(KW.LOAD.name())) {
-				return parseLoadIntoTokenizedStatement(prologue, page, columns, connection);
-			}
-			else {
-				return parseLoadIntoStatement(prologue, page, columns, connection);
-			}
-		}
-
-		private Task parseLoadIntoStatement(
-				Task.Prologue prologue,
-				PageIdentifierExpression page,
-				ColumnExpressions columns,
-				DatabaseConnection connection) throws IOException {
-
-			Expression<String> statement = parseStringExpression();
-
-			return new LoadIntoStatementTask(prologue, page, columns, connection, statement);
-		}
-
-		private Task parseLoadIntoTokenizedStatement(
-				Task.Prologue prologue,
-				PageIdentifierExpression page,
-				ColumnExpressions columns,
-				DatabaseConnection connection) throws IOException {
-
-			StringBuilder statement = new StringBuilder();
-			parseTokenizedStatement(statement);
-
-			return new LoadIntoTokenizedStatementTask(prologue, page, columns, connection, statement.toString());
+			return new LoadTask(prologue, page, columns, target);
 		}
 	}
 
@@ -894,64 +866,9 @@ abstract class TaskSetParser {
 
 			columns.validate(headers);
 
-			DatabaseConnection connection = parseDatabaseConnection(KW.INTO.name());
+			DataTarget target = parseDataTarget(KW.LOAD.name(), KW.INTO.name(), true, headers.exist());
 
-			if (tokenizer.skipWordIgnoreCase(KW.TABLE.name())) {
-				return parseReadIntoTable(prologue, page, headers, columns, connection);
-			}
-			else if (hasSQL(KW.READ.name())) {
-				return parseReadIntoTokenizedStatement(prologue, page, headers, columns, connection);
-			}
-			else {
-				return parseReadIntoStatement(prologue, page, headers, columns, connection);
-			}
-		}
-
-		private Task parseReadIntoStatement(
-				Task.Prologue prologue,
-				PageIdentifierExpression page,
-				ReadHeaderExpressions headers,
-				ColumnExpressions columns,
-				DatabaseConnection connection) throws IOException {
-
-			Expression<String> statement = parseStringExpression();
-
-			return new ReadIntoStatementTask(prologue, page, headers, columns, connection, statement);
-		}
-
-		private Task parseReadIntoTokenizedStatement(
-				Task.Prologue prologue,
-				PageIdentifierExpression page,
-				ReadHeaderExpressions headers,
-				ColumnExpressions columns,
-				DatabaseConnection connection) throws IOException {
-
-			StringBuilder statement = new StringBuilder();
-			parseTokenizedStatement(statement);
-
-			return new ReadIntoTokenizedStatementTask(prologue, page, headers, columns, connection, statement.toString());
-		}
-
-		private Task parseReadIntoTable(
-				Task.Prologue prologue,
-				PageIdentifierExpression page,
-				ReadHeaderExpressions headers,
-				ColumnExpressions columns,
-				DatabaseConnection connection) throws IOException {
-
-			if (!headers.exist()) {
-				throw new RuntimeException(KW.READ.name() + " " + KW.INTO.name() + " " + KW.TABLE.name() + " requires column headers");
-			}
-
-			Expression<String> table = parseStringExpression();
-
-			Expression<String> prefix = null;
-			if (tokenizer.skipWordIgnoreCase(KW.PREFIX.name())) {
-				tokenizer.skipWordIgnoreCase(KW.WITH.name());
-				prefix = parseStringExpression();
-			}
-
-			return new ReadIntoTableTask(prologue, page, headers, columns, connection, table, prefix);
+			return new ReadTask(prologue, page, headers, columns, target);
 		}
 	}
 
@@ -1568,7 +1485,7 @@ abstract class TaskSetParser {
 
 		protected void parseTrailingFields(RequestTask.Parameters parameters) throws IOException {
 
-			parameters.dataSource = parseDataSource(KW.REQUEST.name(), KW.FROM.name(), false, true);
+			parameters.source = parseDataSource(KW.REQUEST.name(), KW.FROM.name(), false, true);
 
 			if (tokenizer.skipWordIgnoreCase(KW.KEEP.name())) {
 
@@ -1609,7 +1526,7 @@ abstract class TaskSetParser {
 
 			parameters.statusField = parseStringExpression();
 
-			// TODO: NEED DataTarget refactoring here!!!
+			parameters.target = parseDataTarget(KW.REQUEST.name(), KW.INTO.name(), true, false);
 		}
 
 		protected void parseAllFields(RequestTask.Parameters parameters) throws IOException {
@@ -1625,7 +1542,7 @@ abstract class TaskSetParser {
 		@Override
 		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters) throws IOException {
 			parseAllFields(parameters);
-			return null;// TODO: new GetRequestTask(prologue, parameters);
+			return new RequestGetTask(prologue, parameters);
 		}
 	}
 
@@ -1634,7 +1551,7 @@ abstract class TaskSetParser {
 		@Override
 		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters) throws IOException {
 			parseAllFields(parameters);
-			return null;// TODO: new DeleteRequestTask(prologue, parameters);
+			return new RequestDeleteTask(prologue, parameters);
 		}
 	}
 
@@ -1669,7 +1586,7 @@ abstract class TaskSetParser {
 		@Override
 		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters) throws IOException {
 			parseAllFields(parameters);
-			return null;// TODO: new PutRequestTask(prologue, parameters);
+			return new RequestPutTask(prologue, (RequestWithBodyTask.ParametersWithBody)parameters);
 		}
 	}
 
@@ -1678,7 +1595,7 @@ abstract class TaskSetParser {
 		@Override
 		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters) throws IOException {
 			parseAllFields(parameters);
-			return null;// TODO: new PostRequestTask(prologue, parameters);
+			return new RequestPostTask(prologue, (RequestWithBodyTask.ParametersWithBody)parameters);
 		}
 	}
 
@@ -1804,17 +1721,54 @@ abstract class TaskSetParser {
 		}
 	}
 
-	private boolean hasSQL(String taskTypeName) throws IOException {
+	private DataTarget parseDataTarget(String taskTypeName, String introWord, boolean allowTable, boolean haveHeaders) throws IOException {
+
+		DatabaseConnection connection = parseDatabaseConnection(introWord);
 
 		if (tokenizer.skipWordIgnoreCase(KW.STATEMENT.name())) {
-			return false;
+			return parseStatementDataTarget(connection);
 		}
 		else if (tokenizer.skipWordIgnoreCase(KW.SQL.name())) {
-			return true;
+			return parseTokenizedStatementDataTarget(connection);
+		}
+		else if (allowTable && tokenizer.skipWordIgnoreCase(KW.TABLE.name())) {
+			return parseTableDataTarget(connection, haveHeaders);
 		}
 		else {
-			throw new InputMismatchException("Invalid data source in " + taskTypeName + " " + KW.TASK.name());
+			throw new InputMismatchException("Invalid data target in " + taskTypeName + " " + KW.TASK.name());
 		}
+	}
+
+	private StatementDataTarget parseStatementDataTarget(DatabaseConnection connection) throws IOException {
+
+		Expression<String> statement = parseStringExpression();
+
+		return new StatementDataTarget(connection, statement);
+	}
+
+	private TokenizedStatementDataTarget parseTokenizedStatementDataTarget(DatabaseConnection connection) throws IOException {
+
+		StringBuilder statement = new StringBuilder();
+		parseTokenizedStatement(statement);
+
+		return new TokenizedStatementDataTarget(connection, statement.toString());
+	}
+
+	private TableDataTarget parseTableDataTarget(DatabaseConnection connection, boolean haveHeaders) throws IOException {
+
+		if (!haveHeaders) {
+			throw new RuntimeException(KW.READ.name() + " " + KW.INTO.name() + " " + KW.TABLE.name() + " requires column headers");
+		}
+
+		Expression<String> table = parseStringExpression();
+
+		Expression<String> prefix = null;
+		if (tokenizer.skipWordIgnoreCase(KW.PREFIX.name())) {
+			tokenizer.skipWordIgnoreCase(KW.WITH.name());
+			prefix = parseStringExpression();
+		}
+
+		return new TableDataTarget(connection, table, prefix);
 	}
 
 	private VariableBase parseVariableReference() throws InputMismatchException, NoSuchElementException, IOException {

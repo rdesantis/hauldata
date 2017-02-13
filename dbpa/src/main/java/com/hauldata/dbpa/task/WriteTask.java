@@ -28,18 +28,18 @@ public class WriteTask extends FileTask {
 
 	private PageIdentifierExpression page;
 	private WriteHeaderExpressions headers;
-	private DataSource dataSource;
+	private DataSource source;
 
 	public WriteTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
 			WriteHeaderExpressions headers,
-			DataSource dataSource) {
+			DataSource source) {
 
 		super(prologue);
 		this.page = page;
 		this.headers = headers;
-		this.dataSource = dataSource;
+		this.source = source;
 	}
 
 	@Override
@@ -50,7 +50,7 @@ public class WriteTask extends FileTask {
 
 		try {
 			WritePage writePage = page.write(context.files, headers);
-			write(context, dataSource, writePage);
+			write(context, source, writePage);
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();

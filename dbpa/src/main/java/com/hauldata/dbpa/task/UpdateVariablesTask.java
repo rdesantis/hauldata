@@ -16,7 +16,6 @@
 
 package com.hauldata.dbpa.task;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -29,23 +28,23 @@ public abstract class UpdateVariablesTask extends DatabaseTask {
 		super(prologue);
 	}
 
-	private boolean updateVariables(ResultSet rs, List<VariableBase> variables, boolean checkForSingleRow) throws SQLException {
+	private boolean updateVariables(DataSource source, List<VariableBase> variables, boolean checkForSingleRow) throws SQLException, InterruptedException {
 
 		boolean hasAnyRows = false;
 		boolean hasSingleRow = false;
 		boolean hasRightNumberOfColumns = false;
 
 		if (
-				(hasAnyRows = rs.next()) &&
-				(hasRightNumberOfColumns = (rs.getMetaData().getColumnCount() == variables.size()))) {
+				(hasAnyRows = source.next()) &&
+				(hasRightNumberOfColumns = (source.getColumnCount() == variables.size()))) {
 
 			if (checkForSingleRow) {
-				hasSingleRow = rs.isLast();
+				hasSingleRow = source.isLast();
 			}
 
 			int columnIndex = 1;
 			for (VariableBase variable : variables) {
-				variable.setValueChecked(DataSource.fromSQL(rs.getObject(columnIndex++)));
+				variable.setValueChecked(DataSource.fromSQL(source.getObject(columnIndex++)));
 			}
 		}
 
@@ -64,24 +63,26 @@ public abstract class UpdateVariablesTask extends DatabaseTask {
 
 	/**
 	 * Updates variables from the next row of the result set
-	 * @param rs is the result set that is advanced to the next row.
+	 * @param source is the data source that is advanced to the next row.
 	 * @param variables are the variables to be updated.
 	 * @return true if a row remained and the variables were updated, false if no rows remained.
 	 * @throws SQLException
+	 * @throws InterruptedException
 	 * @throws RuntimeException if the number of columns did not match the number of variables to update.
 	 */
-	protected boolean updateVariables(ResultSet rs, List<VariableBase> variables) throws SQLException {
-		return updateVariables(rs, variables, false);
+	protected boolean updateVariables(DataSource source, List<VariableBase> variables) throws SQLException, InterruptedException {
+		return updateVariables(source, variables, false);
 	}
 
 	/**
 	 * Updates variables from the next row of the result set which must be the only remaining row
-	 * @param rs is the result set that is advanced to the next row.
+	 * @param source is the data source that is advanced to the next row.
 	 * @param variables are the variables to be updated.
 	 * @throws SQLException
+	 * @throws InterruptedException
 	 * @throws RuntimeException if there was not exactly one remaining row or the number of columns did not match the number of variables to update.
 	 */
-	protected void updateVariablesOnce(ResultSet rs, List<VariableBase> variables) throws SQLException {
-		updateVariables(rs, variables, true);
+	protected void updateVariablesOnce(DataSource source, List<VariableBase> variables) throws SQLException, InterruptedException {
+		updateVariables(source, variables, true);
 	}
 }
