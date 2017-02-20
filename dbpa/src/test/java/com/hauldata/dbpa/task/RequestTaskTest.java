@@ -43,14 +43,14 @@ public class RequestTaskTest extends TaskTest {
 				"END TASK\n" +
 				"TASK ArroPay \n" +
 				"	AFTER \n" +
-				"	REQUEST 'https://admin-api-sandbox.goarro.com/external/paycard' " +
-				"	HEADER 'Authorization' 'Bearer UaK-wlz2SNSX0FSfLv7Wfw:wfvv-apJQkym9x5bJE_2jA' \n" +
+				"	REQUEST 'URL HERE' " +
+				"	HEADER 'Authorization' 'TOKEN HERE' \n" +
 				"	POST BODY 'cardNumber', 'cardHolderName', 'employeeId', 'governmentId', 'accountNumber', 'routingNumber', 'proxyId', 'marketId', 'status' \n" +
 				"	FROM SQL SELECT * FROM test.arropaycardrequest END SQL \n" +
 				"	--KEEP 'employeeId', 'marketId' \n" +
 				"	RESPONSE 'id', 'lastFour', 'createDate' \n" +
 				"	STATUS 'status' \n" +
-				"	INTO SQL INSERT INTO test.restarget VALUES (?,?,?,?) \n" +
+				"	INTO SQL INSERT INTO test.restarget (stuff, name, scriptName, status) VALUES (?,?,?,?) \n" +
 				"END TASK\n" +
 				"";
 
