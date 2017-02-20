@@ -16,7 +16,10 @@
 
 package com.hauldata.dbpa.task;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.SQLException;
@@ -28,6 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import javax.json.Json;
 import javax.json.JsonNumber;
@@ -310,9 +314,8 @@ public abstract class RequestTask extends Task {
 		int targetParameterCount = getTargetParameterCount(parameters);
 
 		CloseableHttpClient client = null;
-		String resolvedUrl = null;
+		HttpRequestBase request = null;
 		CloseableHttpResponse response = null;
-		JsonReader reader = null;
 
 		try {
 			// Prepare to write target rows.  Include preparation needed to write to table.
@@ -355,28 +358,7 @@ public abstract class RequestTask extends Task {
 
 			while (source.next()) {
 
-				// Construct request.
-
-				resolvedUrl = parameters.getUrl();
-
-				if (!parameters.getSubstituteIndexes().isEmpty()) {
-					for (int substituteIndex : parameters.getSubstituteIndexes()) {
-
-						String template = "{" + parameters.getRequestFields().get(substituteIndex - 1) + "}";
-						String replacement = (String)source.getObject(substituteIndex);
-						resolvedUrl = resolvedUrl.replace(template, replacement);
-					}
-				}
-
-				HttpRequestBase request = makeRequest();
-
-				request.setURI(new URI(resolvedUrl));
-
-				for (EvaluatedParameters.Header header : parameters.getHeaders()) {
-					request.addHeader(header.name, header.value);
-				}
-
-				addBody(request, parameters, source);
+				request = buildRequest(parameters, source);
 
 				// Execute the request and interpret the response to build the target row.
 
@@ -384,56 +366,12 @@ public abstract class RequestTask extends Task {
 
 				int statusCode = response.getStatusLine().getStatusCode();
 
-				int columnIndex = 1;
-				if (!parameters.getKeepIndexes().isEmpty()) {
-					for (int keepIndex : parameters.getKeepIndexes()) {
-						Object sourceColumnValue = source.getObject(keepIndex);
-						target.setObject(columnIndex++, sourceColumnValue);
-					}
+				if (200 <= statusCode && statusCode < 300) {
+					interpretResponse(statusCode, source, parameters, target, response);
 				}
-
-				if (!parameters.getResponseFields().isEmpty()) {
-
-					HttpEntity entity = response.getEntity();
-					if (entity != null) {
-
-						long contentLength = entity.getContentLength();
-						if (contentLength < 0 || maxResponseContentLength < contentLength) {
-							throw new RuntimeException("Unknown or excessive response content length");
-						}
-
-						ContentType contentType = ContentType.getOrDefault(entity);
-						if (
-								!contentType.getMimeType().equals(supportedContentType.getMimeType()) ||
-								(contentType.getCharset() != null && !contentType.getCharset().equals(supportedContentType.getCharset()))) {
-							throw new RuntimeException("Unsupported content type in response");
-						}
-
-						reader = Json.createReader(entity.getContent());
-
-						JsonObject responseObject = reader.readObject();
-						for (String responseFieldName : parameters.getResponseFields()) {
-
-							int parameterType = Types.NULL;
-							try {
-								// Some databases (MySQL) will not have metadata with parameter types available here.
-								parameterType = target.getParameterType(columnIndex);
-							}
-							catch (SQLException ex) {}
-
-							Object entityFieldValue = getParameterValue(responseObject, responseFieldName, parameterType);
-							target.setObject(columnIndex++, entityFieldValue);
-						}
-
-						reader.close();
-						reader = null;
-					}
-					else {
-						throw new RuntimeException("Response did not include an entity as expected");
-					}
+				else {
+					interpretFailedResponse(statusCode, source, parameters, target, response);
 				}
-
-				target.setObject(columnIndex, statusCode);
 
 				target.addBatch();
 
@@ -451,13 +389,12 @@ public abstract class RequestTask extends Task {
 		catch (InterruptedException ex) {
 			throw new RuntimeException("Web service request was terminated due to interruption");
 		} catch (URISyntaxException ex) {
-			throw new RuntimeException("Invalid resolved URL: " + resolvedUrl);
+			throw new RuntimeException("Invalid resolved URL: " + request.getURI().toString());
 		} catch (IOException /* catches ClientProtocolException */ ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 			throw new RuntimeException("HTTP protocol or I/O error: " + message);
 		}
 		finally {
-			if (reader != null) try { reader.close(); } catch (Exception ex) {}
 			if (response != null) try { response.close(); } catch (Exception ex) {}
 			if (client != null) try { client.close(); } catch (Exception ex) {}
 
@@ -474,9 +411,179 @@ public abstract class RequestTask extends Task {
 		return parameters.getKeepIndexes().size() + parameters.getResponseFields().size() + 1;
 	}
 
+	private HttpRequestBase buildRequest(EvaluatedParameters parameters, DataSource source) throws SQLException, URISyntaxException {
+
+		String resolvedUrl = parameters.getUrl();
+
+		if (!parameters.getSubstituteIndexes().isEmpty()) {
+			for (int substituteIndex : parameters.getSubstituteIndexes()) {
+
+				String template = "{" + parameters.getRequestFields().get(substituteIndex - 1) + "}";
+				String replacement = (String)source.getObject(substituteIndex);
+				resolvedUrl = resolvedUrl.replace(template, replacement);
+			}
+		}
+
+		HttpRequestBase request = makeRequest();
+
+		request.setURI(new URI(resolvedUrl));
+
+		for (EvaluatedParameters.Header header : parameters.getHeaders()) {
+			request.addHeader(header.name, header.value);
+		}
+
+		addBody(request, parameters, source);
+
+		return request;
+	}
+
 	protected abstract HttpRequestBase makeRequest();
 
 	protected void addBody(HttpRequestBase baseRequest, EvaluatedParameters baseEvaluatedParameters, DataSource source) throws SQLException {}
+
+	private void interpretResponse(
+			int statusCode,
+			DataSource source,
+			EvaluatedParameters parameters,
+			DataTarget target,
+			CloseableHttpResponse response) throws SQLException, IllegalStateException, IOException {
+
+		JsonReader reader = null;
+
+		try {
+			int columnIndex = keepSourceColumns(source, parameters, target);
+
+			if (!parameters.getResponseFields().isEmpty()) {
+
+				HttpEntity entity = response.getEntity();
+				if (entity != null) {
+
+					if (!hasSupportedContentLength (entity)) {
+						throw new RuntimeException("Unknown or excessive response content length");
+					}
+
+					if (!hasSupportedContentType(entity)) {
+						throw new RuntimeException("Unsupported content type in response");
+					}
+
+					reader = Json.createReader(entity.getContent());
+
+					JsonObject responseObject = reader.readObject();
+					for (String responseFieldName : parameters.getResponseFields()) {
+
+						int parameterType = Types.NULL;
+						try {
+							// Some databases (MySQL) will not have metadata with parameter types available here.
+							parameterType = target.getParameterType(columnIndex);
+						}
+						catch (SQLException ex) {}
+
+						Object entityFieldValue = getParameterValue(responseObject, responseFieldName, parameterType);
+						target.setObject(columnIndex++, entityFieldValue);
+					}
+
+					reader.close();
+					reader = null;
+				}
+				else {
+					throw new RuntimeException("Response did not include an entity as expected");
+				}
+			}
+
+			target.setObject(columnIndex, statusCode);
+		}
+		finally {
+			if (reader != null) try { reader.close(); } catch (Exception ex) {}
+		}
+	}
+
+	private int keepSourceColumns(
+			DataSource source,
+			EvaluatedParameters parameters,
+			DataTarget target) throws SQLException {
+
+		int columnIndex = 1;
+		if (!parameters.getKeepIndexes().isEmpty()) {
+			for (int keepIndex : parameters.getKeepIndexes()) {
+				Object sourceColumnValue = source.getObject(keepIndex);
+				target.setObject(columnIndex++, sourceColumnValue);
+			}
+		}
+
+		return columnIndex;
+	}
+
+	private boolean hasSupportedContentLength(HttpEntity entity) {
+
+		long contentLength = entity.getContentLength();
+		return (0 <= contentLength) && (contentLength <= maxResponseContentLength);
+	}
+
+	private boolean hasSupportedContentType(HttpEntity entity) {
+
+		ContentType contentType = ContentType.getOrDefault(entity);
+		return
+				contentType.getMimeType().equals(supportedContentType.getMimeType()) &&
+				(contentType.getCharset() == null || contentType.getCharset().equals(supportedContentType.getCharset()));
+	}
+
+	private void interpretFailedResponse(
+			int statusCode,
+			DataSource source,
+			EvaluatedParameters parameters,
+			DataTarget target,
+			CloseableHttpResponse response) throws SQLException, IllegalStateException, IOException {
+
+		JsonReader reader = null;
+
+		try {
+			int columnIndex = keepSourceColumns(source, parameters, target);
+
+			// Set all target columns that would come from the response to NULL.
+
+			if (!parameters.getResponseFields().isEmpty()) {
+				for (int i = 0; i < parameters.getResponseFields().size(); ++i) {
+					target.setObject(columnIndex++, null);
+				}
+			}
+
+			// If the response is from Jersey exception mapper, retrieve error message.
+			// Otherwise, use the whole response body text as the error message,
+			// regardless of the content type.
+			// TODO: This requires adding an optional target column to return the error message.
+
+			String message = null;
+
+			HttpEntity entity = response.getEntity();
+			if (entity != null) {
+
+				if (hasSupportedContentLength(entity) && hasSupportedContentType(entity)) {
+
+					reader = Json.createReader(entity.getContent());
+
+					JsonObject responseObject = reader.readObject();
+
+					message = (String)getParameterValue(responseObject, "message", Types.VARCHAR);
+
+					reader.close();
+					reader = null;
+				}
+				else {
+					// See http://stackoverflow.com/questions/309424/read-convert-an-inputstream-to-a-string
+
+					InputStream content = entity.getContent();
+					String newLine = System.getProperty("line.separator");
+					message = new BufferedReader(new InputStreamReader(content)).lines().collect(Collectors.joining(newLine));
+				}
+			}
+
+			target.setObject(columnIndex++, statusCode);
+//			target.setObject(columnIndex++, message);
+		}
+		finally {
+			if (reader != null) try { reader.close(); } catch (Exception ex) {}
+		}
+	}
 
 	/**
 	 * Retrieve a field value from a JSON object converted if necessary to an object type
@@ -484,8 +591,8 @@ public abstract class RequestTask extends Task {
 	 *
 	 * @param object is the JSON object from which the field is retrieved
 	 * @param fieldName is the name of the field to retrieve
-	 * @param parameterType is the java.sql.Types type to which the returned object must be acceptable 
-	 * @return the value object or null if the field value is null or the field is not present in the JSON object 
+	 * @param parameterType is the java.sql.Types type to which the returned object must be acceptable
+	 * @return the value object or null if the field value is null or the field is not present in the JSON object
 	 */
 	private Object getParameterValue(JsonObject object, String fieldName, int parameterType) {
 
