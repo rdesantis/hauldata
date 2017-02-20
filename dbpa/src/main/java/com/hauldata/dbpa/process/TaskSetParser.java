@@ -1443,9 +1443,9 @@ abstract class TaskSetParser {
 
 			Expression<String> url = parseStringExpression();
 
-			Expression<String> header = null;
+			List<RequestTask.Parameters.Header> headers = null;
 			if (tokenizer.skipWordIgnoreCase(KW.HEADER.name())) {
-				header = parseStringExpression();
+				headers = parseRequestHeaders();
 			}
 
 			String request = tokenizer.nextWordUpperCase();
@@ -1458,65 +1458,81 @@ abstract class TaskSetParser {
 
 			RequestTask.Parameters parameters = parser.makeParameters();
 
-			parameters.url = url;
-			parameters.header = header;
+			parameters.add(url, headers);
 
-			return parser.parse(prologue, parameters);
+			return parser.parse(prologue, parameters, new DataStores());
 		}
 	}
 
+	List<RequestTask.Parameters.Header> parseRequestHeaders() throws IOException {
+
+		List<RequestTask.Parameters.Header> result = new LinkedList<RequestTask.Parameters.Header>();
+		do {
+			Expression<String> name = parseStringExpression();
+			boolean isNullable = tokenizer.skipWordIgnoreCase(KW.NULL.name());
+			Expression<String> value = parseStringExpression();
+
+			result.add(new RequestTask.Parameters.Header(name, isNullable, value));
+		} while (tokenizer.hasNextDelimiter(","));
+
+		return result;
+	}
+
+	private class DataStores { public DataSource source; public DataTarget target; }
+
 	abstract class SpecializedRequestTaskParser {
 
-		RequestTask.Parameters makeParameters() { return new RequestTask.Parameters(); }
+		public RequestTask.Parameters makeParameters() { return new RequestTask.Parameters(); }
 
-		protected void parseLeadingFields(RequestTask.Parameters parameters) throws IOException {
+		protected void parseBodyFields(RequestTask.Parameters baseParameters) throws InputMismatchException, IOException {}
 
-			parameters.requestFields = new ArrayList<Expression<String>>();
+		protected void parseRemainingFields(RequestTask.Parameters parameters, DataStores data) throws IOException {
 
+			List<Expression<String>> requestFields = new ArrayList<Expression<String>>();
 			if (
 					tokenizer.skipWordIgnoreCase(KW.WITH.name()) ||
 					(!tokenizer.hasNextWordIgnoreCase(KW.BODY.name()) && !tokenizer.hasNextWordIgnoreCase(KW.FROM.name()))) {
 
 				do {
-					parameters.requestFields.add(parseStringExpression());
+					requestFields.add(parseStringExpression());
 				} while (tokenizer.skipDelimiter(","));
 			}
-		}
 
-		protected void parseTrailingFields(RequestTask.Parameters parameters) throws IOException {
+			parseBodyFields(parameters);
 
-			parameters.source = parseDataSource(KW.REQUEST.name(), KW.FROM.name(), false, true);
+			data.source = parseDataSource(KW.REQUEST.name(), KW.FROM.name(), false, true);
 
+			List<Expression<String>> keepFields = null;
 			if (tokenizer.skipWordIgnoreCase(KW.KEEP.name())) {
 
-				parameters.keepFields = new LinkedList<Expression<String>>();
+				keepFields = new LinkedList<Expression<String>>();
 
 				if (!tokenizer.skipWordIgnoreCase(KW.NONE.name())) {
 
-					boolean allRequestFieldsAreConstant = parameters.requestFields.stream().allMatch(f -> f instanceof StringConstant);
+					boolean allRequestFieldsAreConstant = requestFields.stream().allMatch(f -> f instanceof StringConstant);
 					do {
 						Expression<String> keepField = parseStringExpression();
 
 						if (
 								allRequestFieldsAreConstant &&
 								keepField instanceof StringConstant &&
-								parameters.requestFields.stream().noneMatch(f -> f.equals(keepField))) {
+								requestFields.stream().noneMatch(f -> f.equals(keepField))) {
 
 							throw new NoSuchElementException(KW.KEEP.name() + " field name does not match any request field name: " + ((StringConstant)keepField).evaluate());
 						}
 
-						parameters.keepFields.add(keepField);
+						keepFields.add(keepField);
 
 					} while (tokenizer.skipDelimiter(","));
 				}
 			}
 
-			parameters.responseFields = new LinkedList<Expression<String>>();
+			List<Expression<String>> responseFields = new LinkedList<Expression<String>>();
 
 			if (tokenizer.skipWordIgnoreCase(KW.RESPONSE.name())) {
 
 				do {
-					parameters.responseFields.add(parseStringExpression());
+					responseFields.add(parseStringExpression());
 				} while (tokenizer.skipDelimiter(","));
 			}
 
@@ -1524,78 +1540,73 @@ abstract class TaskSetParser {
 				throw new InputMismatchException("Expecting " + KW.STATUS.name() + ", found " + tokenizer.nextToken().getImage());
 			}
 
-			parameters.statusField = parseStringExpression();
+			Expression<String> statusField = parseStringExpression();
 
-			parameters.target = parseDataTarget(KW.REQUEST.name(), KW.INTO.name(), true, false);
+			parameters.add(requestFields, keepFields, responseFields, statusField);
+
+			data.target = parseDataTarget(KW.REQUEST.name(), KW.INTO.name(), true, false);
 		}
 
-		protected void parseAllFields(RequestTask.Parameters parameters) throws IOException {
-			parseLeadingFields(parameters);
-			parseTrailingFields(parameters);
-		}
-
-		abstract Task parse(Task.Prologue prologue, RequestTask.Parameters parameters) throws IOException;
+		public abstract Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException;
 	}
 
 	class GetRequestTaskParser extends SpecializedRequestTaskParser {
 
 		@Override
-		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters) throws IOException {
-			parseAllFields(parameters);
-			return new RequestGetTask(prologue, parameters);
+		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
+			parseRemainingFields(parameters, data);
+			return new RequestGetTask(prologue, data.source, parameters, data.target);
 		}
 	}
 
 	class DeleteRequestTaskParser extends SpecializedRequestTaskParser {
 
 		@Override
-		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters) throws IOException {
-			parseAllFields(parameters);
-			return new RequestDeleteTask(prologue, parameters);
+		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
+			parseRemainingFields(parameters, data);
+			return new RequestDeleteTask(prologue, data.source, parameters, data.target);
 		}
 	}
 
 	abstract class RequestWithBodyTaskParser extends SpecializedRequestTaskParser {
 
 		@Override
-		RequestTask.Parameters makeParameters() { return new RequestWithBodyTask.Parameters(); }
+		public RequestTask.Parameters makeParameters() { return new RequestWithBodyTask.ParametersWithBody(); }
 
-		void parseBodyFields(RequestWithBodyTask.ParametersWithBody parameters) throws InputMismatchException, IOException {
+		@Override
+		protected void parseBodyFields(RequestTask.Parameters upcastParameters) throws InputMismatchException, IOException {
+
+			RequestWithBodyTask.ParametersWithBody parameters = (RequestWithBodyTask.ParametersWithBody)upcastParameters;
 
 			if (!tokenizer.skipWordIgnoreCase(KW.BODY.name())) {
 				throw new InputMismatchException("Expecting " + KW.BODY.name() + ", found " + tokenizer.nextToken().getImage());
 			}
 
-			parameters.bodyFields = new LinkedList<Expression<String>>();
+			List<Expression<String>> bodyFields = new LinkedList<Expression<String>>();
 
 			do {
-				parameters.responseFields.add(parseStringExpression());
+				bodyFields.add(parseStringExpression());
 			} while (tokenizer.skipDelimiter(","));
-		}
 
-		@Override
-		protected void parseAllFields(RequestTask.Parameters parameters) throws IOException {
-			parseLeadingFields(parameters);
-			parseBodyFields((RequestWithBodyTask.ParametersWithBody)parameters);
-			parseTrailingFields(parameters);
+			parameters.add(bodyFields);
 		}
 	}
 
 	class PutRequestTaskParser extends RequestWithBodyTaskParser {
 
 		@Override
-		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters) throws IOException {
-			parseAllFields(parameters);
-			return new RequestPutTask(prologue, (RequestWithBodyTask.ParametersWithBody)parameters);
+		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
+			parseRemainingFields(parameters, data);
+			return new RequestPutTask(prologue, data.source, (RequestWithBodyTask.ParametersWithBody)parameters, data.target);
 		}
 	}
 
 	class PostRequestTaskParser extends RequestWithBodyTaskParser {
 
 		@Override
-		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters) throws IOException {
-			parseAllFields(parameters);
-			return new RequestPostTask(prologue, (RequestWithBodyTask.ParametersWithBody)parameters);
+		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
+			parseRemainingFields(parameters, data);
+			return new RequestPostTask(prologue, data.source, (RequestWithBodyTask.ParametersWithBody)parameters, data.target);
 		}
 	}
 

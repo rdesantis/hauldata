@@ -51,6 +51,8 @@ public abstract class TaskSet {
 		List<Task> waiting = new LinkedList<Task>();
 
 		for (Task task : tasks.values()) {
+			task.setInitialResult();
+
 			if (task.getPredecessors().isEmpty()) {
 			    executor.submit(task, context);
 			}

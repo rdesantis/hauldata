@@ -65,7 +65,7 @@ public class ForFilesTask extends Task implements TaskSetParent {
 
 			sourceName = filename.evaluate();
 			String[] parentAndFileName = com.hauldata.dbpa.process.Files.getParentAndFileName(sourceName);
-			Path parentPath = context.getWritePath(parentAndFileName[0]);
+			Path parentPath = context.getReadPath(parentAndFileName[0]);
 
 			sourcePaths = Files.newDirectoryStream(parentPath, parentAndFileName[1]);
 			

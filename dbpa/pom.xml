@@ -69,20 +69,35 @@
 		</dependency>
 		-->
 
+		<!--  Apache HttpClient -->
+
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>4.3.6</version>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.glassfish/javax.json -->
+		<dependency>
+			<groupId>org.glassfish</groupId>
+			<artifactId>javax.json</artifactId>
+			<version>1.0.4</version>
+		</dependency>
+
 		<!--  Restful web service client support -->
 
-		<!-- https://mvnrepository.com/artifact/org.glassfish.jersey.core/jersey-common -->
+		<!-- https://mvnrepository.com/artifact/org.glassfish.jersey.core/jersey-common
 		<dependency>
 			<groupId>org.glassfish.jersey.core</groupId>
 			<artifactId>jersey-common</artifactId>
 			<version>${jersey.version}</version>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.glassfish.jersey.core/jersey-client -->
+		</dependency> -->
+		<!-- https://mvnrepository.com/artifact/org.glassfish.jersey.core/jersey-client
 		<dependency>
 			<groupId>org.glassfish.jersey.core</groupId>
 			<artifactId>jersey-client</artifactId>
 			<version>${jersey.version}</version>
-		</dependency>
+		</dependency> -->
 
 		<!-- Used by one of the above and must be explicitly listed -->
 

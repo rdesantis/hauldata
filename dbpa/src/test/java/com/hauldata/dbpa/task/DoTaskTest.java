@@ -18,6 +18,7 @@ package com.hauldata.dbpa.task;
 
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.Logger.Level;
+import com.hauldata.dbpa.process.TaskSet;
 
 public class DoTaskTest extends TaskTest {
 
@@ -28,7 +29,7 @@ public class DoTaskTest extends TaskTest {
 	public void testDoLoopTask() throws Exception {
 
 		String processId = "DoLoopTest";
-		String script = 
+		String script =
 				"VARIABLES datewhen DATETIME END VARIABLES \n" +
 				"TASK SetWhen SET datewhen = '12/1/2015' END TASK \n" + // 2015-12-01 is a Tuesday, DATEPART(WEEKDAY,...) = 3
 				"TASK Loop AFTER SetWhen DO WHILE datewhen < '12/8/2015' \n" +
@@ -44,7 +45,7 @@ public class DoTaskTest extends TaskTest {
 		Level logLevel = Level.info;
 		boolean logToConsole = true;
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null); 
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
 
 		Analyzer.RecordIterator recordIterator = analyzer.recordIterator(processId, "LOOP.ECHO");
 		Analyzer.Record record = null;
@@ -85,7 +86,7 @@ public class DoTaskTest extends TaskTest {
 	public void testDoOnceTask() throws Exception {
 
 		String processId = "DoOnceTest";
-		String script = 
+		String script =
 				"TASK Once DO\n" +
 					"TASK Echo1 LOG 'One' END TASK \n" +
 					"TASK Echo2 LOG 'Two' END TASK \n" +
@@ -95,7 +96,7 @@ public class DoTaskTest extends TaskTest {
 		Level logLevel = Level.info;
 		boolean logToConsole = true;
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null); 
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
 
 		Analyzer.RecordIterator recordIterator;
 		Analyzer.Record record;
@@ -110,6 +111,54 @@ public class DoTaskTest extends TaskTest {
 		record = recordIterator.next();
 		assertEquals("ONCE.ECHO2", record.taskId);
 		assertEquals("Two", record.message);
+		assertFalse(recordIterator.hasNext());
+	}
+
+	public void testDeepDoFail() throws Exception {
+
+		String processId = "DeepDoFail";
+		String script =
+				"VARIABLES counter INTEGER END VARIABLES\n" +
+				"TASK One FOR counter FROM VALUES (1), (2), (3)\n" +
+
+//				"	TASK Two IF counter = 2 \n" +
+//				"		FAIL 'Fail ' + FORMAT(counter, 'd') \n" +
+//				"	END TASK \n" +
+
+				"	TASK Two IF counter = 2 DO\n" +
+				"		TASK LOG 'Two.1' END TASK \n" +
+				"		TASK Failure AFTER FAIL 'Deep Fail ' + FORMAT(counter, 'd') END TASK \n" +
+				"	END TASK \n" +
+
+				"	TASK Happy AFTER Two SUCCEEDS LOG 'Happy ' + FORMAT(counter, 'd') END TASK \n" +	// THIS FAILS
+				"	TASK Catcher AFTER Two FAILS LOG 'Caught ' + FORMAT(counter, 'd') END TASK \n" +
+				"END TASK \n" +
+				"";
+
+		Level logLevel = Level.info;
+		boolean logToConsole = true;
+
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
+
+		Analyzer.RecordIterator recordIterator;
+		Analyzer.Record record;
+
+		recordIterator = analyzer.recordIterator(processId, "ONE.HAPPY");
+		record = recordIterator.next();
+		assertEquals("Happy 1", record.message);
+		record = recordIterator.next();
+		assertEquals(TaskSet.orphanedMessage, record.message);
+		record = recordIterator.next();
+		assertEquals("Happy 3", record.message);
+		assertFalse(recordIterator.hasNext());
+
+		recordIterator = analyzer.recordIterator(processId, "ONE.CATCHER");
+		record = recordIterator.next();
+		assertEquals(TaskSet.orphanedMessage, record.message);
+		record = recordIterator.next();
+		assertEquals("Caught 2", record.message);
+		record = recordIterator.next();
+		assertEquals(TaskSet.orphanedMessage, record.message);
 		assertFalse(recordIterator.hasNext());
 	}
 }

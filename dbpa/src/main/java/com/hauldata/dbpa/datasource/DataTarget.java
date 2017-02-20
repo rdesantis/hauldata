@@ -42,7 +42,11 @@ public abstract class DataTarget extends DataStore {
 	public int getParameterCount() throws SQLException {
 		return ((PreparedStatement)stmt).getParameterMetaData().getParameterCount();
 	}
-	
+
+	public int getParameterType(int parameterIndex) throws SQLException {
+		return ((PreparedStatement)stmt).getParameterMetaData().getParameterType(parameterIndex);
+	}
+
 	public void setObject(int parameterIndex, Object x) throws SQLException {
 		((PreparedStatement)stmt).setObject(parameterIndex, x);
 	}

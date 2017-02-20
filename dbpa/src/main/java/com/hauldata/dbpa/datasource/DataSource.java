@@ -51,6 +51,10 @@ public abstract class DataSource extends DataStore {
 		return rs.getMetaData().getColumnLabel(column);
 	}
 
+	public int getColumnType(int column) throws SQLException {
+		return rs.getMetaData().getColumnType(column);
+	}
+
 	public boolean next() throws SQLException, InterruptedException {
 		if (Thread.interrupted()) {
 			throw new InterruptedException();

@@ -16,17 +16,24 @@
 
 package com.hauldata.dbpa.task;
 
-import com.hauldata.dbpa.process.Context;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpRequestBase;
+
+import com.hauldata.dbpa.datasource.DataSource;
+import com.hauldata.dbpa.datasource.DataTarget;
 
 public class RequestGetTask extends RequestTask {
 
-	public RequestGetTask(Prologue prologue, Parameters parameters) {
-		super(prologue, parameters);
+	public RequestGetTask(
+			Prologue prologue,
+			DataSource source,
+			Parameters parameters,
+			DataTarget target) {
+		super(prologue, source, parameters, target);
 	}
 
 	@Override
-	protected void execute(Context context) throws Exception {
-		// TODO Auto-generated method stub
-
+	protected HttpRequestBase makeRequest() {
+		return new HttpGet();
 	}
 }
