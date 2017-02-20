@@ -17,9 +17,9 @@
 package com.hauldata.dbpa.file;
 
 import java.io.IOException;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+
+import com.hauldata.dbpa.datasource.DataSource;
 
 public abstract class WritePage {
 
@@ -64,24 +64,16 @@ public abstract class WritePage {
 		node.writeColumn(columnIndex, object);
 	}
 
-	private boolean hasNext(ResultSet rs) throws SQLException, InterruptedException {
-		if (Thread.interrupted()) {
-			throw new InterruptedException();
-		}
-		return rs.next();
-	}
-
 	/**
 	 * Write result set to the page
 	 */
-	public void write(ResultSet rs) throws SQLException, InterruptedException {
+	public void write(DataSource source) throws SQLException, InterruptedException {
 
 		boolean hasAnyRows = false;
 		boolean hasRightNumberOfColumns = false;
 
 		try {
-			ResultSetMetaData metaData = rs.getMetaData();
-			int resultColumnCount = metaData.getColumnCount();
+			int resultColumnCount = source.getColumnCount();
 			
 			WriteHeaders headers = node.getWriteHeaders();
 			if (headers.getColumnCount() == 0) {
@@ -90,7 +82,7 @@ public abstract class WritePage {
 				if (headers.fromMetadata()) {
 
 					for (int columnIndex = 1; columnIndex <= resultColumnCount; ++columnIndex) {
-						node.writeColumn(columnIndex, metaData.getColumnLabel(columnIndex));
+						node.writeColumn(columnIndex, source.getColumnLabel(columnIndex));
 					}
 				}
 				
@@ -98,14 +90,14 @@ public abstract class WritePage {
 			}
 
 			if (
-					(hasAnyRows = hasNext(rs)) &&
+					(hasAnyRows = source.next()) &&
 					(hasRightNumberOfColumns = (resultColumnCount == headers.getColumnCount()))) {
 
 				do {
 					for (int columnIndex = 1; columnIndex <= headers.getColumnCount(); ++columnIndex) {
-						node.writeColumn(columnIndex, rs.getObject(columnIndex));
+						node.writeColumn(columnIndex, source.getObject(columnIndex));
 					}
-				} while (hasNext(rs));
+				} while (source.next());
 			}
 		}
 		catch (IOException ex) {

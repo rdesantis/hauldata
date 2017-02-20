@@ -16,7 +16,6 @@
 
 package com.hauldata.dbpa.task;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -28,18 +27,18 @@ import com.hauldata.dbpa.variable.VariableBase;
 public class ForDataTask extends UpdateVariablesTask implements TaskSetParent {
 
 	private List<VariableBase> variables;
-	private DataSource dataSource;
+	private DataSource source;
 	private NestedTaskSet taskSet;
 
 	public ForDataTask(
 			Prologue prologue,
 			List<VariableBase> variables,
-			DataSource dataSource) {
+			DataSource source) {
 
 		super(prologue);
 
 		this.variables = variables;
-		this.dataSource = dataSource;
+		this.source = source;
 	}
 
 	@Override
@@ -59,16 +58,16 @@ public class ForDataTask extends UpdateVariablesTask implements TaskSetParent {
 		Context nestedContext = context.makeNestedContext(getName());
 
 		try {
-			ResultSet rs = dataSource.executeQuery(context);
+			source.executeQuery(context);
 			
-			while (updateVariables(rs, variables)) {
+			while (updateVariables(source, variables)) {
 				taskSet.runForRerun(nestedContext);
 			}
 
-			dataSource.done(context);
+			source.done(context);
 		}
 		catch (SQLException ex) {
-			throwDatabaseExecutionFailed(ex);
+			DataSource.throwDatabaseExecutionFailed(ex);
 		}
 		catch (InterruptedException ex) {
 			throw new RuntimeException("Loop terminated due to interruption");
@@ -78,7 +77,7 @@ public class ForDataTask extends UpdateVariablesTask implements TaskSetParent {
 			throw new RuntimeException("Error attempting to run nested tasks - " + message, ex);
 		}
 		finally {
-			dataSource.close(context);
+			source.close(context);
 
 			nestedContext.close();
 		}

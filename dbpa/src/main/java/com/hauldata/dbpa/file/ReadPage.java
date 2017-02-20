@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
 package com.hauldata.dbpa.file;
 
 import java.io.IOException;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import com.hauldata.dbpa.datasource.DataTarget;
 import com.hauldata.util.tokenizer.EndOfLine;
 
 public abstract class ReadPage {
@@ -28,14 +28,14 @@ public abstract class ReadPage {
 		/**
 		 * Physically open the file or sheet with the indicated headers and
 		 * return the page for reading.  Throw an exception if the file or
-		 * sheet can't be opened either physically or logically. 
+		 * sheet can't be opened either physically or logically.
 		 */
 		ReadPage open(File.Owner fileOwner, PageIdentifier id, ReadHeaders headers) throws IOException;
 
 		/**
 		 * Physically position the open file or sheet for loading and
 		 * return the page for reading.  Throw an exception if the file or
-		 * sheet can't be positioned either physically or logically. 
+		 * sheet can't be positioned either physically or logically.
 		 */
 		ReadPage load(File.Owner fileOwner, PageIdentifier id) throws IOException;
 
@@ -43,7 +43,7 @@ public abstract class ReadPage {
 		 * Physically open the file or sheet with the indicated headers or position
 		 * it for loading, depending on whether it has already been opened, and
 		 * return the page for reading.  Throw an exception if the file or
-		 * sheet can't be opened or loaded either physically or logically. 
+		 * sheet can't be opened or loaded either physically or logically.
 		 */
 		ReadPage read(File.Owner fileOwner, PageIdentifier id, ReadHeaders headers) throws IOException;
 	}
@@ -81,10 +81,10 @@ public abstract class ReadPage {
 	}
 
 	/**
-	 * Read selected columns from page to prepared statement
+	 * Read selected columns from page to target
 	 * @throws InterruptedException
 	 */
-	public void read(Columns columns, PreparedStatement stmt) throws SQLException, InterruptedException {
+	public void read(Columns columns, DataTarget target) throws SQLException, InterruptedException {
 
 		// See http://stackoverflow.com/questions/12012592/jdbc-insert-multiple-rows
 		// and http://www.java2s.com/Code/JavaAPI/java.sql/PreparedStatementaddBatch.htm
@@ -93,7 +93,7 @@ public abstract class ReadPage {
 
 		int parameterCount = 0;
 		try {
-			parameterCount = stmt.getParameterMetaData().getParameterCount();
+			parameterCount = target.getParameterCount();
 		}
 		catch (SQLException ex) {} // Not all databases support getParameterMetaData() in all cases
 
@@ -109,12 +109,12 @@ public abstract class ReadPage {
 					for (Object value = null; (value = node.readColumn(sourceColumnIndex)) != EndOfLine.value; ++sourceColumnIndex) {
 						int[] targetColumnIndexes = columns.getTargetColumnIndexes(sourceColumnIndex);
 						for (int targetColumnIndex : targetColumnIndexes) {
-							stmt.setObject(targetColumnIndex, value);
+							target.setObject(targetColumnIndex, value);
 						}
 					}
-					stmt.addBatch();
+					target.addBatch();
 				}
-				stmt.executeBatch();					
+				target.executeBatch();
 			}
 		}
 		catch (IOException ex) {

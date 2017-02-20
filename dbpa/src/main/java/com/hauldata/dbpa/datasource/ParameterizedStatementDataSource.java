@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -46,37 +46,32 @@ public class ParameterizedStatementDataSource extends DataSource {
 	@Override
 	public void executeUpdate(Context context) throws SQLException, InterruptedException {
 
-		stmt = prepareStatement(context);
+		prepareStatement(context);
 
-		executeUpdate((PreparedStatement)stmt);
+		executePreparedUpdate();
 	}
 
 	@Override
-	public ResultSet executeQuery(Context context) throws SQLException, InterruptedException {
+	public void executeQuery(Context context) throws SQLException, InterruptedException {
 
-		stmt = prepareStatement(context);
+		prepareStatement(context);
 
-		rs = executeQuery((PreparedStatement)stmt);
-
-		return rs;
+		rs = executePreparedQuery();
 	}
 
-	/**
-	 * This function has a side effect!
-	 */
-	private PreparedStatement prepareStatement(Context context) throws SQLException {
+	private void prepareStatement(Context context) throws SQLException {
 
 		List<Object> values = expressions.stream().map(e -> e.getEvaluationObject()).collect(Collectors.toCollection(LinkedList::new));
 
 		conn = context.getConnection(connection);
 
-		PreparedStatement stmt = conn.prepareStatement(statement, getResultSetType(), ResultSet.CONCUR_READ_ONLY);
+		stmt = conn.prepareStatement(statement, getResultSetType(), ResultSet.CONCUR_READ_ONLY);
+
+		PreparedStatement prepared = (PreparedStatement)stmt;
 
 		int parameterIndex = 1;
 		for (Object value : values) {
-			stmt.setObject(parameterIndex++, toSQL(value));
+			prepared.setObject(parameterIndex++, toSQL(value));
 		}
-
-		return stmt;
 	}
 }

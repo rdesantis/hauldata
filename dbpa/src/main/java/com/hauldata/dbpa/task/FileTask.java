@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,19 +16,17 @@
 
 package com.hauldata.dbpa.task;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.datasource.DataSource;
+import com.hauldata.dbpa.datasource.DataTarget;
 import com.hauldata.dbpa.file.Columns;
+import com.hauldata.dbpa.file.ReadHeaders;
 import com.hauldata.dbpa.file.ReadPage;
 import com.hauldata.dbpa.file.WritePage;
 import com.hauldata.dbpa.process.Context;
 
-public abstract class FileTask extends DatabaseTask {
+public abstract class FileTask extends Task {
 
 	public FileTask(Prologue prologue) {
 		super(prologue);
@@ -36,60 +34,49 @@ public abstract class FileTask extends DatabaseTask {
 
 	protected void write(
 			Context context,
-			DataSource dataSource,
+			DataSource source,
 			WritePage page) {
 
 		try {
-			ResultSet rs = dataSource.executeQuery(context);
+			source.executeQuery(context);
 
-			page.write(rs);
+			page.write(source);
 
-			dataSource.done(context);
+			source.done(context);
 		}
 		catch (SQLException ex) {
-			throwDatabaseExecutionFailed(ex);
+			DataSource.throwDatabaseExecutionFailed(ex);
 		}
 		catch (InterruptedException ex) {
 			throw new RuntimeException("File write terminated due to interruption");
 		}
 		finally {
-			dataSource.close(context);
+			source.close(context);
 		}
 	}
 
-	protected void readIntoStatement(
+	protected void read(
 			Context context,
-			DatabaseConnection connection,
 			ReadPage page,
+			ReadHeaders headers,
 			Columns columns,
-			String statement) {
-		
-		Connection conn = null;
-		PreparedStatement stmt = null;
+			DataTarget target) {
 
 		try {
-			conn = context.getConnection(connection);
+			target.prepareStatement(context, headers, columns);
 
-			stmt = conn.prepareStatement(statement);
-
-			page.read(columns, stmt);
+			page.read(columns, target);
 		}
 		catch (SQLException ex) {
-			throwDatabaseExecutionFailed(ex);
+			DataTarget.throwDatabaseExecutionFailed(ex);
 		}
 		catch (InterruptedException ex) {
 			throw new RuntimeException("File read terminated due to interruption");
 		}
-		finally { try {
-			if (stmt != null) stmt.close();
-		}
-		catch (SQLException ex) {
-			throwDatabaseCloseFailed(ex);
-		}
 		finally {
 			try { page.close(); } catch (Exception ex) {}
 
-			if (conn != null) context.releaseConnection(connection);
-		} }
+			target.close(context);
+		}
 	}
 }

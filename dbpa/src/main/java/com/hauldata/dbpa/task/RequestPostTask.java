@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,39 +16,24 @@
 
 package com.hauldata.dbpa.task;
 
-import java.sql.SQLException;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
 
 import com.hauldata.dbpa.datasource.DataSource;
-import com.hauldata.dbpa.process.Context;
+import com.hauldata.dbpa.datasource.DataTarget;
 
-public class RunTask extends Task {
+public class RequestPostTask extends RequestWithBodyTask {
 
-	private DataSource dataSource;
-
-	public RunTask(
+	public RequestPostTask(
 			Prologue prologue,
-			DataSource dataSource) {
-
-		super(prologue);
-		this.dataSource = dataSource;
+			DataSource source,
+			Parameters parameters,
+			DataTarget target) {
+		super(prologue, source, parameters, target);
 	}
 
 	@Override
-	protected void execute(Context context) {
-
-		try {
-			dataSource.executeUpdate(context);
-
-			dataSource.done(context);
-		}
-		catch (SQLException ex) {
-			DataSource.throwDatabaseExecutionFailed(ex);
-		}
-		catch (InterruptedException ex) {
-			throw new RuntimeException("Database query terminated due to interruption");
-		}
-		finally {
-			dataSource.close(context);
-		}
+	protected HttpRequestBase makeRequest() {
+		return new HttpPost();
 	}
 }

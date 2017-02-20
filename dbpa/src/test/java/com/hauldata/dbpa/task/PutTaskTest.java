@@ -34,7 +34,7 @@ public class PutTaskTest extends TaskTest {
 				"TASK Upload1 PUT 'test file.csv' '/root/staff/test' END TASK \n" +
 				"TASK Upload2 PUT 'another test file.xlsx', 'written.csv' TO '/root/staff/test' END TASK \n" +
 				"TASK Connector CONNECT myftp TO DEFAULT WITH 'timeout 15000 ignore this' END TASK \n" +
-				"TASK Upload3 AFTER Connector PUT 'word.txt' TO myftp '/root/staff/test' END TASK \n" +
+				"TASK Upload3 AFTER Connector PUT 'child/word.txt' TO myftp '/root/staff/test' END TASK \n" +
 
 				"TASK AFTER Upload1 FAILS OR Upload2 FAILS OR Upload3 FAILS SET failed = 1 END TASK \n" +
 				"TASK AFTER Upload1 COMPLETES AND Upload2 COMPLETES AND Upload3 COMPLETES IF failed = 1 FAIL END TASK \n" +

@@ -80,7 +80,7 @@ public abstract class Task {
 		this.parent = prologue.parent;
 
 		this.successors = new LinkedList<Task>();
-		this.result = Result.waiting;
+		this.result = null;
 	}
 
 	// Getters and setters.
@@ -187,6 +187,13 @@ public abstract class Task {
 
 			result = Result.failure;
 		}
+	}
+
+	/**
+	 * Set the initial task status.
+	 */
+	public void setInitialResult() {
+		this.result = Result.waiting;
 	}
 
 	/**

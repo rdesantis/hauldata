@@ -133,6 +133,7 @@ abstract class TaskSetParser {
 		ON,
 		WAITFOR,
 		CONNECT,
+		REQUEST,
 		// Future:
 		CLOSE,
 		REMOVE,
@@ -198,6 +199,12 @@ abstract class TaskSetParser {
 		TIME,
 		DEFAULT,
 		SUBSTITUTING,
+		HEADER,
+		KEEP,
+		NONE,
+		RESPONSE,
+		STATUS,
+		POST,
 
 		// Functions
 
@@ -309,6 +316,7 @@ abstract class TaskSetParser {
 	protected TermParser<LocalDateTime> datetimeTermParser;
 
 	protected Map<String, TaskParser> taskParsers;
+	protected Map<String, SpecializedRequestTaskParser> requestTaskParsers;
 
 	protected Map<String, FunctionParser<Integer>> integerFunctionParsers;
 	protected Map<String, FunctionParser<String>> stringFunctionParsers;
@@ -464,6 +472,14 @@ abstract class TaskSetParser {
 		taskParsers.put(KW.ON.name(), new OnTaskParser());
 		taskParsers.put(KW.WAITFOR.name(), new WaitforTaskParser());
 		taskParsers.put(KW.CONNECT.name(), new ConnectTaskParser());
+		taskParsers.put(KW.REQUEST.name(), new RequestTaskParser());
+
+		requestTaskParsers = new HashMap<String, SpecializedRequestTaskParser>();
+
+		requestTaskParsers.put(KW.GET.name(), new GetRequestTaskParser());
+		requestTaskParsers.put(KW.PUT.name(), new PutRequestTaskParser());
+		requestTaskParsers.put(KW.POST.name(), new PostRequestTaskParser());
+		requestTaskParsers.put(KW.DELETE.name(), new DeleteRequestTaskParser());
 
 		KW firstNotImplemented = KW.CLOSE;
 		KW lastNotImplemented = KW.CALL;
@@ -752,9 +768,9 @@ abstract class TaskSetParser {
 
 		private Task parseRun(Task.Prologue prologue) throws IOException {
 
-			DataSource dataSource = parseDataSource(KW.RUN.name(), null, false, false);
+			DataSource source = parseDataSource(KW.RUN.name(), null, false, false);
 
-			return new RunTask(prologue, dataSource);
+			return new RunTask(prologue, source);
 		}
 	}
 
@@ -768,9 +784,9 @@ abstract class TaskSetParser {
 				variables.add(parseVariableReference());
 			} while (tokenizer.skipDelimiter(","));
 
-			DataSource dataSource = parseDataSource(KW.UPDATE.name(), KW.FROM.name(), true, true);
+			DataSource source = parseDataSource(KW.UPDATE.name(), KW.FROM.name(), true, true);
 
-			return new UpdateTask(prologue, variables, dataSource);
+			return new UpdateTask(prologue, variables, source);
 		}
 	}
 
@@ -792,9 +808,9 @@ abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(true);
 
-			DataSource dataSource = parseDataSource(KW.APPEND.name(), KW.FROM.name(), false, true);
+			DataSource source = parseDataSource(KW.APPEND.name(), KW.FROM.name(), false, true);
 
-			return new AppendTask(prologue, page, dataSource);
+			return new AppendTask(prologue, page, source);
 		}
 	}
 
@@ -806,9 +822,9 @@ abstract class TaskSetParser {
 
 			WriteHeaderExpressions headers = parseWriteHeaders(KW.FROM.name());
 
-			DataSource dataSource = parseDataSource(KW.WRITE.name(), KW.FROM.name(), false, true);
+			DataSource source = parseDataSource(KW.WRITE.name(), KW.FROM.name(), false, true);
 
-			return new WriteTask(prologue, page, headers, dataSource);
+			return new WriteTask(prologue, page, headers, source);
 		}
 	}
 
@@ -832,37 +848,9 @@ abstract class TaskSetParser {
 
 			ColumnExpressions columns = parseColumns();
 
-			DatabaseConnection connection = parseDatabaseConnection(KW.INTO.name());
+			DataTarget target = parseDataTarget(KW.LOAD.name(), KW.INTO.name(), false, false);
 
-			if (hasSQL(KW.LOAD.name())) {
-				return parseLoadIntoTokenizedStatement(prologue, page, columns, connection);
-			}
-			else {
-				return parseLoadIntoStatement(prologue, page, columns, connection);
-			}
-		}
-
-		private Task parseLoadIntoStatement(
-				Task.Prologue prologue,
-				PageIdentifierExpression page,
-				ColumnExpressions columns,
-				DatabaseConnection connection) throws IOException {
-
-			Expression<String> statement = parseStringExpression();
-
-			return new LoadIntoStatementTask(prologue, page, columns, connection, statement);
-		}
-
-		private Task parseLoadIntoTokenizedStatement(
-				Task.Prologue prologue,
-				PageIdentifierExpression page,
-				ColumnExpressions columns,
-				DatabaseConnection connection) throws IOException {
-
-			StringBuilder statement = new StringBuilder();
-			parseTokenizedStatement(statement);
-
-			return new LoadIntoTokenizedStatementTask(prologue, page, columns, connection, statement.toString());
+			return new LoadTask(prologue, page, columns, target);
 		}
 	}
 
@@ -878,64 +866,9 @@ abstract class TaskSetParser {
 
 			columns.validate(headers);
 
-			DatabaseConnection connection = parseDatabaseConnection(KW.INTO.name());
+			DataTarget target = parseDataTarget(KW.LOAD.name(), KW.INTO.name(), true, headers.exist());
 
-			if (tokenizer.skipWordIgnoreCase(KW.TABLE.name())) {
-				return parseReadIntoTable(prologue, page, headers, columns, connection);
-			}
-			else if (hasSQL(KW.READ.name())) {
-				return parseReadIntoTokenizedStatement(prologue, page, headers, columns, connection);
-			}
-			else {
-				return parseReadIntoStatement(prologue, page, headers, columns, connection);
-			}
-		}
-
-		private Task parseReadIntoStatement(
-				Task.Prologue prologue,
-				PageIdentifierExpression page,
-				ReadHeaderExpressions headers,
-				ColumnExpressions columns,
-				DatabaseConnection connection) throws IOException {
-
-			Expression<String> statement = parseStringExpression();
-
-			return new ReadIntoStatementTask(prologue, page, headers, columns, connection, statement);
-		}
-
-		private Task parseReadIntoTokenizedStatement(
-				Task.Prologue prologue,
-				PageIdentifierExpression page,
-				ReadHeaderExpressions headers,
-				ColumnExpressions columns,
-				DatabaseConnection connection) throws IOException {
-
-			StringBuilder statement = new StringBuilder();
-			parseTokenizedStatement(statement);
-
-			return new ReadIntoTokenizedStatementTask(prologue, page, headers, columns, connection, statement.toString());
-		}
-
-		private Task parseReadIntoTable(
-				Task.Prologue prologue,
-				PageIdentifierExpression page,
-				ReadHeaderExpressions headers,
-				ColumnExpressions columns,
-				DatabaseConnection connection) throws IOException {
-
-			if (!headers.exist()) {
-				throw new RuntimeException(KW.READ.name() + " " + KW.INTO.name() + " " + KW.TABLE.name() + " requires column headers");
-			}
-
-			Expression<String> table = parseStringExpression();
-
-			Expression<String> prefix = null;
-			if (tokenizer.skipWordIgnoreCase(KW.PREFIX.name())) {
-				tokenizer.skipWordIgnoreCase(KW.WITH.name());
-				prefix = parseStringExpression();
-			}
-
-			return new ReadIntoTableTask(prologue, page, headers, columns, connection, table, prefix);
+			return new ReadTask(prologue, page, headers, columns, target);
 		}
 	}
 
@@ -1036,7 +969,7 @@ abstract class TaskSetParser {
 			}
 
 			Expression<String> toName = null;
-			if (!hasNextEnd(KW.TASK.name())) {
+			if (!atEndOfTask()) {
 				toName = parseStringExpression();
 			}
 
@@ -1168,7 +1101,7 @@ abstract class TaskSetParser {
 		public Task parse(Task.Prologue prologue) throws IOException {
 
 			Expression<String> expression = null;
-			if (!hasNextEnd(KW.TASK.name())) {
+			if (!atEndOfTask()) {
 				expression = parseStringExpression();
 			}
 			return new GoTask(prologue, expression);
@@ -1180,7 +1113,7 @@ abstract class TaskSetParser {
 		public Task parse(Task.Prologue prologue) throws IOException {
 
 			Expression<String> expression = null;
-			if (!hasNextEnd(KW.TASK.name())) {
+			if (!atEndOfTask()) {
 				expression = parseStringExpression();
 			}
 			return new FailTask(prologue, expression);
@@ -1202,7 +1135,7 @@ abstract class TaskSetParser {
 			Expression<String> name = parseStringExpression();
 
 			List<ExpressionBase> arguments = new LinkedList<ExpressionBase>();
-			if (tokenizer.skipWordIgnoreCase(KW.WITH.name()) || !hasNextEnd(KW.TASK.name())) {
+			if (tokenizer.skipWordIgnoreCase(KW.WITH.name()) || !atEndOfTask()) {
 				do {
 					arguments.add(parseAnyExpression());
 				} while (tokenizer.skipDelimiter(","));
@@ -1503,6 +1436,180 @@ abstract class TaskSetParser {
 		}
 	}
 
+	class RequestTaskParser implements TaskParser {
+
+		public Task parse(Task.Prologue prologue)
+				throws InputMismatchException, NoSuchElementException, IOException, NamingException {
+
+			Expression<String> url = parseStringExpression();
+
+			List<RequestTask.Parameters.Header> headers = null;
+			if (tokenizer.skipWordIgnoreCase(KW.HEADER.name())) {
+				headers = parseRequestHeaders();
+			}
+
+			String request = tokenizer.nextWordUpperCase();
+
+			SpecializedRequestTaskParser parser = requestTaskParsers.get(request);
+
+			if (parser == null) {
+				throw new InputMismatchException("Expecting " + KW.REQUEST.name() + " type, found " + request);
+			}
+
+			RequestTask.Parameters parameters = parser.makeParameters();
+
+			parameters.add(url, headers);
+
+			return parser.parse(prologue, parameters, new DataStores());
+		}
+	}
+
+	List<RequestTask.Parameters.Header> parseRequestHeaders() throws IOException {
+
+		List<RequestTask.Parameters.Header> result = new LinkedList<RequestTask.Parameters.Header>();
+		do {
+			Expression<String> name = parseStringExpression();
+			boolean isNullable = tokenizer.skipWordIgnoreCase(KW.NULL.name());
+			Expression<String> value = parseStringExpression();
+
+			result.add(new RequestTask.Parameters.Header(name, isNullable, value));
+		} while (tokenizer.hasNextDelimiter(","));
+
+		return result;
+	}
+
+	private class DataStores { public DataSource source; public DataTarget target; }
+
+	abstract class SpecializedRequestTaskParser {
+
+		public RequestTask.Parameters makeParameters() { return new RequestTask.Parameters(); }
+
+		protected void parseBodyFields(RequestTask.Parameters baseParameters) throws InputMismatchException, IOException {}
+
+		protected void parseRemainingFields(RequestTask.Parameters parameters, DataStores data) throws IOException {
+
+			List<Expression<String>> requestFields = new ArrayList<Expression<String>>();
+			if (
+					tokenizer.skipWordIgnoreCase(KW.WITH.name()) ||
+					(!tokenizer.hasNextWordIgnoreCase(KW.BODY.name()) && !tokenizer.hasNextWordIgnoreCase(KW.FROM.name()))) {
+
+				do {
+					requestFields.add(parseStringExpression());
+				} while (tokenizer.skipDelimiter(","));
+			}
+
+			parseBodyFields(parameters);
+
+			data.source = parseDataSource(KW.REQUEST.name(), KW.FROM.name(), false, true);
+
+			List<Expression<String>> keepFields = null;
+			if (tokenizer.skipWordIgnoreCase(KW.KEEP.name())) {
+
+				keepFields = new LinkedList<Expression<String>>();
+
+				if (!tokenizer.skipWordIgnoreCase(KW.NONE.name())) {
+
+					boolean allRequestFieldsAreConstant = requestFields.stream().allMatch(f -> f instanceof StringConstant);
+					do {
+						Expression<String> keepField = parseStringExpression();
+
+						if (
+								allRequestFieldsAreConstant &&
+								keepField instanceof StringConstant &&
+								requestFields.stream().noneMatch(f -> f.equals(keepField))) {
+
+							throw new NoSuchElementException(KW.KEEP.name() + " field name does not match any request field name: " + ((StringConstant)keepField).evaluate());
+						}
+
+						keepFields.add(keepField);
+
+					} while (tokenizer.skipDelimiter(","));
+				}
+			}
+
+			List<Expression<String>> responseFields = new LinkedList<Expression<String>>();
+
+			if (tokenizer.skipWordIgnoreCase(KW.RESPONSE.name())) {
+
+				do {
+					responseFields.add(parseStringExpression());
+				} while (tokenizer.skipDelimiter(","));
+			}
+
+			if (!tokenizer.skipWordIgnoreCase(KW.STATUS.name())) {
+				throw new InputMismatchException("Expecting " + KW.STATUS.name() + ", found " + tokenizer.nextToken().getImage());
+			}
+
+			Expression<String> statusField = parseStringExpression();
+
+			parameters.add(requestFields, keepFields, responseFields, statusField);
+
+			data.target = parseDataTarget(KW.REQUEST.name(), KW.INTO.name(), true, false);
+		}
+
+		public abstract Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException;
+	}
+
+	class GetRequestTaskParser extends SpecializedRequestTaskParser {
+
+		@Override
+		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
+			parseRemainingFields(parameters, data);
+			return new RequestGetTask(prologue, data.source, parameters, data.target);
+		}
+	}
+
+	class DeleteRequestTaskParser extends SpecializedRequestTaskParser {
+
+		@Override
+		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
+			parseRemainingFields(parameters, data);
+			return new RequestDeleteTask(prologue, data.source, parameters, data.target);
+		}
+	}
+
+	abstract class RequestWithBodyTaskParser extends SpecializedRequestTaskParser {
+
+		@Override
+		public RequestTask.Parameters makeParameters() { return new RequestWithBodyTask.ParametersWithBody(); }
+
+		@Override
+		protected void parseBodyFields(RequestTask.Parameters upcastParameters) throws InputMismatchException, IOException {
+
+			RequestWithBodyTask.ParametersWithBody parameters = (RequestWithBodyTask.ParametersWithBody)upcastParameters;
+
+			if (!tokenizer.skipWordIgnoreCase(KW.BODY.name())) {
+				throw new InputMismatchException("Expecting " + KW.BODY.name() + ", found " + tokenizer.nextToken().getImage());
+			}
+
+			List<Expression<String>> bodyFields = new LinkedList<Expression<String>>();
+
+			do {
+				bodyFields.add(parseStringExpression());
+			} while (tokenizer.skipDelimiter(","));
+
+			parameters.add(bodyFields);
+		}
+	}
+
+	class PutRequestTaskParser extends RequestWithBodyTaskParser {
+
+		@Override
+		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
+			parseRemainingFields(parameters, data);
+			return new RequestPutTask(prologue, data.source, (RequestWithBodyTask.ParametersWithBody)parameters, data.target);
+		}
+	}
+
+	class PostRequestTaskParser extends RequestWithBodyTaskParser {
+
+		@Override
+		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
+			parseRemainingFields(parameters, data);
+			return new RequestPostTask(prologue, data.source, (RequestWithBodyTask.ParametersWithBody)parameters, data.target);
+		}
+	}
+
 	class NotImplementedTaskParser implements TaskParser {
 
 		private String taskTypeName;
@@ -1590,7 +1697,7 @@ abstract class TaskSetParser {
 			return false;
 		}
 		else {
-			return !hasNextBeginOrEnd(KW.TASK.name());
+			return !atEndOrStartOfTask();
 		}
 	}
 
@@ -1625,17 +1732,54 @@ abstract class TaskSetParser {
 		}
 	}
 
-	private boolean hasSQL(String taskTypeName) throws IOException {
+	private DataTarget parseDataTarget(String taskTypeName, String introWord, boolean allowTable, boolean haveHeaders) throws IOException {
+
+		DatabaseConnection connection = parseDatabaseConnection(introWord);
 
 		if (tokenizer.skipWordIgnoreCase(KW.STATEMENT.name())) {
-			return false;
+			return parseStatementDataTarget(connection);
 		}
 		else if (tokenizer.skipWordIgnoreCase(KW.SQL.name())) {
-			return true;
+			return parseTokenizedStatementDataTarget(connection);
+		}
+		else if (allowTable && tokenizer.skipWordIgnoreCase(KW.TABLE.name())) {
+			return parseTableDataTarget(connection, haveHeaders);
 		}
 		else {
-			throw new InputMismatchException("Invalid data source in " + taskTypeName + " " + KW.TASK.name());
+			throw new InputMismatchException("Invalid data target in " + taskTypeName + " " + KW.TASK.name());
 		}
+	}
+
+	private StatementDataTarget parseStatementDataTarget(DatabaseConnection connection) throws IOException {
+
+		Expression<String> statement = parseStringExpression();
+
+		return new StatementDataTarget(connection, statement);
+	}
+
+	private TokenizedStatementDataTarget parseTokenizedStatementDataTarget(DatabaseConnection connection) throws IOException {
+
+		StringBuilder statement = new StringBuilder();
+		parseTokenizedStatement(statement);
+
+		return new TokenizedStatementDataTarget(connection, statement.toString());
+	}
+
+	private TableDataTarget parseTableDataTarget(DatabaseConnection connection, boolean haveHeaders) throws IOException {
+
+		if (!haveHeaders) {
+			throw new RuntimeException(KW.READ.name() + " " + KW.INTO.name() + " " + KW.TABLE.name() + " requires column headers");
+		}
+
+		Expression<String> table = parseStringExpression();
+
+		Expression<String> prefix = null;
+		if (tokenizer.skipWordIgnoreCase(KW.PREFIX.name())) {
+			tokenizer.skipWordIgnoreCase(KW.WITH.name());
+			prefix = parseStringExpression();
+		}
+
+		return new TableDataTarget(connection, table, prefix);
 	}
 
 	private VariableBase parseVariableReference() throws InputMismatchException, NoSuchElementException, IOException {
@@ -1737,7 +1881,7 @@ abstract class TaskSetParser {
 
 		BacktrackingTokenizerMark mark = tokenizer.mark();
 
-		while (!hasNextBeginOrEnd(KW.TASK.name())) {
+		while (!atEndOfSQL()) {
 			Token nextToken = tokenizer.nextToken();
 			statement.append(nextToken.render());
 
@@ -1832,7 +1976,11 @@ abstract class TaskSetParser {
 		return true;
 	}
 
-	private boolean hasNextEnd(String section) throws IOException {
+	private boolean atEndOfTask() throws IOException {
+		return atEndOf(KW.TASK);
+	}
+
+	private boolean atEndOf(KW keyword) throws IOException {
 
 		if (!tokenizer.hasNextWordIgnoreCase(KW.END.name())) {
 			return false;
@@ -1841,34 +1989,54 @@ abstract class TaskSetParser {
 		BacktrackingTokenizerMark mark = tokenizer.mark();
 		tokenizer.nextToken();
 
-		boolean result = tokenizer.hasNextWordIgnoreCase(section);
+		boolean result = tokenizer.hasNextWordIgnoreCase(keyword.name());
 
 		tokenizer.reset(mark);
 		return result;
 	}
 
-	private boolean hasNextBeginOrEnd(String section) throws IOException {
+	private boolean atStartOfTask() throws IOException {
 
-		if (tokenizer.hasNextWordIgnoreCase(KW.END.name())) {
-			return hasNextEnd(section);
-		}
-		else if (tokenizer.hasNextWordIgnoreCase(section)) {
-			if (section == KW.TASK.name()) {
-				BacktrackingTokenizerMark mark = tokenizer.mark();
-				tokenizer.nextToken();
-
-				boolean result = tokenizer.hasNextWord();
-
-				tokenizer.reset(mark);
-				return result;
-			}
-			else {
-				return true;
-			}
-		}
-		else {
+		if (!tokenizer.hasNextWordIgnoreCase(KW.TASK.name())) {
 			return false;
 		}
+
+		BacktrackingTokenizerMark mark = tokenizer.mark();
+		tokenizer.nextToken();
+
+		boolean result = tokenizer.hasNextWord();
+
+		tokenizer.reset(mark);
+		return result;
+	}
+
+	private boolean atEndOrStartOfTask() throws IOException {
+		return atEndOfTask() || atStartOfTask();
+	}
+
+	/**
+	 * @return true if tokenizer is positioned past the last token of a SQL token list.
+	 * This can happen in three ways:
+	 * <p>
+	 * 1. "END TASK" is found; the tokenizer does not advance past any input; or<br>
+	 * 2. "TASK {identifier}" is found; the tokenizer does not advance past any input; or<br>
+	 * 3. "END SQL" is found; the tokenizer <b>is</b> advanced past "END SQL".
+	 * @throws IOException
+	 */
+	private boolean atEndOfSQL() throws IOException {
+
+		if (atEndOrStartOfTask()) {
+			return true;
+		}
+
+		boolean result = atEndOf(KW.SQL);
+
+		if (result) {
+			tokenizer.nextToken();
+			tokenizer.nextToken();
+		}
+
+		return result;
 	}
 
 	private ExpressionBase parseExpression(VariableType type)

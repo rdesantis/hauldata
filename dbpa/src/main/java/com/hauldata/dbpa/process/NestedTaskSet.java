@@ -19,9 +19,6 @@ package com.hauldata.dbpa.process;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.InputMismatchException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -29,6 +26,7 @@ import javax.naming.NamingException;
 
 import com.hauldata.dbpa.task.Task;
 import com.hauldata.dbpa.task.Task.Result;
+import com.hauldata.dbpa.task.TaskSetParent;
 
 /**
  * Set of tasks nested within a process or other set of tasks
@@ -41,7 +39,7 @@ public class NestedTaskSet extends TaskSet {
 	public static NestedTaskSet parse(TaskSetParser parentParser, Task parentTask) throws IOException, NamingException {
 
 		NestedTaskSetParser parser = new NestedTaskSetParser(parentParser, parentTask);
-		
+
 		return parser.parse();
 	}
 
@@ -51,7 +49,7 @@ public class NestedTaskSet extends TaskSet {
 	NestedTaskSet(Map<String, Task> tasks) {
 		super(tasks);
 	}
-	
+
 	/**
 	 * Run the tasks in the task set.
 	 * Upon completion, the task set is altered in such a way that it cannot be run again.
@@ -73,30 +71,52 @@ public class NestedTaskSet extends TaskSet {
 	 */
 	public void runForRerun(Context context) throws Exception {
 
-		List<Map<Task, Result>> savedPredecessors = savePredecessors();
+		Map<Task, TaskPredecessors> savedPredecessors = savePredecessors();
 
-		runTasks(context);
-
-		restorePredecessors(savedPredecessors);
+		try {
+			runTasks(context);
+		}
+		finally {
+			restorePredecessors(savedPredecessors);
+		}
 	}
 
-	private List<Map<Task, Result>> savePredecessors() {
+	private static class TaskPredecessors {
+		public Map<Task, Result> predecessors;
+		public Map<Task, TaskPredecessors> nestedPredecessors;
+	}
 
-		List<Map<Task, Result>> result = new LinkedList<Map<Task, Result>>();
+	private Map<Task, TaskPredecessors> savePredecessors() {
+
+		Map<Task, TaskPredecessors> result = new HashMap<Task, TaskPredecessors>();
 
 		for (Task task : tasks.values()) {
-			result.add(new HashMap<Task, Task.Result>(task.getPredecessors()));
+
+			TaskPredecessors taskPredecessors = new TaskPredecessors();
+			result.put(task, taskPredecessors);
+
+			taskPredecessors.predecessors = new HashMap<Task, Task.Result>(task.getPredecessors());
+
+			if (task instanceof TaskSetParent) {
+				NestedTaskSet nestedTaskSet = ((TaskSetParent)task).getTaskSet();
+				taskPredecessors.nestedPredecessors = nestedTaskSet.savePredecessors();
+			}
 		}
 
-		return result; 
+		return result;
 	}
 
-	private void restorePredecessors(List<Map<Task, Result>> savedPredecessors) {
-
-		ListIterator<Map<Task, Result>> predecessorsIterator = savedPredecessors.listIterator();
+	private void restorePredecessors(Map<Task, TaskPredecessors> savedPredecessors) {
 
 		for (Task task : tasks.values()) {
-			task.setPredecessors(predecessorsIterator.next());
+			TaskPredecessors taskPredecessors = savedPredecessors.get(task);
+
+			task.setPredecessors(taskPredecessors.predecessors);
+
+			if (task instanceof TaskSetParent) {
+				NestedTaskSet nestedTaskSet = ((TaskSetParent)task).getTaskSet();
+				nestedTaskSet.restorePredecessors(taskPredecessors.nestedPredecessors);
+			}
 		}
 	}
 }
@@ -115,11 +135,11 @@ class NestedTaskSetParser extends TaskSetParser {
 
 	/**
 	 * Parse a nested set of tasks.
-	 * 
+	 *
 	 * @throws IOException if physical read of the script fails
-	 * @throws NoSuchElementException 
-	 * @throws InputMismatchException 
-	 * @throws NamingException 
+	 * @throws NoSuchElementException
+	 * @throws InputMismatchException
+	 * @throws NamingException
 	 * @throws RuntimeException if any syntax errors are encountered in the script
 	 */
 	public NestedTaskSet parse()
