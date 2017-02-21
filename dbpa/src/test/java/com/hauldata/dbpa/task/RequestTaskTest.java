@@ -16,7 +16,6 @@
 
 package com.hauldata.dbpa.task;
 
-import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.Logger.Level;
 
 public class RequestTaskTest extends TaskTest {
@@ -27,11 +26,13 @@ public class RequestTaskTest extends TaskTest {
 
 	public void testGet() throws Exception {
 
+		String sandboxUrl = "URL HERE";
+		String sandboxAuth = "AUTH HERE";
+
 		String processId = "GetTest";
 		String script =
 				"VARIABLES nothing VARCHAR END VARIABLES\n" +
 				"TASK GetJobInfo \n" +
-				"	IF nothing IS NOT NULL \n" +
 				"	REQUEST 'http://localhost:8080/jobs/{name}' " +
 				"	HEADER nothing NULL 'ignore this' \n" +
 				"	GET 'name', 'random', 'whatever' \n" +
@@ -41,10 +42,21 @@ public class RequestTaskTest extends TaskTest {
 				"	STATUS 'status' \n" +
 				"	INTO SQL INSERT INTO test.restarget VALUES (?,?,?,?,?,?) \n" +
 				"END TASK\n" +
+				"TASK GetJobInfoWithMessage \n" +
+				"	AFTER \n" +
+				"	REQUEST 'http://localhost:8080/jobs/{name}' " +
+				"	GET 'name', 'whatever' \n" +
+				"	FROM SQL SELECT name, stuff FROM test.reqsource END SQL \n" +
+				"	KEEP 'name' \n" +
+				"	RESPONSE 'scriptName', 'propName', 'enabled' \n" +
+				"	STATUS 'status' MESSAGE 'message' \n" +
+				"	INTO SQL INSERT INTO test.restarget (name, scriptName, propName, enabled, status, stuff) VALUES (?,?,?,?,?,?) \n" +
+				"END TASK\n" +
 				"TASK ArroPay \n" +
 				"	AFTER \n" +
-				"	REQUEST 'URL HERE' " +
-				"	HEADER 'Authorization' 'TOKEN HERE' \n" +
+				"	--IF nothing IS NOT NULL \n" +
+				"	REQUEST '" + sandboxUrl + "' \n" +
+				"	HEADER 'Authorization' '" + sandboxAuth + "' \n" +
 				"	POST BODY 'cardNumber', 'cardHolderName', 'employeeId', 'governmentId', 'accountNumber', 'routingNumber', 'proxyId', 'marketId', 'status' \n" +
 				"	FROM SQL SELECT * FROM test.arropaycardrequest END SQL \n" +
 				"	--KEEP 'employeeId', 'marketId' \n" +
@@ -52,17 +64,34 @@ public class RequestTaskTest extends TaskTest {
 				"	STATUS 'status' \n" +
 				"	INTO SQL INSERT INTO test.restarget (stuff, name, scriptName, status) VALUES (?,?,?,?) \n" +
 				"END TASK\n" +
+				"TASK ArroPayWithMessage \n" +
+				"	AFTER \n" +
+				"	--IF nothing IS NOT NULL \n" +
+				"	REQUEST '" + sandboxUrl + "' \n" +
+				"	HEADER 'Authorization' '" + sandboxAuth + "' \n" +
+				"	POST BODY 'cardNumber', 'cardHolderName', 'employeeId', 'governmentId', 'accountNumber', 'routingNumber', 'proxyId', 'marketId', 'status' \n" +
+				"	FROM SQL SELECT * FROM test.arropaycardrequest END SQL \n" +
+				"	KEEP 'marketId', 'employeeId' \n" +
+				"	RESPONSE 'createDate' \n" +
+				"	STATUS 'status' MESSAGE 'message' \n" +
+				"	INTO SQL INSERT INTO test.restarget (stuff, name, scriptName, status, propName) VALUES (?,?,?,?,?) \n" +
+				"END TASK\n" +
+				"TASK NonUnique \n" +
+				"	AFTER \n" +
+				"	REQUEST 'url' GET 'fred', 'ethel', 'lucy', 'ricky', 'ethel' \n" +
+				"	FROM SQL garbage END SQL \n" +
+				"	KEEP NONE \n" +
+				"	STATUS 'x' \n" +
+				"	INTO SQL ? \n" +
+				"END TASK\n" +
 				"";
 
 		Level logLevel = Level.info;
 		boolean logToConsole = true;
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
-		Analyzer.RecordIterator recordIterator = analyzer.recordIterator();
-
-		Analyzer.Record record;
-
-		recordIterator.next();
-		assertFalse(recordIterator.hasNext());
+		try {
+			runScript(processId, logLevel, logToConsole, script, null, null, null);
+		}
+		catch (RuntimeException ex) {}
 	}
 }

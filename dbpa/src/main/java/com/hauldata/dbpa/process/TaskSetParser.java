@@ -205,6 +205,7 @@ abstract class TaskSetParser {
 		RESPONSE,
 		STATUS,
 		POST,
+		MESSAGE,
 
 		// Functions
 
@@ -1509,16 +1510,17 @@ abstract class TaskSetParser {
 
 				if (!tokenizer.skipWordIgnoreCase(KW.NONE.name())) {
 
-					boolean allRequestFieldsAreConstant = requestFields.stream().allMatch(f -> f instanceof StringConstant);
+					boolean allKeepableFieldsAreConstant = allFieldsAreConstant(requestFields) && allBodyFieldsAreConstant(parameters);
 					do {
 						Expression<String> keepField = parseStringExpression();
 
 						if (
-								allRequestFieldsAreConstant &&
+								allKeepableFieldsAreConstant &&
 								keepField instanceof StringConstant &&
-								requestFields.stream().noneMatch(f -> f.equals(keepField))) {
+								noFieldMatches(requestFields, keepField) &&
+								noBodyFieldMatches(parameters, keepField)) {
 
-							throw new NoSuchElementException(KW.KEEP.name() + " field name does not match any request field name: " + ((StringConstant)keepField).evaluate());
+							throw new NoSuchElementException(KW.KEEP.name() + " field name does not match any request or body field name: " + ((StringConstant)keepField).evaluate());
 						}
 
 						keepFields.add(keepField);
@@ -1542,10 +1544,27 @@ abstract class TaskSetParser {
 
 			Expression<String> statusField = parseStringExpression();
 
-			parameters.add(requestFields, keepFields, responseFields, statusField);
+			Expression<String> messageField = null;
+			if (tokenizer.skipWordIgnoreCase(KW.MESSAGE.name())) {
+				messageField = parseStringExpression();
+			}
+
+			parameters.add(requestFields, keepFields, responseFields, statusField, messageField);
 
 			data.target = parseDataTarget(KW.REQUEST.name(), KW.INTO.name(), true, false);
 		}
+
+		protected boolean allFieldsAreConstant(List<Expression<String>> fields) {
+			return fields.stream().allMatch(f -> f instanceof StringConstant);
+		}
+
+		protected boolean noFieldMatches(List<Expression<String>> fields, Expression<String> keepField) {
+			return fields.stream().noneMatch(f -> f.equals(keepField));
+		}
+
+		protected boolean allBodyFieldsAreConstant(RequestTask.Parameters baseParameters) { return true; }
+
+		protected boolean noBodyFieldMatches(RequestTask.Parameters baseParameters, Expression<String> keepField) { return true; }
 
 		public abstract Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException;
 	}
@@ -1574,9 +1593,9 @@ abstract class TaskSetParser {
 		public RequestTask.Parameters makeParameters() { return new RequestWithBodyTask.ParametersWithBody(); }
 
 		@Override
-		protected void parseBodyFields(RequestTask.Parameters upcastParameters) throws InputMismatchException, IOException {
+		protected void parseBodyFields(RequestTask.Parameters baseParameters) throws InputMismatchException, IOException {
 
-			RequestWithBodyTask.ParametersWithBody parameters = (RequestWithBodyTask.ParametersWithBody)upcastParameters;
+			RequestWithBodyTask.ParametersWithBody parameters = (RequestWithBodyTask.ParametersWithBody)baseParameters;
 
 			if (!tokenizer.skipWordIgnoreCase(KW.BODY.name())) {
 				throw new InputMismatchException("Expecting " + KW.BODY.name() + ", found " + tokenizer.nextToken().getImage());
@@ -1589,6 +1608,16 @@ abstract class TaskSetParser {
 			} while (tokenizer.skipDelimiter(","));
 
 			parameters.add(bodyFields);
+		}
+
+		@Override
+		protected boolean allBodyFieldsAreConstant(RequestTask.Parameters baseParameters) {
+			return allFieldsAreConstant(((RequestWithBodyTask.ParametersWithBody)baseParameters).getBodyFields());
+		}
+
+		@Override
+		protected boolean noBodyFieldMatches(RequestTask.Parameters baseParameters, Expression<String> keepField) {
+			return noFieldMatches(((RequestWithBodyTask.ParametersWithBody)baseParameters).getBodyFields(), keepField);
 		}
 	}
 
