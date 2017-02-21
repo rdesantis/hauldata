@@ -40,7 +40,7 @@ public class RequestTaskTest extends TaskTest {
 				"	KEEP 'random', 'name' \n" +
 				"	RESPONSE 'scriptName', 'propName', 'enabled' \n" +
 				"	STATUS 'status' \n" +
-				"	INTO SQL INSERT INTO test.restarget VALUES (?,?,?,?,?,?) \n" +
+				"	INTO SQL INSERT INTO test.restarget (stuff, name, scriptName, propName, enabled, status) VALUES (?,?,?,?,?,?) \n" +
 				"END TASK\n" +
 				"TASK GetJobInfoWithMessage \n" +
 				"	AFTER \n" +
@@ -84,14 +84,36 @@ public class RequestTaskTest extends TaskTest {
 				"	STATUS 'x' \n" +
 				"	INTO SQL ? \n" +
 				"END TASK\n" +
+				"TASK AFTER NonUnique SUCCEEDS FAIL END TASK \n" +
+				"TASK AFTER NonUnique FAILS GO END TASK \n" +
+				"TASK GetJobRuns \n" +
+				"	AFTER \n" +
+				"	REQUEST 'http://localhost:8080/jobs/-/runs?latest=true' " +
+				"	GET 'first' \n" +
+				"	FROM SQL SELECT 'job list' END SQL \n" +
+				"	KEEP 'first' \n" +
+				"	RESPONSE 'runId', 'jobName' \n" +
+				"	STATUS 'status' \n" +
+				"	INTO SQL INSERT INTO test.restarget (stuff, id, name, status) VALUES (?,?,?,?) \n" +
+				"END TASK\n" +
+				"TASK GetJobRunsNonList \n" +
+				"	AFTER \n" +
+				"	REQUEST 'http://localhost:8080/jobs/-/runs?latest=true' " +
+				"	GET 'first' \n" +
+				"	FROM SQL SELECT 'job list' END SQL \n" +
+				"	NO LIST \n" +
+				"	KEEP 'first' \n" +
+				"	RESPONSE 'runId', 'jobName' \n" +
+				"	STATUS 'status' \n" +
+				"	INTO SQL INSERT INTO test.restarget (stuff, id, name, status) VALUES (?,?,?,?) \n" +
+				"END TASK\n" +
+				"TASK AFTER GetJobRunsNonList SUCCEEDS FAIL END TASK \n" +
+				"TASK AFTER GetJobRunsNonList FAILS GO END TASK \n" +
 				"";
 
 		Level logLevel = Level.info;
 		boolean logToConsole = true;
 
-		try {
-			runScript(processId, logLevel, logToConsole, script, null, null, null);
-		}
-		catch (RuntimeException ex) {}
+		runScript(processId, logLevel, logToConsole, script, null, null, null);
 	}
 }

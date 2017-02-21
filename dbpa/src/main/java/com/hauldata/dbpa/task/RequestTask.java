@@ -34,10 +34,12 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import javax.json.Json;
+import javax.json.JsonArray;
 import javax.json.JsonNumber;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 import javax.json.JsonString;
+import javax.json.JsonStructure;
 import javax.json.JsonValue;
 
 import org.apache.http.HttpEntity;
@@ -58,7 +60,7 @@ import com.hauldata.dbpa.process.Context;
 public abstract class RequestTask extends Task {
 
 	public static final ContentType supportedContentType = ContentType.APPLICATION_JSON;
-	public static final int maxResponseContentLength = 2048;
+	public static final int maxResponseContentLength = 4096;
 
 	public static class Parameters {
 
@@ -87,6 +89,8 @@ public abstract class RequestTask extends Task {
 		private Expression<String> statusField;
 		private Expression<String> messageField;
 
+		private Boolean listResponse;
+
 		public Parameters() {}
 
 		public void add(
@@ -102,13 +106,16 @@ public abstract class RequestTask extends Task {
 				List<Expression<String>> keepFields,
 				List<Expression<String>> responseFields,
 				Expression<String> statusField,
-				Expression<String> messageField) {
+				Expression<String> messageField,
+				Boolean listResponse) {
 
 			this.requestFields = requestFields;
 			this.keepFields = keepFields;
 			this.responseFields = responseFields;
 			this.statusField = statusField;
 			this.messageField = messageField;
+
+			this.listResponse = listResponse;
 		}
 
 		public Expression<String> getUrl() { return url; }
@@ -118,11 +125,13 @@ public abstract class RequestTask extends Task {
 		public List<Expression<String>> getResponseFields() { return responseFields; }
 		public Expression<String> getStatusField() { return statusField; }
 		public Expression<String> getMessageField() { return messageField; }
+
+		public Boolean getListResponse() { return listResponse; }
 	}
 
-	protected DataSource source;
-	protected Parameters parameters;
-	protected DataTarget target;
+	private DataSource source;
+	private Parameters parameters;
+	private DataTarget target;
 
 	protected RequestTask(
 			Prologue prologue,
@@ -141,7 +150,7 @@ public abstract class RequestTask extends Task {
 
 		EvaluatedParameters evaluatedParameters = evaluateParameters(parameters);
 
-		executeRequest(context, source, evaluatedParameters, target);
+		executeRequest(context, source, evaluatedParameters, target, parameters.getListResponse());
 	}
 
 	protected static class EvaluatedParameters {
@@ -334,7 +343,12 @@ public abstract class RequestTask extends Task {
 		return fields.stream().collect(Collectors.toSet()).size() == fields.size();
 	}
 
-	private void executeRequest(Context context, DataSource source, EvaluatedParameters parameters, DataTarget target) {
+	private void executeRequest(
+			Context context,
+			DataSource source,
+			EvaluatedParameters parameters,
+			DataTarget target,
+			Boolean listResponse) {
 
 		int sourceColumnCount = getSourceColumnCount(parameters);
 		int targetParameterCount = getTargetParameterCount(parameters);
@@ -412,13 +426,11 @@ public abstract class RequestTask extends Task {
 				int statusCode = response.getStatusLine().getStatusCode();
 
 				if (200 <= statusCode && statusCode < 300) {
-					interpretResponse(statusCode, source, parameters, target, response);
+					interpretResponse(statusCode, source, parameters, target, response, listResponse);
 				}
 				else {
 					interpretFailedResponse(statusCode, source, parameters, target, response);
 				}
-
-				target.addBatch();
 
 				response.close();
 				response = null;
@@ -498,20 +510,19 @@ public abstract class RequestTask extends Task {
 			DataSource source,
 			EvaluatedParameters parameters,
 			DataTarget target,
-			CloseableHttpResponse response) throws SQLException, IllegalStateException, IOException {
+			CloseableHttpResponse response,
+			Boolean listResponseRequired) throws SQLException, IllegalStateException, IOException {
 
 		JsonReader reader = null;
 
 		try {
-			int columnIndex = keepSourceColumns(source, parameters, target);
-
 			if (!parameters.getResponseFields().isEmpty()) {
 
 				HttpEntity entity = response.getEntity();
 				if (entity != null) {
 
 					if (!hasSupportedContentLength (entity)) {
-						throw new RuntimeException("Unknown or excessive response content length");
+//						throw new RuntimeException("Unknown or excessive response content length");
 					}
 
 					if (!hasSupportedContentType(entity)) {
@@ -519,37 +530,92 @@ public abstract class RequestTask extends Task {
 					}
 
 					reader = Json.createReader(entity.getContent());
-
-					JsonObject responseObject = reader.readObject();
-					for (String responseFieldName : parameters.getResponseFields()) {
-
-						int parameterType = Types.NULL;
-						try {
-							// Some databases (MySQL) will not have metadata with parameter types available here.
-							parameterType = target.getParameterType(columnIndex);
-						}
-						catch (SQLException ex) {}
-
-						Object entityFieldValue = getParameterValue(responseObject, responseFieldName, parameterType);
-						target.setObject(columnIndex++, entityFieldValue);
-					}
-
+					JsonStructure responseStructure = reader.read();
 					reader.close();
-					reader = null;
+
+					boolean isListResponse = (responseStructure instanceof JsonArray);
+
+					if (!isListResponse) {
+						if (listResponseRequired == null || listResponseRequired == false) {
+							putTargetRow(statusCode, source, parameters, target, (JsonObject)responseStructure);
+						}
+						else {
+							throw new RuntimeException("Response entity is not a list but LIST was specified");
+						}
+					}
+					else {
+						if (listResponseRequired == null || listResponseRequired == true) {
+							putTargetRows(statusCode, source, parameters, target, (JsonArray)responseStructure);
+						}
+						else {
+							throw new RuntimeException("Response entity is a list but NO LIST was specified");
+						}
+					}
 				}
 				else {
 					throw new RuntimeException("Response did not include an entity as expected");
 				}
 			}
-
-			target.setObject(columnIndex++, statusCode);
-
-			if (parameters.getMessageField() != null) {
-				target.setObject(columnIndex++, null);
-			}
 		}
 		finally {
 			if (reader != null) try { reader.close(); } catch (Exception ex) {}
+		}
+	}
+
+	private boolean hasSupportedContentLength(HttpEntity entity) {
+
+		long contentLength = entity.getContentLength();
+		return (0 <= contentLength) && (contentLength <= maxResponseContentLength);
+	}
+
+	private boolean hasSupportedContentType(HttpEntity entity) {
+
+		ContentType contentType = ContentType.getOrDefault(entity);
+		return
+				contentType.getMimeType().equals(supportedContentType.getMimeType()) &&
+				(contentType.getCharset() == null || contentType.getCharset().equals(supportedContentType.getCharset()));
+	}
+
+	private void putTargetRow(
+			int statusCode,
+			DataSource source,
+			EvaluatedParameters parameters,
+			DataTarget target,
+			JsonObject responseObject) throws SQLException {
+
+		int columnIndex = keepSourceColumns(source, parameters, target);
+
+		for (String responseFieldName : parameters.getResponseFields()) {
+
+			int parameterType = Types.NULL;
+			try {
+				// Some databases (MySQL) will not have metadata with parameter types available here.
+				parameterType = target.getParameterType(columnIndex);
+			}
+			catch (SQLException ex) {}
+
+			Object entityFieldValue = getParameterValue(responseObject, responseFieldName, parameterType);
+			target.setObject(columnIndex++, entityFieldValue);
+		}
+
+		target.setObject(columnIndex++, statusCode);
+
+		if (parameters.getMessageField() != null) {
+			target.setObject(columnIndex++, null);
+		}
+
+		target.addBatch();
+	}
+
+	private void putTargetRows(
+			int statusCode,
+			DataSource source,
+			EvaluatedParameters parameters,
+			DataTarget target,
+			JsonArray responseArray) throws SQLException {
+
+		for (JsonValue responseValue : responseArray) {
+			putTargetRow(statusCode, source, parameters, target, (JsonObject)responseValue);
 		}
 	}
 
@@ -567,20 +633,6 @@ public abstract class RequestTask extends Task {
 		}
 
 		return columnIndex;
-	}
-
-	private boolean hasSupportedContentLength(HttpEntity entity) {
-
-		long contentLength = entity.getContentLength();
-		return (0 <= contentLength) && (contentLength <= maxResponseContentLength);
-	}
-
-	private boolean hasSupportedContentType(HttpEntity entity) {
-
-		ContentType contentType = ContentType.getOrDefault(entity);
-		return
-				contentType.getMimeType().equals(supportedContentType.getMimeType()) &&
-				(contentType.getCharset() == null || contentType.getCharset().equals(supportedContentType.getCharset()));
 	}
 
 	private void interpretFailedResponse(
@@ -637,6 +689,8 @@ public abstract class RequestTask extends Task {
 			if (parameters.getMessageField() != null) {
 				target.setObject(columnIndex++, message);
 			}
+
+			target.addBatch();
 		}
 		finally {
 			if (reader != null) try { reader.close(); } catch (Exception ex) {}

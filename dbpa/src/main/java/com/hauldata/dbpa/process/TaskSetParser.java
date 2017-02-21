@@ -206,6 +206,7 @@ abstract class TaskSetParser {
 		STATUS,
 		POST,
 		MESSAGE,
+		LIST,
 
 		// Functions
 
@@ -1503,6 +1504,17 @@ abstract class TaskSetParser {
 
 			data.source = parseDataSource(KW.REQUEST.name(), KW.FROM.name(), false, true);
 
+			Boolean listResponse = null;
+			if (tokenizer.skipWordIgnoreCase(KW.NO.name())) {
+				listResponse = false;
+			}
+			if (tokenizer.skipWordIgnoreCase(KW.LIST.name())) {
+				listResponse = (listResponse == null);
+			}
+			else if (listResponse != null){
+				throw new InputMismatchException("Expecting " + KW.LIST.name() + " after " + KW.NO.name() + ", found " + tokenizer.nextToken().getImage());
+			}
+
 			List<Expression<String>> keepFields = null;
 			if (tokenizer.skipWordIgnoreCase(KW.KEEP.name())) {
 
@@ -1549,7 +1561,7 @@ abstract class TaskSetParser {
 				messageField = parseStringExpression();
 			}
 
-			parameters.add(requestFields, keepFields, responseFields, statusField, messageField);
+			parameters.add(requestFields, keepFields, responseFields, statusField, messageField, listResponse);
 
 			data.target = parseDataTarget(KW.REQUEST.name(), KW.INTO.name(), true, false);
 		}
