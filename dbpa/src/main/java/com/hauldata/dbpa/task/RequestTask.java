@@ -85,6 +85,7 @@ public abstract class RequestTask extends Task {
 		private List<Expression<String>> keepFields;
 		private List<Expression<String>> responseFields;
 		private Expression<String> statusField;
+		private Expression<String> messageField;
 
 		public Parameters() {}
 
@@ -100,12 +101,14 @@ public abstract class RequestTask extends Task {
 				List<Expression<String>> requestFields,
 				List<Expression<String>> keepFields,
 				List<Expression<String>> responseFields,
-				Expression<String> statusField) {
+				Expression<String> statusField,
+				Expression<String> messageField) {
 
 			this.requestFields = requestFields;
 			this.keepFields = keepFields;
 			this.responseFields = responseFields;
 			this.statusField = statusField;
+			this.messageField = messageField;
 		}
 
 		public Expression<String> getUrl() { return url; }
@@ -114,6 +117,7 @@ public abstract class RequestTask extends Task {
 		public List<Expression<String>> getKeepFields() { return keepFields; }
 		public List<Expression<String>> getResponseFields() { return responseFields; }
 		public Expression<String> getStatusField() { return statusField; }
+		public Expression<String> getMessageField() { return messageField; }
 	}
 
 	protected DataSource source;
@@ -159,12 +163,12 @@ public abstract class RequestTask extends Task {
 		private List<Header> headers;
 
 		private List<String> requestFields;
-		private List<String> keepFields;
-		private List<String> responseFields;
-		private String statusField;
-
 		private Set<Integer> substituteIndexes;
 		private List<Integer> keepIndexes;
+		private List<String> responseFields;
+		private String statusField;
+		private String messageField;
+
 
 		public EvaluatedParameters() {}
 
@@ -173,39 +177,46 @@ public abstract class RequestTask extends Task {
 				List<Header> headers,
 
 				List<String> requestFields,
-				List<String> keepFields,
+				Set<Integer> substituteIndexes,
+				List<Integer> keepIndexes,
 				List<String> responseFields,
 				String statusField,
-
-				Set<Integer> substituteIndexes,
-				List<Integer> keepIndexes
-				) {
+				String messageField) {
 
 			this.url = url;
 			this.headers = headers;
 
 			this.requestFields = requestFields;
-			this.keepFields = keepFields;
-			this.responseFields = responseFields;
-			this.statusField = statusField;
-
 			this.substituteIndexes = substituteIndexes;
 			this.keepIndexes = keepIndexes;
+			this.responseFields = responseFields;
+			this.statusField = statusField;
+			this.messageField = messageField;
 		}
 
 		public String getUrl() { return url; }
 		public List<Header> getHeaders() { return headers; }
+
 		public List<String> getRequestFields() { return requestFields; }
-		public List<String> getKeepFields() { return keepFields; }
-		public List<String> getResponseFields() { return responseFields; }
-		public String getStatusField() { return statusField; }
 		public Set<Integer> getSubstituteIndexes() { return substituteIndexes; }
 		public List<Integer> getKeepIndexes() { return keepIndexes; }
+		public List<String> getResponseFields() { return responseFields; }
+		public String getStatusField() { return statusField; }
+		public String getMessageField() { return messageField; }
 	}
 
 	private EvaluatedParameters evaluateParameters(Parameters rawParameters) throws Exception {
 
+		EvaluatedParameters parameters = makeEvaluatedParameters();
+
+		evaluateBody(rawParameters, parameters);
+
+		// Evaluate base parameters.
+
 		String url = rawParameters.getUrl().evaluate();
+		if (url == null) {
+			throw new RuntimeException("URL evaluates to NULL");
+		}
 
 		List<EvaluatedParameters.Header> headers = new LinkedList<EvaluatedParameters.Header>();
 		if (rawParameters.getHeaders() != null) {
@@ -228,20 +239,58 @@ public abstract class RequestTask extends Task {
 			requestFields.add(requestField.evaluate());
 		}
 
-		List<String> keepFields = null;
-		if (rawParameters.getKeepFields() != null) {
+		if (!allFieldsAreUnique(requestFields)) {
+			throw new RuntimeException("Request fields do not evaluate to unique values");
+		}
 
-			keepFields = new ArrayList<String>();
+		Set<Integer> substituteIndexes = new TreeSet<Integer>();
+		for (int i = 0; i < requestFields.size(); ++i) {
+
+			String requestField = requestFields.get(i);
+			if ((requestField != null) && url.contains("{" + requestField + "}")) {
+				substituteIndexes.add(i + 1);
+			}
+		}
+
+		List<Integer> keepIndexes = new LinkedList<Integer>();
+		if (rawParameters.getKeepFields() != null) {
+			// Respect KEEP clause.
+
 			for (Expression<String> keepFieldExpression : rawParameters.getKeepFields()) {
 
 				String keepField = keepFieldExpression.evaluate();
 				if (keepField == null) {
 					throw new RuntimeException("KEEP field evaluates to NULL");
 				}
-				if (!requestFields.contains(keepField)) {
-					throw new RuntimeException("KEEP field does not evaluate to a request field value");
+
+				int requestFieldIndex = requestFields.indexOf(keepField);
+				int bodyFieldIndex = getBodyFieldsIndexOf(parameters, keepField);
+				int fieldIndex;
+
+				if (0 <= requestFieldIndex && 0 <= bodyFieldIndex) {
+					throw new RuntimeException("KEEP field is ambiguous; name appears as both a request field and body field value");
 				}
-				keepFields.add(keepField);
+				else if (0 <= requestFieldIndex) {
+					fieldIndex = requestFieldIndex;
+				}
+				else if (0 <= bodyFieldIndex) {
+					fieldIndex = requestFields.size() + bodyFieldIndex;
+				}
+				else {
+					throw new RuntimeException("KEEP field does not evaluate to a request or body field value");
+				}
+
+				keepIndexes.add(fieldIndex + 1);
+			}
+		}
+		else {
+			// Keep all non-NULL named request fields.
+
+			for (int i = 0; i < requestFields.size(); ++i) {
+				String requestField = requestFields.get(i);
+				if (requestField != null) {
+					keepIndexes.add(i + 1);
+				}
 			}
 		}
 
@@ -263,43 +312,14 @@ public abstract class RequestTask extends Task {
 			throw new RuntimeException("STATUS field evaluates to NULL");
 		}
 
-		// Determine the following:
-		// 1. Which requestFields will substitute into the URL
-		// 2. Which requestFields will be retained in the result row
-
-		Set<Integer> substituteIndexes = new TreeSet<Integer>();
-		for (int i = 0; i < parameters.requestFields.size(); ++i) {
-			if (url.contains("{" + requestFields.get(i) + "}")) {
-				substituteIndexes.add(i + 1);
-			}
-		}
-
-		List<Integer> keepIndexes = new LinkedList<Integer>();
-		if (keepFields == null) {
-			// Keep all non-NULL named request fields.
-
-			for (int i = 0; i < requestFields.size(); ++i) {
-				String requestField = requestFields.get(i);
-				if (requestField != null) {
-					keepIndexes.add(i + 1);
-				}
-			}
-		}
-		else {
-			// Respect KEEP clause.
-
-			for (String keepField : keepFields) {
-				keepIndexes.add(requestFields.indexOf(keepField) + 1);
-			}
+		String messageField = null;
+		if (rawParameters.getMessageField() != null) {
+			messageField = rawParameters.getMessageField().evaluate();
 		}
 
 		// Bundle up the parameters.
 
-		EvaluatedParameters parameters = makeEvaluatedParameters();
-
-		parameters.add(url, headers, requestFields, keepFields, responseFields, statusField, substituteIndexes, keepIndexes);
-
-		evaluateBody(rawParameters, parameters);
+		parameters.add(url, headers, requestFields, substituteIndexes, keepIndexes, responseFields, statusField, messageField);
 
 		return parameters;
 	}
@@ -307,6 +327,12 @@ public abstract class RequestTask extends Task {
 	protected EvaluatedParameters makeEvaluatedParameters() { return new EvaluatedParameters(); }
 
 	protected void evaluateBody(Parameters baseRawParameters, EvaluatedParameters baseEvaluatedParameters) {}
+
+	protected int getBodyFieldsIndexOf(EvaluatedParameters baseEvaluatedParameters, String keepField) { return -1; }
+
+	protected boolean allFieldsAreUnique(List<String> fields) {
+		return fields.stream().collect(Collectors.toSet()).size() == fields.size();
+	}
 
 	private void executeRequest(Context context, DataSource source, EvaluatedParameters parameters, DataTarget target) {
 
@@ -318,21 +344,40 @@ public abstract class RequestTask extends Task {
 		CloseableHttpResponse response = null;
 
 		try {
-			// Prepare to write target rows.  Include preparation needed to write to table.
+			// Prepare to write target rows.
 
 			ReadHeaders headers = null;
 			Columns columns = null;
 
 			if (target instanceof TableDataTarget) {
+				// Prepare to write to table.
 
 				ArrayList<String> captions = new ArrayList<String>();
+
 				for (int keepIndex : parameters.getKeepIndexes()) {
-					captions.add(parameters.getRequestFields().get(keepIndex - 1));
+
+					List<String> fields;
+					int fieldIndex;
+					if (keepIndex <= parameters.getRequestFields().size()) {
+						fields = parameters.getRequestFields();
+						fieldIndex = keepIndex;
+					}
+					else {
+						fields = getBodyFields(parameters);
+						fieldIndex = keepIndex - parameters.getRequestFields().size();
+					}
+					captions.add(fields.get(fieldIndex - 1));
 				}
+
 				for (String responseField : parameters.getResponseFields()) {
 					captions.add(responseField);
 				}
+
 				captions.add(parameters.getStatusField());
+
+				if (parameters.getMessageField() != null) {
+					captions.add(parameters.getMessageField());
+				}
 
 				headers = new ReadHeaders(true, false, false, captions);
 				columns = new Columns(null, headers);
@@ -389,7 +434,8 @@ public abstract class RequestTask extends Task {
 		catch (InterruptedException ex) {
 			throw new RuntimeException("Web service request was terminated due to interruption");
 		} catch (URISyntaxException ex) {
-			throw new RuntimeException("Invalid resolved URL: " + request.getURI().toString());
+			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
+			throw new RuntimeException("Invalid resolved URL: " + message);
 		} catch (IOException /* catches ClientProtocolException */ ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 			throw new RuntimeException("HTTP protocol or I/O error: " + message);
@@ -408,8 +454,14 @@ public abstract class RequestTask extends Task {
 	}
 
 	private int getTargetParameterCount(EvaluatedParameters parameters) {
-		return parameters.getKeepIndexes().size() + parameters.getResponseFields().size() + 1;
+		return
+				parameters.getKeepIndexes().size() +
+				parameters.getResponseFields().size() +
+				1 +
+				(parameters.getMessageField() != null ? 1 : 0);
 	}
+
+	protected List<String> getBodyFields(EvaluatedParameters baseEvaluatedParameters) { return null; }
 
 	private HttpRequestBase buildRequest(EvaluatedParameters parameters, DataSource source) throws SQLException, URISyntaxException {
 
@@ -490,7 +542,11 @@ public abstract class RequestTask extends Task {
 				}
 			}
 
-			target.setObject(columnIndex, statusCode);
+			target.setObject(columnIndex++, statusCode);
+
+			if (parameters.getMessageField() != null) {
+				target.setObject(columnIndex++, null);
+			}
 		}
 		finally {
 			if (reader != null) try { reader.close(); } catch (Exception ex) {}
@@ -550,7 +606,6 @@ public abstract class RequestTask extends Task {
 			// If the response is from Jersey exception mapper, retrieve error message.
 			// Otherwise, use the whole response body text as the error message,
 			// regardless of the content type.
-			// TODO: This requires adding an optional target column to return the error message.
 
 			String message = null;
 
@@ -578,7 +633,10 @@ public abstract class RequestTask extends Task {
 			}
 
 			target.setObject(columnIndex++, statusCode);
-//			target.setObject(columnIndex++, message);
+
+			if (parameters.getMessageField() != null) {
+				target.setObject(columnIndex++, message);
+			}
 		}
 		finally {
 			if (reader != null) try { reader.close(); } catch (Exception ex) {}

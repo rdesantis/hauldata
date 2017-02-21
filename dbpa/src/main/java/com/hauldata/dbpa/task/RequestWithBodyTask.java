@@ -81,7 +81,16 @@ public abstract class RequestWithBodyTask extends RequestTask {
 			bodyFields.add(requestField.evaluate());
 		}
 
+		if (!allFieldsAreUnique(bodyFields)) {
+			throw new RuntimeException("Body fields do not evaluate to unique values");
+		}
+
 		parameters.add(bodyFields);
+	}
+
+	@Override
+	protected int getBodyFieldsIndexOf(EvaluatedParameters baseEvaluatedParameters, String keepField) {
+		return ((EvaluatedParametersWithBody)baseEvaluatedParameters).getBodyFields().indexOf(keepField);
 	}
 
 	@Override
@@ -90,6 +99,11 @@ public abstract class RequestWithBodyTask extends RequestTask {
 		EvaluatedParametersWithBody parameters = (EvaluatedParametersWithBody)baseEvaluatedParameters;
 
 		return super.getSourceColumnCount(parameters) + parameters.getBodyFields().size();
+	}
+
+	@Override
+	protected List<String> getBodyFields(EvaluatedParameters baseEvaluatedParameters) {
+		return ((EvaluatedParametersWithBody)baseEvaluatedParameters).getBodyFields();
 	}
 
 	@Override
