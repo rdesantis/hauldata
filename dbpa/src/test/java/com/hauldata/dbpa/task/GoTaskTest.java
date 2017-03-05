@@ -73,7 +73,7 @@ public class GoTaskTest extends LogTaskTestBase {
 			assertEquals("TEST", record.taskId);
 			assertTrue(previousRecord == null || !record.datetime.isBefore(previousRecord.datetime));
 			assertEquals(0, record.level);
-			assertEquals(GoTask.continueMessage, record.message);
+			assertEquals(GoTask.continuingMessage, record.message);
 		}
 
 		if (logLevel.compareTo(Level.info) <= 0) {

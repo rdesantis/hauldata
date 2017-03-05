@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,29 +16,12 @@
 
 package com.hauldata.dbpa.task;
 
-import com.hauldata.dbpa.expression.Expression;
-import com.hauldata.dbpa.process.Context;
+public abstract class LoggingTask extends Task {
 
-public class FailTask extends LoggingTask {
-
-	public static final String failingMessage = "Failing";
-
-	private Expression<String> message;
-
-	public FailTask(
-			Prologue prologue,
-			Expression<String> message) {
+	/**
+	 * Any task that needs special handling for its log messages must extend LoggingTask. 
+	 */
+	public LoggingTask(Prologue prologue) {
 		super(prologue);
-		this.message = message;
-	}
-
-	@Override
-	protected void execute(Context context) {
-
-		String messageValue = (message != null) ? message.evaluate() : null;
-		if (messageValue == null) {
-			messageValue = failingMessage;
-		}
-		throw new RuntimeException(messageValue);
 	}
 }

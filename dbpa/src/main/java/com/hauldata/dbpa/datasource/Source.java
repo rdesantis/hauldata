@@ -14,26 +14,27 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.task;
+package com.hauldata.dbpa.datasource;
 
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpRequestBase;
+import java.sql.SQLException;
 
-import com.hauldata.dbpa.datasource.DataTarget;
-import com.hauldata.dbpa.datasource.Source;
+import com.hauldata.dbpa.process.Context;
 
-public class RequestPostTask extends RequestWithBodyTask {
+public interface Source {
 
-	public RequestPostTask(
-			Prologue prologue,
-			Source source,
-			Parameters parameters,
-			DataTarget target) {
-		super(prologue, source, parameters, target);
-	}
+	void executeQuery(Context context) throws SQLException, InterruptedException;
 
-	@Override
-	protected HttpRequestBase makeRequest() {
-		return new HttpPost();
-	}
+	int getColumnCount() throws SQLException;
+
+	String getColumnLabel(int column) throws SQLException;
+
+	boolean next() throws SQLException, InterruptedException;
+
+	Object getObject(int columnIndex) throws SQLException;
+
+	boolean isLast() throws SQLException;
+
+	void done(Context context) throws SQLException;
+
+	void close(Context context);
 }

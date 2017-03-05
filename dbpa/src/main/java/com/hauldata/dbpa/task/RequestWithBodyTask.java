@@ -27,8 +27,8 @@ import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.StringEntity;
 
-import com.hauldata.dbpa.datasource.DataSource;
 import com.hauldata.dbpa.datasource.DataTarget;
+import com.hauldata.dbpa.datasource.Source;
 import com.hauldata.dbpa.expression.Expression;
 
 public abstract class RequestWithBodyTask extends RequestTask {
@@ -48,7 +48,7 @@ public abstract class RequestWithBodyTask extends RequestTask {
 
 	public RequestWithBodyTask(
 			Prologue prologue,
-			DataSource source,
+			Source source,
 			Parameters parameters,
 			DataTarget target) {
 		super(prologue, source, parameters, target);
@@ -107,7 +107,7 @@ public abstract class RequestWithBodyTask extends RequestTask {
 	}
 
 	@Override
-	protected void addBody(HttpRequestBase baseRequest, EvaluatedParameters baseEvaluatedParameters, DataSource source) throws SQLException {
+	protected void addBody(HttpRequestBase baseRequest, EvaluatedParameters baseEvaluatedParameters, Source source) throws SQLException {
 
 		HttpEntityEnclosingRequestBase request = (HttpEntityEnclosingRequestBase)baseRequest;
 		EvaluatedParametersWithBody parameters = (EvaluatedParametersWithBody)baseEvaluatedParameters;

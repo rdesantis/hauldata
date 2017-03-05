@@ -23,7 +23,7 @@ import java.sql.SQLException;
 import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.process.Context;
 
-public abstract class DataSource extends DataStore {
+public abstract class DataSource extends DataStore implements Source {
 
 	private boolean singleRow;
 
@@ -41,20 +41,20 @@ public abstract class DataSource extends DataStore {
 
 	public abstract void executeUpdate(Context context) throws SQLException, InterruptedException;
 
+	@Override
 	public abstract void executeQuery(Context context) throws SQLException, InterruptedException;
 
+	@Override
 	public int getColumnCount() throws SQLException {
 		return rs.getMetaData().getColumnCount();
 	}
 
+	@Override
 	public String getColumnLabel(int column) throws SQLException {
 		return rs.getMetaData().getColumnLabel(column);
 	}
 
-	public int getColumnType(int column) throws SQLException {
-		return rs.getMetaData().getColumnType(column);
-	}
-
+	@Override
 	public boolean next() throws SQLException, InterruptedException {
 		if (Thread.interrupted()) {
 			throw new InterruptedException();
@@ -62,16 +62,20 @@ public abstract class DataSource extends DataStore {
 		return rs.next();
 	}
 
+	@Override
 	public Object getObject(int columnIndex) throws SQLException {
 		return rs.getObject(columnIndex);
 	}
 
+	@Override
 	public boolean isLast() throws SQLException {
 		return rs.isLast();
 	}
 
+	@Override
 	public void done(Context context) throws SQLException {}
 
+	@Override
 	public void close(Context context) {
 
 		if (rs != null) try { rs.close(); } catch (Exception ex) {}

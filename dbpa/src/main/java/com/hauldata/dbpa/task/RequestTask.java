@@ -51,6 +51,7 @@ import org.apache.http.impl.client.HttpClients;
 
 import com.hauldata.dbpa.datasource.DataSource;
 import com.hauldata.dbpa.datasource.DataTarget;
+import com.hauldata.dbpa.datasource.Source;
 import com.hauldata.dbpa.datasource.TableDataTarget;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.Columns;
@@ -129,13 +130,13 @@ public abstract class RequestTask extends Task {
 		public Boolean getListResponse() { return listResponse; }
 	}
 
-	private DataSource source;
+	private Source source;
 	private Parameters parameters;
 	private DataTarget target;
 
 	protected RequestTask(
 			Prologue prologue,
-			DataSource source,
+			Source source,
 			Parameters parameters,
 			DataTarget target) {
 		super(prologue);
@@ -214,7 +215,7 @@ public abstract class RequestTask extends Task {
 		public String getMessageField() { return messageField; }
 	}
 
-	private EvaluatedParameters evaluateParameters(Parameters rawParameters) throws Exception {
+	private EvaluatedParameters evaluateParameters(Parameters rawParameters) {
 
 		EvaluatedParameters parameters = makeEvaluatedParameters();
 
@@ -345,7 +346,7 @@ public abstract class RequestTask extends Task {
 
 	private void executeRequest(
 			Context context,
-			DataSource source,
+			Source source,
 			EvaluatedParameters parameters,
 			DataTarget target,
 			Boolean listResponse) {
@@ -445,10 +446,12 @@ public abstract class RequestTask extends Task {
 		}
 		catch (InterruptedException ex) {
 			throw new RuntimeException("Web service request was terminated due to interruption");
-		} catch (URISyntaxException ex) {
+		}
+		catch (URISyntaxException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 			throw new RuntimeException("Invalid resolved URL: " + message);
-		} catch (IOException /* catches ClientProtocolException */ ex) {
+		}
+		catch (IOException /* catches ClientProtocolException */ ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 			throw new RuntimeException("HTTP protocol or I/O error: " + message);
 		}
@@ -475,7 +478,11 @@ public abstract class RequestTask extends Task {
 
 	protected List<String> getBodyFields(EvaluatedParameters baseEvaluatedParameters) { return null; }
 
-	private HttpRequestBase buildRequest(EvaluatedParameters parameters, DataSource source) throws SQLException, URISyntaxException {
+	/**
+	 * @throws SQLException
+	 * @throws URISyntaxException
+	 */
+	private HttpRequestBase buildRequest(EvaluatedParameters parameters, Source source) throws SQLException, URISyntaxException  {
 
 		String resolvedUrl = parameters.getUrl();
 
@@ -503,11 +510,19 @@ public abstract class RequestTask extends Task {
 
 	protected abstract HttpRequestBase makeRequest();
 
-	protected void addBody(HttpRequestBase baseRequest, EvaluatedParameters baseEvaluatedParameters, DataSource source) throws SQLException {}
+	/**
+	 * @throws SQLException
+	 */
+	protected void addBody(HttpRequestBase baseRequest, EvaluatedParameters baseEvaluatedParameters, Source source) throws SQLException {}
 
+	/**
+	 * @throws SQLException
+	 * @throws IllegalStateException
+	 * @throws IOException
+	 */
 	private void interpretResponse(
 			int statusCode,
-			DataSource source,
+			Source source,
 			EvaluatedParameters parameters,
 			DataTarget target,
 			CloseableHttpResponse response,
@@ -576,9 +591,12 @@ public abstract class RequestTask extends Task {
 				(contentType.getCharset() == null || contentType.getCharset().equals(supportedContentType.getCharset()));
 	}
 
+	/**
+	 * @throws SQLException
+	 */
 	private void putTargetRow(
 			int statusCode,
-			DataSource source,
+			Source source,
 			EvaluatedParameters parameters,
 			DataTarget target,
 			JsonObject responseObject) throws SQLException {
@@ -607,9 +625,12 @@ public abstract class RequestTask extends Task {
 		target.addBatch();
 	}
 
+	/**
+	 * @throws SQLException
+	 */
 	private void putTargetRows(
 			int statusCode,
-			DataSource source,
+			Source source,
 			EvaluatedParameters parameters,
 			DataTarget target,
 			JsonArray responseArray) throws SQLException {
@@ -619,8 +640,11 @@ public abstract class RequestTask extends Task {
 		}
 	}
 
+	/**
+	 * @throws SQLException
+	 */
 	private int keepSourceColumns(
-			DataSource source,
+			Source source,
 			EvaluatedParameters parameters,
 			DataTarget target) throws SQLException {
 
@@ -635,9 +659,14 @@ public abstract class RequestTask extends Task {
 		return columnIndex;
 	}
 
+	/**
+	 * @throws SQLException
+	 * @throws IllegalStateException
+	 * @throws IOException
+	 */
 	private void interpretFailedResponse(
 			int statusCode,
-			DataSource source,
+			Source source,
 			EvaluatedParameters parameters,
 			DataTarget target,
 			CloseableHttpResponse response) throws SQLException, IllegalStateException, IOException {

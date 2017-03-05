@@ -19,14 +19,14 @@ package com.hauldata.dbpa.task;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpRequestBase;
 
-import com.hauldata.dbpa.datasource.DataSource;
 import com.hauldata.dbpa.datasource.DataTarget;
+import com.hauldata.dbpa.datasource.Source;
 
 public class RequestDeleteTask extends RequestTask {
 
 	public RequestDeleteTask(
 			Prologue prologue,
-			DataSource source,
+			Source source,
 			Parameters parameters,
 			DataTarget target) {
 		super(prologue, source, parameters, target);

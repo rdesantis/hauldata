@@ -20,6 +20,7 @@ import java.sql.SQLException;
 
 import com.hauldata.dbpa.datasource.DataSource;
 import com.hauldata.dbpa.datasource.DataTarget;
+import com.hauldata.dbpa.datasource.Source;
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.ReadHeaders;
 import com.hauldata.dbpa.file.ReadPage;
@@ -34,7 +35,7 @@ public abstract class FileTask extends Task {
 
 	protected void write(
 			Context context,
-			DataSource source,
+			Source source,
 			WritePage page) {
 
 		try {

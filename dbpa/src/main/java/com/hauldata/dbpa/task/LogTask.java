@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,26 +16,32 @@
 
 package com.hauldata.dbpa.task;
 
+import java.util.List;
+
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
 
-public class LogTask extends Task {
+public class LogTask extends LoggingTask {
+
+	private List<Expression<String>> messages;
 
 	public LogTask(
 			Prologue prologue,
-			Expression<String> message) {
+			List<Expression<String>> messages) {
 		super(prologue);
-		this.message = message;
+		this.messages = messages;
 	}
 
 	@Override
 	protected void execute(Context context) {
-		String messageValue = message.evaluate();
-		if (messageValue == null) {
-			throw new RuntimeException("Message evaluates to NULL");
-		}
-		context.logger.message(getName(), messageValue);
-	}
 
-	protected Expression<String> message;
+		for (Expression<String> message : messages) {
+
+			String messageValue = message.evaluate();
+			if (messageValue == null) {
+				throw new RuntimeException("Message evaluates to NULL");
+			}
+			context.logger.message(getName(), messageValue);
+		}
+	}
 }

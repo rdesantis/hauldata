@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -19,23 +19,28 @@ package com.hauldata.dbpa.task;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
 
-public class GoTask extends LogTask {
+public class GoTask extends LoggingTask {
 
-	public static final String continueMessage = "Continuing";
+	public static final String continuingMessage = "Continuing";
+
+	private Expression<String> message;
 
 	public GoTask(
 			Prologue prologue,
 			Expression<String> message) {
-		super(prologue, message);
+		super(prologue);
+		this.message = message;
 	}
 
 	@Override
 	protected void execute(Context context) {
-		if (message != null) {
-			super.execute(context);
+
+		String messageValue = (message != null) ? message.evaluate() : null;
+		if (messageValue != null) {
+			context.logger.message(getName(), messageValue);
 		}
 		else {
-			context.logger.info(getName(), continueMessage);
+			context.logger.info(getName(), continuingMessage);
 		}
 	}
 }

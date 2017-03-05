@@ -156,7 +156,7 @@ public abstract class Task {
 		try {
 			if (condition == null || condition.evaluate()) {
 
-				boolean isLogTask = this instanceof LogTask;
+				boolean isLogTask = this instanceof LoggingTask;
 				if (!isLogTask) {
 					context.logger.info(name, startMessage);
 				}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package com.hauldata.dbpa.task;
 
 import java.io.IOException;
 
-import com.hauldata.dbpa.datasource.DataSource;
+import com.hauldata.dbpa.datasource.Source;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.WriteHeaders;
 import com.hauldata.dbpa.file.WritePage;
@@ -28,13 +28,13 @@ public class WriteTask extends FileTask {
 
 	private PageIdentifierExpression page;
 	private WriteHeaderExpressions headers;
-	private DataSource source;
+	private Source source;
 
 	public WriteTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
 			WriteHeaderExpressions headers,
-			DataSource source) {
+			Source source) {
 
 		super(prologue);
 		this.page = page;

@@ -26,8 +26,10 @@ public class RequestTaskTest extends TaskTest {
 
 	public void testGet() throws Exception {
 
-		String sandboxUrl = "URL HERE";
-		String sandboxAuth = "AUTH HERE";
+		String[] resource = RequestTaskTestResource.getResource();
+
+		String sandboxUrl = resource[0];
+		String sandboxAuth = resource[1];
 
 		String processId = "GetTest";
 		String script =
@@ -51,6 +53,15 @@ public class RequestTaskTest extends TaskTest {
 				"	RESPONSE 'scriptName', 'propName', 'enabled' \n" +
 				"	STATUS 'status' MESSAGE 'message' \n" +
 				"	INTO SQL INSERT INTO test.restarget (name, scriptName, propName, enabled, status, stuff) VALUES (?,?,?,?,?,?) \n" +
+				"END TASK\n" +
+				"TASK GetScheduleValidationFromValues \n" +
+				"	AFTER \n" +
+				"	REQUEST 'http://localhost:8080/schedules/-/validations/{name}' " +
+				"	GET 'arbitrary', 'name'  FROM VALUES ('random text', 'invalid') \n" +
+				"	KEEP 'name' \n" +
+				"	RESPONSE 'validationMessage' \n" +
+				"	STATUS 'status' \n" +
+				"	INTO SQL INSERT INTO test.restarget (name, stuff, status) VALUES (?,?,?) \n" +
 				"END TASK\n" +
 				"TASK ArroPay \n" +
 				"	AFTER \n" +

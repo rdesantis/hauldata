@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package com.hauldata.dbpa.file;
 import java.io.IOException;
 import java.sql.SQLException;
 
-import com.hauldata.dbpa.datasource.DataSource;
+import com.hauldata.dbpa.datasource.Source;
 
 public abstract class WritePage {
 
@@ -66,8 +66,10 @@ public abstract class WritePage {
 
 	/**
 	 * Write result set to the page
+	 * @throws SQLException
+	 * @throws InterruptedException
 	 */
-	public void write(DataSource source) throws SQLException, InterruptedException {
+	public void write(Source source) throws SQLException, InterruptedException {
 
 		boolean hasAnyRows = false;
 		boolean hasRightNumberOfColumns = false;
