@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -1093,8 +1093,13 @@ abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
-			Expression<String> expression = parseStringExpression();
-			return new LogTask(prologue, expression);
+			List<Expression<String>> messages = new LinkedList<Expression<String>>();
+			do {
+				Expression<String> message = parseStringExpression();
+				messages.add(message);
+			} while (tokenizer.skipDelimiter(","));
+
+			return new LogTask(prologue, messages);
 		}
 	}
 
@@ -1102,11 +1107,11 @@ abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
-			Expression<String> expression = null;
+			Expression<String> message = null;
 			if (!atEndOfTask()) {
-				expression = parseStringExpression();
+				message = parseStringExpression();
 			}
-			return new GoTask(prologue, expression);
+			return new GoTask(prologue, message);
 		}
 	}
 
@@ -1114,11 +1119,11 @@ abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
-			Expression<String> expression = null;
+			Expression<String> message = null;
 			if (!atEndOfTask()) {
-				expression = parseStringExpression();
+				message = parseStringExpression();
 			}
-			return new FailTask(prologue, expression);
+			return new FailTask(prologue, message);
 		}
 	}
 
