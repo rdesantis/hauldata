@@ -20,18 +20,19 @@ import java.sql.SQLException;
 import java.util.List;
 
 import com.hauldata.dbpa.datasource.DataSource;
+import com.hauldata.dbpa.datasource.Source;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.variable.VariableBase;
 
 public class UpdateTask extends UpdateVariablesTask {
 
 	private List<VariableBase> variables;
-	private DataSource source;
+	private Source source;
 
 	public UpdateTask(
 			Prologue prologue,
 			List<VariableBase> variables,
-			DataSource source) {
+			Source source) {
 
 		super(prologue);
 		this.variables = variables;
@@ -52,7 +53,7 @@ public class UpdateTask extends UpdateVariablesTask {
 			DataSource.throwDatabaseExecutionFailed(ex);
 		}
 		catch (InterruptedException ex) {
-			throw new RuntimeException("Database query terminated due to interruption");
+			throw new RuntimeException("Update terminated due to interruption");
 		}
 		finally {
 			source.close(context);

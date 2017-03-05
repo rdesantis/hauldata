@@ -786,7 +786,7 @@ abstract class TaskSetParser {
 				variables.add(parseVariableReference());
 			} while (tokenizer.skipDelimiter(","));
 
-			DataSource source = parseDataSource(KW.UPDATE.name(), KW.FROM.name(), true, true);
+			Source source = parseSource(KW.UPDATE.name(), KW.FROM.name(), true, true);
 
 			return new UpdateTask(prologue, variables, source);
 		}
@@ -810,7 +810,7 @@ abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(true);
 
-			DataSource source = parseDataSource(KW.APPEND.name(), KW.FROM.name(), false, true);
+			Source source = parseSource(KW.APPEND.name(), KW.FROM.name(), false, true);
 
 			return new AppendTask(prologue, page, source);
 		}
@@ -824,7 +824,7 @@ abstract class TaskSetParser {
 
 			WriteHeaderExpressions headers = parseWriteHeaders(KW.FROM.name());
 
-			DataSource source = parseDataSource(KW.WRITE.name(), KW.FROM.name(), false, true);
+			Source source = parseSource(KW.WRITE.name(), KW.FROM.name(), false, true);
 
 			return new WriteTask(prologue, page, headers, source);
 		}
@@ -1184,25 +1184,24 @@ abstract class TaskSetParser {
 
 			tokenizer.skipWordIgnoreCase(KW.FROM.name());
 
+			TaskSetParent thisTask;
 			if (hasFileType(false)) {
-				return parseForReadFile(prologue, variables);
-			}
-			else if (tokenizer.skipWordIgnoreCase(KW.VALUES.name())) {
-				return parseForValues(prologue, variables);
+				thisTask = parseForReadFile(prologue, variables);
 			}
 			else if (tokenizer.skipWordIgnoreCase(KW.FILES.name())) {
-				return parseForFiles(prologue, variables);
+				thisTask = parseForFiles(prologue, variables);
+			}
+			else if (tokenizer.skipWordIgnoreCase(KW.VALUES.name())) {
+				thisTask = parseForValues(prologue, variables);
 			}
 			else {
-				DataSource dataSource = parseDataSource(KW.FOR.name(), null, false, true);
-
-				ForDataTask thisTask = new ForDataTask(prologue, variables, dataSource);
-
-				return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskParser, thisTask));
+				thisTask  = parseForData(prologue, variables);
 			}
+
+			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskParser, (Task)thisTask));
 		}
 
-		private Task parseForReadFile(
+		private ForReadTask parseForReadFile(
 				Task.Prologue prologue,
 				ArrayList<VariableBase> variables) throws IOException, NamingException {
 
@@ -1214,12 +1213,24 @@ abstract class TaskSetParser {
 
 			columns.validate(headers);
 
-			ForReadTask thisTask = new ForReadTask(prologue, variables, page, headers, columns);
-
-			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskParser, thisTask));
+			return new ForReadTask(prologue, variables, page, headers, columns);
 		}
 
-		private Task parseForValues(
+		@SuppressWarnings("unchecked")
+		private ForFilesTask parseForFiles(
+				Task.Prologue prologue,
+				ArrayList<VariableBase> variables) throws IOException, NamingException {
+
+			if ((variables.size() != 1) || (variables.get(0).getType() != VariableType.VARCHAR)) {
+				throw new RuntimeException(KW.FOR.name() + " " + KW.FILES.name() + " must have a single VARCHAR variable in the list");
+			}
+
+			Expression<String> filename = parseStringExpression();
+
+			return new ForFilesTask(prologue, (Variable<String>)variables.get(0), filename);
+		}
+
+		private ForDataTask parseForValues(
 				Task.Prologue prologue,
 				ArrayList<VariableBase> variables) throws IOException, NamingException {
 
@@ -1228,9 +1239,9 @@ abstract class TaskSetParser {
 				values.add(parseExpressionList(variables));
 			} while (tokenizer.skipDelimiter(","));
 
-			ForValuesTask thisTask = new ForValuesTask(prologue, variables, values);
+			ValuesSource source = new ValuesSource(values);
 
-			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskParser, thisTask));
+			return new ForDataTask(prologue, variables, source);
 		}
 
 		private ExpressionBase[] parseExpressionList(ArrayList<VariableBase> variables)
@@ -1251,20 +1262,13 @@ abstract class TaskSetParser {
 			return expressionList;
 		}
 
-		@SuppressWarnings("unchecked")
-		private Task parseForFiles(
+		private ForDataTask parseForData(
 				Task.Prologue prologue,
 				ArrayList<VariableBase> variables) throws IOException, NamingException {
 
-			if ((variables.size() != 1) || (variables.get(0).getType() != VariableType.VARCHAR)) {
-				throw new RuntimeException(KW.FOR.name() + " " + KW.FILES.name() + " must have a single VARCHAR variable in the list");
-			}
+			DataSource dataSource = parseDataSource(KW.FOR.name(), null, false, true);
 
-			Expression<String> filename = parseStringExpression();
-
-			ForFilesTask thisTask = new ForFilesTask(prologue, (Variable<String>)variables.get(0), filename);
-
-			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskParser, thisTask));
+			return new ForDataTask(prologue, variables, dataSource);
 		}
 	}
 
@@ -1485,7 +1489,7 @@ abstract class TaskSetParser {
 		return result;
 	}
 
-	private class DataStores { public DataSource source; public DataTarget target; }
+	private class DataStores { public Source source; public DataTarget target; }
 
 	abstract class SpecializedRequestTaskParser {
 
@@ -1507,7 +1511,7 @@ abstract class TaskSetParser {
 
 			parseBodyFields(parameters);
 
-			data.source = parseDataSource(KW.REQUEST.name(), KW.FROM.name(), false, true);
+			data.source = parseSource(KW.REQUEST.name(), KW.FROM.name(), false, true);
 
 			Boolean listResponse = null;
 			if (tokenizer.skipWordIgnoreCase(KW.NO.name())) {
@@ -1669,6 +1673,58 @@ abstract class TaskSetParser {
 
 			throw new NoSuchElementException("Use NAME keyword before a name reserved for a future task type: " + taskTypeName);
 		}
+	}
+
+	private Source parseSource(String taskTypeName, String introWord, boolean singleRow, boolean allowTable) throws IOException {
+
+		if (introWord != null) {
+			tokenizer.skipWordIgnoreCase(introWord);
+		}
+
+		if (tokenizer.skipWordIgnoreCase(KW.VALUES.name())) {
+			return parseValuesSource(singleRow);
+		}
+		else {
+			return parseDataSource(taskTypeName, null, singleRow, allowTable);
+		}
+	}
+
+	private ValuesSource parseValuesSource(boolean singleRow) throws InputMismatchException, NoSuchElementException, IOException {
+
+		List<ExpressionBase[]> values = new LinkedList<ExpressionBase[]>();
+
+		ExpressionBase[] firstRow = parseExpressionList(0);
+		values.add(firstRow);
+
+		while (tokenizer.skipDelimiter(",")) {
+			values.add(parseExpressionList(firstRow.length));
+		}
+
+		if (singleRow && (values.size() != 1)) {
+			throw new InputMismatchException(KW.VALUES.name() + " clause cannot have more than one row in this context");
+		}
+
+		return new ValuesSource(values);
+	}
+
+	private ExpressionBase[] parseExpressionList(int size)
+			throws InputMismatchException, NoSuchElementException, IOException {
+
+		List<ExpressionBase> expressionList = new LinkedList<ExpressionBase>();
+		tokenizer.nextDelimiter("(");
+
+		do {
+			ExpressionBase expression = parseAnyExpression();
+			expressionList.add(expression);
+		} while (tokenizer.skipDelimiter(","));
+
+		tokenizer.nextDelimiter(")");
+
+		if ((size > 0) && (expressionList.size() != size)) {
+			throw new InputMismatchException("All rows in a " + KW.VALUES.name() + " clause must have the same number of columns");
+		}
+
+		return expressionList.stream().toArray(ExpressionBase[]::new);
 	}
 
 	private DataSource parseDataSource(String taskTypeName, String introWord, boolean singleRow, boolean allowTable) throws IOException {

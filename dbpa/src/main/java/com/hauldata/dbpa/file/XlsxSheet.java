@@ -121,14 +121,23 @@ public class XlsxSheet extends com.hauldata.dbpa.file.Sheet {
 		else if (object instanceof Boolean) {
 			cell.setCellValue((Boolean)object);
 		}
-		else if (object instanceof Date) {
-			Date date = (Date)object;
+		else if (object instanceof Date || object instanceof LocalDateTime) {
+
+			Date date;
+			LocalTime time;
+
+			if (object instanceof Date) {
+				date = (Date)object;
+				Instant instant = Instant.ofEpochMilli(date.getTime());
+				time = LocalDateTime.ofInstant(instant, ZoneId.systemDefault()).toLocalTime();
+			}
+			else {
+				LocalDateTime dateTime = (LocalDateTime)object;
+				date = Date.from(dateTime.atZone(ZoneId.systemDefault()).toInstant());
+				time = dateTime.toLocalTime();
+			}
+
 			cell.setCellValue(date);
-			// See if the date has non-zero time to determine the formatting to use.
-			// Date component getters are deprecated and are found to throw exceptions.
-			// So convert to LocalDatetime to test components.
-			Instant instant = Instant.ofEpochMilli(date.getTime());
-			LocalTime time = LocalDateTime.ofInstant(instant, ZoneId.systemDefault()).toLocalTime();
 
 			CellStyle style = null;
 			if (time.equals(LocalTime.MIDNIGHT)) {

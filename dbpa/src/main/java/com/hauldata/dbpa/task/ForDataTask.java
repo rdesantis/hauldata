@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 import com.hauldata.dbpa.datasource.DataSource;
+import com.hauldata.dbpa.datasource.Source;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.NestedTaskSet;
 import com.hauldata.dbpa.variable.VariableBase;
@@ -27,13 +28,13 @@ import com.hauldata.dbpa.variable.VariableBase;
 public class ForDataTask extends UpdateVariablesTask implements TaskSetParent {
 
 	private List<VariableBase> variables;
-	private DataSource source;
+	private Source source;
 	private NestedTaskSet taskSet;
 
 	public ForDataTask(
 			Prologue prologue,
 			List<VariableBase> variables,
-			DataSource source) {
+			Source source) {
 
 		super(prologue);
 
@@ -55,9 +56,10 @@ public class ForDataTask extends UpdateVariablesTask implements TaskSetParent {
 	@Override
 	protected void execute(Context context) {
 
-		Context nestedContext = context.makeNestedContext(getName());
-
+		Context nestedContext = null;
 		try {
+			nestedContext = context.makeNestedContext(getName());
+
 			source.executeQuery(context);
 			
 			while (updateVariables(source, variables)) {
@@ -79,7 +81,9 @@ public class ForDataTask extends UpdateVariablesTask implements TaskSetParent {
 		finally {
 			source.close(context);
 
-			nestedContext.close();
+			if (nestedContext != null) {
+				nestedContext.close();
+			}
 		}
 	}
 }

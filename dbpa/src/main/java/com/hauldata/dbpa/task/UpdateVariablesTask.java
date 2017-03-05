@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017 Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 import com.hauldata.dbpa.datasource.DataSource;
+import com.hauldata.dbpa.datasource.Source;
 import com.hauldata.dbpa.variable.VariableBase;
 
 public abstract class UpdateVariablesTask extends Task {
@@ -28,7 +29,7 @@ public abstract class UpdateVariablesTask extends Task {
 		super(prologue);
 	}
 
-	private boolean updateVariables(DataSource source, List<VariableBase> variables, boolean checkForSingleRow) throws SQLException, InterruptedException {
+	private boolean updateVariables(Source source, List<VariableBase> variables, boolean checkForSingleRow) throws SQLException, InterruptedException {
 
 		boolean hasAnyRows = false;
 		boolean hasSingleRow = false;
@@ -66,11 +67,11 @@ public abstract class UpdateVariablesTask extends Task {
 	 * @param source is the data source that is advanced to the next row.
 	 * @param variables are the variables to be updated.
 	 * @return true if a row remained and the variables were updated, false if no rows remained.
-	 * @throws SQLException
+	 * @throws SQLException if source of type DataSource encounters a database error
 	 * @throws InterruptedException
 	 * @throws RuntimeException if the number of columns did not match the number of variables to update.
 	 */
-	protected boolean updateVariables(DataSource source, List<VariableBase> variables) throws SQLException, InterruptedException {
+	protected boolean updateVariables(Source source, List<VariableBase> variables) throws SQLException, InterruptedException {
 		return updateVariables(source, variables, false);
 	}
 
@@ -78,11 +79,11 @@ public abstract class UpdateVariablesTask extends Task {
 	 * Updates variables from the next row of the result set which must be the only remaining row
 	 * @param source is the data source that is advanced to the next row.
 	 * @param variables are the variables to be updated.
-	 * @throws SQLException
+	 * @throws SQLException if source of type DataSource encounters a database error
 	 * @throws InterruptedException
 	 * @throws RuntimeException if there was not exactly one remaining row or the number of columns did not match the number of variables to update.
 	 */
-	protected void updateVariablesOnce(DataSource source, List<VariableBase> variables) throws SQLException, InterruptedException {
+	protected void updateVariablesOnce(Source source, List<VariableBase> variables) throws SQLException, InterruptedException {
 		updateVariables(source, variables, true);
 	}
 }
