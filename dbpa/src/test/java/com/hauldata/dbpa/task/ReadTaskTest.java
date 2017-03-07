@@ -33,8 +33,12 @@ public class ReadTaskTest extends TaskTest {
 
 		String processId = "ReadTest";
 		String script =
-				"TASK ReadCsv0 RUN SQL TRUNCATE TABLE test.importtarget END TASK \n" +
-				"TASK ReadCsv1 AFTER ReadCsv0 COMPLETES READ CSV 'import no header.csv' WITH NO HEADERS INTO SQL INSERT INTO test.importtarget (number, word) VALUES (?, ?) END TASK \n" +
+				"TASK RUN SQL TRUNCATE TABLE test.importtarget; DELETE FROM test.things WHERE name = 'Content'; END TASK \n" +
+
+				"TASK ReadUTF8BOM   AFTER READ CSV 'utf-8 no bom.csv' HEADERS 'the_geom', 'BoroCode', 'BoroName', 'Shape_Leng', 'Shape_Area' COLUMNS 2, 3 INTO TABLE 'test.importtarget' END TASK \n" +
+				"TASK ReadUTF8NoBOM AFTER READ CSV 'utf-8 bom.csv' HEADERS 'Name', 'Value' INTO SQL INSERT INTO test.things (name, description) VALUES (?,?) END TASK \n" +
+
+				"TASK ReadCsv1 AFTER          COMPLETES READ CSV 'import no header.csv' WITH NO HEADERS INTO SQL INSERT INTO test.importtarget (number, word) VALUES (?, ?) END TASK \n" +
 				"TASK ReadCsv2 AFTER ReadCsv1 COMPLETES READ CSV 'import arbitrary header.csv' WITH HEADERS 'Arbitrary','Random Stuff' INTO SQL INSERT INTO test.importtarget (number, word) VALUES (?, ?) END TASK \n" +
 				"TASK ReadCsv3 AFTER ReadCsv2 COMPLETES READ CSV 'import metadata header.csv' WITH HEADERS INTO SQL INSERT INTO test.importtarget (number, word) VALUES (?, ?) END TASK \n" +
 				"TASK FailCsv4 AFTER ReadCsv3 COMPLETES READ CSV 'badtrips.csv' WITH HEADERS INTO SQL INSERT INTO test.importtarget (number, word) VALUES (?, ?) END TASK \n" +
@@ -59,6 +63,7 @@ public class ReadTaskTest extends TaskTest {
 
 				"TASK ReadCsvM AFTER FailCsvL COMPLETES READ CSV 'EH0010_20151109_20151115.csv' COLUMNS 'request_outcome', 6 INTO SQL INSERT INTO test.importtarget (number, word) VALUES (?, ?) END TASK \n" +
 				"TASK ReadCsvN AFTER ReadCsvM COMPLETES READ CSV 'EH0010_20151102_20151108.csv' IGNORE HEADERS COLUMNS 2, 'app' INTO TABLE 'test.importtarget' END TASK \n" +
+
 				"";
 
 		Level logLevel = Level.error;
