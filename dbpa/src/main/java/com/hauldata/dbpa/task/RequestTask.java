@@ -27,6 +27,7 @@ import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -34,13 +35,11 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonNumber;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 import javax.json.JsonString;
-import javax.json.JsonStructure;
 import javax.json.JsonValue;
+import javax.json.stream.JsonParser;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -62,6 +61,8 @@ public abstract class RequestTask extends Task {
 
 	public static final ContentType supportedContentType = ContentType.APPLICATION_JSON;
 	public static final int maxResponseContentLength = 4096;
+
+	public enum ResponseType { value, object, list, map };
 
 	public static class Parameters {
 
@@ -90,7 +91,7 @@ public abstract class RequestTask extends Task {
 		private Expression<String> statusField;
 		private Expression<String> messageField;
 
-		private Boolean listResponse;
+		private ResponseType responseType;
 
 		public Parameters() {}
 
@@ -108,7 +109,7 @@ public abstract class RequestTask extends Task {
 				List<Expression<String>> responseFields,
 				Expression<String> statusField,
 				Expression<String> messageField,
-				Boolean listResponse) {
+				ResponseType responseType) {
 
 			this.requestFields = requestFields;
 			this.keepFields = keepFields;
@@ -116,7 +117,7 @@ public abstract class RequestTask extends Task {
 			this.statusField = statusField;
 			this.messageField = messageField;
 
-			this.listResponse = listResponse;
+			this.responseType = responseType;
 		}
 
 		public Expression<String> getUrl() { return url; }
@@ -127,7 +128,7 @@ public abstract class RequestTask extends Task {
 		public Expression<String> getStatusField() { return statusField; }
 		public Expression<String> getMessageField() { return messageField; }
 
-		public Boolean getListResponse() { return listResponse; }
+		public ResponseType getResponseType() { return responseType; }
 	}
 
 	private Source source;
@@ -151,7 +152,7 @@ public abstract class RequestTask extends Task {
 
 		EvaluatedParameters evaluatedParameters = evaluateParameters(parameters);
 
-		executeRequest(context, source, evaluatedParameters, target, parameters.getListResponse());
+		executeRequest(context, source, evaluatedParameters, target, parameters.getResponseType());
 	}
 
 	protected static class EvaluatedParameters {
@@ -349,7 +350,7 @@ public abstract class RequestTask extends Task {
 			Source source,
 			EvaluatedParameters parameters,
 			DataTarget target,
-			Boolean listResponse) {
+			ResponseType responseType) {
 
 		int sourceColumnCount = getSourceColumnCount(parameters);
 		int targetParameterCount = getTargetParameterCount(parameters);
@@ -427,7 +428,7 @@ public abstract class RequestTask extends Task {
 				int statusCode = response.getStatusLine().getStatusCode();
 
 				if (200 <= statusCode && statusCode < 300) {
-					interpretResponse(statusCode, source, parameters, target, response, listResponse);
+					interpretResponse(statusCode, source, parameters, target, response, responseType);
 				}
 				else {
 					interpretFailedResponse(statusCode, source, parameters, target, response);
@@ -526,10 +527,9 @@ public abstract class RequestTask extends Task {
 			EvaluatedParameters parameters,
 			DataTarget target,
 			CloseableHttpResponse response,
-			Boolean listResponseRequired) throws SQLException, IllegalStateException, IOException {
+			ResponseType expectedResponseType) throws SQLException, IllegalStateException, IOException {
 
-		JsonReader reader = null;
-
+		JsonParser parser = null;
 		try {
 			if (!parameters.getResponseFields().isEmpty()) {
 
@@ -544,26 +544,37 @@ public abstract class RequestTask extends Task {
 						throw new RuntimeException("Unsupported content type in response");
 					}
 
-					reader = Json.createReader(entity.getContent());
-					JsonStructure responseStructure = reader.read();
-					reader.close();
+					if (expectedResponseType == ResponseType.value) {
+						String value = getContentAsString(entity);
 
-					boolean isListResponse = (responseStructure instanceof JsonArray);
-
-					if (!isListResponse) {
-						if (listResponseRequired == null || listResponseRequired == false) {
-							putTargetRow(statusCode, source, parameters, target, (JsonObject)responseStructure);
-						}
-						else {
-							throw new RuntimeException("Response entity is not a list but LIST was specified");
-						}
+						interpretNakedValue(statusCode, source, parameters, target, value);
 					}
 					else {
-						if (listResponseRequired == null || listResponseRequired == true) {
-							putTargetRows(statusCode, source, parameters, target, (JsonArray)responseStructure);
+						parser = Json.createParser(entity.getContent());
+						JsonParser.Event event = parser.next();
+
+						switch (event) {
+						case START_OBJECT: {
+							if (expectedResponseType == ResponseType.map) {
+								interpretMapEntity(statusCode, source, parameters, target, parser);
+							}
+							else {
+								if (expectedResponseType != null && expectedResponseType != ResponseType.object) {
+									throwWrongEntityType(expectedResponseType, ResponseType.object);
+								}
+								interpretObjectEntity(statusCode, source, parameters, target, parser);
+							}
+							break;
 						}
-						else {
-							throw new RuntimeException("Response entity is a list but NO LIST was specified");
+						case START_ARRAY: {
+							if (expectedResponseType != null && expectedResponseType != ResponseType.list) {
+								throwWrongEntityType(expectedResponseType, ResponseType.list);
+							}
+							interpretListEntity(statusCode, source, parameters, target, parser);
+							break;
+						}
+						default:
+							throw new RuntimeException("Response has unknown entity type");
 						}
 					}
 				}
@@ -571,10 +582,158 @@ public abstract class RequestTask extends Task {
 					throw new RuntimeException("Response did not include an entity as expected");
 				}
 			}
+			else {
+				interpretNoEntity(statusCode, source, parameters, target);
+			}
 		}
 		finally {
-			if (reader != null) try { reader.close(); } catch (Exception ex) {}
+			if (parser != null) try { parser.close(); } catch (Exception ex) {}
 		}
+	}
+
+	private void throwWrongEntityType(ResponseType expectedResponseType, ResponseType actualResponseType) {
+		throw new RuntimeException(
+				"Response entity is " + actualResponseType.name().toUpperCase() +
+				" but " + expectedResponseType.name().toUpperCase() + " was specified");
+	}
+
+	private void interpretNoEntity(
+			int statusCode,
+			Source source,
+			EvaluatedParameters parameters,
+			DataTarget target) throws SQLException {
+
+		int columnIndex = keepSourceColumns(source, parameters, target);
+
+		finishTargetColumns(statusCode, parameters, columnIndex, target);
+	}
+
+	private void interpretNakedValue(
+			int statusCode,
+			Source source,
+			EvaluatedParameters parameters,
+			DataTarget target,
+			String value) throws SQLException {
+
+		int columnIndex = keepSourceColumns(source, parameters, target);
+
+		if (!parameters.getResponseFields().isEmpty()) {
+
+			target.setObject(columnIndex++, value);
+
+			for (int i = 1; i < parameters.getResponseFields().size(); ++i) {
+				target.setObject(columnIndex++, null);
+			}
+		}
+
+		finishTargetColumns(statusCode, parameters, columnIndex, target);
+	}
+
+	private void interpretValueEntity(
+			int statusCode,
+			Source source,
+			EvaluatedParameters parameters,
+			DataTarget target,
+			JsonParser parser,
+			JsonParser.Event event) throws SQLException {
+
+		int columnIndex = keepSourceColumns(source, parameters, target);
+
+		if (!parameters.getResponseFields().isEmpty()) {
+
+			int parameterType = getParameterType(target, columnIndex);
+			Object entityFieldValue = getValue(parser, event, parameterType);
+			target.setObject(columnIndex++, entityFieldValue);
+
+			for (int i = 1; i < parameters.getResponseFields().size(); ++i) {
+				target.setObject(columnIndex++, null);
+			}
+		}
+
+		finishTargetColumns(statusCode, parameters, columnIndex, target);
+	}
+
+	private void interpretObjectEntity(
+			int statusCode,
+			Source source,
+			EvaluatedParameters parameters,
+			DataTarget target,
+			JsonParser parser) throws SQLException {
+
+		int columnIndex = keepSourceColumns(source, parameters, target);
+
+		// Set target columns that match response fields.
+
+		Set<Integer> fieldColumnIndexes = new HashSet<Integer>();
+
+		JsonParser.Event event;
+		while ((event = parser.next()).equals(JsonParser.Event.KEY_NAME)) {
+
+			String key = parser.getString();
+			int fieldIndex = parameters.getResponseFields().indexOf(key);
+
+			if (-1 < fieldIndex) {
+
+				int fieldColumnIndex = columnIndex + fieldIndex;
+				fieldColumnIndexes.add(fieldColumnIndex);
+
+				int parameterType = getParameterType(target, fieldColumnIndex);
+				Object entityFieldValue = getValue(parser, parser.next(), parameterType);
+				target.setObject(fieldColumnIndex, entityFieldValue);
+			}
+			else {
+				skipValue(parser);
+			}
+		}
+
+		if (event != JsonParser.Event.END_OBJECT) {
+			throw new RuntimeException("Object entity has unexpected structure");
+		}
+
+		// Set unmatched target columns NULL.
+
+		for (int i = 0; i < parameters.getResponseFields().size(); ++i) {
+			if (!fieldColumnIndexes.contains(columnIndex)) {
+				target.setObject(columnIndex, null);
+			}
+			columnIndex++;
+		}
+
+		finishTargetColumns(statusCode, parameters, columnIndex, target);
+	}
+
+	private void interpretListEntity(
+			int statusCode,
+			Source source,
+			EvaluatedParameters parameters,
+			DataTarget target,
+			JsonParser parser) throws SQLException {
+
+		JsonParser.Event event;
+		while ((event = parser.next()) != JsonParser.Event.END_ARRAY) {
+
+			switch (event) {
+			default:
+				interpretValueEntity(statusCode, source, parameters, target, parser, event);
+				break;
+			case START_OBJECT:
+				interpretObjectEntity(statusCode, source, parameters, target, parser);
+				break;
+			case START_ARRAY:
+				throw new RuntimeException("Array entity with array elements is not supported");
+			}
+		}
+	}
+
+	private void interpretMapEntity(
+			int statusCode,
+			Source source,
+			EvaluatedParameters parameters,
+			DataTarget target,
+			JsonParser parser) {
+
+		// TODO Auto-generated method stub
+		throw new RuntimeException("MAP response type is not implemented");
 	}
 
 	private boolean hasSupportedContentLength(HttpEntity entity) {
@@ -591,58 +750,18 @@ public abstract class RequestTask extends Task {
 				(contentType.getCharset() == null || contentType.getCharset().equals(supportedContentType.getCharset()));
 	}
 
-	/**
-	 * @throws SQLException
-	 */
-	private void putTargetRow(
-			int statusCode,
-			Source source,
-			EvaluatedParameters parameters,
-			DataTarget target,
-			JsonObject responseObject) throws SQLException {
+	private int getParameterType(DataTarget target, int columnIndex) {
 
-		int columnIndex = keepSourceColumns(source, parameters, target);
-
-		for (String responseFieldName : parameters.getResponseFields()) {
-
-			int parameterType = Types.NULL;
-			try {
-				// Some databases (MySQL) will not have metadata with parameter types available here.
-				parameterType = target.getParameterType(columnIndex);
-			}
-			catch (SQLException ex) {}
-
-			Object entityFieldValue = getParameterValue(responseObject, responseFieldName, parameterType);
-			target.setObject(columnIndex++, entityFieldValue);
+		int parameterType = Types.NULL;
+		try {
+			// Some databases (MySQL) will not have metadata with parameter types available here.
+			parameterType = target.getParameterType(columnIndex);
 		}
+		catch (SQLException ex) {}
 
-		target.setObject(columnIndex++, statusCode);
-
-		if (parameters.getMessageField() != null) {
-			target.setObject(columnIndex++, null);
-		}
-
-		target.addBatch();
+		return parameterType;
 	}
 
-	/**
-	 * @throws SQLException
-	 */
-	private void putTargetRows(
-			int statusCode,
-			Source source,
-			EvaluatedParameters parameters,
-			DataTarget target,
-			JsonArray responseArray) throws SQLException {
-
-		for (JsonValue responseValue : responseArray) {
-			putTargetRow(statusCode, source, parameters, target, (JsonObject)responseValue);
-		}
-	}
-
-	/**
-	 * @throws SQLException
-	 */
 	private int keepSourceColumns(
 			Source source,
 			EvaluatedParameters parameters,
@@ -655,6 +774,23 @@ public abstract class RequestTask extends Task {
 				target.setObject(columnIndex++, sourceColumnValue);
 			}
 		}
+
+		return columnIndex;
+	}
+
+	private int finishTargetColumns(
+			int statusCode,
+			EvaluatedParameters parameters,
+			int columnIndex,
+			DataTarget target) throws SQLException {
+
+		target.setObject(columnIndex++, statusCode);
+
+		if (parameters.getMessageField() != null) {
+			target.setObject(columnIndex++, null);
+		}
+
+		target.addBatch();
 
 		return columnIndex;
 	}
@@ -699,17 +835,16 @@ public abstract class RequestTask extends Task {
 
 					JsonObject responseObject = reader.readObject();
 
-					message = (String)getParameterValue(responseObject, "message", Types.VARCHAR);
+					JsonValue fieldValue = responseObject.get("message");
+					if (fieldValue != null) {
+						message = ((JsonString)fieldValue).getString();
+					}
 
 					reader.close();
 					reader = null;
 				}
 				else {
-					// See http://stackoverflow.com/questions/309424/read-convert-an-inputstream-to-a-string
-
-					InputStream content = entity.getContent();
-					String newLine = System.getProperty("line.separator");
-					message = new BufferedReader(new InputStreamReader(content)).lines().collect(Collectors.joining(newLine));
+					message = getContentAsString(entity);
 				}
 			}
 
@@ -726,85 +861,101 @@ public abstract class RequestTask extends Task {
 		}
 	}
 
+	private String getContentAsString(HttpEntity entity) throws IllegalStateException, IOException {
+
+		// See http://stackoverflow.com/questions/309424/read-convert-an-inputstream-to-a-string
+
+		InputStream content = entity.getContent();
+		String newLine = System.getProperty("line.separator");
+		String message = new BufferedReader(new InputStreamReader(content)).lines().collect(Collectors.joining(newLine));
+
+		return message;
+	}
+
 	/**
-	 * Retrieve a field value from a JSON object converted if necessary to an object type
+	 * Retrieve the next value from the JSON parser converted if necessary to an object type
 	 * acceptable to PreparedStatement.setObject(Object) for a specified java.sql.Types type
 	 *
-	 * @param object is the JSON object from which the field is retrieved
-	 * @param fieldName is the name of the field to retrieve
+	 * @param parser is the JSON parser from which the value is retrieved
+	 * @param event is the event type of the value
 	 * @param parameterType is the java.sql.Types type to which the returned object must be acceptable
 	 * @return the value object or null if the field value is null or the field is not present in the JSON object
 	 */
-	private Object getParameterValue(JsonObject object, String fieldName, int parameterType) {
-
-		JsonValue fieldValue = object.get(fieldName);
-		if (fieldValue == null) {
-			return null;
-		}
+	private Object getValue(JsonParser parser, JsonParser.Event event, int parameterType) {
 
 		if (parameterType == Types.NULL) {
 			// Caller could not determine the exact type needed for setObject(Object).
 			// Return the actual value cast to the nearest type match.
 
-			switch (fieldValue.getValueType()) {
-			case NULL:
+			switch (event) {
+			case VALUE_NULL:
 				return null;
-			case FALSE:
+			case VALUE_FALSE:
 				return (Boolean)false;
-			case TRUE:
+			case VALUE_TRUE:
 				return (Boolean)true;
-			case NUMBER:
+			case VALUE_NUMBER:
 				parameterType = Types.DECIMAL;
 				break;
-			case STRING:
+			case VALUE_STRING:
 				parameterType = Types.VARCHAR;
 				break;
 			default:
 				throw new RuntimeException("Unsupported value type in response");
 			}
 		}
+		else {
+			switch (parameterType) {
+			case Types.TINYINT:
+			case Types.INTEGER:
+			case Types.BIGINT:
+			case Types.DECIMAL:
+			case Types.NUMERIC:
+			case Types.DOUBLE:
+			case Types.FLOAT:
+				if (!event.equals(JsonParser.Event.VALUE_NUMBER)) {
+					throw new RuntimeException("Value in response is not a number where expected");
+				}
+			}
+		}
 
 		switch (parameterType) {
 		case Types.TINYINT:
-		case Types.INTEGER: {
-			return (Integer)((JsonNumber)fieldValue).intValueExact();
-		}
-		case Types.BIGINT: {
-			return (Long)((JsonNumber)fieldValue).longValueExact();
-		}
+		case Types.INTEGER:
+			return (Integer)parser.getInt();
+
+		case Types.BIGINT:
+			return (Long)parser.getLong();
+
 		case Types.DECIMAL:
-		case Types.NUMERIC: {
-			return ((JsonNumber)fieldValue).bigDecimalValue();
-		}
+		case Types.NUMERIC:
+			return parser.getBigDecimal();
+
 		case Types.DOUBLE:
-		case Types.FLOAT: {
-			return (Double)((JsonNumber)fieldValue).doubleValue();
-		}
+		case Types.FLOAT:
+			return parser.getBigDecimal().doubleValue();
 
 		case Types.CHAR:
 		case Types.NCHAR:
 		case Types.VARCHAR:
-		case Types.NVARCHAR: {
-			return ((JsonString)fieldValue).getString();
-		}
+		case Types.NVARCHAR:
+			return parser.getString();
 
-		case Types.DATE: {
-			return LocalDate.parse(((JsonString)fieldValue).getString());
-		}
-		case Types.TIMESTAMP: {
-			return LocalDateTime.parse(((JsonString)fieldValue).getString());
-		}
+		case Types.DATE:
+			return LocalDate.parse(parser.getString());
+
+		case Types.TIMESTAMP:
+			return LocalDateTime.parse(parser.getString());
 
 		case Types.BOOLEAN: {
-			switch (fieldValue.getValueType()) {
-			case FALSE:
+			switch (event) {
+			case VALUE_FALSE:
 				return (Boolean)false;
-			case TRUE:
+			case VALUE_TRUE:
 				return (Boolean)true;
-			case NUMBER: {
-				JsonNumber numberValue = (JsonNumber)fieldValue;
-				if (numberValue.isIntegral()) {
-					long longValue = numberValue.longValueExact();
+			case VALUE_NUMBER: {
+				if (parser.isIntegralNumber()) {
+					long longValue = parser.getLong();
 					if (longValue == 0) {
 						return (Boolean)false;
 					}
@@ -818,8 +969,40 @@ public abstract class RequestTask extends Task {
 				throw new ClassCastException("Can't cast response value to BOOLEAN");
 			}
 		}
+
 		default:
 			throw new RuntimeException("Unsupported column type in target");
+		}
+	}
+
+	/**
+	 * Skip the value portion of name, value pair.
+	 * Value may be a stand-alone value, an object, or an array.
+	 * @param parser
+	 */
+	private void skipValue(JsonParser parser) {
+		skipEvent(parser, parser.next());
+	}
+
+	private void skipEvent(JsonParser parser, JsonParser.Event event) {
+
+		switch (event) {
+		case START_OBJECT:
+			skipStructure(parser, JsonParser.Event.END_OBJECT);
+			break;
+		case START_ARRAY:
+			skipStructure(parser, JsonParser.Event.END_ARRAY);
+			break;
+		default:
+			break;
+		}
+	}
+
+	private void skipStructure(JsonParser parser, JsonParser.Event endEvent) {
+
+		JsonParser.Event event;
+		while ((event = parser.next()) != endEvent) {
+			skipEvent(parser, event);
 		}
 	}
 }

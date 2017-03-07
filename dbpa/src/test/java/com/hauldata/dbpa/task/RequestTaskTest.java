@@ -34,7 +34,23 @@ public class RequestTaskTest extends TaskTest {
 		String processId = "GetTest";
 		String script =
 				"VARIABLES nothing VARCHAR END VARIABLES\n" +
+				"TASK GetSchedule \n" +
+				"	REQUEST 'http://localhost:8080/schedules/{name}' " +
+				"	GET 'what', 'name' FROM VALUES ('schedule definition', 'EVERY10SECONDS') \n" +
+				"	RESPONSE VALUE 'definition' \n" +
+				"	STATUS 'status' \n" +
+				"	INTO SQL INSERT INTO test.restarget (stuff, name, propName, status) VALUES (?,?,?,?) \n" +
+				"END TASK\n" +
+				"TASK GetScheduleNames \n" +
+				"	AFTER \n" +
+				"	REQUEST 'http://localhost:8080/schedules/-/names' " +
+				"	GET 'what' FROM VALUES ('schedule name list') \n" +
+				"	RESPONSE LIST 'name' \n" +
+				"	STATUS 'status' \n" +
+				"	INTO SQL INSERT INTO test.restarget (stuff, name, status) VALUES (?,?,?) \n" +
+				"END TASK\n" +
 				"TASK GetJobInfo \n" +
+				"	AFTER \n" +
 				"	REQUEST 'http://localhost:8080/jobs/{name}' " +
 				"	HEADER nothing NULL 'ignore this' \n" +
 				"	GET 'name', 'random', 'whatever' \n" +
@@ -112,9 +128,8 @@ public class RequestTaskTest extends TaskTest {
 				"	REQUEST 'http://localhost:8080/jobs/-/runs?latest=true' " +
 				"	GET 'first' \n" +
 				"	FROM SQL SELECT 'job list' END SQL \n" +
-				"	NO LIST \n" +
 				"	KEEP 'first' \n" +
-				"	RESPONSE 'runId', 'jobName' \n" +
+				"	RESPONSE OBJECT 'runId', 'jobName' \n" +
 				"	STATUS 'status' \n" +
 				"	INTO SQL INSERT INTO test.restarget (stuff, id, name, status) VALUES (?,?,?,?) \n" +
 				"END TASK\n" +

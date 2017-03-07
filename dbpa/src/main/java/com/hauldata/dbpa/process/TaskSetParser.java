@@ -200,13 +200,16 @@ abstract class TaskSetParser {
 		DEFAULT,
 		SUBSTITUTING,
 		HEADER,
+		POST,
 		KEEP,
 		NONE,
 		RESPONSE,
-		STATUS,
-		POST,
-		MESSAGE,
+		VALUE,
+		OBJECT,
 		LIST,
+		MAP,
+		STATUS,
+		MESSAGE,
 
 		// Functions
 
@@ -1513,17 +1516,6 @@ abstract class TaskSetParser {
 
 			data.source = parseSource(KW.REQUEST.name(), KW.FROM.name(), false, true);
 
-			Boolean listResponse = null;
-			if (tokenizer.skipWordIgnoreCase(KW.NO.name())) {
-				listResponse = false;
-			}
-			if (tokenizer.skipWordIgnoreCase(KW.LIST.name())) {
-				listResponse = (listResponse == null);
-			}
-			else if (listResponse != null){
-				throw new InputMismatchException("Expecting " + KW.LIST.name() + " after " + KW.NO.name() + ", found " + tokenizer.nextToken().getImage());
-			}
-
 			List<Expression<String>> keepFields = null;
 			if (tokenizer.skipWordIgnoreCase(KW.KEEP.name())) {
 
@@ -1550,9 +1542,12 @@ abstract class TaskSetParser {
 				}
 			}
 
+			RequestTask.ResponseType responseType = null;
 			List<Expression<String>> responseFields = new LinkedList<Expression<String>>();
 
 			if (tokenizer.skipWordIgnoreCase(KW.RESPONSE.name())) {
+
+				responseType = parseResponseType();
 
 				do {
 					responseFields.add(parseStringExpression());
@@ -1570,7 +1565,7 @@ abstract class TaskSetParser {
 				messageField = parseStringExpression();
 			}
 
-			parameters.add(requestFields, keepFields, responseFields, statusField, messageField, listResponse);
+			parameters.add(requestFields, keepFields, responseFields, statusField, messageField, responseType);
 
 			data.target = parseDataTarget(KW.REQUEST.name(), KW.INTO.name(), true, false);
 		}
@@ -1586,6 +1581,23 @@ abstract class TaskSetParser {
 		protected boolean allBodyFieldsAreConstant(RequestTask.Parameters baseParameters) { return true; }
 
 		protected boolean noBodyFieldMatches(RequestTask.Parameters baseParameters, Expression<String> keepField) { return true; }
+
+		private RequestTask.ResponseType parseResponseType() throws IOException {
+
+			if (tokenizer.skipWordIgnoreCase(KW.VALUE.name())) {
+				return RequestTask.ResponseType.value;
+			}
+			else if (tokenizer.skipWordIgnoreCase(KW.OBJECT.name())) {
+				return RequestTask.ResponseType.object;
+			}
+			else if (tokenizer.skipWordIgnoreCase(KW.LIST.name())) {
+				return RequestTask.ResponseType.list;
+			}
+			else if (tokenizer.skipWordIgnoreCase(KW.MAP.name())) {
+				return RequestTask.ResponseType.map;
+			}
+			return null;
+		}
 
 		public abstract Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException;
 	}
