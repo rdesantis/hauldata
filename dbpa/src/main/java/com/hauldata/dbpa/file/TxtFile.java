@@ -18,11 +18,7 @@ package com.hauldata.dbpa.file;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
@@ -64,8 +60,8 @@ public class TxtFile extends TextFile {
 	 */
 	@Override
 	public void create() throws IOException {
-	
-		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getName()), getCharset()));
+
+		writer = getWriter(false);
 
 		WriteHeaders headers = getWriteHeaders();
 		if (headers.exist() && !headers.fromMetadata()) {
@@ -81,17 +77,17 @@ public class TxtFile extends TextFile {
 	 */
 	@Override
 	public void append() throws IOException {
-	
-		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getName(), true), getCharset()));
+
+		writer = getWriter(true);
 	}
-	
+
 	/**
 	 * Open a TXT file and confirm the column header matches that specified.
 	 */
 	@Override
 	public void open() throws IOException {
 
-		reader = new BufferedReader(new InputStreamReader(new FileInputStream(getName()), getCharset()));
+		reader = getReader();
 		lookaheadRow = reader.readLine();
 
 		ReadHeaders headers = getReadHeaders();
@@ -108,11 +104,11 @@ public class TxtFile extends TextFile {
 				if (!captionFound.equals(caption)) {
 					throw new RuntimeException("File column header does not match that specified");
 				}
-	
+
 				readColumn(2);
 			}
 			else {
-				ArrayList<String> captions = new ArrayList<String>(); 
+				ArrayList<String> captions = new ArrayList<String>();
 
 				Object value = readColumn(1);
 				String captionFound = (value == null) ? "" : value.toString();

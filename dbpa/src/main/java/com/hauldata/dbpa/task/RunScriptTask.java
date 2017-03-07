@@ -54,7 +54,7 @@ public class RunScriptTask extends Task {
 		String body = null;
 		try {
 			byte[] encoded = Files.readAllBytes(sourcePath);
-			body = new String(encoded, TextFile.getCharset());		
+			body = new String(encoded, TextFile.getDefaultCharset());
 		}
 		catch (Exception ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();

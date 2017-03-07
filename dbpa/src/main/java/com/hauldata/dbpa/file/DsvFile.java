@@ -16,13 +16,7 @@
 
 package com.hauldata.dbpa.file;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Path;
@@ -58,7 +52,7 @@ public abstract class DsvFile extends TextFile {
 	@Override
 	public void create() throws IOException {
 	
-		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getName()), getCharset()));
+		writer = getWriter(false);
 
 		WriteHeaders headers = getWriteHeaders();
 		if (headers.exist() && !headers.fromMetadata()) {
@@ -74,7 +68,7 @@ public abstract class DsvFile extends TextFile {
 	@Override
 	public void append() throws IOException {
 	
-		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getName(), true), getCharset()));
+		writer = getWriter(true);
 	}
 
 	/**
@@ -83,7 +77,7 @@ public abstract class DsvFile extends TextFile {
 	@Override
 	public void open() throws IOException {
 
-		Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(getName()), getCharset()));
+		Reader reader = getReader();
 
 		tokenizer = new DsvTokenizer(reader, separator);
 
