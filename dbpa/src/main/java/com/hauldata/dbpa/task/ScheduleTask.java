@@ -47,7 +47,7 @@ public abstract class ScheduleTask extends Task implements TaskSetParent {
 		return taskSet;
 	}
 
-	protected void execute(Context context, ScheduleSet schedules) {
+	protected void execute(Context context, ScheduleSet schedules) throws Exception {
 		
 		Context nestedContext = context.makeNestedContext(getName());
 
@@ -67,13 +67,6 @@ public abstract class ScheduleTask extends Task implements TaskSetParent {
 
 				taskSet.runForRerun(nestedContext);
 			}
-		}
-		catch (InterruptedException ex) {
-			throw new RuntimeException("Schedule terminated due to interruption");
-		}
-		catch (Exception ex) {
-			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
-			throw new RuntimeException("Error attempting to run nested tasks - " + message);
 		}
 		finally {
 			nestedContext.close();

@@ -36,7 +36,7 @@ public class OnTask extends ScheduleTask {
 	}
 
 	@Override
-	protected void execute(Context context) {
+	protected void execute(Context context) throws Exception {
 		execute(context, schedules);
 	}
 }

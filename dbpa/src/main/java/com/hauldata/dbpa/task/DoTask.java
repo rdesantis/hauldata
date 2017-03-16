@@ -46,7 +46,7 @@ public class DoTask extends Task implements TaskSetParent {
 	}
 
 	@Override
-	protected void execute(Context context) {
+	protected void execute(Context context) throws Exception {
 
 		Context nestedContext = context.makeNestedContext(getName());
 
@@ -59,13 +59,6 @@ public class DoTask extends Task implements TaskSetParent {
 					taskSet.runForRerun(nestedContext);
 				}
 			}
-		}
-		catch (InterruptedException ex) {
-			throw new RuntimeException(((whileCondition == null) ? "Terminated" : "Loop terminated") + " due to interruption");
-		}
-		catch (Exception ex) {
-			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
-			throw new RuntimeException("Error attempting to run nested tasks - " + message);
 		}
 		finally {
 			nestedContext.close();

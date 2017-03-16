@@ -27,7 +27,7 @@ public abstract class Task {
 
 	public static final String startMessage = "Starting task";
 	public static final String succeedMessage = "Task succeeded";
-	public static final String skipMessage = "Skipping task; run conditions not met";
+	public static final String skipMessage = "Skipping task";
 	public static final String terminateMessage = "Task terminated";
 	public static final String failMessage = "Task failed";
 
@@ -206,7 +206,12 @@ public abstract class Task {
 	/**
 	 * Execute the task body.
 	 *
-	 * Subclasses must throw an exception to indicate task failure. Base class will catch the exception and mark the task with failure status.
+	 * Implementations must throw an exception to indicate task failure. Caller will catch the exception and mark the task with failure status.
+	 * The exception message will be written to the log.  If the exception does not have a message, the exception class name will be written.
+	 * Generally implementations only need to catch and re-throw exceptions where they can add helpful troubleshooting information
+	 * that is not provided in the original exception message.  For InterruptedException, the caller provides a standard message; there is no
+	 * need to catch and re-throw this.
+	 *
 	 * @param context is the context is which the task will run.
 	 */
 	protected abstract void execute(Context context) throws Exception;

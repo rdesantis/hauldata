@@ -33,6 +33,7 @@ import javax.naming.NamingException;
 import com.hauldata.dbpa.DBPA;
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.manage.JobManagerException;
+import com.hauldata.dbpa.manage.resources.SchemaResource;
 import com.hauldata.dbpa.manage_control.api.Job;
 import com.hauldata.dbpa.manage_control.api.JobRun;
 import com.hauldata.dbpa.manage_control.api.ScriptArgument;
@@ -79,9 +80,9 @@ public class JobManager {
 	 * @return the manager
 	 */
 	public static JobManager instantiate(boolean withLogAnalyzer) {
-
-		manager = new JobManager(withLogAnalyzer);
-
+		if (manager == null) {
+			manager = new JobManager(withLogAnalyzer);
+		}
 		return manager;
 	}
 
@@ -190,6 +191,23 @@ public class JobManager {
 
 	public Analyzer getAnalyzer() {
 		return analyzer;
+	}
+
+	/**
+	 * @return true if the manager can be started to run jobs.
+	 */
+	public boolean canStartup() {
+
+		// The database must be available and the schema must exist in order to startup.
+
+		boolean schemaExists = false;
+		try {
+			SchemaResource schema = new SchemaResource();
+			schemaExists = schema.confirmSchema();
+		}
+		catch (Exception ex) {}
+
+		return schemaExists;
 	}
 
 	/**

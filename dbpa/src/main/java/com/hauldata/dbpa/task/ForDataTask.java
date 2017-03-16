@@ -54,7 +54,7 @@ public class ForDataTask extends UpdateVariablesTask implements TaskSetParent {
 	}
 
 	@Override
-	protected void execute(Context context) {
+	protected void execute(Context context) throws Exception {
 
 		Context nestedContext = null;
 		try {
@@ -70,13 +70,6 @@ public class ForDataTask extends UpdateVariablesTask implements TaskSetParent {
 		}
 		catch (SQLException ex) {
 			DataSource.throwDatabaseExecutionFailed(ex);
-		}
-		catch (InterruptedException ex) {
-			throw new RuntimeException("Loop terminated due to interruption");
-		}
-		catch (Exception ex) {
-			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
-			throw new RuntimeException("Error attempting to run nested tasks - " + message, ex);
 		}
 		finally {
 			source.close(context);

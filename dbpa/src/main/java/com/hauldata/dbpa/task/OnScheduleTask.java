@@ -37,7 +37,7 @@ public class OnScheduleTask extends ScheduleTask {
 	}
 
 	@Override
-	protected void execute(Context context) {
+	protected void execute(Context context) throws Exception {
 
 		ScheduleSet schedules;
 		try {

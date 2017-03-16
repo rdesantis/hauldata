@@ -21,8 +21,6 @@ import io.dropwizard.Configuration;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
-import java.sql.SQLException;
-
 import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.resources.JobsResource;
 import com.hauldata.dbpa.manage.resources.ManagerResource;
@@ -49,12 +47,13 @@ public class ManageDbp extends Application<Configuration> {
 		JobManager manager = JobManager.instantiate(false);
 
 		try {
-			manager.startup();
+			if (manager.canStartup()) {
+				manager.startup();
+			}
 		}
-		catch (SQLException e) {
-			// Fatal error: can't do database I/O.
-
-			System.exit(e.getErrorCode());
+		catch (Exception ex) {
+			ex.printStackTrace();
+			System.exit(1);
 		}
 
 		// Eventually may subclass Configuration as ServiceConfiguration and receive that here

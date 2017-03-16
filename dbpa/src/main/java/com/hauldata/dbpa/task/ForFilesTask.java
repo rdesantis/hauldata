@@ -77,16 +77,9 @@ public class ForFilesTask extends Task implements TaskSetParent {
 				}
 			}
 		}
-		catch (InterruptedException ex) {
-			throw new RuntimeException("Loop terminated due to interruption");
-		}
 		catch (PatternSyntaxException | /* NotDirectoryException | */ IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 			throw new RuntimeException("Error occurred resolving FILE " + sourceName + " - " + message, ex);
-		}
-		catch (Exception ex) {
-			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
-			throw new RuntimeException("Error attempting to run nested tasks - " + message, ex);
 		}
 		finally {
 			if (sourcePaths != null) {

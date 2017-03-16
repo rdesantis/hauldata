@@ -17,7 +17,6 @@
 package com.hauldata.dbpa;
 
 import java.io.IOException;
-import java.io.Reader;
 import java.io.StringReader;
 import java.util.Properties;
 
@@ -108,7 +107,6 @@ public class DbProcessTest extends TaskTest {
 				"TASK NameCsv2 AFTER OpenNonExistent COMPLETES SET csv2 = 'no header.csv' END TASK \n" +
 				"TASK CreateCsv2 AFTER NameCsv2 CREATE CSV csv2 WITH NO HEADERS END TASK \n" +
 				"TASK WriteCsv2 AFTER CreateCsv2 APPEND CSV csv2 FROM SQL SELECT * FROM test.importtarget END TASK \n" +
-/*mail*///		"TASK EmailCsv2 AFTER WriteCsv2 EMAIL FROM 'rdesantis@cmtnyc.com' TO 'rdesantis@comcast.net' SUBJECT 'From DBPA' ATTACH csv2 END TASK \n" +
 				"TASK NameCsv3 AFTER OpenNonExistent COMPLETES SET child = 'child/child file.csv' END TASK \n" +
 				"TASK CreateCsv3 AFTER NameCsv3 CREATE CSV child END TASK \n" +
 				"TASK WriteCsv3 AFTER CreateCsv3 APPEND CSV child FROM SQL SELECT * FROM test.things END TASK\n" +
@@ -164,53 +162,20 @@ public class DbProcessTest extends TaskTest {
 				"TASK Scheduler3 AFTER ShowSchedule ON SCHEDULE occurs \n" +
 					"TASK Schedulee3 LOG 'Recurring scheduled task' END TASK \n" +
 				"END TASK \n" +
-/*mail*///		"TASK EmailAgain AFTER DeleteWildcards EMAIL FROM 'rdesantis@cmtnyc.com' TO 'rdesantis@comcast.net' SUBJECT 'From DBPA again' BODY 'Re-using email session' END TASK \n" +
-//				"TASK FailTheProcess AFTER ShowDateFromParts FAIL 'This should fail the process' END TASK \n" +
 				"TASK AFTER Scheduler3 LOG 'Scheduled tasks are done' END TASK \n" +
 				"TASK WaitforDelay3 AFTER Scheduler3 WAITFOR DELAY '0:0:3' END TASK \n" +
 				"TASK WaitforTime3 AFTER Scheduler3 WAITFOR TIME FORMAT(DATEADD(SECOND, 3, GETDATE()), 'HH:mm:ss') END TASK \n" +
 				"TASK LOG 'Early anonymous task' END TASK \n" +
+				"TASK AFTER FailDueToNotSet FAILS GO END TASK \n " +
 				"";
-
-/*
-		script = 
-				"VARIABLES import VARCHAR END VARIABLES \n" +
-				"TASK IdCsv SET import = 'import file.csv' END TASK \n" +
-				"TASK OpenCsv AFTER IdCsv OPEN CSV import WITH 'number', 'word' END TASK \n" +
-				"TASK ReadCsv AFTER OpenCsv READ CSV import INTO SQL INSERT INTO test.importtarget (number, word) VALUES (?, ?) END TASK \n" +
-				"";
-*/		
-/*
-		script = 
-				"TASK Upload PUT 'test file.csv' '/root/staff/test' END TASK \n" +
-				"TASK Upload2 PUT 'another test file.xlsx', 'written.csv' TO '/root/staff/test' END TASK \n" +
-				"";
-*/
-/*
-		script = 
-				"TASK Email1               EMAIL FROM 'rdesantis@cmtnyc.com' TO 'rdesantis@comcast.net' SUBJECT 'Only body' BODY 'Only has this body' END TASK \n" +
-				"TASK Email2 AFTER Email1  EMAIL FROM 'rdesantis@cmtnyc.com' TO 'rdesantis@comcast.net' SUBJECT 'Only attachment' ATTACH 'import file.csv' END TASK \n" +
-				"TASK Email3 AFTER Email2  EMAIL FROM 'rdesantis@cmtnyc.com' TO 'rdesantis@comcast.net' SUBJECT 'Body and attachment' BODY 'Has this body and attachment' ATTACH 'import file.csv' END TASK \n" +
-				"TASK Email4 AFTER Email3  EMAIL FROM 'rdesantis@cmtnyc.com' TO 'rdesantis@comcast.net' SUBJECT 'Neither body nor attachment' END TASK \n" +
-				"";
-*/
 
 		String[] args = new String[] { "11" };
 
-		runScript(new StringReader(script), args, context);
+		DbProcess process = DbProcess.parse(new StringReader(script));
+
+		process.run(args, context);
 
 		context.close();
-	}
-
-	private static void runScript(Reader r, String[] args, Context context) {
-
-		try {
-			DbProcess process = DbProcess.parse(r);
-			process.run(args, context);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getMessage());
-		}
 	}
 
 	private static class DummyLoader implements Loader {

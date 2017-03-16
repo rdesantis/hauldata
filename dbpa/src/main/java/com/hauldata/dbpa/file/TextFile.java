@@ -96,7 +96,9 @@ public abstract class TextFile extends FlatFile {
 			// File doesn't exist or can't be read.
 		}
 		finally {
-			try { in.close(); } catch (IOException ex) {}
+			if (in != null) {
+				try { in.close(); } catch (IOException ex) {}
+			}
 		}
 
 		return (charset != null) ? new Format(charset, hasBom) : Format.defaultFormat;

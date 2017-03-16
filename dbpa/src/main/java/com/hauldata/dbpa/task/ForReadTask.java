@@ -62,7 +62,7 @@ public class ForReadTask extends FileTask implements TaskSetParent {
 	}
 
 	@Override
-	protected void execute(Context context) {
+	protected void execute(Context context) throws Exception {
 
 		PageIdentifier page = this.page.evaluate(context, false);
 		ReadHeaders headers = this.headers.evaluate();
@@ -82,13 +82,6 @@ public class ForReadTask extends FileTask implements TaskSetParent {
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 			throw new RuntimeException("Error occurred reading " + page.getName() + ": " + message);
-		}
-		catch (InterruptedException ex) {
-			throw new RuntimeException("Loop terminated due to interruption");
-		}
-		catch (Exception ex) {
-			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
-			throw new RuntimeException("Error attempting to run nested tasks - " + message, ex);
 		}
 		finally {
 			if (nestedContext != null) {

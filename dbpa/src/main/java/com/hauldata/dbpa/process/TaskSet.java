@@ -23,12 +23,14 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 import com.hauldata.dbpa.task.Task;
+import com.hauldata.dbpa.task.Task.Result;
 
 /**
  * Executable task set base class
  */
 public abstract class TaskSet {
 
+	public static final String failedMessage = "Last task failed";
 	public static final String orphanedMessage = "Task orphaned";
 	public static final String cancelledMessage = "Task cancelled";
 	public static final String interruptedMessage = "Process interrupted";
@@ -68,21 +70,23 @@ public abstract class TaskSet {
 		try {
 			// While any tasks are waiting on predecessors, process tasks as they complete.
 
-			Task.Result lastResult = Task.Result.waiting;
+			boolean anyTerminalTaskFailed = false;
 
 			while (!waiting.isEmpty()) {
 				Task task = executor.getCompleted();
-
-				lastResult = task.getResult();
+				boolean isTerminalTask = true;
 
 				List<Task> successors = task.getSuccessors();
 				for (Task successor : successors) {
 					if (waiting.contains(successor)) {
 
 						if (successor.canRunAfterRemovePredecessor(task)) {
+
 							waiting.remove(successor);
 
 							executor.submit(successor, context);
+
+							isTerminalTask = false;
 						}
 						else if (successor.getResult() == Task.Result.orphaned) {
 							// This predecessor did not complete in the status required by this successor
@@ -97,7 +101,14 @@ public abstract class TaskSet {
 								}
 							}
 						}
+						else {
+							isTerminalTask = false;
+						}
 					}
+				}
+
+				if (isTerminalTask && (task.getResult() == Result.failure)) {
+					anyTerminalTaskFailed = true;
 				}
 			}
 
@@ -106,11 +117,13 @@ public abstract class TaskSet {
 			while (!executor.allCompleted()) {
 				Task task = executor.getCompleted();
 
-				lastResult = task.getResult();
+				if (task.getResult() == Result.failure) {
+					anyTerminalTaskFailed = true;
+				}
 			}
 
-			if (lastResult != Task.Result.success) {
-				throw new RuntimeException("Last task failed");
+			if (anyTerminalTaskFailed) {
+				throw new RuntimeException(failedMessage);
 			}
 		}
 		catch (InterruptedException iex) {
