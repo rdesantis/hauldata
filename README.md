@@ -17,7 +17,8 @@ Easily automates common integration, transformation, and migration tasks:
 - generating reports
 - zipping and unzipping files
 - sending email notifications including attachments
-- sending files via FTP
+- sending and receiving files via FTP
+- calling web services
 - file system operations (creating directories, copying and renaming files, deleting files)
 
 Writes and reads common file formats:
@@ -71,12 +72,12 @@ TASK WeeklyReport
 
 	TASK WriteFile1
 		AFTER SetFileNames
-		WRITE CSV filename1 FROM SQL EXECUTE proc1
+		WRITE CSV filename1 FROM PROCEDURE 'proc1'
 	END TASK
 
 	TASK WriteFile2
 		AFTER SetFileNames
-		WRITE CSV filename2 FROM SQL EXECUTE proc2
+		WRITE CSV filename2 FROM PROCEDURE 'proc2'
 	END TASK
 
 	TASK EmailThem
@@ -93,4 +94,4 @@ and schedule a simple process like this using an SSIS package and a SQL Server A
 Think about the arcane mapping of input fields to output fields.
 
 Then think about the work that would be required if you needed to add a column or rearrange the column order.
-With DBPA, next week those stored procedures can write a completely different formats and nothing breaks!
+With DBPA, next week those stored procedures can write completely different formats and nothing breaks!
