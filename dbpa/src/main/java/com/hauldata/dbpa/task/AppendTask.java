@@ -20,7 +20,7 @@ import java.io.IOException;
 
 import com.hauldata.dbpa.datasource.Source;
 import com.hauldata.dbpa.file.PageIdentifier;
-import com.hauldata.dbpa.file.WritePage;
+import com.hauldata.dbpa.file.TargetPage;
 import com.hauldata.dbpa.process.Context;
 
 public class AppendTask extends FileTask {
@@ -44,7 +44,7 @@ public class AppendTask extends FileTask {
 		PageIdentifier page = this.page.evaluate(context, true);
 
 		try {
-			WritePage writePage = page.append(context.files);
+			TargetPage writePage = page.append(context.files);
 			write(context, dataSource, writePage);
 		}
 		catch (IOException ex) {

@@ -19,7 +19,7 @@ package com.hauldata.dbpa.task;
 import java.io.IOException;
 
 import com.hauldata.dbpa.file.PageIdentifier;
-import com.hauldata.dbpa.file.WriteHeaders;
+import com.hauldata.dbpa.file.TargetHeaders;
 import com.hauldata.dbpa.process.Context;
 
 public class CreateTask extends FileTask {
@@ -41,7 +41,7 @@ public class CreateTask extends FileTask {
 	protected void execute(Context context) {
 
 		PageIdentifier page = this.page.evaluate(context, true);
-		WriteHeaders headers = this.headers.evaluate();
+		TargetHeaders headers = this.headers.evaluate();
 
 		try {
 			page.create(context.files, headers);

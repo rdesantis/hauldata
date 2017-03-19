@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ public class CsvFile extends DsvFile {
 			public File instantiate(Node.Owner owner, Object path) { return new CsvFile((File.Owner)owner, (Path)path); }
 			public String getTypeName() { return typeName; }
 		};
-		FileHandler.register(name, false, new WriteFilePage.Factory(fileFactory), new ReadFilePage.Factory(fileFactory));
+		FileHandler.register(name, false, new TargetFilePage.Factory(fileFactory), new SourceFilePage.Factory(fileFactory));
 	}
 
 	public CsvFile(Owner owner, Path path) {

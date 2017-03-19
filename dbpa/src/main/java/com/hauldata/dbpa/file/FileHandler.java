@@ -24,18 +24,18 @@ public class FileHandler {
 
 	private String name;
 	private boolean hasSheets;
-	private WritePage.Factory writeFactory;
-	private ReadPage.Factory readFactory;
+	private TargetPage.Factory targetFactory;
+	private SourcePage.Factory sourceFactory;
 
 	private FileHandler(
 			String name,
 			boolean hasSheets,
-			WritePage.Factory writeFactory,
-			ReadPage.Factory readFactory) {
+			TargetPage.Factory targetFactory,
+			SourcePage.Factory sourceFactory) {
 		this.name = name;
 		this.hasSheets = hasSheets;
-		this.writeFactory = writeFactory;
-		this.readFactory = readFactory;
+		this.targetFactory = targetFactory;
+		this.sourceFactory = sourceFactory;
 	}
 
 	// Static members
@@ -46,16 +46,16 @@ public class FileHandler {
 	 * Register a file handler for a specific file type.
 	 * @param name is the type name, e.g., 'CSV', 'XLSX'
 	 * @param hasSheets is true if the file type supports multiple named sheets in a file
-	 * @param writeFactory is a factory that instantiates WritePage objects for the type
-	 * @param readFactory is a factory that instantiates ReadPage objects for the type
+	 * @param targetFactory is a factory that instantiates WritePage objects for the type
+	 * @param sourceFactory is a factory that instantiates ReadPage objects for the type
 	 */
 	static public void register(
 			String name,
 			boolean hasSheets,
-			WritePage.Factory writeFactory,
-			ReadPage.Factory readFactory) {
+			TargetPage.Factory targetFactory,
+			SourcePage.Factory sourceFactory) {
 
-		handlers.put(name, new FileHandler(name, hasSheets, writeFactory, readFactory));
+		handlers.put(name, new FileHandler(name, hasSheets, targetFactory, sourceFactory));
 	}
 
 	/**
@@ -72,10 +72,10 @@ public class FileHandler {
 		if (handler == null) {
 			throw new NoSuchElementException("Unrecognized file type \"" + name + "\"");
 		}
-		else if (writeNotRead && handler.writeFactory == null) {
+		else if (writeNotRead && handler.targetFactory == null) {
 			throw new UnsupportedOperationException("Write to \"" + name + "\" is not supported");
 		}
-		else if (!writeNotRead && handler.readFactory == null) {
+		else if (!writeNotRead && handler.sourceFactory == null) {
 			throw new UnsupportedOperationException("Read from \"" + name + "\" is not supported");
 		}
 		return handler;
@@ -91,11 +91,11 @@ public class FileHandler {
 		return hasSheets;
 	}
 
-	public WritePage.Factory getWriteFactory() {
-		return writeFactory;
+	public TargetPage.Factory getTargetFactory() {
+		return targetFactory;
 	}
 
-	public ReadPage.Factory getReadFactory() {
-		return readFactory;
+	public SourcePage.Factory getSourceFactory() {
+		return sourceFactory;
 	}
 }

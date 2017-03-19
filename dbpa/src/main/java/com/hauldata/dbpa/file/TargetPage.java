@@ -21,7 +21,7 @@ import java.sql.SQLException;
 
 import com.hauldata.dbpa.datasource.Source;
 
-public abstract class WritePage {
+public abstract class TargetPage {
 
 	interface Factory {
 		/**
@@ -29,14 +29,14 @@ public abstract class WritePage {
 		 * return the page for writing.  Throw an exception if the file or
 		 * sheet can't be created either physically or logically. 
 		 */
-		WritePage create(File.Owner fileOwner, PageIdentifier id, WriteHeaders headers) throws IOException;
+		TargetPage create(File.Owner fileOwner, PageIdentifier id, TargetHeaders headers) throws IOException;
 
 		/**
 		 * Physically position the file or sheet for appending and
 		 * return the page for writing.  Throw an exception if the file or
 		 * sheet can't be positioned either physically or logically. 
 		 */
-		WritePage append(File.Owner fileOwner, PageIdentifier id) throws IOException;
+		TargetPage append(File.Owner fileOwner, PageIdentifier id) throws IOException;
 
 		/**
 		 * Physically create the file or sheet with the indicated headers or position
@@ -44,17 +44,17 @@ public abstract class WritePage {
 		 * return the page for writing.  Throw an exception if the file or
 		 * sheet can't be created or appended either physically or logically. 
 		 */
-		WritePage write(File.Owner fileOwner, PageIdentifier id, WriteHeaders headers) throws IOException;
+		TargetPage write(File.Owner fileOwner, PageIdentifier id, TargetHeaders headers) throws IOException;
 	}
 
 	private PageNode node;
 
-	protected WritePage(PageNode node) {
+	protected TargetPage(PageNode node) {
 		this.node = node;
 	}
 
-	public WriteHeaders getWriteHeaders() {
-		return node.getWriteHeaders();
+	public TargetHeaders getWriteHeaders() {
+		return node.getTargetHeaders();
 	}
 
 	/**
@@ -77,7 +77,7 @@ public abstract class WritePage {
 		try {
 			int resultColumnCount = source.getColumnCount();
 			
-			WriteHeaders headers = node.getWriteHeaders();
+			TargetHeaders headers = node.getTargetHeaders();
 			if (headers.getColumnCount() == 0) {
 				headers.setColumnCount(resultColumnCount);
 

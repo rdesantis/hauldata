@@ -22,9 +22,9 @@ import com.hauldata.dbpa.datasource.DataSource;
 import com.hauldata.dbpa.datasource.DataTarget;
 import com.hauldata.dbpa.datasource.Source;
 import com.hauldata.dbpa.file.Columns;
-import com.hauldata.dbpa.file.ReadHeaders;
-import com.hauldata.dbpa.file.ReadPage;
-import com.hauldata.dbpa.file.WritePage;
+import com.hauldata.dbpa.file.SourceHeaders;
+import com.hauldata.dbpa.file.SourcePage;
+import com.hauldata.dbpa.file.TargetPage;
 import com.hauldata.dbpa.process.Context;
 
 public abstract class FileTask extends Task {
@@ -36,7 +36,7 @@ public abstract class FileTask extends Task {
 	protected void write(
 			Context context,
 			Source source,
-			WritePage page) {
+			TargetPage page) {
 
 		try {
 			source.executeQuery(context);
@@ -58,8 +58,8 @@ public abstract class FileTask extends Task {
 
 	protected void read(
 			Context context,
-			ReadPage page,
-			ReadHeaders headers,
+			SourcePage page,
+			SourceHeaders headers,
 			Columns columns,
 			DataTarget target) {
 

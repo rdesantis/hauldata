@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package com.hauldata.dbpa.task;
 import java.io.IOException;
 
 import com.hauldata.dbpa.file.PageIdentifier;
-import com.hauldata.dbpa.file.ReadHeaders;
+import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.process.Context;
 
 public class OpenTask extends FileTask {
@@ -41,7 +41,7 @@ public class OpenTask extends FileTask {
 	protected void execute(Context context) {
 		
 		PageIdentifier page = this.page.evaluate(context, false);
-		ReadHeaders headers = this.headers.evaluate();
+		SourceHeaders headers = this.headers.evaluate();
 
 		try {
 			page.open(context.files, headers);

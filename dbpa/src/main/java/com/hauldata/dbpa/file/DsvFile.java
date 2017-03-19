@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ public abstract class DsvFile extends TextFile {
 	
 		writer = getWriter(false);
 
-		WriteHeaders headers = getWriteHeaders();
+		TargetHeaders headers = getTargetHeaders();
 		if (headers.exist() && !headers.fromMetadata()) {
 			for (int columnIndex = 1; columnIndex <= headers.getColumnCount(); ++columnIndex) {
 				writeColumn(columnIndex, headers.getCaption(columnIndex - 1));
@@ -81,7 +81,7 @@ public abstract class DsvFile extends TextFile {
 
 		tokenizer = new DsvTokenizer(reader, separator);
 
-		ReadHeaders headers = getReadHeaders();
+		SourceHeaders headers = getSourceHeaders();
 		if (headers.exist()) {
 			if (headers.mustValidate()) {
 

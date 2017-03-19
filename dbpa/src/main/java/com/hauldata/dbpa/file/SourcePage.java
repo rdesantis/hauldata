@@ -22,7 +22,7 @@ import java.sql.SQLException;
 import com.hauldata.dbpa.datasource.DataTarget;
 import com.hauldata.util.tokenizer.EndOfLine;
 
-public abstract class ReadPage {
+public abstract class SourcePage {
 
 	interface Factory {
 		/**
@@ -30,14 +30,14 @@ public abstract class ReadPage {
 		 * return the page for reading.  Throw an exception if the file or
 		 * sheet can't be opened either physically or logically.
 		 */
-		ReadPage open(File.Owner fileOwner, PageIdentifier id, ReadHeaders headers) throws IOException;
+		SourcePage open(File.Owner fileOwner, PageIdentifier id, SourceHeaders headers) throws IOException;
 
 		/**
 		 * Physically position the open file or sheet for loading and
 		 * return the page for reading.  Throw an exception if the file or
 		 * sheet can't be positioned either physically or logically.
 		 */
-		ReadPage load(File.Owner fileOwner, PageIdentifier id) throws IOException;
+		SourcePage load(File.Owner fileOwner, PageIdentifier id) throws IOException;
 
 		/**
 		 * Physically open the file or sheet with the indicated headers or position
@@ -45,17 +45,17 @@ public abstract class ReadPage {
 		 * return the page for reading.  Throw an exception if the file or
 		 * sheet can't be opened or loaded either physically or logically.
 		 */
-		ReadPage read(File.Owner fileOwner, PageIdentifier id, ReadHeaders headers) throws IOException;
+		SourcePage read(File.Owner fileOwner, PageIdentifier id, SourceHeaders headers) throws IOException;
 	}
 
 	private PageNode node;
 
-	protected ReadPage(PageNode node) {
+	protected SourcePage(PageNode node) {
 		this.node = node;
 	}
 
-	public ReadHeaders getReadHeaders() {
-		return node.getReadHeaders();
+	public SourceHeaders getReadHeaders() {
+		return node.getSourceHeaders();
 	}
 
 	/**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@ package com.hauldata.dbpa.file;
 
 import java.io.IOException;
 
-public class ReadSheetPage extends ReadPage {
+public class SourceSheetPage extends SourcePage {
 
-	protected static class Factory implements ReadPage.Factory {
+	protected static class Factory implements SourcePage.Factory {
 
 		private Book.Factory bookFactory;
 		private Sheet.Factory sheetFactory;
@@ -31,7 +31,7 @@ public class ReadSheetPage extends ReadPage {
 		}
 
 		@Override
-		public ReadPage open(File.Owner fileOwner, PageIdentifier id, ReadHeaders headers) throws IOException {
+		public SourcePage open(File.Owner fileOwner, PageIdentifier id, SourceHeaders headers) throws IOException {
 
 			Book book = readBook(fileOwner, id);
 			Sheet sheet = (Sheet)Sheet.getForOpen(book, ((SheetIdentifier)id).getSheetName(), sheetFactory);
@@ -39,21 +39,21 @@ public class ReadSheetPage extends ReadPage {
 			sheet.open();
 			sheet.setOpen(true);
 
-			return new ReadSheetPage(book, sheet);
+			return new SourceSheetPage(book, sheet);
 		}
 
 		@Override
-		public ReadPage load(File.Owner fileOwner, PageIdentifier id) throws IOException {
+		public SourcePage load(File.Owner fileOwner, PageIdentifier id) throws IOException {
 
 			Book book = readBook(fileOwner, id);
 			Sheet sheet = (Sheet)Sheet.getForLoad(book, ((SheetIdentifier)id).getSheetName(), sheetFactory);
 			sheet.load();
 
-			return new ReadSheetPage(book, sheet);
+			return new SourceSheetPage(book, sheet);
 		}
 
 		@Override
-		public ReadPage read(File.Owner fileOwner, PageIdentifier id, ReadHeaders headers) throws IOException {
+		public SourcePage read(File.Owner fileOwner, PageIdentifier id, SourceHeaders headers) throws IOException {
 
 			Book book = readBook(fileOwner, id);
 			Sheet sheet = (Sheet)Sheet.getForRead(book, ((SheetIdentifier)id).getSheetName(), sheetFactory);
@@ -66,7 +66,7 @@ public class ReadSheetPage extends ReadPage {
 				sheet.load();
 			}
 
-			return new ReadSheetPage(book, sheet);
+			return new SourceSheetPage(book, sheet);
 		}
 
 		private Book readBook(File.Owner fileOwner, PageIdentifier id) throws IOException {
@@ -85,7 +85,7 @@ public class ReadSheetPage extends ReadPage {
 
 	protected Book book;
 
-	protected ReadSheetPage(Book book, Sheet sheet) {
+	protected SourceSheetPage(Book book, Sheet sheet) {
 		super(sheet);
 		this.book = book;
 	}

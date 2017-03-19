@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package com.hauldata.dbpa.task;
 import java.util.ArrayList;
 
 import com.hauldata.dbpa.expression.Expression;
-import com.hauldata.dbpa.file.WriteHeaders;
+import com.hauldata.dbpa.file.TargetHeaders;
 
 public class WriteHeaderExpressions extends HeaderExpressions {
 
@@ -43,7 +43,7 @@ public class WriteHeaderExpressions extends HeaderExpressions {
 		return fromMetadata;
 	}
 
-	public WriteHeaders evaluate() {
-		return new WriteHeaders(exist, fromMetadata, evaluateCaptions());
+	public TargetHeaders evaluate() {
+		return new TargetHeaders(exist, fromMetadata, evaluateCaptions());
 	}
 }

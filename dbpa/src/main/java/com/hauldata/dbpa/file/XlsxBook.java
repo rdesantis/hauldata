@@ -40,7 +40,7 @@ public class XlsxBook extends Book {
 			public Sheet instantiate(Node.Owner book, Object name) { return new XlsxSheet((Book)book, (String)name); }
 			public String getTypeName() { return XlsxSheet.typeName(); }
 		};
-		FileHandler.register(name, true, new WriteSheetPage.Factory(bookFactory, sheetFactory), null);
+		FileHandler.register(name, true, new TargetSheetPage.Factory(bookFactory, sheetFactory), null);
 	}
 
 	private FileOutputStream out;

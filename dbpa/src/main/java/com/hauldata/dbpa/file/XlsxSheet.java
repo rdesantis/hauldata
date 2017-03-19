@@ -63,7 +63,7 @@ public class XlsxSheet extends com.hauldata.dbpa.file.Sheet {
 		// The following is duplicated in DsvFile.create() and should probably be moved to common code
 		// but TxtFile has a different implementation.
 
-		WriteHeaders headers = getWriteHeaders();
+		TargetHeaders headers = getTargetHeaders();
 		if (headers.exist() && !headers.fromMetadata()) {
 			for (int columnIndex = 1; columnIndex <= headers.getColumnCount(); ++columnIndex) {
 				writeColumn(columnIndex, headers.getCaption(columnIndex - 1));

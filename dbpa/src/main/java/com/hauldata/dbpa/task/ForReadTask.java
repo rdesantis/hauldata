@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ import java.util.ArrayList;
 
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.PageIdentifier;
-import com.hauldata.dbpa.file.ReadHeaders;
-import com.hauldata.dbpa.file.ReadPage;
+import com.hauldata.dbpa.file.SourceHeaders;
+import com.hauldata.dbpa.file.SourcePage;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.NestedTaskSet;
 import com.hauldata.dbpa.variable.VariableBase;
@@ -65,17 +65,17 @@ public class ForReadTask extends FileTask implements TaskSetParent {
 	protected void execute(Context context) throws Exception {
 
 		PageIdentifier page = this.page.evaluate(context, false);
-		ReadHeaders headers = this.headers.evaluate();
+		SourceHeaders headers = this.headers.evaluate();
 
 		context.files.assureNotOpen(page.getPath());
 		Context nestedContext = null;
 		try {
-			ReadPage readPage = page.read(context.files, headers);
-			Columns columns = this.columns.evaluate(readPage.getReadHeaders());
+			SourcePage sourcePage = page.read(context.files, headers);
+			Columns columns = this.columns.evaluate(sourcePage.getReadHeaders());
 
 			nestedContext = context.makeNestedContext(getName());
 
-			while (readRowIntoVariables(readPage, columns, variables)) {
+			while (readRowIntoVariables(sourcePage, columns, variables)) {
 				taskSet.runForRerun(nestedContext);
 			}
 		}
@@ -90,7 +90,7 @@ public class ForReadTask extends FileTask implements TaskSetParent {
 		}
 	}
 
-	private boolean readRowIntoVariables(ReadPage page, Columns columns, ArrayList<VariableBase> variables) throws IOException, InterruptedException {
+	private boolean readRowIntoVariables(SourcePage page, Columns columns, ArrayList<VariableBase> variables) throws IOException, InterruptedException {
 
 		if (!page.hasRow()) {
 			return false;

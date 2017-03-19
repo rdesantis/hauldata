@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -18,29 +18,32 @@ package com.hauldata.dbpa.file;
 
 import java.util.ArrayList;
 
-public class WriteHeaders extends Headers {
+public class SourceHeaders extends Headers {
 
-	protected boolean fromMetadata;
+	protected boolean mustValidate;
+	protected boolean toMetadata;
 
-	public WriteHeaders() {
-		this(false, false, new ArrayList<String>());
+	public SourceHeaders() {
+		this(false, false, false, new ArrayList<String>());
 	}
 
-	public WriteHeaders(
+	public SourceHeaders(
 			boolean exist,
-			boolean fromMetadata,
+			boolean mustValidate,
+			boolean toMetadata,
 			ArrayList<String> captions) {
 
 		super(exist, captions);
 
-		this.fromMetadata = fromMetadata;
+		this.mustValidate = mustValidate;
+		this.toMetadata = toMetadata;
 	}
 
-	public boolean fromMetadata() {
-		return fromMetadata;
+	public boolean mustValidate() {
+		return mustValidate;
 	}
-	
-	public void setWritten() {
-		fromMetadata = false;
+
+	public boolean toMetadata() {
+		return toMetadata;
 	}
 }

@@ -32,7 +32,7 @@ public class TsvFile extends DsvFile {
 			public File instantiate(Node.Owner owner, Object path) { return new TsvFile((File.Owner)owner, (Path)path); }
 			public String getTypeName() { return typeName; }
 		};
-		FileHandler.register(name, false, new WriteFilePage.Factory(fileFactory), null);
+		FileHandler.register(name, false, new TargetFilePage.Factory(fileFactory), null);
 	}
 	
 	public TsvFile(Owner owner, Path path) {

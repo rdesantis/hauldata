@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@ package com.hauldata.dbpa.file;
 
 import java.io.IOException;
 
-public class WriteFilePage extends WritePage {
+public class TargetFilePage extends TargetPage {
 
-	protected static class Factory implements WritePage.Factory {
+	protected static class Factory implements TargetPage.Factory {
 
 		private File.Factory fileFactory;
 
@@ -29,38 +29,38 @@ public class WriteFilePage extends WritePage {
 		}
 
 		@Override
-		public WritePage create(File.Owner fileOwner, PageIdentifier id, WriteHeaders headers) throws IOException {
+		public TargetPage create(File.Owner fileOwner, PageIdentifier id, TargetHeaders headers) throws IOException {
 			FlatFile file = (FlatFile)File.getForCreate(fileOwner, id.getPath(), fileFactory);
 			file.setHeaders(headers);
 			file.create();
 			file.setOpen(true);
-			return new WriteFilePage(file);
+			return new TargetFilePage(file);
 		}
 
 		@Override
-		public WritePage append(File.Owner fileOwner, PageIdentifier id) throws IOException {
+		public TargetPage append(File.Owner fileOwner, PageIdentifier id) throws IOException {
 			FlatFile file = (FlatFile)File.getForAppend(fileOwner, id.getPath(), fileFactory);
 			if (!file.isOpen()) {
-				file.setHeaders(new WriteHeaders());
+				file.setHeaders(new TargetHeaders());
 				file.append();
 				file.setOpen(true);
 			}
-			return new WriteFilePage(file);
+			return new TargetFilePage(file);
 		}
 
 		@Override
-		public WritePage write(File.Owner fileOwner, PageIdentifier id, WriteHeaders headers) throws IOException {
+		public TargetPage write(File.Owner fileOwner, PageIdentifier id, TargetHeaders headers) throws IOException {
 			FlatFile file = (FlatFile)File.getForWrite(fileOwner, id.getPath(), fileFactory);
 			if (!file.isOpen()) {
 				file.setHeaders(headers);
 				file.create();
 				file.setOpen(true);
 			}
-			return new WriteFilePage(file);
+			return new TargetFilePage(file);
 		}
 	}
 
-	protected WriteFilePage(FlatFile file) {
+	protected TargetFilePage(FlatFile file) {
 		super(file);
 	}
 }

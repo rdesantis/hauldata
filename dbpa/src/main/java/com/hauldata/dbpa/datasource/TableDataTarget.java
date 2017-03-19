@@ -22,7 +22,7 @@ import java.util.List;
 import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.Columns;
-import com.hauldata.dbpa.file.ReadHeaders;
+import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.process.Context;
 
 public class TableDataTarget extends DataTarget {
@@ -41,7 +41,7 @@ public class TableDataTarget extends DataTarget {
 	}
 
 	@Override
-	public void prepareStatement(Context context, ReadHeaders headers, Columns columns) throws SQLException {
+	public void prepareStatement(Context context, SourceHeaders headers, Columns columns) throws SQLException {
 
 		String table = this.table.evaluate();
 		String prefix = (this.prefix != null) ? this.prefix.evaluate() : null;

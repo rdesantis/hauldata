@@ -33,12 +33,12 @@ public abstract class FlatFile extends File implements PageNode {
 	}
 
 	@Override
-	public ReadHeaders getReadHeaders() {
-		return (ReadHeaders)headers;
+	public SourceHeaders getSourceHeaders() {
+		return (SourceHeaders)headers;
 	}
 
 	@Override
-	public WriteHeaders getWriteHeaders() {
-		return (WriteHeaders)headers;
+	public TargetHeaders getTargetHeaders() {
+		return (TargetHeaders)headers;
 	}
 }

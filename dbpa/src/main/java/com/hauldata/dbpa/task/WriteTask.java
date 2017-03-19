@@ -20,8 +20,8 @@ import java.io.IOException;
 
 import com.hauldata.dbpa.datasource.Source;
 import com.hauldata.dbpa.file.PageIdentifier;
-import com.hauldata.dbpa.file.WriteHeaders;
-import com.hauldata.dbpa.file.WritePage;
+import com.hauldata.dbpa.file.TargetHeaders;
+import com.hauldata.dbpa.file.TargetPage;
 import com.hauldata.dbpa.process.Context;
 
 public class WriteTask extends FileTask {
@@ -46,11 +46,11 @@ public class WriteTask extends FileTask {
 	protected void execute(Context context) {
 
 		PageIdentifier page = this.page.evaluate(context, true);
-		WriteHeaders headers = this.headers.evaluate();
+		TargetHeaders headers = this.headers.evaluate();
 
 		try {
-			WritePage writePage = page.write(context.files, headers);
-			write(context, source, writePage);
+			TargetPage targetPage = page.write(context.files, headers);
+			write(context, source, targetPage);
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@ package com.hauldata.dbpa.file;
 
 import java.io.IOException;
 
-public class WriteSheetPage extends WritePage {
+public class TargetSheetPage extends TargetPage {
 
-	protected static class Factory implements WritePage.Factory {
+	protected static class Factory implements TargetPage.Factory {
 
 		private Book.Factory bookFactory;
 		private Sheet.Factory sheetFactory;
@@ -31,7 +31,7 @@ public class WriteSheetPage extends WritePage {
 		}
 
 		@Override
-		public WritePage create(File.Owner fileOwner, PageIdentifier id, WriteHeaders headers) throws IOException {
+		public TargetPage create(File.Owner fileOwner, PageIdentifier id, TargetHeaders headers) throws IOException {
 
 			Book book = appendBook(fileOwner, id);
 			Sheet sheet = (Sheet)Sheet.getForCreate(book, ((SheetIdentifier)id).getSheetName(), sheetFactory);
@@ -39,24 +39,24 @@ public class WriteSheetPage extends WritePage {
 			sheet.create();
 			sheet.setOpen(true);
 
-			return new WriteSheetPage(book, sheet);
+			return new TargetSheetPage(book, sheet);
 		}
 
 		@Override
-		public WritePage append(File.Owner fileOwner, PageIdentifier id) throws IOException {
+		public TargetPage append(File.Owner fileOwner, PageIdentifier id) throws IOException {
 
 			Book book = appendBook(fileOwner, id);
 			Sheet sheet = (Sheet)Sheet.getForAppend(book, ((SheetIdentifier)id).getSheetName(), sheetFactory);
 			if (!sheet.isOpen()) {
-				sheet.setHeaders(new WriteHeaders());
+				sheet.setHeaders(new TargetHeaders());
 				sheet.append();
 				sheet.setOpen(true);
 			}
-			return new WriteSheetPage(book, sheet);
+			return new TargetSheetPage(book, sheet);
 		}
 
 		@Override
-		public WritePage write(File.Owner fileOwner, PageIdentifier id, WriteHeaders headers) throws IOException {
+		public TargetPage write(File.Owner fileOwner, PageIdentifier id, TargetHeaders headers) throws IOException {
 
 			Book book = appendBook(fileOwner, id);
 			Sheet sheet = (Sheet)Sheet.getForWrite(book, ((SheetIdentifier)id).getSheetName(), sheetFactory);
@@ -65,7 +65,7 @@ public class WriteSheetPage extends WritePage {
 				sheet.create();
 				sheet.setOpen(true);
 			}
-			return new WriteSheetPage(book, sheet);
+			return new TargetSheetPage(book, sheet);
 		}
 
 		private Book appendBook(File.Owner fileOwner, PageIdentifier id) throws IOException {
@@ -84,7 +84,7 @@ public class WriteSheetPage extends WritePage {
 
 	protected Book book;
 
-	protected WriteSheetPage(Book book, Sheet sheet) {
+	protected TargetSheetPage(Book book, Sheet sheet) {
 		super(sheet);
 		this.book = book;
 	}

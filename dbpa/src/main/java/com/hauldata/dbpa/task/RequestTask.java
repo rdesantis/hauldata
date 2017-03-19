@@ -54,7 +54,7 @@ import com.hauldata.dbpa.datasource.Source;
 import com.hauldata.dbpa.datasource.TableDataTarget;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.Columns;
-import com.hauldata.dbpa.file.ReadHeaders;
+import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.process.Context;
 
 public abstract class RequestTask extends Task {
@@ -362,7 +362,7 @@ public abstract class RequestTask extends Task {
 		try {
 			// Prepare to write target rows.
 
-			ReadHeaders headers = null;
+			SourceHeaders headers = null;
 			Columns columns = null;
 
 			if (target instanceof TableDataTarget) {
@@ -395,7 +395,7 @@ public abstract class RequestTask extends Task {
 					captions.add(parameters.getMessageField());
 				}
 
-				headers = new ReadHeaders(true, false, false, captions);
+				headers = new SourceHeaders(true, false, false, captions);
 				columns = new Columns(null, headers);
 			}
 

@@ -21,7 +21,7 @@ import java.sql.SQLException;
 
 import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.file.Columns;
-import com.hauldata.dbpa.file.ReadHeaders;
+import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.process.Context;
 
 public abstract class DataTarget extends DataStore {
@@ -30,7 +30,7 @@ public abstract class DataTarget extends DataStore {
 		super(connection);
 	}
 
-	public abstract void prepareStatement(Context context, ReadHeaders headers, Columns columns) throws SQLException;
+	public abstract void prepareStatement(Context context, SourceHeaders headers, Columns columns) throws SQLException;
 
 	protected void prepareStatement(Context context, String sql) throws SQLException {
 

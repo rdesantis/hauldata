@@ -37,7 +37,7 @@ public class TxtFile extends TextFile {
 			public File instantiate(Node.Owner owner, Object path) { return new TxtFile((File.Owner)owner, (Path)path); }
 			public String getTypeName() { return typeName; }
 		};
-		FileHandler.register(name, false, new WriteFilePage.Factory(fileFactory), new ReadFilePage.Factory(fileFactory));
+		FileHandler.register(name, false, new TargetFilePage.Factory(fileFactory), new SourceFilePage.Factory(fileFactory));
 	}
 
 	private BufferedWriter writer;
@@ -63,7 +63,7 @@ public class TxtFile extends TextFile {
 
 		writer = getWriter(false);
 
-		WriteHeaders headers = getWriteHeaders();
+		TargetHeaders headers = getTargetHeaders();
 		if (headers.exist() && !headers.fromMetadata()) {
 			if (headers.getColumnCount() != 1) {
 				throw new RuntimeException("TXT files must have exactly one column; wrong number of headers specified");
@@ -90,7 +90,7 @@ public class TxtFile extends TextFile {
 		reader = getReader();
 		lookaheadRow = reader.readLine();
 
-		ReadHeaders headers = getReadHeaders();
+		SourceHeaders headers = getSourceHeaders();
 		if (headers.exist()) {
 			if (headers.mustValidate()) {
 

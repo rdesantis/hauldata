@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ import java.io.IOException;
 import com.hauldata.dbpa.datasource.DataTarget;
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.PageIdentifier;
-import com.hauldata.dbpa.file.ReadHeaders;
-import com.hauldata.dbpa.file.ReadPage;
+import com.hauldata.dbpa.file.SourceHeaders;
+import com.hauldata.dbpa.file.SourcePage;
 import com.hauldata.dbpa.process.Context;
 
 public class ReadTask extends FileTask {
@@ -50,13 +50,13 @@ public class ReadTask extends FileTask {
 	protected void execute(Context context) throws Exception {
 
 		PageIdentifier page = this.page.evaluate(context, false);
-		ReadHeaders headers = this.headers.evaluate();
+		SourceHeaders headers = this.headers.evaluate();
 
 		context.files.assureNotOpen(page.getPath());
 		try {
-			ReadPage readPage = page.read(context.files, headers);
-			Columns columns = this.columns.evaluate(readPage.getReadHeaders());
-			read(context, readPage, headers, columns, target);
+			SourcePage sourcePage = page.read(context.files, headers);
+			Columns columns = this.columns.evaluate(sourcePage.getReadHeaders());
+			read(context, sourcePage, headers, columns, target);
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
