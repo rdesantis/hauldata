@@ -90,7 +90,7 @@ public abstract class DsvFile extends TextFile {
 					Object value = readColumn(columnIndex++);
 					String captionFound = (value == null) ? "" : value.toString();
 					if (!captionFound.equals(caption)) {
-						throw new RuntimeException("File column headers do not match those specified");
+						throw new RuntimeException("Expected column header '" + caption + "', found '" + captionFound + "'");
 					}
 				}
 	

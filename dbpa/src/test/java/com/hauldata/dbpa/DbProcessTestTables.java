@@ -53,11 +53,11 @@ public class DbProcessTestTables {
 		// Need a database-neutral way to test the existence of the tables.
 		// See http://stackoverflow.com/questions/1227921/portable-sql-to-determine-if-a-table-exists-or-not
 		// Run a statement that does nothing but will fail if the table doesn't exist.
-		// Assume an exception means none of the tables don't exist.
+		// Assume an exception means none of the tables exist.
 
 		boolean exists = true;
 		try {
-			String sql = "DELETE FROM test.things WHERE 0=1";
+			String sql = "DELETE FROM test.things_validate WHERE 0=1";
 			execute(conn, sql);
 		} catch (SQLException e) {
 			exists = false;
@@ -66,14 +66,17 @@ public class DbProcessTestTables {
 	}
 
 	private static void createThingsTable(Connection conn) throws SQLException {
-
-		String sql =
-				"CREATE TABLE test.things (" +
+		String columns = "(" +
 				"	name VARCHAR(25) NOT NULL," +
 				"	description VARCHAR(100) DEFAULT NULL," +
 				"	size INT DEFAULT NULL," +
 				"	PRIMARY KEY(name)" +
-				");" +
+				")";
+
+		String sql =
+				"CREATE TABLE test.things " + columns + ";" +
+				"CREATE TABLE test.things_validate " + columns + ";" +
+
 				"INSERT INTO test.things VALUES " +
 				"('fred', 'some guy named fred', 1)," +
 				"('Fido', 'Fred''s dog', 2)," +
@@ -82,29 +85,36 @@ public class DbProcessTestTables {
 				"('has bad chars', '[�in quotes�]', 123456)," +
 				"('has blank description', '', 55555);";
 
+
 		execute(conn, sql);
 	}
 
 	private static void createImportTargetTable(Connection conn) throws SQLException {
 
-		String sql =
-				"CREATE TABLE test.importtarget (" +
+		String columns = "(" +
 				"	number INT DEFAULT NULL," +
 				"	word VARCHAR(45) DEFAULT NULL" +
 				")";
+
+		String sql =
+				"CREATE TABLE test.importtarget " + columns + ";" + ";";
 
 		execute(conn, sql);
 	}
 
 	private static void createLotsOfDataTable(Connection conn) throws SQLException {
 
-		StringBuilder sql = new StringBuilder();
-		sql.append(
-				"CREATE TABLE test.lotsofdata (" +
+		String columns = "(" +
 				"	data_id INT NOT NULL," +
 				"	description VARCHAR(45) DEFAULT NULL," +
 				"	PRIMARY KEY(data_id)" +
-				");" +
+				")";
+
+		StringBuilder sql = new StringBuilder();
+		sql.append(
+				"CREATE TABLE test.lotsofdata " + columns + ";" +
+				"CREATE TABLE test.lotsofdata_validate " + columns + ";" +
+
 				"INSERT INTO test.lotsofdata VALUES "
 				);
 
@@ -126,11 +136,11 @@ public class DbProcessTestTables {
 	}
 
 	private static void execute(Connection conn, String sql) throws SQLException {
-		
+
 		Statement stmt = null;
 		try {
 			stmt = conn.createStatement();
-			
+
 			stmt.executeUpdate(sql);
 		}
 		finally {

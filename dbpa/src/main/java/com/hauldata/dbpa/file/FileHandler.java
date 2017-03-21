@@ -46,8 +46,8 @@ public class FileHandler {
 	 * Register a file handler for a specific file type.
 	 * @param name is the type name, e.g., 'CSV', 'XLSX'
 	 * @param hasSheets is true if the file type supports multiple named sheets in a file
-	 * @param targetFactory is a factory that instantiates WritePage objects for the type
-	 * @param sourceFactory is a factory that instantiates ReadPage objects for the type
+	 * @param targetFactory is a factory that instantiates TargetPage objects for the type
+	 * @param sourceFactory is a factory that instantiates SourcePage objects for the type
 	 */
 	static public void register(
 			String name,
