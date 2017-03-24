@@ -19,15 +19,12 @@ package com.hauldata.dbpa.task;
 import com.hauldata.dbpa.DbProcessTestTables;
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.Logger.Level;
-import com.hauldata.dbpa.process.Context;
 
 public class ReadTaskTest extends TaskTest {
 
 	public ReadTaskTest(String name) {
 		super(name);
 	}
-
-	private static ContextAction assureTestTablesExist = new ContextAction() { public void action(Context context) { DbProcessTestTables.assureExist(context); } };
 
 	public void testRead() throws Exception {
 
@@ -69,7 +66,7 @@ public class ReadTaskTest extends TaskTest {
 		Level logLevel = Level.error;
 		boolean logToConsole = true;
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, assureTestTablesExist);
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
 		Analyzer.RecordIterator recordIterator = analyzer.recordIterator();
 
 		assertNextTaskFailed(recordIterator, "FAILCSV4", "The file has wrong number of columns for the requested operation");
@@ -119,7 +116,7 @@ public class ReadTaskTest extends TaskTest {
 		Level logLevel = Level.error;
 		boolean logToConsole = true;
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, assureTestTablesExist);
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
 		Analyzer.RecordIterator recordIterator = analyzer.recordIterator();
 
 		Analyzer.Record record;
@@ -167,7 +164,7 @@ public class ReadTaskTest extends TaskTest {
 
 		String processId = "ReadXlsxTest";
 		String script =
-				"VARIABLES things_count INTEGER, things_validate_count INTEGER, lotsofdata_count INTEGER, lotsofdata_validate_count INTEGER END VARIABLES \n" +
+				"VARIABLES things_count INTEGER, things_validate_count INTEGER, lotsofdata_count INTEGER, lotsofdata_validate_count INTEGER, threecolumns_validate_count INTEGER END VARIABLES \n" +
 				"TASK GetThingsCount UPDATE things_count FROM SQL SELECT COUNT(*) FROM test.things END TASK \n" +
 				"TASK GetLotsOfDataCount UPDATE lotsofdata_count FROM SQL SELECT COUNT(*) FROM test.lotsofdata END TASK \n" +
 				"TASK AFTER GetThingsCount AND GetLotsOfDataCount RUN SQL UPDATE test.things SET size = 0 WHERE size IS NULL END TASK \n" +
@@ -175,6 +172,11 @@ public class ReadTaskTest extends TaskTest {
 				"TASK WriteSecond AFTER WRITE XLSX 'readable.xlsx' 'Second' SHEET WITH HEADERS 'Identifier', 'What It Is' FROM TABLE 'test.lotsofdata' END TASK\n" +
 				"TASK WriteThird AFTER WRITE XLSX 'readable.xlsx' 'Third' SHEET WITH HEADERS 'Hunky', 'Dory' FROM VALUES (NULL, NULL) END TASK\n" +
 				"TASK WriteFourth AFTER WRITE XLSX 'readable.xlsx' 'Fourth' SHEET WITH HEADERS 'Humpty', 'Dumpty', 'Wall' FROM VALUES (1, 2, 3) END TASK\n" +
+				"TASK InsertFifth AFTER RUN SQL\n" +
+				"	USE test; TRUNCATE TABLE threecolumns; TRUNCATE TABLE threecolumns_validate;\n" +
+				"	INSERT INTO threecolumns VALUES ('first', 1, NULL), ('second', 2, '1999-12-31'), ('third', 3, '2017-03-24 00:18:59');\n" +
+				"END TASK\n" +
+				"TASK WriteFifth AFTER WRITE XLSX 'readable.xlsx' 'Fifth' SHEET FROM TABLE 'test.threecolumns' END TASK\n" +
 				"TASK AFTER RUN SQL TRUNCATE TABLE test.things_validate; TRUNCATE TABLE test.lotsofdata_validate; END TASK\n" +
 				"TASK ReadFirst AFTER READ XLSX '" + target + "readable.xlsx' 'First' SHEET INTO TABLE 'test.things_validate' END TASK\n" +
 				"TASK ReadSecond AFTER READ XLSX '" + target + "readable.xlsx' 'Second' SHEET WITH HEADERS 'Identifier', 'What It Is' INTO TABLE 'test.lotsofdata_validate' END TASK\n" +
@@ -194,11 +196,17 @@ public class ReadTaskTest extends TaskTest {
 				"TASK FailFourth AFTER READ XLSX '" + target + "readable.xlsx' 'Fourth' SHEET WITH HEADERS 'Humpty', 'Dumpty' INTO TABLE 'test.lotsofdata_validate' END TASK\n" +
 				"TASK AFTER FailFourth SUCCEEDS FAIL 'Too many headers NOT correctly detected' END TASK \n" +
 				"TASK AFTER FailFourth FAILS LOG 'Too many headers correctly detected' END TASK\n" +
+				"TASK ReadFifth AFTER READ XLSX '" + target + "readable.xlsx' 'Fifth' SHEET INTO TABLE 'test.threecolumns_validate' END TASK\n" +
+				"TASK GetThreeColumnsValidateCount AFTER UPDATE threecolumns_validate_count FROM SQL \n" +
+				"	SELECT COUNT(*) FROM test.threecolumns tc INNER JOIN test.threecolumns_validate tcv \n" +
+				"	ON tcv.an_integer = tc.an_integer WHERE tcv.a_string = tc.a_string AND (tc.a_datetime IS NULL OR tcv.a_datetime = tc.a_datetime) \n" +
+				"END TASK \n" +
+				"TASK FailThreeColumns AFTER IF threecolumns_validate_count <> 3 FAIL 'Wrong COUNT for threecolumns_validate: ' + FORMAT(threecolumns_validate_count, 'd') END TASK\n" +
 				"";
 
 		Level logLevel = Level.error;
 		boolean logToConsole = true;
 
-		runScript(processId, logLevel, logToConsole, script, null, null, assureTestTablesExist);
+		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
 	}
 }

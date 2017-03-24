@@ -21,8 +21,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import com.hauldata.dbpa.process.Context;
+import com.hauldata.dbpa.task.TaskTest.ContextAction;
 
 public class DbProcessTestTables {
+
+	public static ContextAction assureExist = new ContextAction() { public void action(Context context) { DbProcessTestTables.assureExist(context); } };
 
 	private static boolean isAssured = false;
 
@@ -37,6 +40,7 @@ public class DbProcessTestTables {
 				createThingsTable(conn);
 				createImportTargetTable(conn);
 				createLotsOfDataTable(conn);
+				createThreeColumnsTable(conn);
 			}
 		} catch (SQLException ex) {
 			throw new RuntimeException(ex.getLocalizedMessage());
@@ -131,6 +135,23 @@ public class DbProcessTestTables {
 				done = true;
 			}
 		} while (!done);
+
+		execute(conn, sql.toString());
+	}
+
+	private static void createThreeColumnsTable(Connection conn) throws SQLException {
+
+		String columns = "(" +
+				"	a_string varchar(255)," +
+				"	an_integer int," +
+				"	a_datetime datetime" +
+				")";
+
+		StringBuilder sql = new StringBuilder();
+		sql.append(
+				"CREATE TABLE test.threecolumns " + columns + ";" +
+				"CREATE TABLE test.threecolumns_validate " + columns + ";"
+				);
 
 		execute(conn, sql.toString());
 	}

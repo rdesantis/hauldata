@@ -16,6 +16,7 @@
 
 package com.hauldata.dbpa.task;
 
+import com.hauldata.dbpa.DbProcessTestTables;
 import com.hauldata.dbpa.log.Logger.Level;
 
 public class WriteTaskTest extends TaskTest {
@@ -49,6 +50,6 @@ public class WriteTaskTest extends TaskTest {
 		Level logLevel = Level.error;
 		boolean logToConsole = true;
 
-		runScript(processId, logLevel, logToConsole, script, null, null, null);
+		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
 	}
 }

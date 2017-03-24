@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 
@@ -146,11 +147,12 @@ public class XlsxSourceSheet extends XlsxSheet {
 	private Object fromXLSX(Cell cell) {
 		switch (cell.getCellType()) {
 		case Cell.CELL_TYPE_BLANK:
-			return "";
+			return null;
 		case Cell.CELL_TYPE_BOOLEAN:
 			return cell.getBooleanCellValue();
 		case Cell.CELL_TYPE_NUMERIC:
-			return cell.getNumericCellValue();
+			double numericValue = cell.getNumericCellValue();
+			return DateUtil.isCellDateFormatted(cell) ? DateUtil.getJavaDate(numericValue) : (Double)numericValue;
 		case Cell.CELL_TYPE_STRING:
 		default:
 			return cell.getStringCellValue();
