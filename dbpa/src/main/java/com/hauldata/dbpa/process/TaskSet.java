@@ -53,7 +53,7 @@ public abstract class TaskSet {
 		List<Task> waiting = new LinkedList<Task>();
 
 		for (Task task : tasks.values()) {
-			task.setInitialResult();
+			task.initialize();
 
 			if (task.getPredecessors().isEmpty()) {
 			    executor.submit(task, context);
@@ -123,7 +123,7 @@ public abstract class TaskSet {
 			}
 
 			if (anyTerminalTaskFailed) {
-				throw new RuntimeException(failedMessage);
+				throw new Task.GenericException(failedMessage);
 			}
 		}
 		catch (InterruptedException iex) {

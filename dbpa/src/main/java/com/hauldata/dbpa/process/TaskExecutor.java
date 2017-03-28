@@ -98,15 +98,18 @@ public class TaskExecutor {
 		Future<Task> completedTask = ecs.take();
 
 		Task task = null;
+		Exception exception = null;
 		Result result = null;
 
 		try {
 			task = completedTask.get();
 		}
 		catch (CancellationException cex) {
+			exception = cex;
 			result = Result.terminated;
 		}
 		catch (ExecutionException eex) {
+			exception = eex;
 			result = Result.failure;
 		}
 
@@ -120,7 +123,7 @@ public class TaskExecutor {
 				if (entry.getValue() == completedTask) {
 
 					task = entry.getKey();
-					task.setFinalResult(result);
+					task.setAbnormalResult(exception, result);
 					break;
 				}
 			}

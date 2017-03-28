@@ -39,6 +39,6 @@ public class FailTask extends LoggingTask {
 		if (messageValue == null) {
 			messageValue = failingMessage;
 		}
-		throw new RuntimeException(messageValue);
+		throw new GenericException(messageValue);
 	}
 }

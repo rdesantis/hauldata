@@ -63,7 +63,7 @@ public class ForDataTask extends UpdateVariablesTask implements TaskSetParent {
 			source.executeQuery(context);
 			
 			while (updateVariables(source, variables)) {
-				taskSet.runForRerun(nestedContext);
+				taskSet.run(nestedContext);
 			}
 
 			source.done(context);

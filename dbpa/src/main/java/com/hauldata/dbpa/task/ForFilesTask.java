@@ -73,7 +73,7 @@ public class ForFilesTask extends Task implements TaskSetParent {
 				if (Files.isRegularFile(sourcePath)) {
 
 					variable.setValueObject(sourcePath.getFileName().toString());
-					taskSet.runForRerun(nestedContext);
+					taskSet.run(nestedContext);
 				}
 			}
 		}

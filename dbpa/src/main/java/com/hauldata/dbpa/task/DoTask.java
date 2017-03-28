@@ -56,7 +56,7 @@ public class DoTask extends Task implements TaskSetParent {
 			}
 			else {
 				while (whileCondition.evaluate()) {
-					taskSet.runForRerun(nestedContext);
+					taskSet.run(nestedContext);
 				}
 			}
 		}

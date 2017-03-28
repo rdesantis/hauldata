@@ -17,6 +17,7 @@
 package com.hauldata.dbpa.task;
 
 import java.util.List;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
@@ -39,6 +40,9 @@ public abstract class Task {
 	private Expression<Boolean> condition;
 	private Task parent;
 	private List<Task> successors;
+
+	private Map<Task, Result> remainingPredecessors;
+	private Exception exception;
 	private Result result;
 
 	/**
@@ -67,6 +71,14 @@ public abstract class Task {
 			this.condition = condition;
 			this.parent = parent;
 		}
+	}
+
+	/**
+	 * Exception with no specific information to report to the user
+	 */
+	public static class GenericException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+		public GenericException(String message) { super(message); }
 	}
 
 	/**
@@ -177,7 +189,7 @@ public abstract class Task {
 		catch (InterruptedException ex) {
 			context.logger.error(name, terminateMessage);
 
-			result = Result.terminated;
+			setAbnormalResult(ex, Result.terminated);
 		}
 		catch (Exception ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
@@ -185,21 +197,29 @@ public abstract class Task {
 			context.logger.error(name, message);
 			context.logger.error(name, failMessage);
 
-			result = Result.failure;
+			setAbnormalResult(ex, Result.failure);
 		}
 	}
 
 	/**
-	 * Set the initial task status.
+	 * Set the initial state of the task.
+	 * <p>
+	 * The initial task state must account for the following scenarios:
+	 * - A task may initially go into either the submitted queue or the waiting queue.
+	 * - A task may be executed multiple times if it is contained in a looping structure.
 	 */
-	public void setInitialResult() {
-		this.result = Result.waiting;
+	public void initialize() {
+
+		remainingPredecessors = new HashMap<Task, Task.Result>(predecessors);
+		exception = null;
+		result = Result.waiting;
 	}
 
 	/**
-	 * Set the final task status.
+	 * Set the final status of a task that was not able to terminate normally.
 	 */
-	public void setFinalResult(Result result) {
+	public void setAbnormalResult(Exception exception, Result result) {
+		this.exception = exception;
 		this.result = result;
 	}
 
@@ -217,12 +237,26 @@ public abstract class Task {
 	protected abstract void execute(Context context) throws Exception;
 
 	/**
-	 * @return the completion result of the task.  Values are:
+	 * @return the exception that terminated the task, or null if:<br>
 	 *
-	 * waiting - the task has not yet run;
-	 * success - the task ran to successful completion;
-	 * failure - the task failed while running;
-	 * terminated - the task was terminated by an interrupt
+	 * - the task completed successfully; or,<br>
+	 * - the task was orphaned; or,<br>
+	 * - the task was terminated with GenericException.
+	 */
+	public Exception getException() {
+		return
+				(exception == null) ? null :
+				(exception instanceof GenericException) ? null :
+				exception;
+	}
+
+	/**
+	 * @return the completion result of the task.  Values are:<br>
+	 *
+	 * waiting - the task has not yet run;<br>
+	 * success - the task ran to successful completion;<br>
+	 * failure - the task failed while running;<br>
+	 * terminated - the task was terminated by an interrupt;<br>
 	 * orphaned - the task cannot run because predecessor(s) completed in state(s)
 	 * that don't meet this task's requirements
 	 */
@@ -245,21 +279,21 @@ public abstract class Task {
 	 */
 	public boolean canRunAfterRemovePredecessor(Task task) {
 
-		Result requiredResult = predecessors.get(task);
-		predecessors.remove(task);
+		Result requiredResult = remainingPredecessors.get(task);
+		remainingPredecessors.remove(task);
 
 		boolean canRun = false;
 		if ((task.getResult() == requiredResult) || ((requiredResult == Result.completed) && (task.getResult() != Result.orphaned))) {
 			// This predecessor completed in the status required by this successor.
 
-			if (predecessors.isEmpty() || (combination == Expression.Combination.or)) {
+			if (remainingPredecessors.isEmpty() || (combination == Expression.Combination.or)) {
 				canRun = true;
 			}
 		}
 		else {
 			// This predecessor did not complete in the status required by this successor.
 
-			if (predecessors.isEmpty() || (combination == Expression.Combination.and)) {
+			if (remainingPredecessors.isEmpty() || (combination == Expression.Combination.and)) {
 				// The successor can never run; it is orphaned.  Its successors may be too.
 
 				result = Result.orphaned;

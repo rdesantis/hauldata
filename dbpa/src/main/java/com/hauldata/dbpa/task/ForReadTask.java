@@ -76,7 +76,7 @@ public class ForReadTask extends FileTask implements TaskSetParent {
 			nestedContext = context.makeNestedContext(getName());
 
 			while (readRowIntoVariables(sourcePage, columns, variables)) {
-				taskSet.runForRerun(nestedContext);
+				taskSet.run(nestedContext);
 			}
 		}
 		catch (IOException ex) {

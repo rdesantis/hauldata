@@ -53,7 +53,7 @@ public abstract class ScheduleTask extends Task implements TaskSetParent {
 
 		try {
 			if (schedules.isImmediate()) {
-				taskSet.runForRerun(nestedContext);
+				taskSet.run(nestedContext);
 			}
 
 			long sleepMillis;
@@ -65,7 +65,7 @@ public abstract class ScheduleTask extends Task implements TaskSetParent {
 
 				context.wakeFromSleep(longSleep, connections);
 
-				taskSet.runForRerun(nestedContext);
+				taskSet.run(nestedContext);
 			}
 		}
 		finally {

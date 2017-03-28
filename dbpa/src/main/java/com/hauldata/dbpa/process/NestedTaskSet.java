@@ -17,7 +17,6 @@
 package com.hauldata.dbpa.process;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.InputMismatchException;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -25,8 +24,6 @@ import java.util.NoSuchElementException;
 import javax.naming.NamingException;
 
 import com.hauldata.dbpa.task.Task;
-import com.hauldata.dbpa.task.Task.Result;
-import com.hauldata.dbpa.task.TaskSetParent;
 
 /**
  * Set of tasks nested within a process or other set of tasks
@@ -52,72 +49,12 @@ public class NestedTaskSet extends TaskSet {
 
 	/**
 	 * Run the tasks in the task set.
-	 * Upon completion, the task set is altered in such a way that it cannot be run again.
 	 * @param context is the context in which the task runs
 	 * @throws Exception
-	 * @see NestedTaskSet#runForRerun(Context)
 	 */
 	public void run(Context context) throws Exception {
 
 		runTasks(context);
-	}
-
-	/**
-	 * Run the tasks in the task set.
-	 * Upon completion, the task set is restored to a state in which it can be run again.
-	 * @param context is the context in which the task runs
-	 * @throws Exception
-	 * @see NestedTaskSet#run(Context)
-	 */
-	public void runForRerun(Context context) throws Exception {
-
-		Map<Task, TaskPredecessors> savedPredecessors = savePredecessors();
-
-		try {
-			runTasks(context);
-		}
-		finally {
-			restorePredecessors(savedPredecessors);
-		}
-	}
-
-	private static class TaskPredecessors {
-		public Map<Task, Result> predecessors;
-		public Map<Task, TaskPredecessors> nestedPredecessors;
-	}
-
-	private Map<Task, TaskPredecessors> savePredecessors() {
-
-		Map<Task, TaskPredecessors> result = new HashMap<Task, TaskPredecessors>();
-
-		for (Task task : tasks.values()) {
-
-			TaskPredecessors taskPredecessors = new TaskPredecessors();
-			result.put(task, taskPredecessors);
-
-			taskPredecessors.predecessors = new HashMap<Task, Task.Result>(task.getPredecessors());
-
-			if (task instanceof TaskSetParent) {
-				NestedTaskSet nestedTaskSet = ((TaskSetParent)task).getTaskSet();
-				taskPredecessors.nestedPredecessors = nestedTaskSet.savePredecessors();
-			}
-		}
-
-		return result;
-	}
-
-	private void restorePredecessors(Map<Task, TaskPredecessors> savedPredecessors) {
-
-		for (Task task : tasks.values()) {
-			TaskPredecessors taskPredecessors = savedPredecessors.get(task);
-
-			task.setPredecessors(taskPredecessors.predecessors);
-
-			if (task instanceof TaskSetParent) {
-				NestedTaskSet nestedTaskSet = ((TaskSetParent)task).getTaskSet();
-				nestedTaskSet.restorePredecessors(taskPredecessors.nestedPredecessors);
-			}
-		}
 	}
 }
 
