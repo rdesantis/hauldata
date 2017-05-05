@@ -36,6 +36,7 @@ public abstract class TaskSet {
 	public static final String interruptedMessage = "Process interrupted";
 
 	protected Map<String, Task> tasks;
+	private Task failedTask;
 
 	protected TaskSet(Map<String, Task> tasks) {
 		this.tasks = tasks;
@@ -45,7 +46,13 @@ public abstract class TaskSet {
 		return tasks;
 	}
 
+	public Task getFailedTask() {
+		return failedTask;
+	}
+
 	protected void runTasks(Context context) throws InterruptedException {
+
+		failedTask = null;
 
 		// Queue up the tasks that have no predecessors for execution.
 
@@ -109,6 +116,7 @@ public abstract class TaskSet {
 
 				if (isTerminalTask && (task.getResult() == Result.failure)) {
 					anyTerminalTaskFailed = true;
+					failedTask = task;
 				}
 			}
 
@@ -119,11 +127,12 @@ public abstract class TaskSet {
 
 				if (task.getResult() == Result.failure) {
 					anyTerminalTaskFailed = true;
+					failedTask = task;
 				}
 			}
 
 			if (anyTerminalTaskFailed) {
-				throw new Task.GenericException(failedMessage);
+				throw new RuntimeException(failedMessage);
 			}
 		}
 		catch (InterruptedException iex) {

@@ -16,9 +16,11 @@
 
 package com.hauldata.dbpa.task;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.hauldata.dbpa.expression.Expression;
@@ -55,7 +57,8 @@ public class AsyncProcessTask extends ProcessTask {
 		}
 		
 		String asyncTaskName = getPath() + ".async";
-		SyncProcessTask processTask = new SyncProcessTask(new Prologue(asyncTaskName, null, null, null, null), evaluatedName, evaluatedArguments);
+		Map<Task, Task.Result> noPredecessors = new HashMap<Task, Task.Result>();
+		SyncProcessTask processTask = new SyncProcessTask(new Prologue(asyncTaskName, noPredecessors, null, null, null), evaluatedName, evaluatedArguments);
 
 		for (Task waitTask : asyncSuccessors) {
 			waitTask.putPredecessor(processTask, Result.completed);

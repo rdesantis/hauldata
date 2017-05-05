@@ -229,6 +229,7 @@ abstract class TaskSetParser {
 		DATEADD,
 		DATEFROMPARTS,
 		DATETIMEFROMPARTS,
+		ERROR_MESSAGE,
 
 		CHARINDEX,
 		LEFT,
@@ -326,6 +327,8 @@ abstract class TaskSetParser {
 	protected Map<String, FunctionParser<Integer>> integerFunctionParsers;
 	protected Map<String, FunctionParser<String>> stringFunctionParsers;
 	protected Map<String, FunctionParser<LocalDateTime>> datetimeFunctionParsers;
+
+	private Task.Reference taskReference;
 
 	// Parse-time through run-time data
 
@@ -517,6 +520,7 @@ abstract class TaskSetParser {
 		stringFunctionParsers.put(KW.SPACE.name(), new SpaceParser());
 		stringFunctionParsers.put(KW.SUBSTRING.name(), new SubstringParser());
 		stringFunctionParsers.put(KW.UPPER.name(), new UpperParser());
+		stringFunctionParsers.put(KW.ERROR_MESSAGE.name(), new ErrorMessageParser());
 
 		datetimeFunctionParsers = new HashMap<String, FunctionParser<LocalDateTime>>();
 		datetimeFunctionParsers.put(KW.ISNULL.name(), new IsNullParser<LocalDateTime>(datetimeTermParser));
@@ -627,7 +631,11 @@ abstract class TaskSetParser {
 			throw new InputMismatchException("Invalid " + KW.TASK.name() +" type: " + taskTypeName);
 		}
 
+		taskReference = new Task.Reference();
+
 		Task task = parser.parse(new Task.Prologue(name, predecessors, combination, condition, thisTaskParser.getParentTask()));
+
+		taskReference.task = task;
 
 		nextEnd(section);
 
@@ -2646,6 +2654,13 @@ abstract class TaskSetParser {
 			Expression<String> string = parseStringExpression();
 
 			return new Upper(string);
+		}
+	}
+
+	private class ErrorMessageParser implements FunctionParser<String> {
+
+		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+			return new ErrorMessage(taskReference);
 		}
 	}
 

@@ -73,12 +73,8 @@ public abstract class Task {
 		}
 	}
 
-	/**
-	 * Exception with no specific information to report to the user
-	 */
-	public static class GenericException extends RuntimeException {
-		private static final long serialVersionUID = 1L;
-		public GenericException(String message) { super(message); }
+	public static class Reference {
+		public Task task;
 	}
 
 	/**
@@ -237,17 +233,11 @@ public abstract class Task {
 	protected abstract void execute(Context context) throws Exception;
 
 	/**
-	 * @return the exception that terminated the task, or null if:<br>
-	 *
-	 * - the task completed successfully; or,<br>
-	 * - the task was orphaned; or,<br>
-	 * - the task was terminated with GenericException.
+	 * @return the exception that terminated the task, or null if the task completed successfully
+	 * or the task was orphaned
 	 */
 	public Exception getException() {
-		return
-				(exception == null) ? null :
-				(exception instanceof GenericException) ? null :
-				exception;
+		return exception;
 	}
 
 	/**
