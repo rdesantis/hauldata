@@ -152,6 +152,7 @@ abstract class TaskSetParser {
 		TABLE,
 		SCRIPT,
 		VALUES,
+		PROPERTIES,
 		FILES,
 		// Future:
 		FILE,
@@ -1704,6 +1705,9 @@ abstract class TaskSetParser {
 		if (tokenizer.skipWordIgnoreCase(KW.VALUES.name())) {
 			return parseValuesSource(singleRow);
 		}
+		if (tokenizer.skipWordIgnoreCase(KW.PROPERTIES.name())) {
+			return parsePropertiesSource();
+		}
 		else {
 			return parseDataSource(taskTypeName, null, singleRow, allowTable);
 		}
@@ -1745,6 +1749,18 @@ abstract class TaskSetParser {
 		}
 
 		return expressionList.stream().toArray(ExpressionBase[]::new);
+	}
+
+	private PropertiesSource parsePropertiesSource() throws IOException {
+
+		Expression<String> fileName = parseStringExpression();
+
+		List<Expression<String>> propertyNames = new LinkedList<Expression<String>>();
+		do {
+			propertyNames.add(parseStringExpression());
+		} while (tokenizer.skipDelimiter(","));
+
+		return new PropertiesSource(fileName, propertyNames);
 	}
 
 	private DataSource parseDataSource(String taskTypeName, String introWord, boolean singleRow, boolean allowTable) throws IOException {

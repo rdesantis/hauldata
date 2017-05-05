@@ -51,6 +51,7 @@ public class Context {
 
 	private Path readParent;
 	private Path writeParent;
+	private Path propertiesParent;
 
 	private static class Resources {
 		public DatabaseConnection dbconn;
@@ -101,6 +102,7 @@ public class Context {
 
 		readParent = getParent(pathProps, "read");
 		writeParent = getParent(pathProps, "write");
+		propertiesParent = getParent(pathProps, "properties");
 
 		resources = new Resources();
 		resources.dbconn = new DatabaseConnection();
@@ -144,6 +146,7 @@ public class Context {
 
 		readParent = context.readParent;
 		writeParent = context.writeParent;
+		propertiesParent = context.propertiesParent;
 
 		resources = context.resources;
 	}
@@ -259,7 +262,6 @@ public class Context {
 
 	/**
 	 * Get the fully-resolved path of a file name that may include a relative or absolute path.
-	 * Uses the readPath of the context to resolve relative paths.
 	 * @param fileName is the file name to resolve.
 	 * @return the fully-resolved path
 	 */
@@ -271,5 +273,8 @@ public class Context {
 	}
 	public Path getDataPath(String fileName, boolean writeNotRead) {
 		return writeNotRead ? getWritePath(fileName) : getReadPath(fileName);
+	}
+	public Path getPropertiesPath(String fileName) {
+		return propertiesParent.resolve(fileName).toAbsolutePath().normalize();
 	}
 }

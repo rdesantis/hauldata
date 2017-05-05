@@ -98,6 +98,7 @@ public abstract class DbProcessTestPropertiesBase {
 		final String writePath = "target/test/resources/data";
 		final String logPath = "target/test/resources/logs";
 		final String processPath = "src/test/resources/process";
+		final String propertiesPath = "src/test/resources/properties";
 
 		try {
 			// Create as necessary all target directories to which DbProcessTest writes.
@@ -115,6 +116,7 @@ public abstract class DbProcessTestPropertiesBase {
 		pathProps.put("write", writePath);
 		pathProps.put("log", logPath);
 		pathProps.put("process", processPath);
+		pathProps.put("properties", propertiesPath);
 
 		return pathProps;
 	}
