@@ -24,9 +24,9 @@ Easily automates common integration, transformation, and migration tasks:
 Writes and reads common file formats:
 
 - CSV (write and read)
-- XLSX (currently write only)
-- Tab separated values (write only)
+- XLSX (write and read)
 - TXT plain text (write and read)
+- Tab separated values (write only)
 
 Easily runs multiple tasks in parallel.
 
