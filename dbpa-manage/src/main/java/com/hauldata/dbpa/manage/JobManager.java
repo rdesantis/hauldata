@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import javax.naming.NamingException;
 
 import com.hauldata.dbpa.DBPA;
 import com.hauldata.dbpa.log.Analyzer;
+import com.hauldata.dbpa.log.Logger;
 import com.hauldata.dbpa.manage.JobManagerException;
 import com.hauldata.dbpa.manage.resources.SchemaResource;
 import com.hauldata.dbpa.manage_control.api.Job;
@@ -126,7 +127,7 @@ public class JobManager {
 
 	private JobManager(boolean withLogAnalyzer) {
 
-		this.analyzer = withLogAnalyzer ? new Analyzer() : null;
+		this.analyzer = withLogAnalyzer ? new Analyzer(Logger.Level.info) : null;
 
 		// Job default context properties.
 

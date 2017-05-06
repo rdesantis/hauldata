@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -25,9 +25,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.hauldata.dbpa.log.Logger.Level;
 import com.hauldata.util.schedule.ScheduleSet;
 
-public class FileAppender implements Appender {
+public class FileAppender extends AppenderBase {
 
 	private String fileName;
 	private BufferedWriter writer;
@@ -35,7 +36,8 @@ public class FileAppender implements Appender {
 	private ScheduleSet rollover;
 	private Thread rolloverThread; 
 
-	public FileAppender(String fileName, String rolloverSchedule) throws IOException {
+	public FileAppender(String fileName, String rolloverSchedule, Level level) throws IOException {
+		super(level);
 		this.fileName = fileName;
 
 		openFile(LocalDateTime.now());

@@ -68,12 +68,12 @@ public abstract class TaskTest extends TestCase {
 				testProps.getPathProperties(),
 				new TestLoader(nestedScripts));
 
-		RootLogger logger = new RootLogger(processId, logLevel);
-		Analyzer analyzer = new Analyzer();
+		RootLogger logger = new RootLogger(processId);
+		Analyzer analyzer = new Analyzer(logLevel);
 		logger.add(analyzer);
 
 		if (logToConsole) {
-			logger.add(new ConsoleAppender());
+			logger.add(new ConsoleAppender(logLevel));
 		}
 
 		context.logger = logger;

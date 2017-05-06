@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -22,11 +22,13 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.regex.Pattern;
 
+import com.hauldata.dbpa.log.Logger.Level;
+
 /**
  * Log appender that writes to an in-memory log with convenient access methods
  * for analyzing log content.
  */
-public class Analyzer implements Appender {
+public class Analyzer extends AppenderBase {
 
 	public static class Record {
 
@@ -47,7 +49,8 @@ public class Analyzer implements Appender {
 
 	private List<Record> records;
 
-	public Analyzer() {
+	public Analyzer(Level level) {
+		super(level);
 		records = new LinkedList<Record>();
 	}
 

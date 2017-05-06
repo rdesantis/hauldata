@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import com.hauldata.dbpa.loader.Loader;
 import com.hauldata.dbpa.log.ConsoleAppender;
 import com.hauldata.dbpa.log.FileAppender;
 import com.hauldata.dbpa.log.Logger;
+import com.hauldata.dbpa.log.Logger.Level;
 import com.hauldata.dbpa.log.NullLogger;
 import com.hauldata.dbpa.log.RootLogger;
 import com.hauldata.dbpa.log.TableAppender;
@@ -159,10 +160,9 @@ public class ContextProperties {
 		}
 
 		try {
-			String loggerLevelName = (logProps != null) ? logProps.getProperty("level") : null;
-			Logger.Level level = (loggerLevelName != null) ? Logger.Level.valueOf(loggerLevelName) : Logger.Level.values()[0];
+			Level defaultLevel = getLoggerLevel("level", Level.info);
 
-			RootLogger log = new RootLogger(processID, level);
+			RootLogger log = new RootLogger(processID);
 
 			String[] logTypes = logTypeList.split(",");
 			for (String logType : logTypes) {
@@ -170,16 +170,19 @@ public class ContextProperties {
 					// Do nothing.
 				}
 				else if (logType.equals("console")) {
-					log.add(new ConsoleAppender());
+					Level level = getLoggerLevel("consoleLevel", defaultLevel);
+					log.add(new ConsoleAppender(level));
 				}
 				else if (logType.equals("file")) {
 					String fileName = Files.getPath(getPathname("log"), logProps.getProperty("fileName")).toString();
 					String rolloverSchedule = logProps.getProperty("fileRollover");
+					Level level = getLoggerLevel("fileLevel", defaultLevel);
 
-					log.add(new FileAppender(fileName, rolloverSchedule));
+					log.add(new FileAppender(fileName, rolloverSchedule, level));
 				}
 				else if (logType.equals("table")) {
-					log.add(new TableAppender(context, logProps.getProperty("tableName")));
+					Level level = getLoggerLevel("tableLevel", defaultLevel);
+					log.add(new TableAppender(context, logProps.getProperty("tableName"), level));
 				}
 				else {
 					throw new RuntimeException("Unrecognized type \"" + logType + "\"");
@@ -192,5 +195,12 @@ public class ContextProperties {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 			throw new RuntimeException("Failed attempting to set up log : " + message, ex);
 		}
+	}
+
+	private Logger.Level getLoggerLevel(String propertyName, Logger.Level defaultLevel) {
+
+		String loggerLevelName = (logProps != null) ? logProps.getProperty(propertyName) : null;
+		Logger.Level level = (loggerLevelName != null) ? Logger.Level.valueOf(loggerLevelName) : defaultLevel;
+		return level;
 	}
 }

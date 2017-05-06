@@ -55,9 +55,10 @@ public class DbProcessTest extends TaskTest {
 
 		Context context = new Context(connProps, mailProps, ftpProps, pathProps, new DummyLoader());
 
-		RootLogger logger = new RootLogger("DBPATest", Logger.Level.info);
-		logger.add(new ConsoleAppender());
-		logger.add(new FileAppender(logFileName, logRollover));
+		RootLogger logger = new RootLogger("DBPATest");
+		Logger.Level level = Logger.Level.info;
+		logger.add(new ConsoleAppender(level));
+		logger.add(new FileAppender(logFileName, logRollover, level));
 		context.logger = logger;
 
 		// Make sure the test tables exist.

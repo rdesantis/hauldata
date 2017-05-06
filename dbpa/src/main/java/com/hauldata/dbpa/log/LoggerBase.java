@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -23,14 +23,15 @@ public abstract class LoggerBase implements Logger {
 
 	private String processId;
 	private String taskPrefix;
-	private Level level;
 	private List<Appender> appenders;
+	private Level minLevel;
 	
-	protected LoggerBase(String processId, String taskPrefix, Level level, List<Appender> appenders) {
+	protected LoggerBase(String processId, String taskPrefix, List<Appender> appenders) {
 		this.processId = processId;
 		this.taskPrefix = taskPrefix;
-		this.level = level;
 		this.appenders = appenders;
+
+		minLevel = appenders.stream().map(a -> a.getLevel()).min(Level::compareTo).orElse(Level.info);
 	}
 
 	@Override
@@ -40,7 +41,7 @@ public abstract class LoggerBase implements Logger {
 
 	private void write(Level level, String taskId, String message) {
 
-		if (level.compareTo(this.level) >= 0) {
+		if (level.compareTo(minLevel) >= 0) {
 			String resolvedProcessId = (processId == null) ? "" : processId;
 			String resolvedTaskId = (taskPrefix == null) ? taskId : taskPrefix + "." + taskId;
 
@@ -49,7 +50,9 @@ public abstract class LoggerBase implements Logger {
 			}
 
 			for (Appender appender : appenders) {
-				appender.log(resolvedProcessId, resolvedTaskId, LocalDateTime.now(), level.ordinal(), message);
+				if (level.compareTo(appender.getLevel()) >= 0) {
+					appender.log(resolvedProcessId, resolvedTaskId, LocalDateTime.now(), level.ordinal(), message);
+				}
 			}
 		}
 	}
@@ -78,14 +81,14 @@ public abstract class LoggerBase implements Logger {
 	public Logger nestTask(String nestedTaskId) {
 
 		String resolvedTaskId = (taskPrefix == null) ? nestedTaskId : taskPrefix + "." + nestedTaskId;
-		return new NestedLogger(processId, resolvedTaskId, level, appenders);
+		return new NestedLogger(processId, resolvedTaskId, appenders);
 	}
 
 	@Override
 	public Logger nestProcess(String nestedProcessId) {
 
 		String resolvedProcessId = (processId == null) ? nestedProcessId : processId + "." + nestedProcessId;
-		return new NestedLogger(resolvedProcessId, null, level, appenders);
+		return new NestedLogger(resolvedProcessId, null, appenders);
 	}
 
 	protected void closeAppenders() {

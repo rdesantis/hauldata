@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -22,11 +22,13 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
+import com.hauldata.dbpa.log.Logger.Level;
 import com.hauldata.dbpa.process.Context;
 
-public class TableAppender implements Appender {
+public class TableAppender extends AppenderBase {
 
-	public TableAppender(Context context, String tableName) {
+	public TableAppender(Context context, String tableName, Level level) {
+		super(level);
 
 		this.context = context;
 		this.tableName = tableName;

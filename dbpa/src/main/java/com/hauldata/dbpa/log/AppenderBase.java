@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,26 +16,18 @@
 
 package com.hauldata.dbpa.log;
 
-import java.util.LinkedList;
+import com.hauldata.dbpa.log.Logger.Level;
 
-/**
- * Log for process status messages
- * 
- * Concrete subclass constructors must pass processId string to Log constructor
- */
-public class RootLogger extends LoggerBase {
+public abstract class AppenderBase implements Appender {
 
-	public RootLogger(String processId) {
+	private Level level;
 
-		super(processId, null, new LinkedList<Appender>());
-	}
-
-	public void add(Appender appender) {
-		addAppender(appender);
+	protected AppenderBase(Level level) {
+		this.level = level;
 	}
 
 	@Override
-	public void close() {
-		closeAppenders();
+	public Level getLevel() {
+		return level;
 	}
 }

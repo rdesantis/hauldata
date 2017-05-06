@@ -28,9 +28,9 @@ public class LoggerTest extends TestCase {
 
 	private Analyzer generateLog(Level level) {
 		
-		RootLogger logger = new RootLogger("testProcess", level);
+		RootLogger logger = new RootLogger("testProcess");
 
-		Analyzer analyzer = new Analyzer();
+		Analyzer analyzer = new Analyzer(level);
 		logger.add(analyzer);
 
 		logger.info("firstTask", "firstMessage");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ public class NestedLogger extends LoggerBase {
 	/**
 	 * This is only intended to be called by Log.nestTask(String) and Log.nestProcess(String)
 	 */
-	public NestedLogger(String processId, String taskPrefix, Level level, List<Appender> appenders) {
-		super(processId, taskPrefix, level, appenders);
+	public NestedLogger(String processId, String taskPrefix, List<Appender> appenders) {
+		super(processId, taskPrefix, appenders);
 	}
 
 	@Override
