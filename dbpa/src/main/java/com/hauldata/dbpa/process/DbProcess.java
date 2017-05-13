@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.io.Reader;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.InputMismatchException;
 import java.util.Iterator;
 import java.util.List;
@@ -117,9 +118,9 @@ public class DbProcess extends TaskSet {
 	 * First message has level <code>info</code> and content <code>startMessage</code>.
 	 * <p>
 	 * On normal completion next to last message has level <code>info</code> and content <code>completeMessage</code>.
-	 * <P>
+	 * <p>
 	 * On interrupt next to last message has level <code>error</code> and content <code>terminateMessage</code>.
-	 * <P>
+	 * <p>
 	 * On failure next to last message has level <code>error</code> and content
 	 * begins with <code>failMessageStem</code>.
 	 * <p>
@@ -204,15 +205,10 @@ public class DbProcess extends TaskSet {
  */
 class DbProcessParser extends TaskSetParser {
 
-	// Sections
-
-	private List<VariableBase> parameters;
-
 	public DbProcessParser(Reader r) {
-
-		super(r);
-
-		parameters = new ArrayList<VariableBase>();
+		super(r,
+				new HashMap<String, VariableBase>(),
+				new HashMap<String, Connection>());
 	}
 
 	/**
@@ -224,11 +220,17 @@ class DbProcessParser extends TaskSetParser {
 	 */
 	public DbProcess parse() throws IOException {
 
+		List<VariableBase> parameters = new ArrayList<VariableBase>();
+
+		Map<String, Task> tasks;
 		try {
-			parseParameters();
-			parseVariables();
-			parseConnections();
-			parseTasks();
+			State s = new State(null);
+
+			parseParameters(s, parameters);
+			parseVariables(s);
+			parseConnections(s);
+
+			tasks = parseTasks(s);
 
 			if (tokenizer.hasNext()) {
 				throw new RuntimeException("Unexpected token where " + KW.TASK.name() + " is expected");
@@ -246,33 +248,33 @@ class DbProcessParser extends TaskSetParser {
 		return new DbProcess(parameters, variables, connections, tasks);
 	}
 
-	private void parseParameters()
+	private void parseParameters(State s, List<VariableBase> parameters)
 			throws IOException, InputMismatchException, NoSuchElementException, NameAlreadyBoundException {
 
 		String section = KW.PARAMETERS.name();
 		if (tokenizer.skipWordIgnoreCase(section)) {
 
-			do { parameters.add(parseVariable());
+			do { parameters.add(parseVariable(s));
 			} while (tokenizer.skipDelimiter(","));
 
-			nextEnd(section);
+			nextEnd(s, section);
 		}
 	}
 
-	private void parseVariables()
+	private void parseVariables(State s)
 			throws IOException, InputMismatchException, NoSuchElementException, NameAlreadyBoundException {
 
 		String section = KW.VARIABLES.name();
 		if (tokenizer.skipWordIgnoreCase(section)) {
 
-			do { parseVariable();
+			do { parseVariable(s);
 			} while (tokenizer.skipDelimiter(","));
 
-			nextEnd(section);
+			nextEnd(s, section);
 		}
 	}
 
-	private VariableBase parseVariable()
+	private VariableBase parseVariable(State s)
 			throws InputMismatchException, NoSuchElementException, IOException, NameAlreadyBoundException {
 
 		String name = tokenizer.nextWordUpperCase();
@@ -283,7 +285,7 @@ class DbProcessParser extends TaskSetParser {
 			throw new NameAlreadyBoundException("Cannot use reserved word as a variable name: " + name);
 		}
 
-		VariableType type = parseType();
+		VariableType type = parseType(s);
 
 		VariableBase variable = new Variable<Object>(name, type);
 		variables.put(name, variable);
@@ -298,7 +300,7 @@ class DbProcessParser extends TaskSetParser {
 	 * @throws InputMismatchException
 	 * @throws IOException
 	 */
-	private VariableType parseType() throws InputMismatchException, IOException {
+	private VariableType parseType(State s) throws InputMismatchException, IOException {
 
 		String type = tokenizer.nextWordUpperCase();
 
@@ -321,20 +323,20 @@ class DbProcessParser extends TaskSetParser {
 		}
 	}
 
-	private void parseConnections()
+	private void parseConnections(State s)
 			throws IOException, InputMismatchException, NoSuchElementException, NameAlreadyBoundException {
 
 		String section = KW.CONNECTIONS.name();
 		if (tokenizer.skipWordIgnoreCase(section)) {
 
-			do { parseConnection();
+			do { parseConnection(s);
 			} while (tokenizer.skipDelimiter(","));
 
-			nextEnd(section);
+			nextEnd(s, section);
 		}
 	}
 
-	private void parseConnection()
+	private void parseConnection(State s)
 			throws InputMismatchException, NoSuchElementException, IOException, NameAlreadyBoundException {
 
 		String name = tokenizer.nextWordUpperCase();
@@ -366,10 +368,5 @@ class DbProcessParser extends TaskSetParser {
 		}
 
 		connections.put(name, connection);
-	}
-
-	@Override
-	protected Task getParentTask() {
-		return null;
 	}
 }

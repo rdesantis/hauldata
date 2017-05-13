@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -17,9 +17,7 @@
 package com.hauldata.dbpa.process;
 
 import java.io.IOException;
-import java.util.InputMismatchException;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 import javax.naming.NamingException;
 
@@ -33,17 +31,14 @@ public class NestedTaskSet extends TaskSet {
 	/**
 	 * Instantiate a NestedTaskSet object by parsing at the parent parser hand-off
 	 */
-	public static NestedTaskSet parse(TaskSetParser parentParser, Task parentTask) throws IOException, NamingException {
+	public static NestedTaskSet parse(TaskSetParser parser, Task parentTask) throws IOException, NamingException {
 
-		NestedTaskSetParser parser = new NestedTaskSetParser(parentParser, parentTask);
+		Map<String, Task> tasks = parser.parseTasks(new TaskSetParser.State(parentTask));
 
-		return parser.parse();
+		return new NestedTaskSet(tasks);
 	}
 
-	/**
-	 * Constructor with package visibility for use by NestedTaskSetParser
-	 */
-	NestedTaskSet(Map<String, Task> tasks) {
+	private NestedTaskSet(Map<String, Task> tasks) {
 		super(tasks);
 	}
 
@@ -55,39 +50,5 @@ public class NestedTaskSet extends TaskSet {
 	public void run(Context context) throws Exception {
 
 		runTasks(context);
-	}
-}
-
-/**
- * Nested task set parser
- */
-class NestedTaskSetParser extends TaskSetParser {
-
-	private Task parentTask;
-
-	public NestedTaskSetParser(TaskSetParser parent, Task parentTask) {
-		super(parent);
-		this.parentTask = parentTask;
-	}
-
-	/**
-	 * Parse a nested set of tasks.
-	 *
-	 * @throws IOException if physical read of the script fails
-	 * @throws NoSuchElementException
-	 * @throws InputMismatchException
-	 * @throws NamingException
-	 * @throws RuntimeException if any syntax errors are encountered in the script
-	 */
-	public NestedTaskSet parse()
-			throws IOException, InputMismatchException, NoSuchElementException, NamingException {
-
-		parseTasks();
-		return new NestedTaskSet(tasks);
-	}
-
-	@Override
-	protected Task getParentTask() {
-		return parentTask;
 	}
 }

@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>com.hauldata</groupId>
 		<artifactId>dbpa-parent</artifactId>
-		<version>1.4</version>
+		<version>1.4.1</version>
 	</parent>
 
 	<artifactId>dbpa-control</artifactId>
@@ -28,7 +28,7 @@
 		<dependency>
 			<groupId>com.hauldata</groupId>
 			<artifactId>dbpa-manage-control</artifactId>
-			<version>1.4</version>
+			<version>1.4.1</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.glassfish.jersey.core/jersey-common -->

@@ -31,6 +31,7 @@ public class ErrorMessageTest extends TaskTest {
 		String processId = "ErrorMessageTest";
 		String script =
 				"TASK NoError LOG ISNULL(ERROR_MESSAGE(), 'No error') END TASK \n" +
+
 				"TASK Good1 GO END TASK \n" +
 				"TASK Good2 GO END TASK \n" +
 				"TASK Bad1 FAIL 'Bad1 failed' END TASK \n" +
@@ -41,6 +42,12 @@ public class ErrorMessageTest extends TaskTest {
 				"END TASK \n" +
 				"TASK Direct1 AFTER Bad1 FAILS LOG 'Error message = <' + ERROR_MESSAGE() + '>' END TASK \n" +
 				"TASK Indirect1 AFTER Good1 AND Direct1 LOG 'Error message = <' + ERROR_MESSAGE() + '>' END TASK \n" +
+
+				"TASK Outer AFTER AND CatchAll DO \n" +
+				"	TASK Inner1 FAIL 'Inner1 failed' END TASK \n" +
+				"	TASK Inner2 AFTER Inner1 FAILS LOG 'Error message = <' + ERROR_MESSAGE() + '>' END TASK \n" +
+				"END TASK \n" +
+
 				"";
 
 		String message = "Error message = <Bad1 failed>";
@@ -71,6 +78,11 @@ public class ErrorMessageTest extends TaskTest {
 		recordIterator = analyzer.recordIterator(processId, "NOERROR");
 		record = recordIterator.next();
 		assertEquals("No error", record.message);
+		assertFalse(recordIterator.hasNext());
+
+		recordIterator = analyzer.recordIterator(processId, "OUTER.INNER2");
+		record = recordIterator.next();
+		assertEquals("Error message = <Inner1 failed>", record.message);
 		assertFalse(recordIterator.hasNext());
 	}
 }

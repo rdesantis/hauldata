@@ -54,7 +54,7 @@ import com.hauldata.util.tokenizer.*;
  */
 abstract class TaskSetParser {
 
-	TaskSetParser thisTaskParser;
+	TaskSetParser thisTaskSetParser;
 
 	/**
 	 * Keywords
@@ -329,113 +329,45 @@ abstract class TaskSetParser {
 	protected Map<String, FunctionParser<String>> stringFunctionParsers;
 	protected Map<String, FunctionParser<LocalDateTime>> datetimeFunctionParsers;
 
-	private Task.Reference taskReference;
-
-	// Parse-time through run-time data
-
 	protected Map<String, VariableBase> variables;
 	protected Map<String, Connection> connections;
-	protected Map<String, Task> tasks;
 
-	/**
-	 * Constructor for outermost task set parser, i.e., process parser
-	 * @param r
-	 * @param variables
-	 */
-	public TaskSetParser(Reader r) {
+	protected static class State {
 
-		thisTaskParser = this;
+		private Task parentTask;
+		private Task.Reference taskReference;
 
-		setupVariables();
-
-		setupConnections();
-
-		setupParsing(r);
-	}
-
-	/**
-	 * Constructor for nested task set parser
-	 * @param parent is the parser for the enclosing task set
-	 * @param tasks
-	 */
-	public TaskSetParser(TaskSetParser parent) {
-
-		thisTaskParser = this;
-
-		reuseVariables(parent);
-
-		reuseConnections(parent);
-
-		reuseParsing(parent);
-	}
-
-	abstract protected Task getParentTask();
-
-	/**
-	 * Parse a set of tasks
-	 *
-	 * @throws IOException
-	 * @throws InputMismatchException
-	 * @throws NoSuchElementException
-	 * @throws NameNotFoundException
-	 * @throws NameAlreadyBoundException
-	 * @throws NamingException
-	 */
-	public void parseTasks() throws IOException, InputMismatchException, NoSuchElementException, NameNotFoundException, NameAlreadyBoundException, NamingException {
-
-		tasks = new HashMap<String, Task>();
-
-		int taskIndex = 1;
-		Task previousTask = null;
-		while (tokenizer.hasNextWordIgnoreCase(KW.TASK.name())) {
-
-			Task task = parseTask(previousTask);
-			if (task.getName() == null) {
-				task.setNameFromIndex(taskIndex);
-			}
-			tasks.put(task.getName(), task);
-
-			++taskIndex;
-			previousTask = task;
+		public State(Task parentTask) {
+			this.parentTask = parentTask;
+			this.taskReference = null;
 		}
 
-		determineSuccessors();
-	}
+		public void prepareTaskReference() {
+			taskReference = new Task.Reference();
+		}
 
-	private void determineSuccessors() {
-		for (Task task : tasks.values()) {
-			for (Task potentialSuccessor : tasks.values()) {
-				if (potentialSuccessor.getPredecessors().containsKey(task)) {
-					task.addSuccessor(potentialSuccessor);
-				}
-			}
+		public Task.Reference getTaskReference() {
+			return taskReference;
+		}
+
+		public void resolveTaskReference(Task task) {
+			taskReference.task = task;
+		}
+
+		public Task getParentTask() {
+			return parentTask;
 		}
 	}
 
 	/**
-	 * Close for outermost task set parser only!, i.e., process parser
+	 * Constructor.
 	 */
-	public void close() throws IOException {
-		cleanupParsing();
-	}
+	public TaskSetParser(
+			Reader r,
+			Map<String, VariableBase> variables,
+			Map<String, Connection> connections) {
 
-	private void setupVariables() {
-		this.variables = new HashMap<String, VariableBase>();
-	}
-
-	private void reuseVariables(TaskSetParser parent) {
-		this.variables = parent.variables;
-	}
-
-	private void setupConnections() {
-		this.connections = new HashMap<String, Connection>();
-	}
-
-	private void reuseConnections(TaskSetParser parent) {
-		this.connections = parent.connections;
-	}
-
-	private void setupParsing(Reader r) {
+		thisTaskSetParser = this;
 
 		tokenizer = new BacktrackingTokenizer(r);
 
@@ -448,9 +380,9 @@ abstract class TaskSetParser {
 
 		tokenizer.eolIsSignificant(false);
 
-		integerTermParser = new TermParser<Integer>(VariableType.INTEGER) { public Expression<Integer> parseExpression() throws IOException { return parseIntegerExpression(); } };
-		stringTermParser = new TermParser<String>(VariableType.VARCHAR) { public Expression<String> parseExpression() throws IOException { return parseStringExpression(); } };
-		datetimeTermParser = new TermParser<LocalDateTime>(VariableType.DATETIME) { public Expression<LocalDateTime> parseExpression() throws IOException { return parseDatetimeExpression(); } };
+		integerTermParser = new TermParser<Integer>(VariableType.INTEGER) { public Expression<Integer> parseExpression(State s) throws IOException { return parseIntegerExpression(s); } };
+		stringTermParser = new TermParser<String>(VariableType.VARCHAR) { public Expression<String> parseExpression(State s) throws IOException { return parseStringExpression(s); } };
+		datetimeTermParser = new TermParser<LocalDateTime>(VariableType.DATETIME) { public Expression<LocalDateTime> parseExpression(State s) throws IOException { return parseDatetimeExpression(s); } };
 
 		taskParsers = new HashMap<String, TaskParser>();
 
@@ -532,47 +464,68 @@ abstract class TaskSetParser {
 		datetimeFunctionParsers.put(KW.DATEFROMPARTS.name(), new DateFromPartsParser());
 		datetimeFunctionParsers.put(KW.DATETIMEFROMPARTS.name(), new DateTimeFromPartsParser());
 
+		this.variables = variables;
+		this.connections = connections;
+
 		CsvFile.registerHandler(KW.CSV.name());
 		TsvFile.registerHandler(KW.TSV.name());
 		TxtFile.registerHandler(KW.TXT.name());
 		XlsxBook.registerHandler(KW.XLSX.name());
 	}
 
-	private void cleanupParsing() throws IOException {
-
-		integerTermParser = null;
-		stringTermParser = null;
-		datetimeTermParser = null;
-
-		taskParsers = null;
-
-		integerFunctionParsers = null;
-		stringFunctionParsers = null;
-		datetimeFunctionParsers = null;
-
-		tokenizer.close();
-		tokenizer = null;
+	public void close() {
+		try { tokenizer.close(); } catch (IOException e) {}
 	}
 
-	private void reuseParsing(TaskSetParser parent) {
-		this.tokenizer = parent.tokenizer;
+	/**
+	 * Parse a set of tasks
+	 *
+	 * @throws IOException
+	 * @throws InputMismatchException
+	 * @throws NoSuchElementException
+	 * @throws NameNotFoundException
+	 * @throws NameAlreadyBoundException
+	 * @throws NamingException
+	 */
+	 public Map<String, Task> parseTasks(State s)
+			throws IOException, InputMismatchException, NoSuchElementException, NameNotFoundException, NameAlreadyBoundException, NamingException {
 
-		this.integerTermParser = parent.integerTermParser;
-		this.stringTermParser = parent.stringTermParser;
-		this.datetimeTermParser = parent.datetimeTermParser;
+		Map<String, Task> tasks = new HashMap<String, Task>();
 
-		this.taskParsers = parent.taskParsers;
+		int taskIndex = 1;
+		Task previousTask = null;
+		while (tokenizer.hasNextWordIgnoreCase(KW.TASK.name())) {
 
-		this.integerFunctionParsers = parent.integerFunctionParsers;
-		this.stringFunctionParsers = parent.stringFunctionParsers;
-		this.datetimeFunctionParsers = parent.datetimeFunctionParsers;
+			Task task = parseTask(s, tasks, previousTask);
+			if (task.getName() == null) {
+				task.setNameFromIndex(taskIndex);
+			}
+			tasks.put(task.getName(), task);
+
+			++taskIndex;
+			previousTask = task;
+		}
+
+		determineSuccessors(tasks);
+
+		return tasks;
+	}
+
+	static private void determineSuccessors(Map<String, Task> tasks) {
+		for (Task task : tasks.values()) {
+			for (Task potentialSuccessor : tasks.values()) {
+				if (potentialSuccessor.getPredecessors().containsKey(task)) {
+					task.addSuccessor(potentialSuccessor);
+				}
+			}
+		}
 	}
 
 	interface TaskParser {
-		Task parse(Task.Prologue prologue) throws IOException, NamingException;
+		Task parse(State s, Task.Prologue prologue) throws IOException, NamingException;
 	}
 
-	private Task parseTask(Task precedingTask)
+	private Task parseTask(State s, Map<String, Task> tasks, Task precedingTask)
 			throws IOException, InputMismatchException, NoSuchElementException, NamingException {
 
 		String section = KW.TASK.name();
@@ -616,13 +569,13 @@ abstract class TaskSetParser {
 		Expression.Combination combination = null;
 
 		if (tokenizer.skipWordIgnoreCase(KW.AFTER.name())) {
-			combination = parsePredecessors(predecessors, precedingTask);
+			combination = parsePredecessors(s, tasks, predecessors, precedingTask);
 		}
 
 		Expression<Boolean> condition = null;
 
 		if (tokenizer.skipWordIgnoreCase(KW.IF.name())) {
-			condition = parseBooleanExpression();
+			condition = parseBooleanExpression(s);
 		}
 
 		String taskTypeName = tokenizer.nextWordUpperCase();
@@ -632,21 +585,24 @@ abstract class TaskSetParser {
 			throw new InputMismatchException("Invalid " + KW.TASK.name() +" type: " + taskTypeName);
 		}
 
-		taskReference = new Task.Reference();
+		s.prepareTaskReference();
 
-		Task task = parser.parse(new Task.Prologue(name, predecessors, combination, condition, thisTaskParser.getParentTask()));
+		Task task = parser.parse(s, new Task.Prologue(name, predecessors, combination, condition, s.getParentTask()));
 
-		taskReference.task = task;
+		s.resolveTaskReference(task);
 
-		nextEnd(section);
+		nextEnd(s, section);
 
 		return task;
 	}
 
-	private Expression.Combination parsePredecessors(Map<Task, Task.Result> predecessors, Task precedingTask)
-			throws InputMismatchException, NoSuchElementException, IOException, NameNotFoundException {
+	private Expression.Combination parsePredecessors(
+			State s,
+			Map<String, Task> tasks,
+			Map<Task, Task.Result> predecessors,
+			Task precedingTask) throws InputMismatchException, NoSuchElementException, IOException, NameNotFoundException {
 
-		SimpleEntry<Task, Task.Result> firstPredecessor = parseFirstPredecessor(precedingTask);
+		SimpleEntry<Task, Task.Result> firstPredecessor = parseFirstPredecessor(s, tasks, precedingTask);
 		predecessors.put(firstPredecessor.getKey(), firstPredecessor.getValue());
 
 		Expression.Combination combination = null;
@@ -660,7 +616,7 @@ abstract class TaskSetParser {
 
 		if (combination != null) {
 			do {
-				SimpleEntry<Task, Task.Result> nextPredecessor = parsePredecessor();
+				SimpleEntry<Task, Task.Result> nextPredecessor = parsePredecessor(s, tasks);
 				predecessors.put(nextPredecessor.getKey(), nextPredecessor.getValue());
 			} while (
 					((combination == Expression.Combination.and) && tokenizer.skipWordIgnoreCase(KW.AND.name())) ||
@@ -674,11 +630,13 @@ abstract class TaskSetParser {
 		return combination;
 	}
 
-	private SimpleEntry<Task, Task.Result> parseFirstPredecessor(Task precedingTask)
-			throws InputMismatchException, NoSuchElementException, IOException, NameNotFoundException {
+	private SimpleEntry<Task, Task.Result> parseFirstPredecessor(
+			State s,
+			Map<String, Task> tasks,
+			Task precedingTask) throws InputMismatchException, NoSuchElementException, IOException, NameNotFoundException {
 
 		if (tokenizer.skipWordIgnoreCase(KW.PREVIOUS.name())) {
-			return parsePredecessorResult(precedingTask);
+			return parsePredecessorResult(s, precedingTask);
 		}
 
 		BacktrackingTokenizerMark nameMark = tokenizer.mark();
@@ -687,14 +645,16 @@ abstract class TaskSetParser {
 
 		if (!tasks.containsKey(name)) {
 			// If token is not a task name, this is a naked AFTER clause.  Predecessor is the preceding task.
-			return parsePredecessorResult(precedingTask);
+			return parsePredecessorResult(s, precedingTask);
 		}
 		else {
-			return parsePredecessor();
+			return parsePredecessor(s, tasks);
 		}
 	}
 
-	private SimpleEntry<Task, Task.Result> parsePredecessor()
+	private SimpleEntry<Task, Task.Result> parsePredecessor(
+			State s,
+			Map<String, Task> tasks)
 			throws InputMismatchException, NoSuchElementException, IOException, NameNotFoundException {
 
 		String name = tokenizer.nextWordUpperCase();
@@ -703,10 +663,11 @@ abstract class TaskSetParser {
 		}
 		Task task = tasks.get(name);
 
-		return parsePredecessorResult(task);
+		return parsePredecessorResult(s, task);
 	}
 
-	private SimpleEntry<Task, Task.Result> parsePredecessorResult(Task task)
+	private SimpleEntry<Task, Task.Result> parsePredecessorResult(
+			State s, Task task)
 			throws InputMismatchException, NoSuchElementException, IOException, NameNotFoundException {
 
 		Task.Result result = Task.Result.success;
@@ -724,7 +685,7 @@ abstract class TaskSetParser {
 		return new SimpleEntry<Task, Task.Result>(task, result);
 	}
 
-	protected void nextEnd(String section) throws IOException {
+	protected void nextEnd(State s, String section) throws IOException {
 
 		if (!tokenizer.skipWordIgnoreCase(KW.END.name()) || !tokenizer.skipWordIgnoreCase(section)) {
 			throw new InputMismatchException(KW.END.name() + " " + section + " not found where expected");
@@ -733,11 +694,11 @@ abstract class TaskSetParser {
 
 	class SetVariablesTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
 			List<SetVariablesTask.Assignment> assignments = new LinkedList<SetVariablesTask.Assignment>();
 
-			do { assignments.add(parseAssignment());
+			do { assignments.add(parseAssignment(s));
 			} while (tokenizer.skipDelimiter(","));
 
 			// Note no check that there actually were any assignments.  Not an error, just pointless.
@@ -745,14 +706,14 @@ abstract class TaskSetParser {
 			return new SetVariablesTask(prologue, assignments);
 		}
 
-		private SetVariablesTask.Assignment parseAssignment()
+		private SetVariablesTask.Assignment parseAssignment(State s)
 				throws InputMismatchException, NoSuchElementException, IOException {
 
-			VariableBase variable = parseVariableReference();
+			VariableBase variable = parseVariableReference(s);
 
 			tokenizer.nextDelimiter("=");
 
-			ExpressionBase expression = parseExpression(variable.getType());
+			ExpressionBase expression = parseExpression(s, variable.getType());
 
 			return new SetVariablesTask.Assignment(variable, expression);
 		}
@@ -761,28 +722,28 @@ abstract class TaskSetParser {
 
 	class RunTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
 			if (tokenizer.skipWordIgnoreCase(KW.SCRIPT.name())) {
-				return parseRunScript(prologue);
+				return parseRunScript(s, prologue);
 			}
 			else {
-				return parseRun(prologue);
+				return parseRun(s, prologue);
 			}
 		}
 
-		private Task parseRunScript(Task.Prologue prologue) throws IOException {
+		private Task parseRunScript(State s, Task.Prologue prologue) throws IOException {
 
-			Expression<String> source = parseStringExpression();
+			Expression<String> source = parseStringExpression(s);
 
-			DatabaseConnection connection = parseDatabaseConnection(KW.ON.name());
+			DatabaseConnection connection = parseDatabaseConnection(s, KW.ON.name());
 
 			return new RunScriptTask(prologue, connection, source);
 		}
 
-		private Task parseRun(Task.Prologue prologue) throws IOException {
+		private Task parseRun(State s, Task.Prologue prologue) throws IOException {
 
-			DataSource source = parseDataSource(KW.RUN.name(), null, false, false);
+			DataSource source = parseDataSource(s, KW.RUN.name(), null, false, false);
 
 			return new RunTask(prologue, source);
 		}
@@ -790,15 +751,15 @@ abstract class TaskSetParser {
 
 	class UpdateTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue)
+		public Task parse(State s, Task.Prologue prologue)
 						throws InputMismatchException, NoSuchElementException, IOException {
 
 			List<VariableBase> variables = new ArrayList<VariableBase>();
 			do {
-				variables.add(parseVariableReference());
+				variables.add(parseVariableReference(s));
 			} while (tokenizer.skipDelimiter(","));
 
-			Source source = parseSource(KW.UPDATE.name(), KW.FROM.name(), true, true);
+			Source source = parseSource(s, KW.UPDATE.name(), KW.FROM.name(), true, true);
 
 			return new UpdateTask(prologue, variables, source);
 		}
@@ -806,11 +767,11 @@ abstract class TaskSetParser {
 
 	class CreateTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
-			PageIdentifierExpression page = parsePageIdentifier(true);
+			PageIdentifierExpression page = parsePageIdentifier(s, true);
 
-			WriteHeaderExpressions headers = parseWriteHeaders(KW.END.name());
+			WriteHeaderExpressions headers = parseWriteHeaders(s, KW.END.name());
 
 			return new CreateTask(prologue, page, headers);
 		}
@@ -818,11 +779,11 @@ abstract class TaskSetParser {
 
 	class AppendTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
-			PageIdentifierExpression page = parsePageIdentifier(true);
+			PageIdentifierExpression page = parsePageIdentifier(s, true);
 
-			Source source = parseSource(KW.APPEND.name(), KW.FROM.name(), false, true);
+			Source source = parseSource(s, KW.APPEND.name(), KW.FROM.name(), false, true);
 
 			return new AppendTask(prologue, page, source);
 		}
@@ -830,13 +791,13 @@ abstract class TaskSetParser {
 
 	class WriteTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
-			PageIdentifierExpression page = parsePageIdentifier(true);
+			PageIdentifierExpression page = parsePageIdentifier(s, true);
 
-			WriteHeaderExpressions headers = parseWriteHeaders(KW.FROM.name());
+			WriteHeaderExpressions headers = parseWriteHeaders(s, KW.FROM.name());
 
-			Source source = parseSource(KW.WRITE.name(), KW.FROM.name(), false, true);
+			Source source = parseSource(s, KW.WRITE.name(), KW.FROM.name(), false, true);
 
 			return new WriteTask(prologue, page, headers, source);
 		}
@@ -844,11 +805,11 @@ abstract class TaskSetParser {
 
 	class OpenTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
-			PageIdentifierExpression page = parsePageIdentifier(true);
+			PageIdentifierExpression page = parsePageIdentifier(s, true);
 
-			ReadHeaderExpressions headers = parseReadHeaders(KW.END.name());
+			ReadHeaderExpressions headers = parseReadHeaders(s, KW.END.name());
 
 			return new OpenTask(prologue, page, headers);
 		}
@@ -856,13 +817,13 @@ abstract class TaskSetParser {
 
 	class LoadTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
-			PageIdentifierExpression page = parsePageIdentifier(false);
+			PageIdentifierExpression page = parsePageIdentifier(s, false);
 
-			ColumnExpressions columns = parseColumns();
+			ColumnExpressions columns = parseColumns(s);
 
-			DataTarget target = parseDataTarget(KW.LOAD.name(), KW.INTO.name(), false, false);
+			DataTarget target = parseDataTarget(s, KW.LOAD.name(), KW.INTO.name(), false, false);
 
 			return new LoadTask(prologue, page, columns, target);
 		}
@@ -870,17 +831,17 @@ abstract class TaskSetParser {
 
 	class ReadTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
-			PageIdentifierExpression page = parsePageIdentifier(false);
+			PageIdentifierExpression page = parsePageIdentifier(s, false);
 
-			ReadHeaderExpressions headers = parseReadHeaders(KW.INTO.name());
+			ReadHeaderExpressions headers = parseReadHeaders(s, KW.INTO.name());
 
-			ColumnExpressions columns = parseColumns();
+			ColumnExpressions columns = parseColumns(s);
 
 			columns.validate(headers);
 
-			DataTarget target = parseDataTarget(KW.LOAD.name(), KW.INTO.name(), true, headers.exist());
+			DataTarget target = parseDataTarget(s, KW.LOAD.name(), KW.INTO.name(), true, headers.exist());
 
 			return new ReadTask(prologue, page, headers, columns, target);
 		}
@@ -888,16 +849,16 @@ abstract class TaskSetParser {
 
 	class ZipTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
 			tokenizer.skipWordIgnoreCase(KW.FROM.name());
 			ArrayList<Expression<String>> sources = new ArrayList<Expression<String>>();
 			do {
-				sources.add(parseStringExpression());
+				sources.add(parseStringExpression(s));
 			} while (tokenizer.skipDelimiter(","));
 
 			tokenizer.skipWordIgnoreCase(KW.TO.name());
-			Expression<String> target = parseStringExpression();
+			Expression<String> target = parseStringExpression(s);
 
 			return new ZipTask(prologue, sources, target);
 		}
@@ -905,14 +866,14 @@ abstract class TaskSetParser {
 
 	class UnzipTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
 			tokenizer.skipWordIgnoreCase(KW.FROM.name());
-			Expression<String> source = parseStringExpression();
+			Expression<String> source = parseStringExpression(s);
 
 			Expression<String> target = null;
 			if (tokenizer.skipWordIgnoreCase(KW.TO.name())) {
-				target = parseStringExpression();
+				target = parseStringExpression(s);
 			}
 			else {
 				target = new StringConstant(".");
@@ -958,7 +919,7 @@ abstract class TaskSetParser {
 
 		protected FtpTaskParser(boolean putNotGet) { this.putNotGet = putNotGet; }
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
 			boolean isBinary = tokenizer.skipWordIgnoreCase(KW.BINARY.name());
 			if (!isBinary) {
@@ -969,22 +930,22 @@ abstract class TaskSetParser {
 
 			tokenizer.skipWordIgnoreCase(KW.FROM.name());
 			if (!putNotGet) {
-				connection = parseFtpConnection();
+				connection = parseFtpConnection(s);
 			}
 
 			List<Expression<String>> fromNames = new LinkedList<Expression<String>>();
 			do {
-				fromNames.add(parseStringExpression());
+				fromNames.add(parseStringExpression(s));
 			} while (tokenizer.skipDelimiter(","));
 
 			tokenizer.skipWordIgnoreCase(KW.TO.name());
 			if (putNotGet) {
-				connection = parseFtpConnection();
+				connection = parseFtpConnection(s);
 			}
 
 			Expression<String> toName = null;
-			if (!atEndOfTask()) {
-				toName = parseStringExpression();
+			if (!atEndOfTask(s)) {
+				toName = parseStringExpression(s);
 			}
 
 			return makeTask(prologue, isBinary, connection, fromNames, toName);
@@ -1000,11 +961,11 @@ abstract class TaskSetParser {
 
 	class EmailTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
 			EmailConnection connection = null;
 			if (tokenizer.skipWordIgnoreCase(KW.THROUGH.name())) {
-				connection = parseEmailConnection();
+				connection = parseEmailConnection(s);
 				if (connection == null) {
 					throw new RuntimeException("Missing connection on " + KW.THROUGH.name() + " in " + KW.EMAIL.name());
 				}
@@ -1012,37 +973,37 @@ abstract class TaskSetParser {
 			if (!tokenizer.skipWordIgnoreCase(KW.FROM.name())) {
 				throw new RuntimeException("Missing " + KW.FROM.name() + " in " + KW.EMAIL.name());
 			}
-			Expression<String> from = parseStringExpression();
+			Expression<String> from = parseStringExpression(s);
 
 			if (!tokenizer.skipWordIgnoreCase(KW.TO.name())) {
 				throw new RuntimeException("Missing " + KW.TO.name() + " in " + KW.EMAIL.name());
 			}
 			List<Expression<String>> to = new LinkedList<Expression<String>>();
 			do {
-				to.add(parseStringExpression());
+				to.add(parseStringExpression(s));
 			} while (tokenizer.skipDelimiter(","));
 
 			List<Expression<String>> cc = new LinkedList<Expression<String>>();
 			if (tokenizer.skipWordIgnoreCase(KW.CC.name())) {
 				do {
-					cc.add(parseStringExpression());
+					cc.add(parseStringExpression(s));
 				} while (tokenizer.skipDelimiter(","));
 			}
 
 			Expression<String> subject = null;
 			if (tokenizer.skipWordIgnoreCase(KW.SUBJECT.name())) {
-				subject = parseStringExpression();
+				subject = parseStringExpression(s);
 			}
 
 			Expression<String> body = null;
 			if (tokenizer.skipWordIgnoreCase(KW.BODY.name())) {
-				body = parseStringExpression();
+				body = parseStringExpression(s);
 			}
 
 			List<Expression<String>> attachments = new LinkedList<Expression<String>>();
 			if (tokenizer.skipWordIgnoreCase(KW.ATTACH.name()) || tokenizer.skipWordIgnoreCase(KW.ATTACHMENT.name())) {
 				do {
-					attachments.add(parseStringExpression());
+					attachments.add(parseStringExpression(s));
 				} while (tokenizer.skipDelimiter(","));
 			}
 
@@ -1052,11 +1013,11 @@ abstract class TaskSetParser {
 
 	class DeleteTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
 			List<Expression<String>> files = new LinkedList<Expression<String>>();
 			do {
-				files.add(parseStringExpression());
+				files.add(parseStringExpression(s));
 			} while (tokenizer.skipDelimiter(","));
 			return new DeleteTask(prologue, files);
 		}
@@ -1064,28 +1025,28 @@ abstract class TaskSetParser {
 
 	class RenameTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
 			tokenizer.skipWordIgnoreCase(KW.FROM.name());
-			Expression<String> from = parseStringExpression();
+			Expression<String> from = parseStringExpression(s);
 			tokenizer.skipWordIgnoreCase(KW.TO.name());
-			Expression<String> to = parseStringExpression();
+			Expression<String> to = parseStringExpression(s);
 			return new RenameTask(prologue, from, to);
 		}
 	}
 
 	class CopyTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
 			tokenizer.skipWordIgnoreCase(KW.FROM.name());
 			List<Expression<String>> from = new LinkedList<Expression<String>>();
 			do {
-				from.add(parseStringExpression());
+				from.add(parseStringExpression(s));
 			} while (tokenizer.skipDelimiter(","));
 
 			tokenizer.skipWordIgnoreCase(KW.TO.name());
-			Expression<String> to = parseStringExpression();
+			Expression<String> to = parseStringExpression(s);
 
 			return new CopyTask(prologue, from, to);
 		}
@@ -1093,21 +1054,21 @@ abstract class TaskSetParser {
 
 	class MakeDirectoryTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
 			tokenizer.skipWordIgnoreCase(KW.DIRECTORY.name());
-			Expression<String> path = parseStringExpression();
+			Expression<String> path = parseStringExpression(s);
 			return new MakeDirectoryTask(prologue, path);
 		}
 	}
 
 	class LogTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
 			List<Expression<String>> messages = new LinkedList<Expression<String>>();
 			do {
-				Expression<String> message = parseStringExpression();
+				Expression<String> message = parseStringExpression(s);
 				messages.add(message);
 			} while (tokenizer.skipDelimiter(","));
 
@@ -1117,11 +1078,11 @@ abstract class TaskSetParser {
 
 	class GoTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
 			Expression<String> message = null;
-			if (!atEndOfTask()) {
-				message = parseStringExpression();
+			if (!atEndOfTask(s)) {
+				message = parseStringExpression(s);
 			}
 			return new GoTask(prologue, message);
 		}
@@ -1129,11 +1090,11 @@ abstract class TaskSetParser {
 
 	class FailTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
 			Expression<String> message = null;
-			if (!atEndOfTask()) {
-				message = parseStringExpression();
+			if (!atEndOfTask(s)) {
+				message = parseStringExpression(s);
 			}
 			return new FailTask(prologue, message);
 		}
@@ -1141,7 +1102,7 @@ abstract class TaskSetParser {
 
 	class ProcessTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException {
 
 			boolean isSynchronous;
 			if (tokenizer.skipWordIgnoreCase(KW.ASYNC.name()) || tokenizer.skipWordIgnoreCase(KW.ASYNCHRONOUSLY.name())) {
@@ -1151,12 +1112,12 @@ abstract class TaskSetParser {
 				isSynchronous = true;
 			}
 
-			Expression<String> name = parseStringExpression();
+			Expression<String> name = parseStringExpression(s);
 
 			List<ExpressionBase> arguments = new LinkedList<ExpressionBase>();
-			if (tokenizer.skipWordIgnoreCase(KW.WITH.name()) || !atEndOfTask()) {
+			if (tokenizer.skipWordIgnoreCase(KW.WITH.name()) || !atEndOfTask(s)) {
 				do {
-					arguments.add(parseAnyExpression());
+					arguments.add(parseAnyExpression(s));
 				} while (tokenizer.skipDelimiter(","));
 			}
 
@@ -1171,57 +1132,58 @@ abstract class TaskSetParser {
 
 	class DoTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException, NamingException {
+		public Task parse(State s, Task.Prologue prologue) throws IOException, NamingException {
 
 			Expression<Boolean> whileCondition = null;
 			if (tokenizer.skipWordIgnoreCase(KW.WHILE.name())) {
-				whileCondition = parseBooleanExpression();
+				whileCondition = parseBooleanExpression(s);
 			}
 
 			DoTask thisTask = new DoTask(prologue, whileCondition);
 
-			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskParser, thisTask));
+			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskSetParser, thisTask));
 		}
 	}
 
 	class ForTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue)
+		public Task parse(State s, Task.Prologue prologue)
 				throws InputMismatchException, NoSuchElementException, IOException, NamingException {
 
 			ArrayList<VariableBase> variables = new ArrayList<VariableBase>();
 			do {
-				variables.add(parseVariableReference());
+				variables.add(parseVariableReference(s));
 			} while (tokenizer.skipDelimiter(","));
 
 			tokenizer.skipWordIgnoreCase(KW.FROM.name());
 
 			TaskSetParent thisTask;
-			if (hasFileType(false)) {
-				thisTask = parseForReadFile(prologue, variables);
+			if (hasFileType(s, false)) {
+				thisTask = parseForReadFile(s, prologue, variables);
 			}
 			else if (tokenizer.skipWordIgnoreCase(KW.FILES.name())) {
-				thisTask = parseForFiles(prologue, variables);
+				thisTask = parseForFiles(s, prologue, variables);
 			}
 			else if (tokenizer.skipWordIgnoreCase(KW.VALUES.name())) {
-				thisTask = parseForValues(prologue, variables);
+				thisTask = parseForValues(s, prologue, variables);
 			}
 			else {
-				thisTask  = parseForData(prologue, variables);
+				thisTask  = parseForData(s, prologue, variables);
 			}
 
-			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskParser, (Task)thisTask));
+			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskSetParser, (Task)thisTask));
 		}
 
 		private ForReadTask parseForReadFile(
+				State s,
 				Task.Prologue prologue,
 				ArrayList<VariableBase> variables) throws IOException, NamingException {
 
-			PageIdentifierExpression page = parsePageIdentifier(false);
+			PageIdentifierExpression page = parsePageIdentifier(s, false);
 
-			ReadHeaderExpressions headers = parseReadHeaders(KW.TASK.name());
+			ReadHeaderExpressions headers = parseReadHeaders(s, KW.TASK.name());
 
-			ColumnExpressions columns = parseColumns();
+			ColumnExpressions columns = parseColumns(s);
 
 			columns.validate(headers);
 
@@ -1230,6 +1192,7 @@ abstract class TaskSetParser {
 
 		@SuppressWarnings("unchecked")
 		private ForFilesTask parseForFiles(
+				State s,
 				Task.Prologue prologue,
 				ArrayList<VariableBase> variables) throws IOException, NamingException {
 
@@ -1237,18 +1200,19 @@ abstract class TaskSetParser {
 				throw new RuntimeException(KW.FOR.name() + " " + KW.FILES.name() + " must have a single VARCHAR variable in the list");
 			}
 
-			Expression<String> filename = parseStringExpression();
+			Expression<String> filename = parseStringExpression(s);
 
 			return new ForFilesTask(prologue, (Variable<String>)variables.get(0), filename);
 		}
 
 		private ForDataTask parseForValues(
+				State s,
 				Task.Prologue prologue,
 				ArrayList<VariableBase> variables) throws IOException, NamingException {
 
 			List<ExpressionBase[]> values = new LinkedList<ExpressionBase[]>();
 			do {
-				values.add(parseExpressionList(variables));
+				values.add(parseExpressionList(s, variables));
 			} while (tokenizer.skipDelimiter(","));
 
 			ValuesSource source = new ValuesSource(values);
@@ -1256,7 +1220,7 @@ abstract class TaskSetParser {
 			return new ForDataTask(prologue, variables, source);
 		}
 
-		private ExpressionBase[] parseExpressionList(ArrayList<VariableBase> variables)
+		private ExpressionBase[] parseExpressionList(State s, ArrayList<VariableBase> variables)
 				throws InputMismatchException, NoSuchElementException, IOException {
 
 			ExpressionBase[] expressionList = new ExpressionBase[variables.size()];
@@ -1264,7 +1228,7 @@ abstract class TaskSetParser {
 
 			int index = 0;
 			for (VariableBase variable : variables) {
-				expressionList[index] = parseExpression(variable.getType());
+				expressionList[index] = parseExpression(s, variable.getType());
 				if (++index < variables.size()) {
 					tokenizer.nextDelimiter(",");
 				}
@@ -1275,10 +1239,11 @@ abstract class TaskSetParser {
 		}
 
 		private ForDataTask parseForData(
+				State s,
 				Task.Prologue prologue,
 				ArrayList<VariableBase> variables) throws IOException, NamingException {
 
-			DataSource dataSource = parseDataSource(KW.FOR.name(), null, false, true);
+			DataSource dataSource = parseDataSource(s, KW.FOR.name(), null, false, true);
 
 			return new ForDataTask(prologue, variables, dataSource);
 		}
@@ -1286,70 +1251,70 @@ abstract class TaskSetParser {
 
 	class OnTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue)
+		public Task parse(State s, Task.Prologue prologue)
 				throws InputMismatchException, NoSuchElementException, IOException, NamingException {
 
 			if (tokenizer.skipWordIgnoreCase(KW.SCHEDULE.name())) {
-				return parseOnSchedule(prologue);
+				return parseOnSchedule(s, prologue);
 			}
 			else {
-				return parseOn(prologue);
+				return parseOn(s, prologue);
 			}
 		}
 
-		private Task parseOnSchedule(Task.Prologue prologue) throws IOException, NamingException {
+		private Task parseOnSchedule(State s, Task.Prologue prologue) throws IOException, NamingException {
 
-			Expression<String> schedule = parseStringExpression();
+			Expression<String> schedule = parseStringExpression(s);
 
 			OnScheduleTask thisTask = new OnScheduleTask(prologue, schedule, connections);
 
-			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskParser, thisTask));
+			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskSetParser, thisTask));
 		}
 
-		private Task parseOn(Task.Prologue prologue) throws IOException, NamingException {
+		private Task parseOn(State s, Task.Prologue prologue) throws IOException, NamingException {
 
 			ScheduleSet schedules = ScheduleSet.parse(tokenizer);
 
 			OnTask thisTask = new OnTask(prologue, schedules, connections);
 
-			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskParser, thisTask));
+			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskSetParser, thisTask));
 		}
 	}
 
 	class WaitforTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue)
+		public Task parse(State s, Task.Prologue prologue)
 				throws InputMismatchException, NoSuchElementException, IOException, NamingException {
 
 			if (tokenizer.skipWordIgnoreCase(KW.DELAY.name())) {
-				return parseWaitforDelay(prologue);
+				return parseWaitforDelay(s, prologue);
 			}
 			if (tokenizer.skipWordIgnoreCase(KW.TIME.name())) {
-				return parseWaitforTime(prologue);
+				return parseWaitforTime(s, prologue);
 			}
 			if (tokenizer.skipWordIgnoreCase(KW.ASYNC.name())) {
-				return parseWaitforAsync(prologue);
+				return parseWaitforAsync(s, prologue);
 			}
 			else {
 				throw new InputMismatchException("Invalid argument in " + KW.WAITFOR.name() + " " + KW.TASK.name());
 			}
 		}
 
-		private Task parseWaitforDelay(Task.Prologue prologue) throws IOException, NamingException {
+		private Task parseWaitforDelay(State s, Task.Prologue prologue) throws IOException, NamingException {
 
-			Expression<String> delay = parseStringExpression();
+			Expression<String> delay = parseStringExpression(s);
 
 			return new WaitforDelayTask(prologue, delay, connections);
 		}
 
-		private Task parseWaitforTime(Task.Prologue prologue) throws IOException, NamingException {
+		private Task parseWaitforTime(State s, Task.Prologue prologue) throws IOException, NamingException {
 
-			Expression<String> time = parseStringExpression();
+			Expression<String> time = parseStringExpression(s);
 
 			return new WaitforTimeTask(prologue, time, connections);
 		}
 
-		private Task parseWaitforAsync(Task.Prologue prologue) throws IOException, NamingException {
+		private Task parseWaitforAsync(State s, Task.Prologue prologue) throws IOException, NamingException {
 
 			GoTask thisTask = new GoTask(prologue, null);
 
@@ -1437,10 +1402,10 @@ abstract class TaskSetParser {
 
 	class ConnectTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue)
+		public Task parse(State s, Task.Prologue prologue)
 				throws InputMismatchException, NoSuchElementException, IOException, NamingException {
 
-			Connection connection = parseConnection();
+			Connection connection = parseConnection(s);
 			boolean inherit = false;
 			Expression<String> properties = null;
 
@@ -1448,11 +1413,11 @@ abstract class TaskSetParser {
 			if (tokenizer.skipWordIgnoreCase(KW.DEFAULT.name())) {
 				inherit = true;
 				if (tokenizer.skipWordIgnoreCase(KW.WITH.name())) {
-					properties = parseStringExpression();
+					properties = parseStringExpression(s);
 				}
 			}
 			else {
-				properties = parseStringExpression();
+				properties = parseStringExpression(s);
 			}
 
 			return new ConnectTask(prologue, connection, inherit, properties);
@@ -1461,14 +1426,14 @@ abstract class TaskSetParser {
 
 	class RequestTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue)
+		public Task parse(State s, Task.Prologue prologue)
 				throws InputMismatchException, NoSuchElementException, IOException, NamingException {
 
-			Expression<String> url = parseStringExpression();
+			Expression<String> url = parseStringExpression(s);
 
 			List<RequestTask.Parameters.Header> headers = null;
 			if (tokenizer.skipWordIgnoreCase(KW.HEADER.name())) {
-				headers = parseRequestHeaders();
+				headers = parseRequestHeaders(s);
 			}
 
 			String request = tokenizer.nextWordUpperCase();
@@ -1483,17 +1448,17 @@ abstract class TaskSetParser {
 
 			parameters.add(url, headers);
 
-			return parser.parse(prologue, parameters, new DataStores());
+			return parser.parse(s, prologue, parameters, new DataStores());
 		}
 	}
 
-	List<RequestTask.Parameters.Header> parseRequestHeaders() throws IOException {
+	List<RequestTask.Parameters.Header> parseRequestHeaders(State s) throws IOException {
 
 		List<RequestTask.Parameters.Header> result = new LinkedList<RequestTask.Parameters.Header>();
 		do {
-			Expression<String> name = parseStringExpression();
+			Expression<String> name = parseStringExpression(s);
 			boolean isNullable = tokenizer.skipWordIgnoreCase(KW.NULL.name());
-			Expression<String> value = parseStringExpression();
+			Expression<String> value = parseStringExpression(s);
 
 			result.add(new RequestTask.Parameters.Header(name, isNullable, value));
 		} while (tokenizer.hasNextDelimiter(","));
@@ -1501,15 +1466,15 @@ abstract class TaskSetParser {
 		return result;
 	}
 
-	private class DataStores { public Source source; public DataTarget target; }
+	private static class DataStores { public Source source; public DataTarget target; }
 
 	abstract class SpecializedRequestTaskParser {
 
 		public RequestTask.Parameters makeParameters() { return new RequestTask.Parameters(); }
 
-		protected void parseBodyFields(RequestTask.Parameters baseParameters) throws InputMismatchException, IOException {}
+		protected void parseBodyFields(State s, RequestTask.Parameters baseParameters) throws InputMismatchException, IOException {}
 
-		protected void parseRemainingFields(RequestTask.Parameters parameters, DataStores data) throws IOException {
+		protected void parseRemainingFields(State s, RequestTask.Parameters parameters, DataStores data) throws IOException {
 
 			List<Expression<String>> requestFields = new ArrayList<Expression<String>>();
 			if (
@@ -1517,13 +1482,13 @@ abstract class TaskSetParser {
 					(!tokenizer.hasNextWordIgnoreCase(KW.BODY.name()) && !tokenizer.hasNextWordIgnoreCase(KW.FROM.name()))) {
 
 				do {
-					requestFields.add(parseStringExpression());
+					requestFields.add(parseStringExpression(s));
 				} while (tokenizer.skipDelimiter(","));
 			}
 
-			parseBodyFields(parameters);
+			parseBodyFields(s, parameters);
 
-			data.source = parseSource(KW.REQUEST.name(), KW.FROM.name(), false, true);
+			data.source = parseSource(s, KW.REQUEST.name(), KW.FROM.name(), false, true);
 
 			List<Expression<String>> keepFields = null;
 			if (tokenizer.skipWordIgnoreCase(KW.KEEP.name())) {
@@ -1534,7 +1499,7 @@ abstract class TaskSetParser {
 
 					boolean allKeepableFieldsAreConstant = allFieldsAreConstant(requestFields) && allBodyFieldsAreConstant(parameters);
 					do {
-						Expression<String> keepField = parseStringExpression();
+						Expression<String> keepField = parseStringExpression(s);
 
 						if (
 								allKeepableFieldsAreConstant &&
@@ -1556,10 +1521,10 @@ abstract class TaskSetParser {
 
 			if (tokenizer.skipWordIgnoreCase(KW.RESPONSE.name())) {
 
-				responseType = parseResponseType();
+				responseType = parseResponseType(s);
 
 				do {
-					responseFields.add(parseStringExpression());
+					responseFields.add(parseStringExpression(s));
 				} while (tokenizer.skipDelimiter(","));
 			}
 
@@ -1567,16 +1532,16 @@ abstract class TaskSetParser {
 				throw new InputMismatchException("Expecting " + KW.STATUS.name() + ", found " + tokenizer.nextToken().getImage());
 			}
 
-			Expression<String> statusField = parseStringExpression();
+			Expression<String> statusField = parseStringExpression(s);
 
 			Expression<String> messageField = null;
 			if (tokenizer.skipWordIgnoreCase(KW.MESSAGE.name())) {
-				messageField = parseStringExpression();
+				messageField = parseStringExpression(s);
 			}
 
 			parameters.add(requestFields, keepFields, responseFields, statusField, messageField, responseType);
 
-			data.target = parseDataTarget(KW.REQUEST.name(), KW.INTO.name(), true, false);
+			data.target = parseDataTarget(s, KW.REQUEST.name(), KW.INTO.name(), true, false);
 		}
 
 		protected boolean allFieldsAreConstant(List<Expression<String>> fields) {
@@ -1591,7 +1556,7 @@ abstract class TaskSetParser {
 
 		protected boolean noBodyFieldMatches(RequestTask.Parameters baseParameters, Expression<String> keepField) { return true; }
 
-		private RequestTask.ResponseType parseResponseType() throws IOException {
+		private RequestTask.ResponseType parseResponseType(State s) throws IOException {
 
 			if (tokenizer.skipWordIgnoreCase(KW.VALUE.name())) {
 				return RequestTask.ResponseType.value;
@@ -1608,14 +1573,14 @@ abstract class TaskSetParser {
 			return null;
 		}
 
-		public abstract Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException;
+		public abstract Task parse(State s, Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException;
 	}
 
 	class GetRequestTaskParser extends SpecializedRequestTaskParser {
 
 		@Override
-		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
-			parseRemainingFields(parameters, data);
+		public Task parse(State s, Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
+			parseRemainingFields(s, parameters, data);
 			return new RequestGetTask(prologue, data.source, parameters, data.target);
 		}
 	}
@@ -1623,8 +1588,8 @@ abstract class TaskSetParser {
 	class DeleteRequestTaskParser extends SpecializedRequestTaskParser {
 
 		@Override
-		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
-			parseRemainingFields(parameters, data);
+		public Task parse(State s, Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
+			parseRemainingFields(s, parameters, data);
 			return new RequestDeleteTask(prologue, data.source, parameters, data.target);
 		}
 	}
@@ -1635,7 +1600,7 @@ abstract class TaskSetParser {
 		public RequestTask.Parameters makeParameters() { return new RequestWithBodyTask.ParametersWithBody(); }
 
 		@Override
-		protected void parseBodyFields(RequestTask.Parameters baseParameters) throws InputMismatchException, IOException {
+		protected void parseBodyFields(State s, RequestTask.Parameters baseParameters) throws InputMismatchException, IOException {
 
 			RequestWithBodyTask.ParametersWithBody parameters = (RequestWithBodyTask.ParametersWithBody)baseParameters;
 
@@ -1646,7 +1611,7 @@ abstract class TaskSetParser {
 			List<Expression<String>> bodyFields = new LinkedList<Expression<String>>();
 
 			do {
-				bodyFields.add(parseStringExpression());
+				bodyFields.add(parseStringExpression(s));
 			} while (tokenizer.skipDelimiter(","));
 
 			parameters.add(bodyFields);
@@ -1666,8 +1631,8 @@ abstract class TaskSetParser {
 	class PutRequestTaskParser extends RequestWithBodyTaskParser {
 
 		@Override
-		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
-			parseRemainingFields(parameters, data);
+		public Task parse(State s, Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
+			parseRemainingFields(s, parameters, data);
 			return new RequestPutTask(prologue, data.source, (RequestWithBodyTask.ParametersWithBody)parameters, data.target);
 		}
 	}
@@ -1675,8 +1640,8 @@ abstract class TaskSetParser {
 	class PostRequestTaskParser extends RequestWithBodyTaskParser {
 
 		@Override
-		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
-			parseRemainingFields(parameters, data);
+		public Task parse(State s, Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
+			parseRemainingFields(s, parameters, data);
 			return new RequestPostTask(prologue, data.source, (RequestWithBodyTask.ParametersWithBody)parameters, data.target);
 		}
 	}
@@ -1689,39 +1654,39 @@ abstract class TaskSetParser {
 			taskTypeName = taskTypeKeyword.name();
 		}
 
-		public Task parse(Task.Prologue prologue)
+		public Task parse(State s, Task.Prologue prologue)
 				throws NoSuchElementException {
 
 			throw new NoSuchElementException("Use NAME keyword before a name reserved for a future task type: " + taskTypeName);
 		}
 	}
 
-	private Source parseSource(String taskTypeName, String introWord, boolean singleRow, boolean allowTable) throws IOException {
+	private Source parseSource(State s, String taskTypeName, String introWord, boolean singleRow, boolean allowTable) throws IOException {
 
 		if (introWord != null) {
 			tokenizer.skipWordIgnoreCase(introWord);
 		}
 
 		if (tokenizer.skipWordIgnoreCase(KW.VALUES.name())) {
-			return parseValuesSource(singleRow);
+			return parseValuesSource(s, singleRow);
 		}
 		if (tokenizer.skipWordIgnoreCase(KW.PROPERTIES.name())) {
-			return parsePropertiesSource();
+			return parsePropertiesSource(s);
 		}
 		else {
-			return parseDataSource(taskTypeName, null, singleRow, allowTable);
+			return parseDataSource(s, taskTypeName, null, singleRow, allowTable);
 		}
 	}
 
-	private ValuesSource parseValuesSource(boolean singleRow) throws InputMismatchException, NoSuchElementException, IOException {
+	private ValuesSource parseValuesSource(State s, boolean singleRow) throws InputMismatchException, NoSuchElementException, IOException {
 
 		List<ExpressionBase[]> values = new LinkedList<ExpressionBase[]>();
 
-		ExpressionBase[] firstRow = parseExpressionList(0);
+		ExpressionBase[] firstRow = parseExpressionList(s, 0);
 		values.add(firstRow);
 
 		while (tokenizer.skipDelimiter(",")) {
-			values.add(parseExpressionList(firstRow.length));
+			values.add(parseExpressionList(s, firstRow.length));
 		}
 
 		if (singleRow && (values.size() != 1)) {
@@ -1731,14 +1696,14 @@ abstract class TaskSetParser {
 		return new ValuesSource(values);
 	}
 
-	private ExpressionBase[] parseExpressionList(int size)
+	private ExpressionBase[] parseExpressionList(State s, int size)
 			throws InputMismatchException, NoSuchElementException, IOException {
 
 		List<ExpressionBase> expressionList = new LinkedList<ExpressionBase>();
 		tokenizer.nextDelimiter("(");
 
 		do {
-			ExpressionBase expression = parseAnyExpression();
+			ExpressionBase expression = parseAnyExpression(s);
 			expressionList.add(expression);
 		} while (tokenizer.skipDelimiter(","));
 
@@ -1751,82 +1716,82 @@ abstract class TaskSetParser {
 		return expressionList.stream().toArray(ExpressionBase[]::new);
 	}
 
-	private PropertiesSource parsePropertiesSource() throws IOException {
+	private PropertiesSource parsePropertiesSource(State s) throws IOException {
 
-		Expression<String> fileName = parseStringExpression();
+		Expression<String> fileName = parseStringExpression(s);
 
 		List<Expression<String>> propertyNames = new LinkedList<Expression<String>>();
 		do {
-			propertyNames.add(parseStringExpression());
+			propertyNames.add(parseStringExpression(s));
 		} while (tokenizer.skipDelimiter(","));
 
 		return new PropertiesSource(fileName, propertyNames);
 	}
 
-	private DataSource parseDataSource(String taskTypeName, String introWord, boolean singleRow, boolean allowTable) throws IOException {
+	private DataSource parseDataSource(State s, String taskTypeName, String introWord, boolean singleRow, boolean allowTable) throws IOException {
 
-		DatabaseConnection connection = parseDatabaseConnection(introWord);
+		DatabaseConnection connection = parseDatabaseConnection(s, introWord);
 
 		if (tokenizer.skipWordIgnoreCase(KW.STATEMENT.name())) {
-			return parseStatementDataSource(connection, singleRow);
+			return parseStatementDataSource(s, connection, singleRow);
 		}
 		else if (tokenizer.skipWordIgnoreCase(KW.SQL.name())) {
-			return parseParameterizedStatementDataSource(connection, singleRow);
+			return parseParameterizedStatementDataSource(s, connection, singleRow);
 		}
 		else if (tokenizer.skipWordIgnoreCase(KW.PROCEDURE.name())) {
-			return parseProcedureDataSource(connection, singleRow);
+			return parseProcedureDataSource(s, connection, singleRow);
 		}
 		else if (allowTable && tokenizer.skipWordIgnoreCase(KW.TABLE.name())) {
-			return parseTableDataSource(connection, singleRow);
+			return parseTableDataSource(s, connection, singleRow);
 		}
 		else {
 			throw new InputMismatchException("Invalid data source in " + taskTypeName + " " + KW.TASK.name());
 		}
 	}
 
-	private StatementDataSource parseStatementDataSource(DatabaseConnection connection, boolean singleRow) throws IOException {
+	private StatementDataSource parseStatementDataSource(State s, DatabaseConnection connection, boolean singleRow) throws IOException {
 
-		Expression<String> statement = parseStringExpression();
+		Expression<String> statement = parseStringExpression(s);
 
 		return new StatementDataSource(connection, statement, singleRow);
 	}
 
-	private ParameterizedStatementDataSource parseParameterizedStatementDataSource(DatabaseConnection connection, boolean singleRow) throws IOException {
+	private ParameterizedStatementDataSource parseParameterizedStatementDataSource(State s, DatabaseConnection connection, boolean singleRow) throws IOException {
 
 		List<ExpressionBase> expressions = new ArrayList<ExpressionBase>();
 		StringBuilder statement = new StringBuilder();
-		parseParameterizedStatement(expressions, statement);
+		parseParameterizedStatement(s, expressions, statement);
 
 		return new ParameterizedStatementDataSource(connection, expressions, statement.toString(), singleRow);
 	}
 
-	private TableDataSource parseTableDataSource(DatabaseConnection connection, boolean singleRow) throws IOException {
+	private TableDataSource parseTableDataSource(State s, DatabaseConnection connection, boolean singleRow) throws IOException {
 
-		Expression<String> table = parseStringExpression();
+		Expression<String> table = parseStringExpression(s);
 
 		return new TableDataSource(connection, table, singleRow);
 	}
 
-	private ProcedureDataSource parseProcedureDataSource(DatabaseConnection connection, boolean singleRow) throws IOException {
+	private ProcedureDataSource parseProcedureDataSource(State s, DatabaseConnection connection, boolean singleRow) throws IOException {
 
-		Expression<String> procedure = parseStringExpression();
+		Expression<String> procedure = parseStringExpression(s);
 
 		List<DirectionalParam> params = new LinkedList<DirectionalParam>();
-		if (hasNextArgument()) {
+		if (hasNextArgument(s)) {
 			do {
-				params.add(parseArgument());
+				params.add(parseArgument(s));
 			} while (tokenizer.skipDelimiter(","));
 		}
 
 		VariableBase resultParam = null;
 		if (tokenizer.skipWordIgnoreCase(KW.RETURNING.name())) {
-			resultParam = parseVariableReference();
+			resultParam = parseVariableReference(s);
 		}
 
 		return new ProcedureDataSource(connection, resultParam, procedure, params, singleRow);
 	}
 
-	private boolean hasNextArgument() throws IOException {
+	private boolean hasNextArgument(State s) throws IOException {
 
 		if (tokenizer.skipWordIgnoreCase(KW.WITH.name())) {
 			return true;
@@ -1835,14 +1800,14 @@ abstract class TaskSetParser {
 			return false;
 		}
 		else {
-			return !atEndOrStartOfTask();
+			return !atEndOrStartOfTask(s);
 		}
 	}
 
-	private DirectionalParam parseArgument() throws IOException {
+	private DirectionalParam parseArgument(State s) throws IOException {
 
-		ExpressionBase expression = parseAnyExpression();
-		ParamDirection direction = parseDirection();
+		ExpressionBase expression = parseAnyExpression(s);
+		ParamDirection direction = parseDirection(s);
 
 		if (
 				(direction.equals(ParamDirection.OUT) || direction.equals(ParamDirection.INOUT)) &&
@@ -1854,7 +1819,7 @@ abstract class TaskSetParser {
 		return new DirectionalParam(expression, direction);
 	}
 
-	private ParamDirection parseDirection() throws IOException {
+	private ParamDirection parseDirection(State s) throws IOException {
 
 		if (tokenizer.skipWordIgnoreCase(KW.IN.name())) {
 			return ParamDirection.IN;
@@ -1870,57 +1835,57 @@ abstract class TaskSetParser {
 		}
 	}
 
-	private DataTarget parseDataTarget(String taskTypeName, String introWord, boolean allowTable, boolean haveHeaders) throws IOException {
+	private DataTarget parseDataTarget(State s, String taskTypeName, String introWord, boolean allowTable, boolean haveHeaders) throws IOException {
 
-		DatabaseConnection connection = parseDatabaseConnection(introWord);
+		DatabaseConnection connection = parseDatabaseConnection(s, introWord);
 
 		if (tokenizer.skipWordIgnoreCase(KW.STATEMENT.name())) {
-			return parseStatementDataTarget(connection);
+			return parseStatementDataTarget(s, connection);
 		}
 		else if (tokenizer.skipWordIgnoreCase(KW.SQL.name())) {
-			return parseTokenizedStatementDataTarget(connection);
+			return parseTokenizedStatementDataTarget(s, connection);
 		}
 		else if (allowTable && tokenizer.skipWordIgnoreCase(KW.TABLE.name())) {
-			return parseTableDataTarget(connection, haveHeaders);
+			return parseTableDataTarget(s, connection, haveHeaders);
 		}
 		else {
 			throw new InputMismatchException("Invalid data target in " + taskTypeName + " " + KW.TASK.name());
 		}
 	}
 
-	private StatementDataTarget parseStatementDataTarget(DatabaseConnection connection) throws IOException {
+	private StatementDataTarget parseStatementDataTarget(State s, DatabaseConnection connection) throws IOException {
 
-		Expression<String> statement = parseStringExpression();
+		Expression<String> statement = parseStringExpression(s);
 
 		return new StatementDataTarget(connection, statement);
 	}
 
-	private TokenizedStatementDataTarget parseTokenizedStatementDataTarget(DatabaseConnection connection) throws IOException {
+	private TokenizedStatementDataTarget parseTokenizedStatementDataTarget(State s, DatabaseConnection connection) throws IOException {
 
 		StringBuilder statement = new StringBuilder();
-		parseTokenizedStatement(statement);
+		parseTokenizedStatement(s, statement);
 
 		return new TokenizedStatementDataTarget(connection, statement.toString());
 	}
 
-	private TableDataTarget parseTableDataTarget(DatabaseConnection connection, boolean haveHeaders) throws IOException {
+	private TableDataTarget parseTableDataTarget(State s, DatabaseConnection connection, boolean haveHeaders) throws IOException {
 
 		if (!haveHeaders) {
 			throw new RuntimeException(KW.READ.name() + " " + KW.INTO.name() + " " + KW.TABLE.name() + " requires column headers");
 		}
 
-		Expression<String> table = parseStringExpression();
+		Expression<String> table = parseStringExpression(s);
 
 		Expression<String> prefix = null;
 		if (tokenizer.skipWordIgnoreCase(KW.PREFIX.name())) {
 			tokenizer.skipWordIgnoreCase(KW.WITH.name());
-			prefix = parseStringExpression();
+			prefix = parseStringExpression(s);
 		}
 
 		return new TableDataTarget(connection, table, prefix);
 	}
 
-	private VariableBase parseVariableReference() throws InputMismatchException, NoSuchElementException, IOException {
+	private VariableBase parseVariableReference(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
 		String name = tokenizer.nextWordUpperCase();
 		VariableBase variable = variables.get(name);
@@ -1930,22 +1895,22 @@ abstract class TaskSetParser {
 		return variable;
 	}
 
-	private PageIdentifierExpression parsePageIdentifier(boolean writeNotRead) throws IOException {
+	private PageIdentifierExpression parsePageIdentifier(State s, boolean writeNotRead) throws IOException {
 
 		String typeName = tokenizer.nextWordUpperCase();
 		FileHandler handler = FileHandler.get(typeName, writeNotRead);
-		Expression<String> filePath = parseStringExpression();
+		Expression<String> filePath = parseStringExpression(s);
 		if (!handler.getHasSheets()) {
 			return new FileIdentifierExpression(handler, filePath);
 		}
 		else {
-			Expression<String> sheetName = parseStringExpression();
+			Expression<String> sheetName = parseStringExpression(s);
 			tokenizer.skipWordIgnoreCase(KW.SHEET.name());
 			return new SheetIdentifierExpression(handler, filePath, sheetName);
 		}
 	}
 
-	private WriteHeaderExpressions parseWriteHeaders(String wordAfterHeaders) throws IOException {
+	private WriteHeaderExpressions parseWriteHeaders(State s, String wordAfterHeaders) throws IOException {
 
 		tokenizer.skipWordIgnoreCase(KW.WITH.name());
 		boolean noHeaders = tokenizer.skipWordIgnoreCase(KW.NO.name());
@@ -1954,7 +1919,7 @@ abstract class TaskSetParser {
 		ArrayList<Expression<String>> captions = new ArrayList<Expression<String>>();
 		if (!noHeaders && !tokenizer.hasNextWordIgnoreCase(wordAfterHeaders)) {
 			do {
-				captions.add(parseStringExpression());
+				captions.add(parseStringExpression(s));
 			} while (tokenizer.skipDelimiter(","));
 		}
 
@@ -1963,7 +1928,7 @@ abstract class TaskSetParser {
 		return new WriteHeaderExpressions(!noHeaders, headersFromMetadata, captions);
 	}
 
-	private ReadHeaderExpressions parseReadHeaders(String wordAfterHeaders) throws IOException {
+	private ReadHeaderExpressions parseReadHeaders(State s, String wordAfterHeaders) throws IOException {
 
 		boolean noHeaders = false;
 		boolean ignoreHeaders = tokenizer.skipWordIgnoreCase(KW.IGNORE.name());
@@ -1979,7 +1944,7 @@ abstract class TaskSetParser {
 		ArrayList<Expression<String>> captions = new ArrayList<Expression<String>>();
 		if (validateHeaders) {
 			do {
-				captions.add(parseStringExpression());
+				captions.add(parseStringExpression(s));
 			} while (tokenizer.skipDelimiter(","));
 
 			validateHeaders = (0 < captions.size());
@@ -1990,36 +1955,37 @@ abstract class TaskSetParser {
 		return new ReadHeaderExpressions(!noHeaders, validateHeaders, headersToMetadata, captions);
 	}
 
-	private ColumnExpressions parseColumns() throws IOException {
+	private ColumnExpressions parseColumns(State s) throws IOException {
 
 		ArrayList<ExpressionBase> columns = new ArrayList<ExpressionBase>();
 		if (tokenizer.skipWordIgnoreCase(KW.COLUMNS.name())) {
 			do {
-				columns.add(parseAnyExpression());
+				columns.add(parseAnyExpression(s));
 			} while (tokenizer.skipDelimiter(","));
 		}
 		return new ColumnExpressions(columns);
 	}
 
 	private void parseParameterizedStatement(
+			State s,
 			List<ExpressionBase> expressions,
 			StringBuilder statement) throws IOException {
 
 		if (tokenizer.skipWordIgnoreCase(KW.SUBSTITUTING.name())) {
 			do {
-				expressions.add(parseAnyExpression());
+				expressions.add(parseAnyExpression(s));
 			} while (tokenizer.skipDelimiter(","));
 			tokenizer.skipWordIgnoreCase(KW.INTO.name());
 		}
 
-		parseTokenizedStatement(statement);
+		parseTokenizedStatement(s, statement);
 	}
 
-	private void parseTokenizedStatement(StringBuilder statement) throws IOException {
+	private void parseTokenizedStatement(State s, StringBuilder statement) throws IOException {
 
 		BacktrackingTokenizerMark mark = tokenizer.mark();
 
-		while (!atEndOfSQL()) {
+		while (!atEndOfSQL(s)) {
 			Token nextToken = tokenizer.nextToken();
 			statement.append(nextToken.render());
 
@@ -2030,7 +1996,7 @@ abstract class TaskSetParser {
 		}
 	}
 
-	private Connection parseConnection() throws InputMismatchException, NoSuchElementException, IOException {
+	private Connection parseConnection(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
 		String name = tokenizer.nextWordUpperCase();
 		Connection connection = connections.get(name);
@@ -2040,23 +2006,23 @@ abstract class TaskSetParser {
 		return connection;
 	}
 
-	private DatabaseConnection parseDatabaseConnection(String introWord) throws InputMismatchException, NoSuchElementException, IOException {
+	private DatabaseConnection parseDatabaseConnection(State s, String introWord) throws InputMismatchException, NoSuchElementException, IOException {
 
 		if (introWord != null) {
 			tokenizer.skipWordIgnoreCase(introWord);
 		}
-		return (DatabaseConnection)parseOptionalConnection(KW.DATABASE.name(), DatabaseConnection.class.getName());
+		return (DatabaseConnection)parseOptionalConnection(s, KW.DATABASE.name(), DatabaseConnection.class.getName());
 	}
 
-	private FtpConnection parseFtpConnection() throws InputMismatchException, NoSuchElementException, IOException {
-		return (FtpConnection)parseOptionalConnection(KW.FTP.name(), FtpConnection.class.getName());
+	private FtpConnection parseFtpConnection(State s) throws InputMismatchException, NoSuchElementException, IOException {
+		return (FtpConnection)parseOptionalConnection(s, KW.FTP.name(), FtpConnection.class.getName());
 	}
 
-	private EmailConnection parseEmailConnection() throws InputMismatchException, NoSuchElementException, IOException {
-		return (EmailConnection)parseOptionalConnection(KW.EMAIL.name(), EmailConnection.class.getName());
+	private EmailConnection parseEmailConnection(State s) throws InputMismatchException, NoSuchElementException, IOException {
+		return (EmailConnection)parseOptionalConnection(s, KW.EMAIL.name(), EmailConnection.class.getName());
 	}
 
-	private Connection parseOptionalConnection(String typeName, String className) throws InputMismatchException, NoSuchElementException, IOException {
+	private Connection parseOptionalConnection(State s, String typeName, String className) throws InputMismatchException, NoSuchElementException, IOException {
 
 		Connection connection = null;
 		if (tokenizer.hasNextWord()) {
@@ -2066,7 +2032,7 @@ abstract class TaskSetParser {
 			else {
 				if (tokenizer.skipWordIgnoreCase(KW.CONNECTION.name())) {
 					// Connection name must be present.
-					connection = parseConnection();
+					connection = parseConnection(s);
 				}
 				else if (tokenizer.hasNextWord()) {
 					// Connection name may or may not be present.
@@ -2097,7 +2063,7 @@ abstract class TaskSetParser {
 	 * @throws UnsupportedOperationException if the file handler does not support the specified write or read operation.
 	 * @throws IOException
 	 */
-	private boolean hasFileType(boolean writeNotRead) throws IOException {
+	private boolean hasFileType(State s, boolean writeNotRead) throws IOException {
 
 		BacktrackingTokenizerMark mark = tokenizer.mark();
 		try {
@@ -2114,11 +2080,11 @@ abstract class TaskSetParser {
 		return true;
 	}
 
-	private boolean atEndOfTask() throws IOException {
-		return atEndOf(KW.TASK);
+	private boolean atEndOfTask(State s) throws IOException {
+		return atEndOf(s, KW.TASK);
 	}
 
-	private boolean atEndOf(KW keyword) throws IOException {
+	private boolean atEndOf(State s, KW keyword) throws IOException {
 
 		if (!tokenizer.hasNextWordIgnoreCase(KW.END.name())) {
 			return false;
@@ -2133,7 +2099,7 @@ abstract class TaskSetParser {
 		return result;
 	}
 
-	private boolean atStartOfTask() throws IOException {
+	private boolean atStartOfTask(State s) throws IOException {
 
 		if (!tokenizer.hasNextWordIgnoreCase(KW.TASK.name())) {
 			return false;
@@ -2148,8 +2114,8 @@ abstract class TaskSetParser {
 		return result;
 	}
 
-	private boolean atEndOrStartOfTask() throws IOException {
-		return atEndOfTask() || atStartOfTask();
+	private boolean atEndOrStartOfTask(State s) throws IOException {
+		return atEndOfTask(s) || atStartOfTask(s);
 	}
 
 	/**
@@ -2161,13 +2127,13 @@ abstract class TaskSetParser {
 	 * 3. "END SQL" is found; the tokenizer <b>is</b> advanced past "END SQL".
 	 * @throws IOException
 	 */
-	private boolean atEndOfSQL() throws IOException {
+	private boolean atEndOfSQL(State s) throws IOException {
 
-		if (atEndOrStartOfTask()) {
+		if (atEndOrStartOfTask(s)) {
 			return true;
 		}
 
-		boolean result = atEndOf(KW.SQL);
+		boolean result = atEndOf(s, KW.SQL);
 
 		if (result) {
 			tokenizer.nextToken();
@@ -2177,18 +2143,18 @@ abstract class TaskSetParser {
 		return result;
 	}
 
-	private ExpressionBase parseExpression(VariableType type)
+	private ExpressionBase parseExpression(State s, VariableType type)
 			throws InputMismatchException, NoSuchElementException, IOException {
 
 		ExpressionBase expression = null;
 		if (type == VariableType.INTEGER) {
-			expression = parseIntegerExpression();
+			expression = parseIntegerExpression(s);
 		}
 		else if (type == VariableType.VARCHAR) {
-			expression = parseStringExpression();
+			expression = parseStringExpression(s);
 		}
 		else if (type == VariableType.DATETIME) {
-			expression = parseDatetimeFromCompatibleExpression();
+			expression = parseDatetimeFromCompatibleExpression(s);
 		}
 		else {
 			throw new InputMismatchException("Internal error - variable type not recognized");
@@ -2197,26 +2163,26 @@ abstract class TaskSetParser {
 		return expression;
 	}
 
-	private ExpressionBase parseAnyExpression() {
+	private ExpressionBase parseAnyExpression(State s) {
 
 		BacktrackingTokenizerMark mark = tokenizer.mark();
 
-		try { return parseIntegerExpression(); }
+		try { return parseIntegerExpression(s); }
 		catch (Exception ex) { tokenizer.reset(mark); }
 
-		try { return parseStringExpression(); }
+		try { return parseStringExpression(s); }
 		catch (Exception ex) { tokenizer.reset(mark); }
 
-		try { return parseDatetimeExpression(); }
+		try { return parseDatetimeExpression(s); }
 		catch (Exception ex) { tokenizer.reset(mark); }
 
 		throw new InputMismatchException("Invalid expression");
 	}
 
 	@SuppressWarnings("unchecked")
-	private Expression<LocalDateTime> parseDatetimeFromCompatibleExpression() {
+	private Expression<LocalDateTime> parseDatetimeFromCompatibleExpression(State s) {
 
-		ExpressionBase expression = parseDatetimeCompatibleExpression();
+		ExpressionBase expression = parseDatetimeCompatibleExpression(s);
 
 		if (expression.getType() == VariableType.DATETIME) {
 			return (Expression<LocalDateTime>)expression;
@@ -2229,76 +2195,76 @@ abstract class TaskSetParser {
 		}
 	}
 
-	private ExpressionBase parseDatetimeCompatibleExpression() {
+	private ExpressionBase parseDatetimeCompatibleExpression(State s) {
 
 		BacktrackingTokenizerMark mark = tokenizer.mark();
 
-		try { return parseStringExpression(); }
+		try { return parseStringExpression(s); }
 		catch (Exception ex) { tokenizer.reset(mark); }
 
-		try { return parseDatetimeExpression(); }
+		try { return parseDatetimeExpression(s); }
 		catch (Exception ex) { tokenizer.reset(mark); }
 
 		throw new InputMismatchException("Invalid expression");
 	}
 
-	private ExpressionBase parseFormatableExpression() {
+	private ExpressionBase parseFormatableExpression(State s) {
 
 		BacktrackingTokenizerMark mark = tokenizer.mark();
 
-		try { return parseIntegerExpression(); }
+		try { return parseIntegerExpression(s); }
 		catch (Exception ex) { tokenizer.reset(mark); }
 
-		try { return parseDatetimeExpression(); }
+		try { return parseDatetimeExpression(s); }
 		catch (Exception ex) { tokenizer.reset(mark); }
 
 		throw new InputMismatchException("Invalid expression for use with " + KW.FORMAT.name());
 	}
 
-	private Expression<Boolean> parseBooleanExpression() throws IOException {
+	private Expression<Boolean> parseBooleanExpression(State s) throws IOException {
 
 		// See https://en.wikipedia.org/wiki/Recursive_descent_parser
 
-		Expression<Boolean> left = parseBooleanAnd();
+		Expression<Boolean> left = parseBooleanAnd(s);
 		while (tokenizer.skipWordIgnoreCase(KW.OR.name())) {
-			Expression<Boolean> right = parseBooleanAnd();
+			Expression<Boolean> right = parseBooleanAnd(s);
 			left = new BooleanBinary(left, right, Expression.Combination.or);
 		}
 		return left;
 	}
 
-	private Expression<Boolean> parseBooleanAnd() throws IOException {
+	private Expression<Boolean> parseBooleanAnd(State s) throws IOException {
 
-		Expression<Boolean> left = parseBooleanInvert();
+		Expression<Boolean> left = parseBooleanInvert(s);
 		while (tokenizer.skipWordIgnoreCase(KW.AND.name())) {
-			Expression<Boolean> right = parseBooleanInvert();
+			Expression<Boolean> right = parseBooleanInvert(s);
 			left = new BooleanBinary(left, right, Expression.Combination.and);
 		}
 		return left;
 	}
 
-	private Expression<Boolean> parseBooleanInvert() throws IOException {
+	private Expression<Boolean> parseBooleanInvert(State s) throws IOException {
 
 		boolean invert = false;
 		while (tokenizer.skipWordIgnoreCase(KW.NOT.name())) {
 			invert = !invert;
 		}
 
-		Expression<Boolean> term = parseBooleanTerm();
+		Expression<Boolean> term = parseBooleanTerm(s);
 
 		return invert ? new BooleanNot(term) : term;
 	}
 
 	@SuppressWarnings("unchecked")
-	private Expression<Boolean> parseBooleanTerm() throws IOException {
+	private Expression<Boolean> parseBooleanTerm(State s) throws IOException {
 
 		if (tokenizer.skipDelimiter("(")) {
-			Expression<Boolean> parenthesized = parseBooleanExpression();
+			Expression<Boolean> parenthesized = parseBooleanExpression(s);
 			tokenizer.nextDelimiter(")");
 			return parenthesized;
 		}
 
-		ExpressionBase left = parseAnyExpression();
+		ExpressionBase left = parseAnyExpression(s);
 
 		Expression.Comparison comparison =
 				tokenizer.skipDelimiter("<") ? Expression.Comparison.lt :
@@ -2325,15 +2291,15 @@ abstract class TaskSetParser {
 			}
 		}
 		else if (left.getType() == VariableType.INTEGER) {
-			Expression<Integer> rightInteger = parseIntegerExpression();
+			Expression<Integer> rightInteger = parseIntegerExpression(s);
 			return new BooleanFromIntegers((Expression<Integer>)left, rightInteger, comparison);
 		}
 		else if (left.getType() == VariableType.DATETIME) {
-			Expression<LocalDateTime> rightDatetime = parseDatetimeFromCompatibleExpression();
+			Expression<LocalDateTime> rightDatetime = parseDatetimeFromCompatibleExpression(s);
 			return new BooleanFromDatetimes((Expression<LocalDateTime>)left, rightDatetime, comparison);
 		}
 		else if (left.getType() == VariableType.VARCHAR) {
-			ExpressionBase right = parseDatetimeCompatibleExpression();
+			ExpressionBase right = parseDatetimeCompatibleExpression(s);
 
 			if (right.getType() == VariableType.VARCHAR) {
 				return new BooleanFromStrings((Expression<String>)left, (Expression<String>)right, comparison);
@@ -2351,24 +2317,24 @@ abstract class TaskSetParser {
 		}
 	}
 
-	Expression<Integer> parseIntegerExpression() throws IOException {
+	private Expression<Integer> parseIntegerExpression(State s) throws IOException {
 
-		Expression<Integer> left = parseIntegerAddend();
+		Expression<Integer> left = parseIntegerAddend(s);
 		IntegerBinary.Operator operator = null;
 		while ((operator =
 				tokenizer.skipDelimiter("+") ? IntegerBinary.Operator.add :
 				tokenizer.skipDelimiter("-") ? IntegerBinary.Operator.subtract :
 				null) != null ) {
 
-			Expression<Integer> right = parseIntegerAddend();
+			Expression<Integer> right = parseIntegerAddend(s);
 			left = new IntegerBinary(left, right, operator);
 		}
 		return left;
 	}
 
-	private Expression<Integer> parseIntegerAddend() throws IOException {
+	private Expression<Integer> parseIntegerAddend(State s) throws IOException {
 
-		Expression<Integer> left = parseIntegerFactor();
+		Expression<Integer> left = parseIntegerFactor(s);
 		IntegerBinary.Operator operator = null;
 		while ((operator =
 				tokenizer.skipDelimiter("*") ? IntegerBinary.Operator.multiply :
@@ -2376,13 +2342,13 @@ abstract class TaskSetParser {
 				tokenizer.skipDelimiter("%") ? IntegerBinary.Operator.modulo :
 				null) != null ) {
 
-			Expression<Integer> right = parseIntegerFactor();
+			Expression<Integer> right = parseIntegerFactor(s);
 			left = new IntegerBinary(left, right, operator);
 		}
 		return left;
 	}
 
-	private Expression<Integer> parseIntegerFactor() throws IOException {
+	private Expression<Integer> parseIntegerFactor(State s) throws IOException {
 
 		boolean negate = false;
 		IntegerBinary.Operator operator = null;
@@ -2395,12 +2361,12 @@ abstract class TaskSetParser {
 			}
 		}
 
-		Expression<Integer> term = parseIntegerTerm();
+		Expression<Integer> term = parseIntegerTerm(s);
 
 		return negate ? new IntegerBinary(new IntegerConstant(0), term, IntegerBinary.Operator.subtract) : term;
 	}
 
-	private Expression<Integer> parseIntegerTerm()
+	private Expression<Integer> parseIntegerTerm(State s)
 			throws InputMismatchException, NoSuchElementException, IOException {
 
 		if (tokenizer.hasNextInt()) {
@@ -2410,16 +2376,16 @@ abstract class TaskSetParser {
 			return new IntegerConstant(null);
 		}
 		else if (tokenizer.skipWordIgnoreCase(KW.CASE.name())) {
-			return integerTermParser.parseCase();
+			return integerTermParser.parseCase(s);
 		}
-		else if (hasNextFunction()) {
+		else if (hasNextFunction(s)) {
 			String name = tokenizer.nextWordUpperCase();
 
 			FunctionParser<Integer> functionParser = integerFunctionParsers.get(name);
 			if (functionParser != null) {
 
 				tokenizer.skipDelimiter("(");
-				Expression<Integer> result = functionParser.parse();
+				Expression<Integer> result = functionParser.parse(s);
 				tokenizer.skipDelimiter(")");
 
 				return result;
@@ -2428,11 +2394,11 @@ abstract class TaskSetParser {
 				throw new InputMismatchException("Unrecognized " + KW.INTEGER.name() + " function: " + name);
 			}
 		}
-		else if (hasNextVariable()) {
-			return integerTermParser.parseReference();
+		else if (hasNextVariable(s)) {
+			return integerTermParser.parseReference(s);
 		}
 		else if (tokenizer.skipDelimiter("(")) {
-			return integerTermParser.parseParenthesized();
+			return integerTermParser.parseParenthesized(s);
 		}
 		else {
 			throw new InputMismatchException("Invalid " + KW.INTEGER.name() + " expression term: " + tokenizer.nextToken().getImage());
@@ -2441,7 +2407,7 @@ abstract class TaskSetParser {
 
 	private class DatePartParser implements FunctionParser<Integer> {
 
-		public Expression<Integer> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<Integer> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
 			ChronoField field =
 					tokenizer.skipWordIgnoreCase(KW.YEAR.name()) ? ChronoField.YEAR :
@@ -2457,7 +2423,7 @@ abstract class TaskSetParser {
 			}
 
 			tokenizer.skipDelimiter(",");
-			Expression<LocalDateTime> datetime = parseDatetimeExpression();
+			Expression<LocalDateTime> datetime = parseDatetimeExpression(s);
 
 			return new IntegerFromDatetime(datetime, field);
 		}
@@ -2465,14 +2431,14 @@ abstract class TaskSetParser {
 
 	private class CharIndexParser implements FunctionParser<Integer> {
 
-		public Expression<Integer> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<Integer> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
-			Expression<String> toFind = parseStringExpression();
+			Expression<String> toFind = parseStringExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<String> toSearch = parseStringExpression();
+			Expression<String> toSearch = parseStringExpression(s);
 			Expression<Integer> startIndex = null;
 			if (tokenizer.skipDelimiter(",")) {
-				startIndex = parseIntegerExpression();
+				startIndex = parseIntegerExpression(s);
 			}
 
 			return new CharIndex(toFind, toSearch, startIndex);
@@ -2481,25 +2447,25 @@ abstract class TaskSetParser {
 
 	private class LengthParser implements FunctionParser<Integer> {
 
-		public Expression<Integer> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<Integer> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
-			Expression<String> string = parseStringExpression();
+			Expression<String> string = parseStringExpression(s);
 
 			return new Length(string);
 		}
 	}
 
-	private Expression<String> parseStringExpression() throws IOException {
+	private Expression<String> parseStringExpression(State s) throws IOException {
 
-		Expression<String> left = parseStringTerm();
+		Expression<String> left = parseStringTerm(s);
 		while (tokenizer.skipDelimiter("+")) {
-			Expression<String> right = parseStringTerm();
+			Expression<String> right = parseStringTerm(s);
 			left = new StringConcat(left, right);
 		}
 		return left;
 	}
 
-	private Expression<String> parseStringTerm()
+	private Expression<String> parseStringTerm(State s)
 			throws InputMismatchException, NoSuchElementException, IOException {
 
 		if (tokenizer.hasNextQuoted()) {
@@ -2509,16 +2475,16 @@ abstract class TaskSetParser {
 			return new StringConstant(null);
 		}
 		else if (tokenizer.skipWordIgnoreCase(KW.CASE.name())) {
-			return stringTermParser.parseCase();
+			return stringTermParser.parseCase(s);
 		}
-		else if (hasNextFunction()) {
+		else if (hasNextFunction(s)) {
 			String name = tokenizer.nextWordUpperCase();
 
 			FunctionParser<String> functionParser = stringFunctionParsers.get(name);
 			if (functionParser != null) {
 
 				tokenizer.skipDelimiter("(");
-				Expression<String> result = functionParser.parse();
+				Expression<String> result = functionParser.parse(s);
 				tokenizer.skipDelimiter(")");
 
 				return result;
@@ -2527,11 +2493,11 @@ abstract class TaskSetParser {
 				throw new InputMismatchException("Unrecognized " + KW.VARCHAR.name() + " function: " + name);
 			}
 		}
-		else if (hasNextVariable()) {
-			return stringTermParser.parseReference();
+		else if (hasNextVariable(s)) {
+			return stringTermParser.parseReference(s);
 		}
 		else if (tokenizer.skipDelimiter("(")) {
-			return stringTermParser.parseParenthesized();
+			return stringTermParser.parseParenthesized(s);
 		}
 		else {
 			throw new InputMismatchException("Invalid " + KW.VARCHAR.name() + " expression term: " + tokenizer.nextToken().getImage());
@@ -2541,11 +2507,11 @@ abstract class TaskSetParser {
 	private class FormatParser implements FunctionParser<String> {
 
 		@SuppressWarnings("unchecked")
-		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<String> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
-			ExpressionBase source = parseFormatableExpression();
+			ExpressionBase source = parseFormatableExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<String> format = parseStringExpression();
+			Expression<String> format = parseStringExpression(s);
 
 			if (source.getType() == VariableType.INTEGER) {
 				return new StringFromInteger((Expression<Integer>)source, format);
@@ -2561,11 +2527,11 @@ abstract class TaskSetParser {
 
 	private class LeftParser implements FunctionParser<String> {
 
-		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<String> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
-			Expression<String> string = parseStringExpression();
+			Expression<String> string = parseStringExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<Integer> length = parseIntegerExpression();
+			Expression<Integer> length = parseIntegerExpression(s);
 
 			return new Left(string, length);
 		}
@@ -2573,9 +2539,9 @@ abstract class TaskSetParser {
 
 	private class LeftTrimParser implements FunctionParser<String> {
 
-		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<String> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
-			Expression<String> string = parseStringExpression();
+			Expression<String> string = parseStringExpression(s);
 
 			return new LeftTrim(string);
 		}
@@ -2583,9 +2549,9 @@ abstract class TaskSetParser {
 
 	private class LowerParser implements FunctionParser<String> {
 
-		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<String> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
-			Expression<String> string = parseStringExpression();
+			Expression<String> string = parseStringExpression(s);
 
 			return new Lower(string);
 		}
@@ -2593,13 +2559,13 @@ abstract class TaskSetParser {
 
 	private class ReplaceParser implements FunctionParser<String> {
 
-		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<String> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
-			Expression<String> string = parseStringExpression();
+			Expression<String> string = parseStringExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<String> pattern = parseStringExpression();
+			Expression<String> pattern = parseStringExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<String> replacement = parseStringExpression();
+			Expression<String> replacement = parseStringExpression(s);
 
 			return new Replace(string, pattern, replacement);
 		}
@@ -2607,11 +2573,11 @@ abstract class TaskSetParser {
 
 	private class ReplicateParser implements FunctionParser<String> {
 
-		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<String> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
-			Expression<String> string = parseStringExpression();
+			Expression<String> string = parseStringExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<Integer> repeats = parseIntegerExpression();
+			Expression<Integer> repeats = parseIntegerExpression(s);
 
 			return new Replicate(string, repeats);
 		}
@@ -2619,11 +2585,11 @@ abstract class TaskSetParser {
 
 	private class RightParser implements FunctionParser<String> {
 
-		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<String> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
-			Expression<String> string = parseStringExpression();
+			Expression<String> string = parseStringExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<Integer> length = parseIntegerExpression();
+			Expression<Integer> length = parseIntegerExpression(s);
 
 			return new Right(string, length);
 		}
@@ -2631,9 +2597,9 @@ abstract class TaskSetParser {
 
 	private class RightTrimParser implements FunctionParser<String> {
 
-		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<String> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
-			Expression<String> string = parseStringExpression();
+			Expression<String> string = parseStringExpression(s);
 
 			return new RightTrim(string);
 		}
@@ -2641,9 +2607,9 @@ abstract class TaskSetParser {
 
 	private class SpaceParser implements FunctionParser<String> {
 
-		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<String> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
-			Expression<Integer> repeats = parseIntegerExpression();
+			Expression<Integer> repeats = parseIntegerExpression(s);
 
 			return new Space(repeats);
 		}
@@ -2651,13 +2617,13 @@ abstract class TaskSetParser {
 
 	private class SubstringParser implements FunctionParser<String> {
 
-		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<String> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
-			Expression<String> string = parseStringExpression();
+			Expression<String> string = parseStringExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<Integer> start = parseIntegerExpression();
+			Expression<Integer> start = parseIntegerExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<Integer> length = parseIntegerExpression();
+			Expression<Integer> length = parseIntegerExpression(s);
 
 			return new Substring(string, start, length);
 		}
@@ -2665,9 +2631,9 @@ abstract class TaskSetParser {
 
 	private class UpperParser implements FunctionParser<String> {
 
-		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<String> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
-			Expression<String> string = parseStringExpression();
+			Expression<String> string = parseStringExpression(s);
 
 			return new Upper(string);
 		}
@@ -2675,21 +2641,21 @@ abstract class TaskSetParser {
 
 	private class ErrorMessageParser implements FunctionParser<String> {
 
-		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
-			return new ErrorMessage(taskReference);
+		public Expression<String> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
+			return new ErrorMessage(s.getTaskReference());
 		}
 	}
 
-	private Expression<LocalDateTime> parseDatetimeExpression()
+	private Expression<LocalDateTime> parseDatetimeExpression(State s)
 			throws InputMismatchException, NoSuchElementException, IOException {
 
 		if (tokenizer.skipWordIgnoreCase(KW.NULL.name())) {
 			return new DatetimeConstant(null);
 		}
 		else if (tokenizer.skipWordIgnoreCase(KW.CASE.name())) {
-			return datetimeTermParser.parseCase();
+			return datetimeTermParser.parseCase(s);
 		}
-		else if (hasNextFunction()) {
+		else if (hasNextFunction(s)) {
 			BacktrackingTokenizerMark mark = tokenizer.mark();
 			String name = tokenizer.nextWordUpperCase();
 
@@ -2697,7 +2663,7 @@ abstract class TaskSetParser {
 			if (functionParser != null) {
 
 				tokenizer.skipDelimiter("(");
-				Expression<LocalDateTime> result = functionParser.parse();
+				Expression<LocalDateTime> result = functionParser.parse(s);
 				tokenizer.skipDelimiter(")");
 
 				return result;
@@ -2708,7 +2674,7 @@ abstract class TaskSetParser {
 				tokenizer.reset(mark);
 
 				try {
-					Expression<String> expression = parseStringExpression();
+					Expression<String> expression = parseStringExpression(s);
 					return new DatetimeFromString(expression);
 				}
 				catch (Exception ex) { tokenizer.reset(mark); }
@@ -2717,7 +2683,7 @@ abstract class TaskSetParser {
 			}
 		}
 		else if (tokenizer.skipDelimiter("(")) {
-			return datetimeTermParser.parseParenthesized();
+			return datetimeTermParser.parseParenthesized(s);
 		}
 		else {
 			// Could be a string expression or a single datetime variable reference
@@ -2725,13 +2691,13 @@ abstract class TaskSetParser {
 			BacktrackingTokenizerMark mark = tokenizer.mark();
 
 			try {
-				Expression<String> expression = parseStringExpression();
+				Expression<String> expression = parseStringExpression(s);
 				return new DatetimeFromString(expression);
 			}
 			catch (Exception ex) { tokenizer.reset(mark); }
 
-			if (hasNextVariable()) {
-				return datetimeTermParser.parseReference();
+			if (hasNextVariable(s)) {
+				return datetimeTermParser.parseReference(s);
 			}
 			else {
 				throw new InputMismatchException("Invalid " + KW.DATETIME.name() + " expression term: " + tokenizer.nextToken().getImage());
@@ -2741,14 +2707,14 @@ abstract class TaskSetParser {
 
 	private class GetDateParser implements FunctionParser<LocalDateTime> {
 
-		public Expression<LocalDateTime> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<LocalDateTime> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 			return new DatetimeNullary();
 		}
 	}
 
 	private class DateAddParser implements FunctionParser<LocalDateTime> {
 
-		public Expression<LocalDateTime> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<LocalDateTime> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
 			ChronoUnit unit =
 					tokenizer.skipWordIgnoreCase(KW.YEAR.name()) ? ChronoUnit.YEARS :
@@ -2763,9 +2729,9 @@ abstract class TaskSetParser {
 			}
 
 			tokenizer.skipDelimiter(",");
-			Expression<Integer> increment = parseIntegerExpression();
+			Expression<Integer> increment = parseIntegerExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<LocalDateTime> datetime = parseDatetimeExpression();
+			Expression<LocalDateTime> datetime = parseDatetimeExpression(s);
 
 			return new DatetimeAdd(datetime, unit, increment);
 		}
@@ -2773,13 +2739,13 @@ abstract class TaskSetParser {
 
 	private class DateFromPartsParser implements FunctionParser<LocalDateTime> {
 
-		public Expression<LocalDateTime> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<LocalDateTime> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
-			Expression<Integer> year = parseIntegerExpression();
+			Expression<Integer> year = parseIntegerExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<Integer> month = parseIntegerExpression();
+			Expression<Integer> month = parseIntegerExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<Integer> day = parseIntegerExpression();
+			Expression<Integer> day = parseIntegerExpression(s);
 
 			return new DateFromParts(year, month, day);
 		}
@@ -2787,26 +2753,26 @@ abstract class TaskSetParser {
 
 	private class DateTimeFromPartsParser implements FunctionParser<LocalDateTime> {
 
-		public Expression<LocalDateTime> parse() throws InputMismatchException, NoSuchElementException, IOException {
+		public Expression<LocalDateTime> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
-			Expression<Integer> year = parseIntegerExpression();
+			Expression<Integer> year = parseIntegerExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<Integer> month = parseIntegerExpression();
+			Expression<Integer> month = parseIntegerExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<Integer> day = parseIntegerExpression();
-			Expression<Integer> hour = parseIntegerExpression();
+			Expression<Integer> day = parseIntegerExpression(s);
+			Expression<Integer> hour = parseIntegerExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<Integer> minute = parseIntegerExpression();
+			Expression<Integer> minute = parseIntegerExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<Integer> seconds = parseIntegerExpression();
+			Expression<Integer> seconds = parseIntegerExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<Integer> milliseconds = parseIntegerExpression();
+			Expression<Integer> milliseconds = parseIntegerExpression(s);
 
 			return new DatetimeFromParts(year, month, day, hour, minute, seconds, milliseconds);
 		}
 	}
 
-	private boolean hasNextFunction() throws IOException {
+	private boolean hasNextFunction(State s) throws IOException {
 
 		boolean isFunction = false;
 		BacktrackingTokenizerMark mark = tokenizer.mark();
@@ -2822,7 +2788,7 @@ abstract class TaskSetParser {
 		return isFunction;
 	}
 
-	private boolean hasNextVariable() throws IOException {
+	private boolean hasNextVariable(State s) throws IOException {
 
 		if (!tokenizer.hasNextWord()) {
 			return false;
@@ -2838,10 +2804,10 @@ abstract class TaskSetParser {
 	}
 
 	interface FunctionParser<Type> {
-		Expression<Type> parse() throws InputMismatchException, NoSuchElementException, IOException;
+		Expression<Type> parse(State s) throws InputMismatchException, NoSuchElementException, IOException;
 	}
 
-	class IsNullParser<Type> implements FunctionParser<Type> {
+	private class IsNullParser<Type> implements FunctionParser<Type> {
 
 		private TermParser<Type> termParser;
 
@@ -2850,12 +2816,12 @@ abstract class TaskSetParser {
 		}
 
 		@Override
-		public Expression<Type> parse() throws InputMismatchException, NoSuchElementException, IOException {
-			return termParser.parseIsNull();
+		public Expression<Type> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
+			return termParser.parseIsNull(s);
 		}
 	}
 
-	class IfParser<Type> implements FunctionParser<Type> {
+	private class IfParser<Type> implements FunctionParser<Type> {
 
 		private TermParser<Type> termParser;
 
@@ -2864,12 +2830,12 @@ abstract class TaskSetParser {
 		}
 
 		@Override
-		public Expression<Type> parse() throws InputMismatchException, NoSuchElementException, IOException {
-			return termParser.parseIf();
+		public Expression<Type> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
+			return termParser.parseIf(s);
 		}
 	}
 
-	class ChooseParser<Type> implements FunctionParser<Type> {
+	private class ChooseParser<Type> implements FunctionParser<Type> {
 
 		private TermParser<Type> termParser;
 
@@ -2878,12 +2844,12 @@ abstract class TaskSetParser {
 		}
 
 		@Override
-		public Expression<Type> parse() throws InputMismatchException, NoSuchElementException, IOException {
-			return termParser.parseChoose();
+		public Expression<Type> parse(State s) throws InputMismatchException, NoSuchElementException, IOException {
+			return termParser.parseChoose(s);
 		}
 	}
 
-	abstract class TermParser<Type> {
+	private abstract class TermParser<Type> {
 
 		private VariableType type;
 
@@ -2891,54 +2857,54 @@ abstract class TaskSetParser {
 			this.type = type;
 		}
 
-		public abstract Expression<Type> parseExpression() throws IOException;
+		public abstract Expression<Type> parseExpression(State s) throws IOException;
 
-		public Expression<Type> parseIsNull() throws IOException {
+		public Expression<Type> parseIsNull(State s) throws IOException {
 
-			Expression<Type> left = parseExpression();
+			Expression<Type> left = parseExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<Type> right = parseExpression();
+			Expression<Type> right = parseExpression(s);
 
 			return new NullReplace<Type>(left, right);
 		}
 
-		public Expression<Type> parseIf()
+		public Expression<Type> parseIf(State s)
 				throws InputMismatchException, NoSuchElementException, IOException {
 
-			Expression<Boolean> condition = parseBooleanExpression();
+			Expression<Boolean> condition = parseBooleanExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<Type> left = parseExpression();
+			Expression<Type> left = parseExpression(s);
 			tokenizer.skipDelimiter(",");
-			Expression<Type> right = parseExpression();
+			Expression<Type> right = parseExpression(s);
 
 			return new IfExpression<Type>(condition, left, right);
 		}
 
-		public Expression<Type> parseCase() throws IOException {
+		public Expression<Type> parseCase(State s) throws IOException {
 
 			Expression<Type> result;
 			if (tokenizer.skipWordIgnoreCase(KW.WHEN.name())) {
-				result = parseSearchedCase();
+				result = parseSearchedCase(s);
 			}
 			else {
-				result = parseSimpleCase();
+				result = parseSimpleCase(s);
 			}
 
-			skipKeywordOrFail(KW.END);
+			skipKeywordOrFail(s, KW.END);
 
 			return result;
 		}
 
-		private Expression<Type> parseSearchedCase() throws IOException {
+		private Expression<Type> parseSearchedCase(State s) throws IOException {
 
 			List<Map.Entry<Expression<Boolean>, Expression<Type>>> whenClauses = new LinkedList<Map.Entry<Expression<Boolean>, Expression<Type>>>();
 
 			do {
-				Expression<Boolean> when = parseBooleanExpression();
+				Expression<Boolean> when = parseBooleanExpression(s);
 
-				skipKeywordOrFail(KW.THEN);
+				skipKeywordOrFail(s, KW.THEN);
 
-				Expression<Type> result = parseExpression();
+				Expression<Type> result = parseExpression(s);
 
 				whenClauses.add(new SimpleEntry<Expression<Boolean>, Expression<Type>>(when, result));
 
@@ -2947,26 +2913,26 @@ abstract class TaskSetParser {
 
 			Expression<Type> elseResult = null;
 			if (tokenizer.skipWordIgnoreCase(KW.ELSE.name())) {
-				elseResult = parseExpression();
+				elseResult = parseExpression(s);
 			}
 
 			return new SearchedCase<Type>(whenClauses, elseResult);
 		}
 
-		private Expression<Type> parseSimpleCase() throws InputMismatchException, NoSuchElementException, IOException {
+		private Expression<Type> parseSimpleCase(State s) throws InputMismatchException, NoSuchElementException, IOException {
 
-			ExpressionBase input = parseAnyExpression();
+			ExpressionBase input = parseAnyExpression(s);
 
-			skipKeywordOrFail(KW.WHEN);
+			skipKeywordOrFail(s, KW.WHEN);
 
 			List<Map.Entry<ExpressionBase, Expression<Type>>> whenClauses = new LinkedList<Map.Entry<ExpressionBase, Expression<Type>>>();
 
 			do {
-				ExpressionBase when = thisTaskParser.parseExpression(input.getType());
+				ExpressionBase when = thisTaskSetParser.parseExpression(s, input.getType());
 
-				skipKeywordOrFail(KW.THEN);
+				skipKeywordOrFail(s, KW.THEN);
 
-				Expression<Type> result = parseExpression();
+				Expression<Type> result = parseExpression(s);
 
 				whenClauses.add(new SimpleEntry<ExpressionBase, Expression<Type>>(when, result));
 
@@ -2975,51 +2941,51 @@ abstract class TaskSetParser {
 
 			Expression<Type> elseResult = null;
 			if (tokenizer.skipWordIgnoreCase(KW.ELSE.name())) {
-				elseResult = parseExpression();
+				elseResult = parseExpression(s);
 			}
 
 			return new SimpleCase<Type>(input, whenClauses, elseResult);
 		}
 
-		private void skipKeywordOrFail(KW keyword) throws InputMismatchException, IOException {
+		private void skipKeywordOrFail(State s, KW keyword) throws InputMismatchException, IOException {
 
 			if (!tokenizer.skipWordIgnoreCase(keyword.name())) {
 				throw new InputMismatchException("Expecting " + KW.WHEN.name() + ", found " + tokenizer.nextToken().getImage());
 			}
 		}
 
-		public Expression<Type> parseChoose()
+		public Expression<Type> parseChoose(State s)
 				throws InputMismatchException, NoSuchElementException, IOException {
 
-			Expression<Integer> index = parseIntegerExpression();
+			Expression<Integer> index = parseIntegerExpression(s);
 
 			tokenizer.nextDelimiter(",");
 
 			List<Expression<Type>> expressions = new ArrayList<Expression<Type>>();
 			do {
-				Expression<Type> expression = parseExpression();
+				Expression<Type> expression = parseExpression(s);
 				expressions.add(expression);
 			} while (tokenizer.skipDelimiter(","));
 
 			return new Choose<Type>(index, expressions);
 		}
 
-		public Expression<Type> parseReference()
+		public Expression<Type> parseReference(State s)
 				throws InputMismatchException, NoSuchElementException, IOException {
 
-			Variable<Type> variable = parseVariable(type);
+			Variable<Type> variable = parseVariable(s, type);
 			return new Reference<Type>((Variable<Type>)variable);
 		}
 
-		public Expression<Type> parseParenthesized() throws IOException {
+		public Expression<Type> parseParenthesized(State s) throws IOException {
 
-			Expression<Type> parenthesized = parseExpression();
+			Expression<Type> parenthesized = parseExpression(s);
 			tokenizer.nextDelimiter(")");
 			return parenthesized;
 		}
 
 		@SuppressWarnings("unchecked")
-		private Variable<Type> parseVariable(VariableType type)
+		private Variable<Type> parseVariable(State s, VariableType type)
 				throws InputMismatchException, NoSuchElementException, IOException {
 
 			String name = tokenizer.nextWordUpperCase();
