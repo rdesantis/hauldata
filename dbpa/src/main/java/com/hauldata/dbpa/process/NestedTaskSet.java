@@ -33,7 +33,7 @@ public class NestedTaskSet extends TaskSet {
 	 */
 	public static NestedTaskSet parse(TaskSetParser parser, Task parentTask) throws IOException, NamingException {
 
-		Map<String, Task> tasks = parser.parseTasks(new TaskSetParser.State(parentTask));
+		Map<String, Task> tasks = parser.parseTasks(parentTask);
 
 		return new NestedTaskSet(tasks);
 	}

@@ -333,7 +333,7 @@ abstract class TaskSetParser {
 	protected Map<String, VariableBase> variables;
 	protected Map<String, Connection> connections;
 
-	protected static class State {
+	private static class State {
 
 		private Task parentTask;
 		private Task.Reference taskReference;
@@ -492,10 +492,10 @@ abstract class TaskSetParser {
 	 * @throws NameAlreadyBoundException
 	 * @throws NamingException
 	 */
-	 public Map<String, Task> parseTasks(State s)
+	 public Map<String, Task> parseTasks(Task parentTask)
 			throws IOException, InputMismatchException, NoSuchElementException, NameNotFoundException, NameAlreadyBoundException, NamingException {
 
-		states.addFirst(s);
+		states.addFirst(new State(parentTask));
 
 		Map<String, Task> tasks = new HashMap<String, Task>();
 

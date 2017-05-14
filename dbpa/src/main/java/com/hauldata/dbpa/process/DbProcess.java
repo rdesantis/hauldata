@@ -224,13 +224,11 @@ class DbProcessParser extends TaskSetParser {
 
 		Map<String, Task> tasks;
 		try {
-			State s = new State(null);
-
 			parseParameters(parameters);
 			parseVariables();
 			parseConnections();
 
-			tasks = parseTasks(s);
+			tasks = parseTasks(null);
 
 			if (tokenizer.hasNext()) {
 				throw new RuntimeException("Unexpected token where " + KW.TASK.name() + " is expected");
