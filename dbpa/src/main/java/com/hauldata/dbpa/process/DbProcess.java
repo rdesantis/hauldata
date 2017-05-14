@@ -226,9 +226,9 @@ class DbProcessParser extends TaskSetParser {
 		try {
 			State s = new State(null);
 
-			parseParameters(s, parameters);
-			parseVariables(s);
-			parseConnections(s);
+			parseParameters(parameters);
+			parseVariables();
+			parseConnections();
 
 			tasks = parseTasks(s);
 
@@ -248,33 +248,33 @@ class DbProcessParser extends TaskSetParser {
 		return new DbProcess(parameters, variables, connections, tasks);
 	}
 
-	private void parseParameters(State s, List<VariableBase> parameters)
+	private void parseParameters(List<VariableBase> parameters)
 			throws IOException, InputMismatchException, NoSuchElementException, NameAlreadyBoundException {
 
 		String section = KW.PARAMETERS.name();
 		if (tokenizer.skipWordIgnoreCase(section)) {
 
-			do { parameters.add(parseVariable(s));
+			do { parameters.add(parseVariable());
 			} while (tokenizer.skipDelimiter(","));
 
-			nextEnd(s, section);
+			nextEnd(section);
 		}
 	}
 
-	private void parseVariables(State s)
+	private void parseVariables()
 			throws IOException, InputMismatchException, NoSuchElementException, NameAlreadyBoundException {
 
 		String section = KW.VARIABLES.name();
 		if (tokenizer.skipWordIgnoreCase(section)) {
 
-			do { parseVariable(s);
+			do { parseVariable();
 			} while (tokenizer.skipDelimiter(","));
 
-			nextEnd(s, section);
+			nextEnd(section);
 		}
 	}
 
-	private VariableBase parseVariable(State s)
+	private VariableBase parseVariable()
 			throws InputMismatchException, NoSuchElementException, IOException, NameAlreadyBoundException {
 
 		String name = tokenizer.nextWordUpperCase();
@@ -285,7 +285,7 @@ class DbProcessParser extends TaskSetParser {
 			throw new NameAlreadyBoundException("Cannot use reserved word as a variable name: " + name);
 		}
 
-		VariableType type = parseType(s);
+		VariableType type = parseType();
 
 		VariableBase variable = new Variable<Object>(name, type);
 		variables.put(name, variable);
@@ -300,7 +300,7 @@ class DbProcessParser extends TaskSetParser {
 	 * @throws InputMismatchException
 	 * @throws IOException
 	 */
-	private VariableType parseType(State s) throws InputMismatchException, IOException {
+	private VariableType parseType() throws InputMismatchException, IOException {
 
 		String type = tokenizer.nextWordUpperCase();
 
@@ -323,20 +323,20 @@ class DbProcessParser extends TaskSetParser {
 		}
 	}
 
-	private void parseConnections(State s)
+	private void parseConnections()
 			throws IOException, InputMismatchException, NoSuchElementException, NameAlreadyBoundException {
 
 		String section = KW.CONNECTIONS.name();
 		if (tokenizer.skipWordIgnoreCase(section)) {
 
-			do { parseConnection(s);
+			do { parseConnection();
 			} while (tokenizer.skipDelimiter(","));
 
-			nextEnd(s, section);
+			nextEnd(section);
 		}
 	}
 
-	private void parseConnection(State s)
+	private void parseConnection()
 			throws InputMismatchException, NoSuchElementException, IOException, NameAlreadyBoundException {
 
 		String name = tokenizer.nextWordUpperCase();
