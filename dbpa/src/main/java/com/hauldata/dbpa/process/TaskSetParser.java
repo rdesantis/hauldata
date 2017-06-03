@@ -362,6 +362,14 @@ abstract class TaskSetParser {
 
 	Deque<State> states;
 
+	private void initializeState() { states = new LinkedList<State>(); }
+	private void pushState(Task parentTask) { states.addFirst(new State(parentTask)); }
+	private void prepareTaskReference() { states.peekFirst().prepareTaskReference(); }
+	private Task.Reference getTaskReference() { return states.peekFirst().getTaskReference(); }
+	private void resolveTaskReference(Task task) { states.peekFirst().resolveTaskReference(task); }
+	private Task getParentTask() { return states.peekFirst().getParentTask(); }
+	private void popState() { states.removeFirst(); }
+
 	/**
 	 * Constructor.
 	 */
@@ -470,7 +478,7 @@ abstract class TaskSetParser {
 		this.variables = variables;
 		this.connections = connections;
 
-		states = new LinkedList<State>();
+		initializeState();
 
 		CsvFile.registerHandler(KW.CSV.name());
 		TsvFile.registerHandler(KW.TSV.name());
@@ -495,7 +503,7 @@ abstract class TaskSetParser {
 	 public Map<String, Task> parseTasks(Task parentTask)
 			throws IOException, InputMismatchException, NoSuchElementException, NameNotFoundException, NameAlreadyBoundException, NamingException {
 
-		states.addFirst(new State(parentTask));
+		pushState(parentTask);
 
 		Map<String, Task> tasks = new HashMap<String, Task>();
 
@@ -515,7 +523,7 @@ abstract class TaskSetParser {
 
 		determineSuccessors(tasks);
 
-		states.removeFirst();
+		popState();
 
 		return tasks;
 	}
@@ -594,11 +602,11 @@ abstract class TaskSetParser {
 			throw new InputMismatchException("Invalid " + KW.TASK.name() +" type: " + taskTypeName);
 		}
 
-		states.peekFirst().prepareTaskReference();
+		prepareTaskReference();
 
-		Task task = parser.parse(new Task.Prologue(name, predecessors, combination, condition, states.peekFirst().getParentTask()));
+		Task task = parser.parse(new Task.Prologue(name, predecessors, combination, condition, getParentTask()));
 
-		states.peekFirst().resolveTaskReference(task);
+		resolveTaskReference(task);
 
 		nextEnd(section);
 
@@ -2643,7 +2651,7 @@ abstract class TaskSetParser {
 	private class ErrorMessageParser implements FunctionParser<String> {
 
 		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
-			return new ErrorMessage(states.peekFirst().getTaskReference());
+			return new ErrorMessage(getTaskReference());
 		}
 	}
 
