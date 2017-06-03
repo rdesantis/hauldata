@@ -24,15 +24,12 @@ public class ChildContext extends Context {
 
 		logger = parent.logger.nestProcess(childName);
 
-		files = new Files();
-
 		rootExecutor = executor;
 	}
 
 	@Override
 	public void close() {
 		try { executor.close(); } catch (Exception ex) {}
-		try { files.assureAllClosed(); } catch (Exception ex) {}
 		try { logger.close(); } catch (Exception ex) {}
 	}
 }

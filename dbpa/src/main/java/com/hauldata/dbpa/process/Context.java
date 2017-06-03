@@ -142,6 +142,8 @@ public class Context {
 		pathProps = context.pathProps;
 		loader = context.loader;
 
+		files = context.files;
+
 		executor = new TaskExecutor();
 
 		readParent = context.readParent;

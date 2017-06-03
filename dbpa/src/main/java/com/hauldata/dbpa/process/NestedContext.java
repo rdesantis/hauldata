@@ -24,13 +24,12 @@ public class NestedContext extends Context {
 
 		logger = owner.logger.nestTask(nestedName);
 
-		files = owner.files;
-
 		rootExecutor = owner.rootExecutor;
 	}
 
 	@Override
 	public void close() {
 		try { executor.close(); } catch (Exception ex) {}
+		try { logger.close(); } catch (Exception ex) {}
 	}
 }
