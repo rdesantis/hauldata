@@ -136,6 +136,7 @@ abstract class TaskSetParser {
 		WAITFOR,
 		CONNECT,
 		REQUEST,
+		PROMPT,
 		// Future:
 		REMOVE,
 		SEND,
@@ -212,6 +213,7 @@ abstract class TaskSetParser {
 		MAP,
 		STATUS,
 		MESSAGE,
+		PASSWORD,
 
 		// Functions
 
@@ -426,6 +428,7 @@ abstract class TaskSetParser {
 		taskParsers.put(KW.WAITFOR.name(), new WaitforTaskParser());
 		taskParsers.put(KW.CONNECT.name(), new ConnectTaskParser());
 		taskParsers.put(KW.REQUEST.name(), new RequestTaskParser());
+		taskParsers.put(KW.PROMPT.name(), new PromptTaskParser());
 
 		requestTaskParsers = new HashMap<String, SpecializedRequestTaskParser>();
 
@@ -1664,6 +1667,26 @@ abstract class TaskSetParser {
 		public Task parse(Task.Prologue prologue, RequestTask.Parameters parameters, DataStores data) throws IOException {
 			parseRemainingFields(parameters, data);
 			return new RequestPostTask(prologue, data.source, (RequestWithBodyTask.ParametersWithBody)parameters, data.target);
+		}
+	}
+
+	class PromptTaskParser implements TaskParser {
+
+		public Task parse(Task.Prologue prologue)
+				throws InputMismatchException, NoSuchElementException, IOException, NamingException {
+
+			Expression<String> prompt = parseStringExpression();
+
+			boolean isPassword = tokenizer.skipWordIgnoreCase(KW.PASSWORD.name());
+
+			tokenizer.skipWordIgnoreCase(KW.INTO.name());
+
+			List<VariableBase> variables = new LinkedList<VariableBase>();
+			do {
+				variables.add(parseVariableReference());
+			} while (tokenizer.skipDelimiter(","));
+
+			return new PromptTask(prologue, prompt, isPassword, variables);
 		}
 	}
 

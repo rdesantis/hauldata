@@ -23,7 +23,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.InputMismatchException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -36,7 +35,6 @@ import com.hauldata.dbpa.connection.Connection;
 import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.connection.EmailConnection;
 import com.hauldata.dbpa.connection.FtpConnection;
-import com.hauldata.dbpa.expression.*;
 import com.hauldata.dbpa.task.Task;
 import com.hauldata.dbpa.variable.*;
 
@@ -174,29 +172,7 @@ public class DbProcess extends TaskSet {
 	}
 
 	private void setParameters(String[] args) {
-
-		int n = Math.min(parameters.size(), args.length);
-		Iterator<VariableBase> parameterIterator = parameters.iterator();
-		for (int i = 0; i < n; ++i) {
-			setParameter(parameterIterator.next(), args[i]);
-		}
-	}
-
-	private void setParameter(VariableBase parameter, String arg) {
-
-		if (arg == null) {
-			parameter.setValueObject(null);
-		}
-		else if (parameter.getType() == VariableType.INTEGER) {
-			parameter.setValueObject(Integer.valueOf(arg));
-		}
-		else if (parameter.getType() == VariableType.VARCHAR) {
-			parameter.setValueObject(arg);
-		}
-		else if (parameter.getType() == VariableType.DATETIME) {
-			DatetimeFromString converter = new DatetimeFromString(new StringConstant(arg));
-			parameter.setValueObject(converter.evaluate());
-		}
+		VariablesFromStrings.set(parameters, args);
 	}
 }
 
