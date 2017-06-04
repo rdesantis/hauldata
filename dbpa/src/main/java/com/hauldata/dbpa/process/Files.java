@@ -108,18 +108,22 @@ public class Files extends File.Owner {
 	/**
 	 * Check if the indicated file path is currently open in the context, and if so, close it.
 	 * @param path is the path name of the file to assure is closed.
+	 * @return true is the file was open, false otherwise.
 	 */
-	public void assureNotOpen(Path path) {
+	public boolean assureNotOpen(Path path) {
 
+		boolean isOpen = false;
 		File file = files.get(path);
 		if (file != null) {
 			if (file.isOpen()) {
+				isOpen = true;
 				try {
 					file.close();
 				} catch (Exception e) {}
 			}
 			files.remove(path);
 		}
+		return isOpen;
 	}
 
 	/**

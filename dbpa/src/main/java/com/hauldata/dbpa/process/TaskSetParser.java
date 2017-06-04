@@ -113,6 +113,7 @@ abstract class TaskSetParser {
 		CREATE,
 		APPEND,
 		WRITE,
+		CLOSE,
 		OPEN,
 		LOAD,
 		READ,
@@ -136,7 +137,6 @@ abstract class TaskSetParser {
 		CONNECT,
 		REQUEST,
 		// Future:
-		CLOSE,
 		REMOVE,
 		SEND,
 		RECEIVE,
@@ -403,6 +403,7 @@ abstract class TaskSetParser {
 		taskParsers.put(KW.CREATE.name(), new CreateTaskParser());
 		taskParsers.put(KW.APPEND.name(), new AppendTaskParser());
 		taskParsers.put(KW.WRITE.name(), new WriteTaskParser());
+		taskParsers.put(KW.CLOSE.name(), new CloseTaskParser());
 		taskParsers.put(KW.OPEN.name(), new OpenTaskParser());
 		taskParsers.put(KW.LOAD.name(), new LoadTaskParser());
 		taskParsers.put(KW.READ.name(), new ReadTaskParser());
@@ -433,7 +434,7 @@ abstract class TaskSetParser {
 		requestTaskParsers.put(KW.POST.name(), new PostRequestTaskParser());
 		requestTaskParsers.put(KW.DELETE.name(), new DeleteRequestTaskParser());
 
-		KW firstNotImplemented = KW.CLOSE;
+		KW firstNotImplemented = KW.REMOVE;
 		KW lastNotImplemented = KW.CALL;
 
 		for (KW notImplemented : Stream.of(KW.values()).filter(
@@ -814,6 +815,16 @@ abstract class TaskSetParser {
 			Source source = parseSource(KW.WRITE.name(), KW.FROM.name(), false, true);
 
 			return new WriteTask(prologue, page, headers, source);
+		}
+	}
+
+	class CloseTaskParser implements TaskParser {
+
+		public Task parse(Task.Prologue prologue) throws IOException {
+
+			Expression<String> file = parseStringExpression();
+
+			return new CloseTask(prologue, file);
 		}
 	}
 
