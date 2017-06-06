@@ -2301,13 +2301,17 @@ abstract class TaskSetParser {
 	@SuppressWarnings("unchecked")
 	private Expression<Boolean> parseBooleanTerm() throws IOException {
 
-		if (tokenizer.skipDelimiter("(")) {
-			Expression<Boolean> parenthesized = parseBooleanExpression();
-			tokenizer.nextDelimiter(")");
-			return parenthesized;
-		}
+		ExpressionBase left = null;
+		if (tokenizer.hasNextDelimiter("(")) {
 
-		ExpressionBase left = parseAnyExpression();
+			left = parseAnyParenthesizedExpression();
+			if (left.getType() == VariableType.BOOLEAN) {
+				return (Expression<Boolean>)left;
+			}
+		}
+		else {
+			left = parseAnyExpression();
+		}
 
 		Expression.Comparison comparison =
 				tokenizer.skipDelimiter("<") ? Expression.Comparison.lt :
@@ -2358,6 +2362,23 @@ abstract class TaskSetParser {
 		else {
 			throw new InputMismatchException("Internal error - expression type not recognized in comparison");
 		}
+	}
+
+	private ExpressionBase parseAnyParenthesizedExpression() throws IOException {
+
+		ExpressionBase result;
+		try {
+			result = parseAnyExpression();
+		}
+		catch (InputMismatchException ex) {
+
+			tokenizer.skipDelimiter("(");
+
+			result = parseBooleanExpression();
+
+			tokenizer.nextDelimiter(")");
+		}
+		return result;
 	}
 
 	private Expression<Integer> parseIntegerExpression() throws IOException {
