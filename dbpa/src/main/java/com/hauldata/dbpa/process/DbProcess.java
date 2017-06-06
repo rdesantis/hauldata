@@ -161,6 +161,15 @@ public class DbProcess extends TaskSet {
 		}
 	}
 
+	/**
+	 * Validate that the arguments are of appropriate types for the process
+	 *
+	 * @throws Exception if argument types do not match the process parameter types
+	 */
+	public void validate(String[] args) {
+		setParameters(args);
+	}
+
 	private String formatElapsed(long millis) {
 
 		long seconds = millis / 1000;

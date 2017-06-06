@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -32,6 +32,15 @@ public class RunDbp {
 	
 	public static void main(String[] args) {
 
+		// Get run options.
+
+		RunOptions.WithArgs optionsWithArgs = RunOptions.get(args);
+
+		RunOptions options = optionsWithArgs.options;
+		args = optionsWithArgs.args;
+
+		// Load and go.
+
 		hookProgramExit();
 
 		ContextProperties contextProps = null;
@@ -48,7 +57,12 @@ public class RunDbp {
 
 			DbProcess process = context.loader.load(processID);
 
-			process.run(processArgs, context);
+			if (options.isCheckOnly() ) {
+				process.validate(processArgs);
+			}
+			else {
+				process.run(processArgs, context);
+			}
 		}
 		catch (Exception ex) {
 			System.err.println(ex.getMessage());
@@ -88,6 +102,74 @@ public class RunDbp {
 			Runtime.getRuntime().removeShutdownHook(hookThread);
 
 			System.exit(status);
+		}
+	}
+}
+
+class RunOptions {
+
+	private boolean checkOnly;
+
+	private RunOptions() {
+		checkOnly = false;
+	}
+
+	public static RunOptions.WithArgs get(String[] args) {
+
+		RunOptions result = new RunOptions();
+
+		int i = 0;
+		while ((i < args.length) && args[i].startsWith("-")) {
+
+			String option = args[i++];
+			if (option.startsWith("--")) {
+				parseLongOption(result, option.substring(2));
+			}
+			else {
+				parseShortOptions(result, option.substring(1));
+			}
+		}
+		return new RunOptions.WithArgs(result, Arrays.copyOfRange(args, i, args.length));
+	}
+
+	private static void parseLongOption(RunOptions result, String option) {
+
+		if (option.equals("check")) {
+			result.checkOnly = true;
+		}
+		else {
+			System.err.println("Invalid option: " + option);
+			System.exit(1);
+		}
+	}
+
+	private static void parseShortOptions(RunOptions result, String options) {
+
+		while (options.length() > 0) {
+			char option = options.charAt(0);
+			options = options.substring(1);
+
+			if (option == 'c') {
+				result.checkOnly = true;
+			}
+			else {
+				System.err.println("Invalid option: " + option);
+				System.exit(1);
+			}
+		}
+	}
+
+	public boolean isCheckOnly() {
+		return checkOnly;
+	}
+
+	public static class WithArgs {
+		public RunOptions options;
+		public String[] args;
+
+		public WithArgs(RunOptions options, String[] args) {
+			this.options = options;
+			this.args = args;
 		}
 	}
 }
