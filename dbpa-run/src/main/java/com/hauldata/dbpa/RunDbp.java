@@ -80,16 +80,14 @@ public class RunDbp {
 			}
 		}
 		finally {
-			boolean canExit = true;
-
-			if (hookThread != null) {
-				canExit = !hookThread.isAlive();
+			if ((hookThread != null) && !hookThread.isAlive()) {
 				hookThread.unhook();
+				hookThread = null;
 			}
 
 			try { if (context != null) context.close(); } catch (Exception ex) {}
 
-			if (canExit) {
+			if (hookThread == null) {
 				System.exit(status);
 			}
 		}
