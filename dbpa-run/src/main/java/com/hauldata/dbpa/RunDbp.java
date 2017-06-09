@@ -35,23 +35,26 @@ public class RunDbp {
 		// Get run options.
 
 		RunOptions.WithArgs optionsWithArgs = RunOptions.get(args);
-
 		RunOptions options = optionsWithArgs.options;
 		args = optionsWithArgs.args;
 
-		// Load and go.
-
-		hookProgramExit();
+		// Set up environment, load and go.
 
 		ContextProperties contextProps = null;
+		String processID = "[name omitted]";
 		Context context = null;
+		HookThread hookThread = null;
 
 		int status = 0;
 		try {
-			String processID = args[0];
-			String[] processArgs = Arrays.copyOfRange(args, 1, args.length);
-
 			contextProps = new ContextProperties(programName);
+
+			if (args.length == 0) {
+				throw new RuntimeException("No script name was specified");
+			}
+
+			processID = args[0];
+			String[] processArgs = Arrays.copyOfRange(args, 1, args.length);
 
 			context = contextProps.createContext(processID);
 
@@ -61,47 +64,34 @@ public class RunDbp {
 				process.validate(processArgs);
 			}
 			else {
+				hookThread = new HookThread();
+
 				process.run(processArgs, context);
 			}
 		}
 		catch (Exception ex) {
-			System.err.println(ex.getMessage());
+
+			String failMessage = ex.getMessage();
+			System.err.println(failMessage);
 			status = 1;
+
+			if (options.isAlert() && (contextProps != null)) {
+				RunDbpAlert.send(processID, contextProps, failMessage);
+			}
 		}
 		finally {
+			boolean canExit = true;
+
+			if (hookThread != null) {
+				canExit = !hookThread.isAlive();
+				hookThread.unhook();
+			}
+
 			try { if (context != null) context.close(); } catch (Exception ex) {}
 
-			exitProgram(status);
-		}
-	}
-
-	private static Thread processThread;
-	private static boolean isProcessInterrupted;
-	private static Thread hookThread;
-
-	private static void hookProgramExit() {
-		processThread = Thread.currentThread();
-		isProcessInterrupted = false;
-
-		hookThread = new Thread() {
-			public void run() {
-				isProcessInterrupted = true;
-				processThread.interrupt();
-				try {
-					processThread.join();
-				}
-				catch (InterruptedException ex) {}
+			if (canExit) {
+				System.exit(status);
 			}
-		};
-
-		Runtime.getRuntime().addShutdownHook(hookThread);
-	}
-	
-	private static void exitProgram(int status) {
-		if (!isProcessInterrupted) {
-			Runtime.getRuntime().removeShutdownHook(hookThread);
-
-			System.exit(status);
 		}
 	}
 }
@@ -109,9 +99,11 @@ public class RunDbp {
 class RunOptions {
 
 	private boolean checkOnly;
+	private boolean alert;
 
 	private RunOptions() {
 		checkOnly = false;
+		alert = false;
 	}
 
 	public static RunOptions.WithArgs get(String[] args) {
@@ -137,6 +129,9 @@ class RunOptions {
 		if (option.equals("check")) {
 			result.checkOnly = true;
 		}
+		else if (option.equals("alert")) {
+			result.alert = true;
+		}
 		else {
 			System.err.println("Invalid option: " + option);
 			System.exit(1);
@@ -152,6 +147,9 @@ class RunOptions {
 			if (option == 'c') {
 				result.checkOnly = true;
 			}
+			else if (option == 'a') {
+				result.alert = true;
+			}
 			else {
 				System.err.println("Invalid option: " + option);
 				System.exit(1);
@@ -163,6 +161,10 @@ class RunOptions {
 		return checkOnly;
 	}
 
+	public boolean isAlert() {
+		return alert;
+	}
+
 	public static class WithArgs {
 		public RunOptions options;
 		public String[] args;
@@ -171,5 +173,28 @@ class RunOptions {
 			this.options = options;
 			this.args = args;
 		}
+	}
+}
+
+class HookThread extends Thread {
+
+	private Thread processThread;
+
+	public HookThread() {
+		processThread = Thread.currentThread();
+		Runtime.getRuntime().addShutdownHook(this);
+	}
+
+	@Override
+	public void run() {
+		processThread.interrupt();
+		try {
+			processThread.join();
+		}
+		catch (InterruptedException ex) {}
+	}
+
+	public void unhook() {
+		Runtime.getRuntime().removeShutdownHook(this);
 	}
 }
