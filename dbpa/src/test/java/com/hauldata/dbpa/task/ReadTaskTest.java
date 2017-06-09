@@ -209,4 +209,17 @@ public class ReadTaskTest extends TaskTest {
 
 		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
 	}
+
+	public void testReadEmptyCellXlsx() throws Exception {
+
+		String processId = "ReadProblemXlsxTest";
+		String script =
+				"TASK READ XLSX 'empty cell test.xlsx' 'Sheet1' SHEET COLUMNS 'Driver Id' INTO SQL INSERT INTO test.importtarget (number) VALUES (?) END TASK\n" +
+				"";
+
+		Level logLevel = Level.error;
+		boolean logToConsole = true;
+
+		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
+	}
 }

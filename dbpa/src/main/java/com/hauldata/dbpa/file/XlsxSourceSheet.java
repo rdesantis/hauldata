@@ -145,6 +145,10 @@ public class XlsxSourceSheet extends XlsxSheet {
 	}
 
 	private Object fromXLSX(Cell cell) {
+		if (cell == null) {
+			return null;
+		}
+
 		switch (cell.getCellType()) {
 		case Cell.CELL_TYPE_BLANK:
 			return null;
