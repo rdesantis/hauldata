@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 
 package com.hauldata.dbpa.task;
+
+import java.io.StringReader;
 
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.Logger.Level;
@@ -103,5 +105,22 @@ public class TaskSequenceTest extends TaskTest {
 		assertTrue(record.message.startsWith(DbProcess.elapsedMessageStem));
 
 		assertFalse(recordIterator.hasNext());
+	}
+
+	public void testAfterNothing() throws Exception {
+
+		String script =
+				"TASK AFTER GO END TASK \n" +
+				"";
+
+		boolean isFailed = false;
+		try {
+			DbProcess.parse(new StringReader(script));
+		}
+		catch (RuntimeException ex) {
+			isFailed = true;
+			assertEquals("At line 1: AFTER [PREVIOUS] with no previous task", ex.getMessage());
+		}
+		assertTrue(isFailed);
 	}
 }

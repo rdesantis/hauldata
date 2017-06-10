@@ -546,7 +546,7 @@ abstract class TaskSetParser {
 		Task parse(Task.Prologue prologue) throws IOException, NamingException;
 	}
 
-	private Task parseTask(Map<String, Task> tasks, Task precedingTask)
+	private Task parseTask(Map<String, Task> tasks, Task previousTask)
 			throws IOException, InputMismatchException, NoSuchElementException, NamingException {
 
 		String section = KW.TASK.name();
@@ -590,7 +590,7 @@ abstract class TaskSetParser {
 		Expression.Combination combination = null;
 
 		if (tokenizer.skipWordIgnoreCase(KW.AFTER.name())) {
-			combination = parsePredecessors(tasks, predecessors, precedingTask);
+			combination = parsePredecessors(tasks, predecessors, previousTask);
 		}
 
 		Expression<Boolean> condition = null;
@@ -617,12 +617,10 @@ abstract class TaskSetParser {
 		return task;
 	}
 
-	private Expression.Combination parsePredecessors(
-			Map<String, Task> tasks,
-			Map<Task, Task.Result> predecessors,
-			Task precedingTask) throws InputMismatchException, NoSuchElementException, IOException, NameNotFoundException {
+	private Expression.Combination parsePredecessors(Map<String, Task> tasks, Map<Task, Task.Result> predecessors, Task previousTask)
+			throws InputMismatchException, NoSuchElementException, IOException, NameNotFoundException {
 
-		SimpleEntry<Task, Task.Result> firstPredecessor = parseFirstPredecessor(tasks, precedingTask);
+		SimpleEntry<Task, Task.Result> firstPredecessor = parseFirstPredecessor(tasks, previousTask);
 		predecessors.put(firstPredecessor.getKey(), firstPredecessor.getValue());
 
 		Expression.Combination combination = null;
@@ -650,12 +648,11 @@ abstract class TaskSetParser {
 		return combination;
 	}
 
-	private SimpleEntry<Task, Task.Result> parseFirstPredecessor(
-			Map<String, Task> tasks,
-			Task precedingTask) throws InputMismatchException, NoSuchElementException, IOException, NameNotFoundException {
+	private SimpleEntry<Task, Task.Result> parseFirstPredecessor(Map<String, Task> tasks, Task previousTask)
+			throws InputMismatchException, NoSuchElementException, IOException, NameNotFoundException {
 
 		if (tokenizer.skipWordIgnoreCase(KW.PREVIOUS.name())) {
-			return parsePredecessorResult(precedingTask);
+			return parsePredecessorResult(previousTask);
 		}
 
 		BacktrackingTokenizerMark nameMark = tokenizer.mark();
@@ -664,15 +661,14 @@ abstract class TaskSetParser {
 
 		if (!tasks.containsKey(name)) {
 			// If token is not a task name, this is a naked AFTER clause.  Predecessor is the preceding task.
-			return parsePredecessorResult(precedingTask);
+			return parsePredecessorResult(previousTask);
 		}
 		else {
 			return parsePredecessor(tasks);
 		}
 	}
 
-	private SimpleEntry<Task, Task.Result> parsePredecessor(
-			Map<String, Task> tasks)
+	private SimpleEntry<Task, Task.Result> parsePredecessor(Map<String, Task> tasks)
 			throws InputMismatchException, NoSuchElementException, IOException, NameNotFoundException {
 
 		String name = tokenizer.nextWordUpperCase();
@@ -684,9 +680,12 @@ abstract class TaskSetParser {
 		return parsePredecessorResult(task);
 	}
 
-	private SimpleEntry<Task, Task.Result> parsePredecessorResult(
-			Task task)
+	private SimpleEntry<Task, Task.Result> parsePredecessorResult(Task task)
 			throws InputMismatchException, NoSuchElementException, IOException, NameNotFoundException {
+
+		if (task == null) {
+			throw new InputMismatchException(KW.AFTER.name() + " [" + KW.PREVIOUS.name() + "] with no previous task");
+		}
 
 		Task.Result result = Task.Result.success;
 
