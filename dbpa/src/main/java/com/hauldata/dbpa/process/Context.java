@@ -52,6 +52,7 @@ public class Context {
 	private Path readParent;
 	private Path writeParent;
 	private Path propertiesParent;
+	private Path scheduleParent;
 
 	private static class Resources {
 		public DatabaseConnection dbconn;
@@ -103,6 +104,7 @@ public class Context {
 		readParent = getParent(pathProps, "read");
 		writeParent = getParent(pathProps, "write");
 		propertiesParent = getParent(pathProps, "properties");
+		scheduleParent = getParent(pathProps, "schedule");
 
 		resources = new Resources();
 		resources.dbconn = new DatabaseConnection();
@@ -149,6 +151,7 @@ public class Context {
 		readParent = context.readParent;
 		writeParent = context.writeParent;
 		propertiesParent = context.propertiesParent;
+		scheduleParent = context.scheduleParent;
 
 		resources = context.resources;
 	}
@@ -278,5 +281,8 @@ public class Context {
 	}
 	public Path getPropertiesPath(String fileName) {
 		return propertiesParent.resolve(fileName).toAbsolutePath().normalize();
+	}
+	public Path getSchedulePath(String fileName) {
+		return scheduleParent.resolve(fileName).toAbsolutePath().normalize();
 	}
 }

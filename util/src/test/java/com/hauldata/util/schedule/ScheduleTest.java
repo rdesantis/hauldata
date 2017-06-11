@@ -166,6 +166,10 @@ public class ScheduleTest extends TestCase {
 		schedules = testParse("Daily every 10 seconds");
 
 		assertEquals(schedules.nextFrom(LocalDateTime.of(today, LocalTime.of(15, 15, 6))), LocalDateTime.of(today, LocalTime.of(15, 15, 10)));
+
+		testParse("Today every second from 1 second from now until 5 seconds from now");
+
+		testParse("Today at 1 seconds from now");
 	}
 
 	public void testSleep() {

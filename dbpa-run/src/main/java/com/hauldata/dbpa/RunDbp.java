@@ -18,9 +18,10 @@ package com.hauldata.dbpa;
 
 import java.util.Arrays;
 
-import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.ContextProperties;
-import com.hauldata.dbpa.process.DbProcess;
+import com.hauldata.dbpa.run.Alert;
+import com.hauldata.dbpa.run.RunOptions;
+import com.hauldata.dbpa.run.Runner;
 
 /**
  * RunDbp - Run Database Process.
@@ -28,46 +29,31 @@ import com.hauldata.dbpa.process.DbProcess;
  */
 public class RunDbp {
 
-	static final String programName = "RunDbp";
-	
+	public static final String programName = "RunDbp";
+
 	public static void main(String[] args) {
 
-		// Get run options.
-
 		RunOptions.WithArgs optionsWithArgs = RunOptions.get(args);
-		RunOptions options = optionsWithArgs.options;
-		args = optionsWithArgs.args;
-
-		// Set up environment, load and go.
+		RunOptions options = optionsWithArgs.getOptions();
+		args = optionsWithArgs.getArgs();
 
 		ContextProperties contextProps = null;
-		String processID = "[name omitted]";
-		Context context = null;
-		HookThread hookThread = null;
+		String processID = null;
+		Runner runner = null;
 
 		int status = 0;
 		try {
-			contextProps = new ContextProperties(programName);
+			contextProps = new ContextProperties(RunDbp.programName);
 
-			if (args.length == 0) {
-				throw new RuntimeException("No script name was specified");
+			String[] processArgs = null;
+			if (0 < args.length) {
+				processID = args[0];
+				processArgs = Arrays.copyOfRange(args, 1, args.length);
 			}
 
-			processID = args[0];
-			String[] processArgs = Arrays.copyOfRange(args, 1, args.length);
+			runner = Runner.get(processID, contextProps, processArgs, options);
 
-			context = contextProps.createContext(processID);
-
-			DbProcess process = context.loader.load(processID);
-
-			if (options.isCheckOnly() ) {
-				process.validate(processArgs);
-			}
-			else {
-				hookThread = new HookThread();
-
-				process.run(processArgs, context);
-			}
+			runner.run();
 		}
 		catch (Exception ex) {
 
@@ -76,123 +62,16 @@ public class RunDbp {
 			status = 1;
 
 			if (options.isAlert() && (contextProps != null)) {
-				RunDbpAlert.send(processID, contextProps, failMessage);
+				Alert.send(processID, contextProps, failMessage);
 			}
 		}
 		finally {
-			if ((hookThread != null) && !hookThread.isAlive()) {
-				hookThread.unhook();
-				hookThread = null;
+			if (runner != null) {
+				runner.close(status);
 			}
-
-			try { if (context != null) context.close(); } catch (Exception ex) {}
-
-			if (hookThread == null) {
+			else {
 				System.exit(status);
 			}
 		}
-	}
-}
-
-class RunOptions {
-
-	private boolean checkOnly;
-	private boolean alert;
-
-	private RunOptions() {
-		checkOnly = false;
-		alert = false;
-	}
-
-	public static RunOptions.WithArgs get(String[] args) {
-
-		RunOptions result = new RunOptions();
-
-		int i = 0;
-		while ((i < args.length) && args[i].startsWith("-")) {
-
-			String option = args[i++];
-			if (option.startsWith("--")) {
-				parseLongOption(result, option.substring(2));
-			}
-			else {
-				parseShortOptions(result, option.substring(1));
-			}
-		}
-		return new RunOptions.WithArgs(result, Arrays.copyOfRange(args, i, args.length));
-	}
-
-	private static void parseLongOption(RunOptions result, String option) {
-
-		if (option.equals("check")) {
-			result.checkOnly = true;
-		}
-		else if (option.equals("alert")) {
-			result.alert = true;
-		}
-		else {
-			System.err.println("Invalid option: " + option);
-			System.exit(1);
-		}
-	}
-
-	private static void parseShortOptions(RunOptions result, String options) {
-
-		while (options.length() > 0) {
-			char option = options.charAt(0);
-			options = options.substring(1);
-
-			if (option == 'c') {
-				result.checkOnly = true;
-			}
-			else if (option == 'a') {
-				result.alert = true;
-			}
-			else {
-				System.err.println("Invalid option: " + option);
-				System.exit(1);
-			}
-		}
-	}
-
-	public boolean isCheckOnly() {
-		return checkOnly;
-	}
-
-	public boolean isAlert() {
-		return alert;
-	}
-
-	public static class WithArgs {
-		public RunOptions options;
-		public String[] args;
-
-		public WithArgs(RunOptions options, String[] args) {
-			this.options = options;
-			this.args = args;
-		}
-	}
-}
-
-class HookThread extends Thread {
-
-	private Thread processThread;
-
-	public HookThread() {
-		processThread = Thread.currentThread();
-		Runtime.getRuntime().addShutdownHook(this);
-	}
-
-	@Override
-	public void run() {
-		processThread.interrupt();
-		try {
-			processThread.join();
-		}
-		catch (InterruptedException ex) {}
-	}
-
-	public void unhook() {
-		Runtime.getRuntime().removeShutdownHook(this);
 	}
 }

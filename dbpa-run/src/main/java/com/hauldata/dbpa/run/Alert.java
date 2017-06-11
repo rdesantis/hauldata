@@ -14,7 +14,7 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa;
+package com.hauldata.dbpa.run;
 
 import java.util.Properties;
 
@@ -31,9 +31,13 @@ import javax.mail.internet.MimeMultipart;
 import com.hauldata.dbpa.connection.EmailConnection;
 import com.hauldata.dbpa.process.ContextProperties;
 
-class RunDbpAlert {
+public class Alert {
 
 	public static void send(String processID, ContextProperties contextProps, String failMessage) {
+
+		if (processID == null) {
+			processID = "[name omitted]";
+		}
 
 		Properties properties = contextProps.getProperties("mail");
 		String from = properties.getProperty("alertFrom");

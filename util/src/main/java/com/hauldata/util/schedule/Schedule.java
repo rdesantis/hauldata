@@ -67,7 +67,7 @@ public class Schedule implements ScheduleBase {
 	/**
 	 * Instantiate a schedule by reading text from a tokenizer.  On return, the tokenizer
 	 * is positioned at the next token past the schedule definition.
-	 * 
+	 *
 	 * @param tokenizer provides the text to parse
 	 * @return the schedule
 	 * @throws RuntimeException if the text cannot be parsed
@@ -103,6 +103,7 @@ class ScheduleParser {
 	private static final String LAST = "LAST";
 	private static final String FROM = "FROM";
 	private static final String UNTIL = "UNTIL";
+	private static final String NOW = "NOW";
 
 	BacktrackingTokenizer tokenizer;
 
@@ -112,7 +113,7 @@ class ScheduleParser {
 	public ScheduleParser(BacktrackingTokenizer tokenizer) {
 		this.tokenizer = tokenizer;
 	}
-	
+
 	public Schedule parse() throws IOException {
 
 		if (tokenizer.skipWordIgnoreCase(DATETIME)) {
@@ -177,13 +178,13 @@ class ScheduleParser {
 				DateSchedule.onetime(dateTime.toLocalDate()),
 				TimeSchedule.onetime(dateTime.toLocalTime()));
 	}
-	
+
 	private Schedule parseDateSchedule() throws IOException {
 
 		LocalDate date = nextQuotedDate();
 		return parseDateSchedule(date);
 	}
-	
+
 	private Schedule parseDateSchedule(LocalDate date) throws IOException {
 
 		TimeSchedule timeSchedule = parseTimeSchedule(false);
@@ -191,7 +192,7 @@ class ScheduleParser {
 				DateSchedule.onetime(date),
 				timeSchedule);
 	}
-	
+
 	private Schedule parseDailySchedule(int frequency, boolean isTimeOptional) throws IOException {
 
 		DateRange range = parseDateRange();
@@ -283,7 +284,7 @@ class ScheduleParser {
 	private class DateRange {
 		public LocalDate startDate;
 		public LocalDate endDate;
-		
+
 		DateRange(LocalDate fromDate, LocalDate toDate) {
 			this.startDate = fromDate;
 			this.endDate = toDate;
@@ -304,9 +305,9 @@ class ScheduleParser {
 	}
 
 	private TimeSchedule parseTimeSchedule(boolean isTimeOptional) throws InputMismatchException, NoSuchElementException, IOException {
-		
+
 		if (tokenizer.skipWordIgnoreCase(AT)) {
-			return TimeSchedule.onetime(nextQuotedTime());
+			return TimeSchedule.onetime(nextTime());
 		}
 		else if (tokenizer.skipWordIgnoreCase(EVERY)) {
 			UnitFrequency unitFrequency = parseUnitFrequency(true);
@@ -325,7 +326,7 @@ class ScheduleParser {
 	private class TimeRange {
 		public LocalTime startTime;
 		public LocalTime endTime;
-		
+
 		TimeRange(LocalTime fromTime, LocalTime toTime) {
 			this.startTime = fromTime;
 			this.endTime = toTime;
@@ -337,10 +338,10 @@ class ScheduleParser {
 		LocalTime startTime = LocalTime.MIN;
 		LocalTime endTime = LocalTime.MAX;
 		if (tokenizer.skipWordIgnoreCase(FROM)) {
-			startTime = nextQuotedTime();
+			startTime = nextTime();
 		}
 		if (tokenizer.skipWordIgnoreCase(UNTIL)) {
-			endTime = nextQuotedTime();
+			endTime = nextTime();
 		}
 		return new TimeRange(startTime, endTime);
 	}
@@ -348,49 +349,47 @@ class ScheduleParser {
 	private class UnitFrequency {
 		public ChronoUnit unit;
 		public int frequency;
-		
+
 		UnitFrequency(ChronoUnit unit, int frequency) {
 			this.unit = unit;
-			this.frequency = frequency; 
+			this.frequency = frequency;
 		}
 	}
 
 	private UnitFrequency parseUnitFrequency(boolean wantTime) throws InputMismatchException, NoSuchElementException, IOException {
 
 		int frequency = 1;
-		String suffix = "";
+		boolean isSingularAllowed = true;
 
 		if (tokenizer.hasNextInt()) {
 			frequency = tokenizer.nextInt();
-			if (frequency > 1) {
-				suffix = "S";
-			}
+			isSingularAllowed = (frequency == 1);
 		}
 
 		ChronoUnit unit = null;
 		boolean isTime = false;
 
-		if (tokenizer.skipWordIgnoreCase(DAY + suffix)) {
+		if (skipPluralWordIgnoreCase(DAY, isSingularAllowed)) {
 			unit = ChronoUnit.DAYS;
 			isTime = false;
 		}
-		else if (tokenizer.skipWordIgnoreCase(WEEK + suffix)) {
+		else if (skipPluralWordIgnoreCase(WEEK, isSingularAllowed)) {
 			unit = ChronoUnit.WEEKS;
 			isTime = false;
 		}
-		else if (tokenizer.skipWordIgnoreCase(MONTH + suffix)) {
+		else if (skipPluralWordIgnoreCase(MONTH, isSingularAllowed)) {
 			unit = ChronoUnit.MONTHS;
 			isTime = false;
 		}
-		else if (tokenizer.skipWordIgnoreCase(HOUR + suffix)) {
+		else if (skipPluralWordIgnoreCase(HOUR, isSingularAllowed)) {
 			unit = ChronoUnit.HOURS;
 			isTime = true;
 		}
-		else if (tokenizer.skipWordIgnoreCase(MINUTE + suffix)) {
+		else if (skipPluralWordIgnoreCase(MINUTE, isSingularAllowed)) {
 			unit = ChronoUnit.MINUTES;
 			isTime = true;
 		}
-		else if (tokenizer.skipWordIgnoreCase(SECOND + suffix)) {
+		else if (skipPluralWordIgnoreCase(SECOND, isSingularAllowed)) {
 			unit = ChronoUnit.SECONDS;
 			isTime = true;
 		}
@@ -403,6 +402,16 @@ class ScheduleParser {
 		}
 
 		return new UnitFrequency(unit, frequency);
+	}
+
+	private boolean skipPluralWordIgnoreCase(String word, boolean isSingularAllowed) throws IOException {
+		if (tokenizer.skipWordIgnoreCase(word + "S")) {
+			return true;
+		}
+		if (isSingularAllowed && tokenizer.skipWordIgnoreCase(word)) {
+			return true;
+		}
+		return false;
 	}
 
 	private Set<DayOfWeek> parseDayOfWeekSet(boolean isDayOfWeekOptional) throws IOException {
@@ -468,7 +477,7 @@ class ScheduleParser {
      * Returns true if the next token in this tokenizer's input is a valid
      * name of a day of the week ignoring case.
      * The tokenizer does not advance past any input.
-     * 
+     *
      * @return	true if and only if this tokenizer's next token is a valid
      *			name of a day of the week
      * @throws	IOException if passed by the underlying
@@ -482,7 +491,7 @@ class ScheduleParser {
 		try {
 			DayOfWeek.valueOf(tokenizer.nextWordUpperCase());
 		}
-		catch (NoSuchElementException | IllegalArgumentException ex) {	// NoSuchElementException catches InputMismatchException 
+		catch (NoSuchElementException | IllegalArgumentException ex) {	// NoSuchElementException catches InputMismatchException
 			result = false;
 		}
 		finally {
@@ -524,6 +533,34 @@ class ScheduleParser {
 			throw new InputMismatchException("Invalid date format: " + quotedDate.toString());
 		}
 		return result;
+	}
+
+	/**
+     * Scans the next token of the input as a time of day.
+     *
+     * @return	a <code>LocalTime</code> containing the time parsed
+     *			from the input.
+     * @throws	InputMismatchException if the next token
+     *			is not quoted text or cannot be parsed as a time of day
+     * @throws	NoSuchElementException if input is exhausted
+     * @throws	IOException if passed by the underlying
+     *			<code>java.io.Reader</code> object of this ScheduleParser.
+     */
+	private LocalTime nextTime() throws IOException, InputMismatchException, NoSuchElementException {
+
+		if (tokenizer.hasNextQuoted()) {
+			return nextQuotedTime();
+		}
+		else if (tokenizer.skipWordIgnoreCase(NOW)) {
+			return LocalTime.now();
+		}
+		else {
+			UnitFrequency unitFrequency = parseUnitFrequency(true);
+			if (!tokenizer.skipWordIgnoreCase(FROM) || !tokenizer.skipWordIgnoreCase(NOW)) {
+				throw new InputMismatchException("FROM NOW not found where expected");
+			}
+			return LocalTime.now().plus(unitFrequency.frequency, unitFrequency.unit);
+		}
 	}
 
 	/**
