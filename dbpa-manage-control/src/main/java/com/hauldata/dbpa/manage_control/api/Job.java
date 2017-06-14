@@ -26,7 +26,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class Job {
 
 	private String scriptName;
-	private String propName;
 	private List<ScriptArgument> arguments;
 	private List<String> scheduleNames;
 	private boolean enabled;
@@ -37,13 +36,11 @@ public class Job {
 
 	public Job(
 			String scriptName,
-			String propName,
 			List<ScriptArgument> arguments,
 			List<String> scheduleNames,
 			boolean enabled) {
 
 		this.scriptName = scriptName;
-		this.propName = propName;
 		this.arguments = arguments;
 		this.scheduleNames = scheduleNames;
 		this.enabled = enabled;
@@ -54,7 +51,6 @@ public class Job {
 		return getClass().getSimpleName() + ":" +
 				"{" +
 				String.valueOf(scriptName) + "," +
-				String.valueOf(propName) + "," +
 				String.valueOf(arguments) + "," +
 				String.valueOf(scheduleNames) + "," +
 				String.valueOf(enabled) +
@@ -66,11 +62,6 @@ public class Job {
 	@JsonProperty
 	public String getScriptName() {
 		return scriptName;
-	}
-
-	@JsonProperty
-	public String getPropName() {
-		return propName;
 	}
 
 	@JsonProperty

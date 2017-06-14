@@ -95,7 +95,7 @@ public class JobsResourceTest extends TestCase {
 		someSchedules.add("Monday");
 		someSchedules.add("Daily");
 
-		detritusJob = new Job(crapScriptName, "fred", someArguments, someSchedules, true);
+		detritusJob = new Job(crapScriptName, someArguments, someSchedules, true);
 	}
 
 	protected void tearDown() throws InterruptedException {
@@ -127,7 +127,7 @@ public class JobsResourceTest extends TestCase {
 
 	public void testPutOver() {
 
-		Job job = new Job(crapScriptName, "ethel", someArguments, someSchedules, true);
+		Job job = new Job(crapScriptName, someArguments, someSchedules, true);
 
 		int id = jobsResource.put(detritusName, job);
 
@@ -147,7 +147,6 @@ public class JobsResourceTest extends TestCase {
 		Job checkJob = jobsResource.get(detritusName);
 
 		assertEquals(detritusJob.getScriptName(), checkJob.getScriptName());
-		assertEquals(detritusJob.getPropName(), checkJob.getPropName());
 		assertEquals(detritusJob.getArguments().size(), checkJob.getArguments().size());
 		for (int i = 0; i < detritusJob.getArguments().size(); i++) {
 			assertEquals(detritusJob.getArguments().get(i).getName(), checkJob.getArguments().get(i).getName());
@@ -230,11 +229,11 @@ public class JobsResourceTest extends TestCase {
 			String garbageNameN = detritusName + String.valueOf(i);
 
 			deleteNoError(garbageNameN);
-			Job job = new Job(crapScriptName, garbageNameN, someArguments, someSchedules, true);
+			Job job = new Job(crapScriptName, someArguments, someSchedules, true);
 			jobsResource.put(garbageNameN, job);
 		}
 		deleteNoError(differentName);
-		Job differentJob = new Job(crapScriptName, differentName, null, null, false);
+		Job differentJob = new Job(crapScriptName, null, null, false);
 		jobsResource.put(differentName, differentJob);
 
 		// Confirm all like named are found.  There may be other similarly named jobs too.
@@ -259,7 +258,7 @@ public class JobsResourceTest extends TestCase {
 		scriptsResource.put(sleepJobName, sleepScript);
 		assertTrue(scriptsResource.validate(sleepJobName).isValid());
 
-		Job job = new Job(sleepJobName, null, null, null, true);
+		Job job = new Job(sleepJobName, null, null, true);
 		jobsResource.put(sleepJobName, job);
 
 		int id = jobsResource.run(sleepJobName);
@@ -302,7 +301,7 @@ public class JobsResourceTest extends TestCase {
 		scriptsResource.put(stopJobName, sleepScript);
 		assertTrue(scriptsResource.validate(stopJobName).isValid());
 
-		Job job = new Job(stopJobName, null, null, null, true);
+		Job job = new Job(stopJobName, null, null, true);
 		jobsResource.put(stopJobName, job);
 
 		int id = jobsResource.run(stopJobName);
@@ -369,7 +368,7 @@ public class JobsResourceTest extends TestCase {
 		// Save the job, which will schedule it.
 		// Then wait long enough for it to complete.
 
-		Job job = new Job(scriptName, null, null, scheduleNames, true);
+		Job job = new Job(scriptName, null, scheduleNames, true);
 		jobsResource.put(jobName, job);
 
 		try {

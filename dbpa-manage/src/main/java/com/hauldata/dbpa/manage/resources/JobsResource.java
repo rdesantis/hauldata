@@ -150,24 +150,6 @@ public class JobsResource {
 	}
 
 	@PUT
-	@Path("{name}/propfile")
-	@Timed
-	public void putPropName(@PathParam("name") String name, String propName) {
-		try {
-			putJobString(name, JobSql.propNameColumn, propName);
-		}
-		catch (NameNotFoundException ex) {
-			throw new NotFoundException(jobNotFoundMessageStem + name);
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@PUT
 	@Path("{name}/arguments")
 	@Timed
 	public void putArguments(@PathParam("name") String name, List<ScriptArgument> arguments) {
@@ -219,13 +201,6 @@ public class JobsResource {
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
-	}
-
-	@DELETE
-	@Path("{name}/propfile")
-	@Timed
-	public void deletePropName(@PathParam("name") String name) {
-		putPropName(name, null);
 	}
 
 	@DELETE
@@ -397,9 +372,8 @@ public class JobsResource {
 				stmt = conn.prepareStatement(jobSql.update);
 
 				stmt.setString(1, job.getScriptName());
-				stmt.setString(2, job.getPropName());
-				stmt.setInt(3, job.isEnabled() ? 1 : 0);
-				stmt.setInt(4, id);
+				stmt.setInt(2, job.isEnabled() ? 1 : 0);
+				stmt.setInt(3, id);
 
 				stmt.executeUpdate();
 
@@ -411,8 +385,7 @@ public class JobsResource {
 
 				stmt.setString(2, name);
 				stmt.setString(3, job.getScriptName());
-				stmt.setString(4, job.getPropName());
-				stmt.setInt(5, job.isEnabled() ? 1 : 0);
+				stmt.setInt(4, job.isEnabled() ? 1 : 0);
 
 				synchronized (this) {
 
@@ -810,17 +783,13 @@ public class JobsResource {
 				int id = rs.getInt(1);
 				String jobName = rs.getString(2);
 				String scriptName = rs.getString(3);
-				String propName = rs.getString(4);
-				if ((propName != null) && propName.isEmpty()) {
-					propName = null;
-				}
-				boolean enabled = (rs.getInt(5) == 1);
+				boolean enabled = (rs.getInt(4) == 1);
 
 				List<ScriptArgument> arguments = getArguments(conn, argumentSql, id);
 
 				List<String> scheduleNames = getJobScheduleNames(conn, jobScheduleSql, id);
 
-				jobs.put(jobName, new Job(scriptName, propName, arguments, scheduleNames, enabled));
+				jobs.put(jobName, new Job(scriptName, arguments, scheduleNames, enabled));
 			}
 		}
 		finally {

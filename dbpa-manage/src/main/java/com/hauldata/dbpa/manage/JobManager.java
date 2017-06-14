@@ -135,7 +135,7 @@ public class JobManager {
 
 		// Manager context.
 
-		ContextProperties contextProps = new ContextProperties(managerProgramName);
+		ContextProperties contextProps = new ContextProperties(managerProgramName, jobContextProps);
 		context = contextProps.createContext(null);
 
 		Properties schemaProps = contextProps.getProperties("schema");
@@ -310,11 +310,7 @@ public class JobManager {
 			args[i++] = argument.getValue();
 		}
 
-		ContextProperties props =
-				(job.getPropName() == null) ? jobContextProps :
-				new ContextProperties(job.getPropName() + "/" + DBPA.runProgramName, jobContextProps);
-
-		jobContext = props.createContext(jobName);
+		jobContext = jobContextProps.createContext(jobName);
 
 		if (analyzer != null) {
 			jobContext.logger.addAppender(analyzer);

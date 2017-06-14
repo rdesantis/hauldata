@@ -38,16 +38,17 @@ import java.util.Set;
 
 import javax.ws.rs.NotFoundException;
 
+import com.hauldata.dbpa.control.Context;
+import com.hauldata.dbpa.control.Context.Usage;
 import com.hauldata.dbpa.control.interfaces.Jobs;
 import com.hauldata.dbpa.control.interfaces.Manager;
-import com.hauldata.dbpa.control.interfaces.PropertiesGroups;
+import com.hauldata.dbpa.control.interfaces.PropertiesFiles;
 import com.hauldata.dbpa.control.interfaces.Schedules;
 import com.hauldata.dbpa.control.interfaces.Schema;
 import com.hauldata.dbpa.control.interfaces.Scripts;
 import com.hauldata.dbpa.control.interfaces.Service;
 import com.hauldata.dbpa.manage_control.api.Job;
 import com.hauldata.dbpa.manage_control.api.JobRun;
-import com.hauldata.dbpa.manage_control.api.PropertiesGroup;
 import com.hauldata.dbpa.manage_control.api.ScriptArgument;
 import com.hauldata.util.tokenizer.BacktrackingTokenizer;
 import com.hauldata.util.tokenizer.EndOfLine;
@@ -66,8 +67,9 @@ public class ControlDbp {
 		GET,
 		DELETE,
 		LIST,
-		VALIDATE,
 		SHOW,
+		SHOWALL,
+		VALIDATE,
 		UPDATE,
 		STOP,
 		START,
@@ -86,6 +88,9 @@ public class ControlDbp {
 		MANAGER,
 		SERVICE,
 		SCHEMA,
+
+		SOURCE,
+		TARGET,
 
 		// Attributes
 
@@ -114,12 +119,13 @@ public class ControlDbp {
 	}
 
 	static Map<String, TransitiveCommand> putCommands;
-	static Map<String, TransitiveCommand> updateCommands;
-	static Map<String, TransitiveCommand> validateCommands;
 	static Map<String, TransitiveCommand> getCommands;
+	static Map<String, TransitiveCommand> deleteCommands;
 	static Map<String, TransitiveCommand> listCommands;
 	static Map<String, TransitiveCommand> showCommands;
-	static Map<String, TransitiveCommand> deleteCommands;
+	static Map<String, TransitiveCommand> showAllCommands;
+	static Map<String, TransitiveCommand> validateCommands;
+	static Map<String, TransitiveCommand> updateCommands;
 	static Map<String, TransitiveCommand> startCommands;
 	static Map<String, TransitiveCommand> stopCommands;
 	static Map<String, TransitiveCommand> listRunningCommands;
@@ -134,10 +140,12 @@ public class ControlDbp {
 	static Manager manager;
 	static Schema schema;
 	static Scripts scripts;
-	static PropertiesGroups groups;
+	static PropertiesFiles propertiesFiles;
 	static Schedules schedules;
 	static Jobs jobs;
 	static Service service;
+
+	static Context context;
 
 	public static void main(String[] args) throws ReflectiveOperationException {
 
@@ -148,47 +156,109 @@ public class ControlDbp {
 
 	static void initialize(String[] args) {
 
+		// Resources
+
+		String baseUrl = (args.length > 0) ? args[0] : defaultBaseUrl;
+
+		WebClient client = new WebClient(baseUrl);
+
+		try {
+			manager = (Manager)client.getResource(Manager.class);
+			schema = (Schema)client.getResource(Schema.class);
+			scripts = (Scripts)client.getResource(Scripts.class);
+			propertiesFiles = (PropertiesFiles)client.getResource(PropertiesFiles.class);
+			schedules = (Schedules)client.getResource(Schedules.class);
+			jobs = (Jobs)client.getResource(Jobs.class);
+			service = (Service)client.getResource(Service.class);
+
+			boolean isStarted = manager.isStarted();
+			System.out.printf("Manager is %sstarted.\n", isStarted ? "" : "not ");
+		}
+		catch (Exception ex) {
+			System.err.println("Error instantiating resources:" + ex.getLocalizedMessage());
+			System.exit(2);
+		}
+
+		// Object types
+
+		FileType scriptType = new FileType(
+				Usage.PROCESS,
+				KW.SCRIPT,
+				".dbp",
+				(name, body) -> {scripts.put(name, body);},
+				(name) -> {return scripts.get(name);},
+				(name) -> {scripts.delete(name);},
+				(likeName) -> {return scripts.getNames(likeName);});
+
+		FileType propertiesFileType = new FileType(
+				Usage.PROPERTIES,
+				KW.PROPERTIES,
+				".properties",
+				(name, body) -> {propertiesFiles.put(name, body);},
+				(name) -> {return propertiesFiles.get(name);},
+				(name) -> {propertiesFiles.delete(name);},
+				(likeName) -> {return propertiesFiles.getNames(likeName);});
+
+		FileType scheduleType = new FileType(
+				Usage.SCHEDULE,
+				KW.SCHEDULE,
+				".sch",
+				(name, body) -> {schedules.put(name, body);},
+				(name) -> {return schedules.get(name);},
+				(name) -> {schedules.delete(name);},
+				(likeName) -> {return schedules.getNames(likeName);});
+
+		ObjectType jobType = new ObjectType(
+				null,
+				(name) -> {return jobs.get(name).toString();},
+				(name) -> {jobs.delete(name);},
+				(likeName) -> {return jobs.getNames(likeName);});
+
 		// Commands
 
 		putCommands = new HashMap<String, TransitiveCommand>();
-		updateCommands = new HashMap<String, TransitiveCommand>();
 		getCommands = new HashMap<String, TransitiveCommand>();
-		showCommands = new HashMap<String, TransitiveCommand>();
 		deleteCommands = new HashMap<String, TransitiveCommand>();
 		listCommands = new HashMap<String, TransitiveCommand>();
+		showCommands = new HashMap<String, TransitiveCommand>();
+		showAllCommands = new HashMap<String, TransitiveCommand>();
 		validateCommands = new HashMap<String, TransitiveCommand>();
+		updateCommands = new HashMap<String, TransitiveCommand>();
 		startCommands = new HashMap<String, TransitiveCommand>();
 		stopCommands = new HashMap<String, TransitiveCommand>();
 		listRunningCommands = new HashMap<String, TransitiveCommand>();
 		confirmCommands = new HashMap<String, TransitiveCommand>();
 		createCommands = new HashMap<String, TransitiveCommand>();
 
-		putCommands.put(KW.SCRIPT.name(), new PutScriptCommand());
-		getCommands.put(KW.SCRIPT.name(), new GetScriptCommand());
-		showCommands.put(KW.SCRIPT.name(), new ShowScriptCommand());
-		deleteCommands.put(KW.SCRIPT.name(), new DeleteScriptCommand());
-		listCommands.put(KW.SCRIPT.name(), new ListScriptsCommand());
+		putCommands.put(KW.SCRIPT.name(), new PutFileCommand(scriptType));
+		getCommands.put(KW.SCRIPT.name(), new GetFileCommand(scriptType));
+		deleteCommands.put(KW.SCRIPT.name(), new DeleteObjectCommand(scriptType));
+		listCommands.put(KW.SCRIPT.name(), new ListObjectsCommand(scriptType));
+		showCommands.put(KW.SCRIPT.name(), new ShowObjectCommand(scriptType));
 		validateCommands.put(KW.SCRIPT.name(), new ValidateScriptCommand());
 
-		putCommands.put(KW.PROPERTIES.name(), new PutPropertiesCommand());
-		getCommands.put(KW.PROPERTIES.name(), new GetPropertiesCommand());
-		deleteCommands.put(KW.PROPERTIES.name(), new DeletePropertiesCommand());
-		listCommands.put(KW.PROPERTIES.name(), new ListPropertiesCommand());
+		putCommands.put(KW.PROPERTIES.name(), new PutFileCommand(propertiesFileType));
+		getCommands.put(KW.PROPERTIES.name(), new GetFileCommand(propertiesFileType));
+		deleteCommands.put(KW.PROPERTIES.name(), new DeleteObjectCommand(propertiesFileType));
+		listCommands.put(KW.PROPERTIES.name(), new ListObjectsCommand(propertiesFileType));
+		showCommands.put(KW.PROPERTIES.name(), new ShowObjectCommand(propertiesFileType));
 
 		listCommands.put(KW.RUNNING.name(), new ListRunningCommand());
 
-		putCommands.put(KW.SCHEDULE.name(), new PutScheduleCommand());
-		showCommands.put(KW.SCHEDULE.name(), new ShowScheduleCommand());
-		deleteCommands.put(KW.SCHEDULE.name(), new DeleteScheduleCommand());
+		putCommands.put(KW.SCHEDULE.name(), new PutFileCommand(scheduleType));
+		getCommands.put(KW.SCHEDULE.name(), new GetFileCommand(scheduleType));
+		deleteCommands.put(KW.SCHEDULE.name(), new DeleteObjectCommand(scheduleType));
+		listCommands.put(KW.SCHEDULE.name(), new ListObjectsCommand(scheduleType));
+		showCommands.put(KW.SCHEDULE.name(), new ShowObjectCommand(scheduleType));
+		showAllCommands.put(KW.SCHEDULE.name(), new ShowAllSchedulesCommand());
 		validateCommands.put(KW.SCHEDULE.name(), new ValidateScheduleCommand());
-		listCommands.put(KW.SCHEDULE.name(), new ListSchedulesCommand());
 		listRunningCommands.put(KW.SCHEDULE.name(), new ListRunningSchedulesCommand());
 
 		putCommands.put(KW.JOB.name(), new PutJobCommand());
+		deleteCommands.put(KW.JOB.name(), new DeleteObjectCommand(jobType));
+		listCommands.put(KW.JOB.name(), new ListObjectsCommand(jobType));
+		showCommands.put(KW.JOB.name(), new ShowObjectCommand(jobType));
 		updateCommands.put(KW.JOB.name(), new UpdateJobCommand());
-		showCommands.put(KW.JOB.name(), new ShowJobCommand());
-		deleteCommands.put(KW.JOB.name(), new DeleteJobCommand());
-		listCommands.put(KW.JOB.name(), new ListJobsCommand());
 		startCommands.put(KW.JOB.name(), new StartJobCommand());
 		stopCommands.put(KW.JOB.name(), new StopJobCommand());
 		listRunningCommands.put(KW.JOB.name(), new ListRunningJobsCommand());
@@ -209,12 +279,13 @@ public class ControlDbp {
 
 		transitiveCommandMaps = new HashMap<String, Map<String, TransitiveCommand>>();
 		transitiveCommandMaps.put(KW.PUT.name(), putCommands);
-		transitiveCommandMaps.put(KW.UPDATE.name(), updateCommands);
-		transitiveCommandMaps.put(KW.VALIDATE.name(), validateCommands);
 		transitiveCommandMaps.put(KW.GET.name(), getCommands);
-		transitiveCommandMaps.put(KW.LIST.name(), listCommands);
-		transitiveCommandMaps.put(KW.SHOW.name(), showCommands);
 		transitiveCommandMaps.put(KW.DELETE.name(), deleteCommands);
+		transitiveCommandMaps.put(KW.LIST.name(), listCommands);
+		transitiveCommandMaps.put(KW.VALIDATE.name(), validateCommands);
+		transitiveCommandMaps.put(KW.SHOW.name(), showCommands);
+		transitiveCommandMaps.put(KW.SHOWALL.name(), showAllCommands);
+		transitiveCommandMaps.put(KW.UPDATE.name(), updateCommands);
 		transitiveCommandMaps.put(KW.START.name(), startCommands);
 		transitiveCommandMaps.put(KW.STOP.name(), stopCommands);
 		transitiveCommandMaps.put(KW.CREATE.name(), createCommands);
@@ -230,28 +301,7 @@ public class ControlDbp {
 		addSingular(KW.ARGUMENT.name());
 		addSingular(KW.RUN.name());
 
-		// Resources
-
-		String baseUrl = (args.length > 0) ? args[0] : defaultBaseUrl;
-
-		WebClient client = new WebClient(baseUrl);
-
-		try {
-			manager = (Manager)client.getResource(Manager.class);
-			schema = (Schema)client.getResource(Schema.class);
-			scripts = (Scripts)client.getResource(Scripts.class);
-			groups = (PropertiesGroups)client.getResource(PropertiesGroups.class);
-			schedules = (Schedules)client.getResource(Schedules.class);
-			jobs = (Jobs)client.getResource(Jobs.class);
-			service = (Service)client.getResource(Service.class);
-
-			boolean isStarted = manager.isStarted();
-			System.out.printf("Manager is %sstarted.\n", isStarted ? "" : "not ");
-		}
-		catch (Exception ex) {
-			System.err.println("Error instantiating resources:" + ex.getLocalizedMessage());
-			System.exit(2);
-		}
+		context = new Context();
 	}
 
 	static void addSingular(String noun) {
@@ -316,8 +366,13 @@ public class ControlDbp {
 
 					System.err.println(ex.getMessage());
 
-					while (!EndOfLine.value.equals(tokenizer.lastToken())) {
-						tokenizer.nextToken();
+					try {
+						while (!EndOfLine.value.equals(tokenizer.lastToken())) {
+							tokenizer.nextToken();
+						}
+					}
+					catch (Exception exx) {
+						throw new RuntimeException("Unrecoverable command read error");
 					}
 				}
 				catch (NotFoundException ex) {
@@ -325,11 +380,12 @@ public class ControlDbp {
 
 					System.err.println(ex.getLocalizedMessage());
 				}
+				catch (Exception ex) {
+					// System error.
+
+					System.err.println((ex.getMessage() != null) ? ex.getMessage() : ex.getLocalizedMessage());
+				}
 			} while (!done);
-		}
-		catch (Exception ex) {
-			System.err.println((ex.getMessage() != null) ? ex.getMessage() : ex.getLocalizedMessage());
-			System.exit(3);
 		}
 		finally {
 			try { tokenizer.close(); } catch (IOException e) {}
@@ -340,16 +396,61 @@ public class ControlDbp {
 		// Nothing to do.
 	}
 
-	static class PutScriptCommand extends StandardNamedObjectCommand {
+	@FunctionalInterface
+	static interface ObjectPutter { void put(String name, String body); }
+
+	@FunctionalInterface
+	static interface ObjectGetter { String get(String name); }
+
+	@FunctionalInterface
+	static interface ObjectDeleter { void delete(String name); }
+
+	@FunctionalInterface
+	static interface ObjectLister { List<String> getNames(String likeName); }
+
+	static class ObjectType {
+		public ObjectPutter putter;
+		public ObjectGetter getter;
+		public ObjectDeleter deleter;
+		public ObjectLister lister;
+
+		public ObjectType(ObjectPutter putter, ObjectGetter getter, ObjectDeleter deleter, ObjectLister lister) {
+			this.putter = putter;
+			this.getter = getter;
+			this.deleter = deleter;
+			this.lister = lister;
+		}
+	}
+
+	static class FileType extends ObjectType {
+		public Usage usage;
+		public KW keyword;
+		public String fileExt;
+
+		public FileType(Usage usage, KW keyword, String fileExt, ObjectPutter putter, ObjectGetter getter, ObjectDeleter deleter, ObjectLister lister) {
+			super(putter, getter, deleter, lister);
+			this.usage = usage;
+			this.keyword = keyword;
+			this.fileExt = fileExt;
+		}
+	}
+
+	static class PutFileCommand extends StandardNamedObjectCommand {
+
+		private FileType type;
+
+		public PutFileCommand(FileType type) {
+			this.type = type;
+		}
 
 		@Override
 		protected String execute(String name) {
 
-			String processFilePathName = getProcessFilePathName(name);
+			String filePathName = context.getPath(type.usage, name + type.fileExt).toString();
 
 			Reader reader = null;
 			try {
-				reader = new BufferedReader(new InputStreamReader(new FileInputStream(processFilePathName)));
+				reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePathName)));
 
 				final int bufferLength = 2048;
 				char[] charBuffer = new char[bufferLength];
@@ -360,9 +461,9 @@ public class ControlDbp {
 					bodyBuilder.append(charBuffer, 0, count);
 				}
 
-				scripts.put(name, bodyBuilder.toString());
+				type.putter.put(name, bodyBuilder.toString());
 			} catch (FileNotFoundException ex) {
-				throw new NotFoundException(KW.SCRIPT.name() + " file not found: " + processFilePathName);
+				throw new NotFoundException(type.keyword.name() + " file not found: " + filePathName);
 			} catch (IOException ex) {
 				throw new NotFoundException(ex.getLocalizedMessage());
 			}
@@ -372,30 +473,28 @@ public class ControlDbp {
 				}
 			}
 
-			return String.format("%s file sent: %s\n", KW.SCRIPT.name(), processFilePathName);
+			return String.format("%s file sent: %s\n", type.keyword.name(), name);
 		}
 	}
 
-	static class ShowScriptCommand extends StandardDisplayCommand {
+	static class GetFileCommand extends StandardNamedObjectCommand {
 
-		@Override
-		protected String get(String name) {
-			return scripts.get(name);
+		private FileType type;
+
+		public GetFileCommand(FileType type) {
+			this.type = type;
 		}
-	}
-
-	static class GetScriptCommand extends StandardNamedObjectCommand {
 
 		@Override
 		protected String execute(String name) {
 
-			String processFilePathName = getProcessFilePathName(name);
+			String filePathName = context.getPath(type.usage, name + type.fileExt).toString();
 
 			Writer writer = null;
 			try {
-				String body = scripts.get(name);
+				String body = type.getter.get(name);
 
-				writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(processFilePathName)));
+				writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filePathName)));
 
 				writer.write(body);
 			} catch (IOException ex) {
@@ -407,23 +506,49 @@ public class ControlDbp {
 				}
 			}
 
-			return String.format("%s file received: %s\n", KW.SCRIPT.name(), processFilePathName);
+			return String.format("%s file received: %s\n", type.keyword.name(), name);
 		}
 	}
 
-	static class DeleteScriptCommand extends StandardDeleteCommand {
+	static class DeleteObjectCommand extends StandardDeleteCommand {
+
+		private ObjectDeleter deleter;
+
+		public DeleteObjectCommand(ObjectType type) {
+			this.deleter = type.deleter;
+		}
 
 		@Override
 		protected void delete(String name) {
-			scripts.delete(name);
+			deleter.delete(name);
 		}
 	}
 
-	static class ListScriptsCommand extends StandardListCommand {
+	static class ListObjectsCommand extends StandardListCommand {
+
+		private ObjectLister lister;
+
+		public ListObjectsCommand(ObjectType type) {
+			this.lister = type.lister;
+		}
 
 		@Override
 		protected Collection<?> getObjects(String likeName) {
-			return scripts.getNames(likeName);
+			return lister.getNames(likeName);
+		}
+	}
+
+	static class ShowObjectCommand extends StandardDisplayCommand {
+
+		private ObjectGetter getter;
+
+		public ShowObjectCommand(ObjectType type) {
+			this.getter = type.getter;
+		}
+
+		@Override
+		protected String get(String name) {
+			return getter.get(name);
 		}
 	}
 
@@ -435,94 +560,6 @@ public class ControlDbp {
 		}
 	}
 
-	static class PutPropertiesCommand extends StandardNamedObjectCommand {
-
-		@Override
-		protected String execute(String name) {
-
-			PropertiesGroup group;
-
-			try {
-				group = PropertiesGroup.load(name);
-
-			} catch (IOException ex) {
-				throw new NotFoundException("Error reading properties file: " + ex.getLocalizedMessage());
-			}
-
-			groups.put(name, group);
-
-			return String.format("%s files sent for group %s: %s\n", KW.PROPERTIES.name(), name, group.getGroup().keySet().toString());
-		}
-	}
-
-	static class GetPropertiesCommand extends StandardNamedObjectCommand {
-
-		@Override
-		protected String execute(String name) {
-
-			PropertiesGroup group = groups.get(name);
-
-			try {
-				group.store(name);
-
-			} catch (IOException ex) {
-				throw new NotFoundException("Error writing properties file: " + ex.getLocalizedMessage());
-			}
-
-			return String.format("%s files received for group %s: %s\n", KW.PROPERTIES.name(), name, group.getGroup().keySet().toString());
-		}
-	}
-
-	static class DeletePropertiesCommand extends StandardDeleteCommand {
-
-		@Override
-		protected void delete(String name) {
-			groups.delete(name);
-		}
-	}
-
-	static class ListPropertiesCommand extends StandardListCommand {
-
-		@Override
-		protected Collection<?> getObjects(String likeName) {
-			return groups.getNames(likeName);
-		}
-	}
-
-	static class PutScheduleCommand implements TransitiveCommand {
-
-		@Override
-		public boolean supportsPlural() { return false; }
-
-		@Override
-		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
-
-			String name = nextEntityName(tokenizer);
-			String schedule = tokenizer.nextQuoted().getBody();
-			endOfLine(tokenizer);
-
-			schedules.put(name, schedule);
-
-			return false;
-		}
-	}
-
-	static class ShowScheduleCommand extends StandardDisplayCommand {
-
-		@Override
-		protected String get(String name) {
-			return schedules.get(name);
-		}
-	}
-
-	static class DeleteScheduleCommand extends StandardDeleteCommand {
-
-		@Override
-		protected void delete(String name) {
-			schedules.delete(name);
-		}
-	}
-
 	static class ValidateScheduleCommand extends StandardDisplayCommand {
 
 		@Override
@@ -531,7 +568,7 @@ public class ControlDbp {
 		}
 	}
 
-	static class ListSchedulesCommand extends StandardListCommand {
+	static class ShowAllSchedulesCommand extends StandardListCommand {
 
 		@Override
 		public Collection<?> getObjects(String likeName) {
@@ -574,14 +611,6 @@ public class ControlDbp {
 			if (components.contains(Component.script)) {
 				jobs.putScriptName(name, job.getScriptName());
 			}
-			if (components.contains(Component.properties)) {
-				if (job.getPropName() != null) {
-					jobs.putPropName(name, job.getPropName());
-				}
-				else {
-					jobs.deletePropName(name);
-				}
-			}
 			if (components.contains(Component.arguments)) {
 				if (job.getArguments() != null) {
 					jobs.putArguments(name, job.getArguments());
@@ -608,7 +637,7 @@ public class ControlDbp {
 
 	static abstract class WriteJobCommand implements TransitiveCommand {
 
-		protected enum Component { script, properties, arguments, schedules, enabled };
+		protected enum Component { script, arguments, schedules, enabled };
 
 		@Override
 		public boolean supportsPlural() { return false; }
@@ -628,15 +657,6 @@ public class ControlDbp {
 
 			boolean none;
 			none = tokenizer.skipWordIgnoreCase(KW.NO.name());
-
-			String propName = null;
-			if (tokenizer.skipWordIgnoreCase(KW.PROPERTIES.name())) {
-				components.add(Component.properties);
-				if (!none) {
-					propName = nextEntityName(tokenizer);
-				}
-				none = tokenizer.skipWordIgnoreCase(KW.NO.name());
-			}
 
 			List<ScriptArgument> arguments = null;
 			if (skipWordOrPluralIgnoreCase(tokenizer, KW.ARGUMENT.name())) {
@@ -676,7 +696,7 @@ public class ControlDbp {
 
 			endOfLine(tokenizer);
 
-			Job job = new Job(scriptName, propName, arguments, scheduleNames, enabled);
+			Job job = new Job(scriptName, arguments, scheduleNames, enabled);
 
 			return execute(name, components, job);
 		}
@@ -720,30 +740,6 @@ public class ControlDbp {
 		} while (tokenizer.skipDelimiter(","));
 
 		return names;
-	}
-
-	static class ShowJobCommand extends StandardDisplayCommand {
-
-		@Override
-		protected String get(String name) {
-			return jobs.get(name).toString();
-		}
-	}
-
-	static class DeleteJobCommand extends StandardDeleteCommand {
-
-		@Override
-		protected void delete(String name) {
-			jobs.delete(name);
-		}
-	}
-
-	static class ListJobsCommand extends StandardListCommand {
-
-		@Override
-		public Collection<?> getObjects(String likeName) {
-			return jobs.getNames(likeName);
-		}
 	}
 
 	static class StartJobCommand extends StandardNamedObjectCommand {
@@ -1097,12 +1093,4 @@ public class ControlDbp {
 			throw new InputMismatchException("Unexpected token on line: " + token.getImage());
 		}
 	}
-
-	private static String getProcessFilePathName(String name) {
-
-		final String processFileExt = "dbp";
-
-		return name + "." + processFileExt;
-	}
-
 }

@@ -60,6 +60,7 @@ public class ContextProperties {
 		props.setProperty("data", DBPA.home);
 		props.setProperty("process", DBPA.home);
 		props.setProperty("properties", DBPA.home);
+		props.setProperty("schedule", DBPA.home);
 		props.setProperty("log", DBPA.home);
 		return props;
 	}

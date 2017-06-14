@@ -45,7 +45,7 @@ public class ScriptValidation {
 		return getClass().getSimpleName() + ":" +
 				"{" +
 				String.valueOf(valid) + "," +
-				String.valueOf(validationMessage) +
+				String.valueOf(validationMessage) + "," +
 				String.valueOf(parameters) +
 				"}";
 	}

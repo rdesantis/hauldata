@@ -265,24 +265,26 @@ public class Context {
 
 	// File system functions.
 
+	public Path getReadParentPath() { return readParent; }
+	public Path getWriteParentPath() { return writeParent; }
+	public Path getPropertiesParentPath() { return propertiesParent; }
+	public Path getScheduleParentPath() { return scheduleParent; }
+
 	/**
 	 * Get the fully-resolved path of a file name that may include a relative or absolute path.
 	 * @param fileName is the file name to resolve.
 	 * @return the fully-resolved path
 	 */
-	public Path getReadPath(String fileName) {
-		return readParent.resolve(fileName).toAbsolutePath().normalize();
-	}
-	public Path getWritePath(String fileName) {
-		return writeParent.resolve(fileName).toAbsolutePath().normalize();
-	}
 	public Path getDataPath(String fileName, boolean writeNotRead) {
 		return writeNotRead ? getWritePath(fileName) : getReadPath(fileName);
 	}
-	public Path getPropertiesPath(String fileName) {
-		return propertiesParent.resolve(fileName).toAbsolutePath().normalize();
-	}
-	public Path getSchedulePath(String fileName) {
-		return scheduleParent.resolve(fileName).toAbsolutePath().normalize();
+
+	public Path getReadPath(String fileName) { return getPath(readParent, fileName); }
+	public Path getWritePath(String fileName) { return getPath(writeParent, fileName); }
+	public Path getPropertiesPath(String fileName) { return getPath(propertiesParent, fileName); }
+	public Path getSchedulePath(String fileName) { return getPath(scheduleParent, fileName); }
+
+	private Path getPath(Path parent, String fileName) {
+		return parent.resolve(fileName).toAbsolutePath().normalize();
 	}
 }

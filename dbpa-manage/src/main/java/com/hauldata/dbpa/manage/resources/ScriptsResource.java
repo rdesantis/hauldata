@@ -16,18 +16,8 @@
 
 package com.hauldata.dbpa.manage.resources;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
-import java.io.Writer;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.util.LinkedList;
@@ -63,6 +53,10 @@ public class ScriptsResource {
 
 	public static final String scriptNotFoundMessageStem = "Script not found: ";
 
+	static private FilesResource files = new FilesResource(
+			"." + FileLoader.processFileExt,
+			Paths.get(((FileLoader)JobManager.getInstance().getContext().loader).getProcessPathString()));
+
 	public ScriptsResource() {}
 
 	// TODO: Use exception mapping instead of duplicating code.
@@ -73,7 +67,7 @@ public class ScriptsResource {
 	@Timed
 	public void put(@PathParam("name") String name, String body) {
 		try {
-			putScript(name, body);
+			files.put(name, body);
 		}
 		catch (NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -88,7 +82,7 @@ public class ScriptsResource {
 	@Timed
 	public String get(@PathParam("name") String name) {
 		try {
-			return getScript(name);
+			return files.get(name);
 		}
 		catch (FileNotFoundException ex) {
 			throw new NotFoundException(scriptNotFoundMessageStem + name);
@@ -106,7 +100,7 @@ public class ScriptsResource {
 	@Timed
 	public void delete(@PathParam("name") String name) {
 		try {
-			deleteScript(name);
+			files.delete(name);
 		}
 		catch (NoSuchFileException ex) {
 			throw new NotFoundException(scriptNotFoundMessageStem + name);
@@ -124,7 +118,7 @@ public class ScriptsResource {
 	@Timed
 	public List<String> getNames(@QueryParam("like") String likeName) {
 		try {
-			return getScriptNames(likeName);
+			return files.getNames(likeName);
 		}
 		catch (NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -150,129 +144,6 @@ public class ScriptsResource {
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
 		}
-	}
-
-	/**
-	 * Write a script to file.
-	 * @param name is the name of the script
-	 * @param body is the body of the script
-	 * @throws IOException
-	 */
-	private void putScript(String name, String body) throws IOException {
-
-		String processFilePathName = getProcessFilePathName(name);
-
-		Writer writer = null;
-		try {
-			writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(processFilePathName)));
-
-			writer.write(body);
-		}
-		finally {
-			if (writer != null) {
-				try { writer.close(); } catch (Exception ex) {}
-			}
-		}
-	}
-
-	private String getProcessFilePathName(String name) {
-
-		JobManager manager = JobManager.getInstance();
-		FileLoader fileLoader = (FileLoader)manager.getContext().loader;
-
-		String processFileName = name + "." + FileLoader.processFileExt;
-		String processFilePathName = Paths.get(fileLoader.getProcessPathString()).resolve(processFileName).toString();
-
-		return processFilePathName;
-	}
-
-	/**
-	 * Read a script from file.
-	 * @param name is the name of the script
-	 * @return the body of the script
-	 * @throws FileNotFoundException if the file is not found
-	 * @throws IOException for any other file system error
-	 */
-	private String getScript(String name) throws IOException {
-
-		String processFilePathName = getProcessFilePathName(name);
-
-		final int bufferLength = 2048;
-		char[] charBuffer = new char[bufferLength];
-		StringBuilder bodyBuilder = new StringBuilder();
-
-		Reader reader = null;
-		try {
-			reader = new BufferedReader(new InputStreamReader(new FileInputStream(processFilePathName)));
-
-			int count;
-			while((count = reader.read(charBuffer, 0, bufferLength)) != -1) {
-				bodyBuilder.append(charBuffer, 0, count);
-			}
-		}
-		finally {
-			if (reader != null) {
-				try { reader.close(); } catch (Exception ex) {}
-			}
-		}
-
-		return bodyBuilder.toString();
-	}
-
-	/**
-	 * Delete a script file.
-	 * @param name is the name of the script
-	 * @throws NoSuchFileException if the file is not found
-	 * @throws IOException for any other file system error
-	 */
-	private void deleteScript(String name) throws IOException  {
-
-		String processFilePathName = getProcessFilePathName(name);
-		Files.delete(Paths.get(processFilePathName));
-	}
-
-	/**
-	 * Retrieve a list of names of all scripts available in the process directory
-	 * that match an optional name wildcard pattern
-	 *
-	 * @param likeName is the wildcard pattern or null to match all names
-	 * @return the list of scripts if any exists;
-	 * or an empty list if no scripts exist
-	 * @throws IOException
-	 */
-	private List<String> getScriptNames(String likeName) throws IOException {
-
-		JobManager manager = JobManager.getInstance();
-		FileLoader fileLoader = (FileLoader)manager.getContext().loader;
-
-		if (likeName == null) {
-			likeName = "*";
-		}
-
-		final String scriptSuffix = "." + FileLoader.processFileExt;
-		final int scriptSuffixLength = scriptSuffix.length();
-
-		List<String> scriptNames = new LinkedList<String>();
-
-		DirectoryStream<java.nio.file.Path> scriptPaths = null;
-		try {
-			scriptPaths = Files.newDirectoryStream(Paths.get(fileLoader.getProcessPathString()), likeName + scriptSuffix);
-
-			for (java.nio.file.Path scriptPath : scriptPaths) {
-				if (Files.isRegularFile(scriptPath)) {
-
-					String scriptFileName = scriptPath.getFileName().toString();
-					String scriptName = scriptFileName.substring(0, scriptFileName.length() - scriptSuffixLength);
-
-					scriptNames.add(scriptName);
-				}
-			}
-		}
-		finally {
-			try { scriptPaths.close(); } catch (Exception ex) {}
-		}
-
-		return scriptNames;
 	}
 
 	/**
@@ -311,7 +182,7 @@ public class ScriptsResource {
 
 		return new ScriptValidation(process != null, validationMessage, toScriptParameters(parameters));
 	}
-	
+
 	private List<ScriptParameter> toScriptParameters(List<VariableBase> parameters) {
 
 		List<ScriptParameter> scriptParameters = new LinkedList<ScriptParameter>();

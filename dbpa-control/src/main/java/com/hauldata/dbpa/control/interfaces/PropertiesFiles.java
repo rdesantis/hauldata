@@ -28,20 +28,18 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.hauldata.dbpa.manage_control.api.PropertiesGroup;
-
 @Path("/propfiles")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public interface PropertiesGroups {
+public interface PropertiesFiles {
 
 	@PUT
 	@Path("{name}")
-	public void put(@PathParam("name") String name, PropertiesGroup group);
+	public void put(@PathParam("name") String name, String body);
 
 	@GET
 	@Path("{name}")
-	public PropertiesGroup get(@PathParam("name") String name);
+	public String get(@PathParam("name") String name);
 
 	@DELETE
 	@Path("{name}")

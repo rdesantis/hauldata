@@ -21,22 +21,21 @@ public class JobSql extends CommonSql {
 	public static final String tableName = "Job";
 
 	public final static String createTable_ = "CREATE TABLE %1$s" + tableName + " " +
-			"( id INTEGER, name VARCHAR(255) UNIQUE, scriptName VARCHAR(255), propName VARCHAR(255), enabled TINYINT, PRIMARY KEY (id) )";
-	public final static String insert_ = "INSERT INTO %1$s" + tableName + " VALUES (?,?,?,?,?)";
+			"( id INTEGER, name VARCHAR(255) UNIQUE, scriptName VARCHAR(255), enabled TINYINT, PRIMARY KEY (id) )";
+	public final static String insert_ = "INSERT INTO %1$s" + tableName + " VALUES (?,?,?,?)";
 	public final static String selectLastId_ = "SELECT MAX(id) FROM %1$s" + tableName;
-	public final static String select_ = "SELECT id, name, scriptName, propName, enabled FROM %1$s" + tableName + " WHERE name LIKE ? ORDER BY name";
+	public final static String select_ = "SELECT id, name, scriptName, enabled FROM %1$s" + tableName + " WHERE name LIKE ? ORDER BY name";
 	public final static String selectNames_ = "SELECT name FROM %1$s" + tableName + " WHERE name LIKE ? ORDER BY name";
 	public final static String selectId_ = "SELECT id FROM %1$s" + tableName + " WHERE name = ?";
 	public final static String selectIdEnabled_ = "SELECT id, enabled FROM %1$s" + tableName + " WHERE name = ?";
-	public final static String update_ = "UPDATE %1$s" + tableName + " SET scriptName = ?, propName = ?, enabled = ? WHERE id = ?";
+	public final static String update_ = "UPDATE %1$s" + tableName + " SET scriptName = ?, enabled = ? WHERE id = ?";
 	public final static String delete_ = "DELETE FROM %1$s" + tableName + " WHERE id = ?";
-	public final static String selectAllColumns_ = "SELECT id, name, scriptName, propName, enabled FROM %1$s" + tableName;
+	public final static String selectAllColumns_ = "SELECT id, name, scriptName, enabled FROM %1$s" + tableName;
 	public final static String dropTable_ = "DROP TABLE %1$s" + tableName;
 
 	public final static String updateField_ = "UPDATE %1$s" + tableName + " SET %%1$s = ? WHERE id = ?";
 
 	public final static String scriptNameColumn = "scriptName";
-	public final static String propNameColumn = "propName";
 	public final static String enabledColumn = "enabled";
 
 	/**

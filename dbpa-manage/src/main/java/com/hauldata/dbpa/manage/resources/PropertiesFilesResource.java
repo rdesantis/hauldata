@@ -33,27 +33,28 @@ import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.core.MediaType;
 
 import com.codahale.metrics.annotation.Timed;
+import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.JobManagerException.NotAvailable;
-import com.hauldata.dbpa.manage_control.api.PropertiesGroup;
 
 @Path("/propfiles")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public class PropertiesGroupsResource {
+public class PropertiesFilesResource {
 
-	public static final String groupNotFoundMessageStem = "Properties files not found: ";
+	public static final String fileNotFoundMessageStem = "Properties file not found: ";
 
-	public PropertiesGroupsResource() {}
+	static private FilesResource files = new FilesResource(".properties", JobManager.getInstance().getContext().getPropertiesParentPath());
 
+	public PropertiesFilesResource() {}
 	// TODO: Use exception mapping instead of duplicating code.
 	// See https://dennis-xlc.gitbooks.io/restful-java-with-jax-rs-2-0-2rd-edition/content/en/part1/chapter7/exception_handling.html
 
 	@PUT
 	@Path("{name}")
 	@Timed
-	public void put(@PathParam("name") String name, PropertiesGroup group) {
+	public void put(@PathParam("name") String name, String body) {
 		try {
-			group.store(name);
+			files.put(name, body);
 		}
 		catch (NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -66,9 +67,9 @@ public class PropertiesGroupsResource {
 	@GET
 	@Path("{name}")
 	@Timed
-	public PropertiesGroup get(@PathParam("name") String name) {
+	public String get(@PathParam("name") String name) {
 		try {
-			return PropertiesGroup.load(name);
+			return files.get(name);
 		}
 		catch (NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -83,13 +84,13 @@ public class PropertiesGroupsResource {
 	@Timed
 	public void delete(@PathParam("name") String name) {
 		try {
-			PropertiesGroup.delete(name);
+			files.delete(name);
 		}
 		catch (NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (NoSuchFileException ex) {
-			throw new NotFoundException(groupNotFoundMessageStem + name);
+			throw new NotFoundException(fileNotFoundMessageStem + name);
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());
@@ -101,7 +102,7 @@ public class PropertiesGroupsResource {
 	@Timed
 	public List<String> getNames(@QueryParam("like") String likeName) {
 		try {
-			return PropertiesGroup.getNames(likeName);
+			return files.getNames(likeName);
 		}
 		catch (NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());

@@ -55,10 +55,6 @@ public interface Jobs {
 	public void putScriptName(@PathParam("name") String name, String scriptName);
 
 	@PUT
-	@Path("{name}/propfile")
-	public void putPropName(@PathParam("name") String name, String propName);
-
-	@PUT
 	@Path("{name}/arguments")
 	public void putArguments(@PathParam("name") String name, List<ScriptArgument> arguments);
 
@@ -69,10 +65,6 @@ public interface Jobs {
 	@PUT
 	@Path("{name}/enabled")
 	public void putEnabled(@PathParam("name") String name, boolean enabled);
-
-	@DELETE
-	@Path("{name}/propfile")
-	public void deletePropName(@PathParam("name") String name);
 
 	@DELETE
 	@Path("{name}/arguments")
