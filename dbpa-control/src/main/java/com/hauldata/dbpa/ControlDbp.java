@@ -36,8 +36,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-import javax.ws.rs.NotFoundException;
-
 import com.hauldata.dbpa.control.Context;
 import com.hauldata.dbpa.control.Context.Usage;
 import com.hauldata.dbpa.control.interfaces.Jobs;
@@ -313,6 +311,11 @@ public class ControlDbp {
 		return (singular != null) ? singular : noun;
 	}
 
+	static class ExecutionException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+		public ExecutionException(String message) { super(message); }
+	}
+
 	static void interpretCommands() {
 
 		BacktrackingTokenizer tokenizer = new BacktrackingTokenizer(new InputStreamReader(System.in));
@@ -361,31 +364,26 @@ public class ControlDbp {
 
 					done = command.interpret(tokenizer);
 				}
-				catch (NoSuchElementException ex) {
+				catch (NoSuchElementException /* also catches InputMismatchException */ ex) {
 					// Command parsing error.
 
 					System.err.println(ex.getMessage());
 
-					try {
-						while (!EndOfLine.value.equals(tokenizer.lastToken())) {
-							tokenizer.nextToken();
-						}
-					}
-					catch (Exception exx) {
-						throw new RuntimeException("Unrecoverable command read error");
+					while (!EndOfLine.value.equals(tokenizer.lastToken())) {
+						tokenizer.nextToken();
 					}
 				}
-				catch (NotFoundException ex) {
+				catch (RuntimeException ee) {
 					// Command execution error.
 
-					System.err.println(ex.getLocalizedMessage());
-				}
-				catch (Exception ex) {
-					// System error.
-
-					System.err.println((ex.getMessage() != null) ? ex.getMessage() : ex.getLocalizedMessage());
+					System.err.println(ee.getLocalizedMessage());
 				}
 			} while (!done);
+		}
+		catch (Exception ex) {
+
+			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
+			System.err.println("Unrecoverable error: " + message);
 		}
 		finally {
 			try { tokenizer.close(); } catch (IOException e) {}
@@ -462,10 +460,12 @@ public class ControlDbp {
 				}
 
 				type.putter.put(name, bodyBuilder.toString());
-			} catch (FileNotFoundException ex) {
-				throw new NotFoundException(type.keyword.name() + " file not found: " + filePathName);
-			} catch (IOException ex) {
-				throw new NotFoundException(ex.getLocalizedMessage());
+			}
+			catch (FileNotFoundException ex) {
+				throw new ExecutionException(type.keyword.name() + " file not found: " + filePathName);
+			}
+			catch (IOException ex) {
+				throw new ExecutionException(ex.getLocalizedMessage());
 			}
 			finally {
 				if (reader != null) {
@@ -497,8 +497,9 @@ public class ControlDbp {
 				writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filePathName)));
 
 				writer.write(body);
-			} catch (IOException ex) {
-				throw new NotFoundException(ex.getLocalizedMessage());
+			}
+			catch (IOException ex) {
+				throw new ExecutionException(ex.getLocalizedMessage());
 			}
 			finally {
 				if (writer != null) {

@@ -30,19 +30,30 @@ public class JobManagerException {
 
 	// Abstract classes
 
-	public static abstract class AvailabilityException extends RuntimeException {
+	public enum Type { AVAILABILITY, CONFLICT, SCHEMA };
+
+	public static abstract class BaseException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+		protected BaseException(String message) { super(message); }
+		public abstract Type getType();
+	}
+
+	public static abstract class AvailabilityException extends BaseException {
 		private static final long serialVersionUID = 1L;
 		protected AvailabilityException(String message) { super(message); }
+		@Override public Type getType() { return Type.AVAILABILITY; }
 	}
 
-	public static abstract class ConflictException extends RuntimeException {
+	public static abstract class ConflictException extends BaseException {
 		private static final long serialVersionUID = 1L;
 		protected ConflictException(String message) { super(message); }
+		@Override public Type getType() { return Type.CONFLICT; }
 	}
 
-	public static abstract class SchemaException extends RuntimeException {
+	public static abstract class SchemaException extends BaseException {
 		private static final long serialVersionUID = 1L;
 		protected SchemaException(String message) { super(message); }
+		@Override public Type getType() { return Type.SCHEMA; }
 	}
 
 	// Concrete classes

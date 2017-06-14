@@ -36,6 +36,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -134,7 +135,16 @@ class WebClientInvocationHandler implements InvocationHandler {
 		if (webMethod == null) {
 			throw new NoSuchMethodException("Not a web client method: " + method.getName());
 		}
-		return webMethod.invoke(proxy, args);
+
+		Object result = null;
+		try {
+			result = webMethod.invoke(proxy, args);
+		}
+		catch (WebApplicationException wax) {
+			String message = wax.getResponse().readEntity(String.class);
+			throw new RuntimeException(message);
+		}
+		return result;
 	}
 }
 
