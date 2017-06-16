@@ -20,6 +20,7 @@ import java.io.StringReader;
 import java.util.Map;
 
 import com.hauldata.dbpa.DbProcessTestPropertiesBase;
+import com.hauldata.dbpa.QuietLog4j;
 import com.hauldata.dbpa.loader.TestLoader;
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.ConsoleAppender;
@@ -132,4 +133,6 @@ public abstract class TaskTest extends TestCase {
 
 		assertNotNull(process);
 	}
+
+	static {QuietLog4j.please();}
 }

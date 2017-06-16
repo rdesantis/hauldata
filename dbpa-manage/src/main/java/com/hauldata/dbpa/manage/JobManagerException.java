@@ -34,26 +34,24 @@ public class JobManagerException {
 
 	public static abstract class BaseException extends RuntimeException {
 		private static final long serialVersionUID = 1L;
-		protected BaseException(String message) { super(message); }
-		public abstract Type getType();
+		private Type type;
+		protected BaseException(Type type, String message) { super(message); this.type = type; }
+		public Type getType() { return type; }
 	}
 
 	public static abstract class AvailabilityException extends BaseException {
 		private static final long serialVersionUID = 1L;
-		protected AvailabilityException(String message) { super(message); }
-		@Override public Type getType() { return Type.AVAILABILITY; }
+		protected AvailabilityException(String message) { super(Type.AVAILABILITY, message); }
 	}
 
 	public static abstract class ConflictException extends BaseException {
 		private static final long serialVersionUID = 1L;
-		protected ConflictException(String message) { super(message); }
-		@Override public Type getType() { return Type.CONFLICT; }
+		protected ConflictException(String message) { super(Type.CONFLICT, message); }
 	}
 
 	public static abstract class SchemaException extends BaseException {
 		private static final long serialVersionUID = 1L;
-		protected SchemaException(String message) { super(message); }
-		@Override public Type getType() { return Type.SCHEMA; }
+		protected SchemaException(String message) { super(Type.SCHEMA, message); }
 	}
 
 	// Concrete classes

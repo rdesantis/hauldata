@@ -21,6 +21,8 @@ import io.dropwizard.Configuration;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
+import java.util.logging.Logger;
+
 import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.resources.JobsResource;
 import com.hauldata.dbpa.manage.resources.ManagerResource;
@@ -84,4 +86,6 @@ public class ManageDbp extends Application<Configuration> {
 		environment.jersey().register(schedules);
 		environment.jersey().register(jobs);
 	}
+
+	static {QuietLog4j.please();}
 }

@@ -108,13 +108,6 @@
 		    <version>0.1.53</version>
 		</dependency>
 
-		<!-- http://mvnrepository.com/artifact/log4j/log4j -->
-		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>log4j</artifactId>
-			<version>1.2.17</version>
-		</dependency>
-
 		<!-- Not required at compile time; packaged into the jar for runtime convenience -->
 
 		<!-- http://mvnrepository.com/artifact/mysql/mysql-connector-java -->

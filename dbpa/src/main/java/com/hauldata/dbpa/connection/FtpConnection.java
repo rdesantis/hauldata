@@ -174,13 +174,4 @@ public class FtpConnection extends Connection {
 
 		return protocol + "://" + user + ":" + password +  "@" + hostname + cleanedFileName;
 	}
-
-	static { quietLog4j(); }
-	static private boolean quietLog4jCalled = false;
-	private static void quietLog4j() {
-		if (!quietLog4jCalled) {
-			org.apache.log4j.BasicConfigurator.configure(new org.apache.log4j.varia.NullAppender());
-			quietLog4jCalled = true;
-		}
-	}
 }

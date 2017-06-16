@@ -18,8 +18,11 @@ package com.hauldata.dbpa.run;
 
 import java.util.Arrays;
 
+import com.hauldata.dbpa.RunDbp;
+
 public class RunOptions {
 
+	private boolean versionOnly = false;
 	private boolean checkOnly = false;
 	private boolean alert = false;
 	private String scheduleName = null;
@@ -51,12 +54,21 @@ public class RunOptions {
 			System.exit(1);
 		}
 
+		if (result.versionOnly) {
+			String version = RunDbp.class.getPackage().getImplementationVersion();
+			System.out.println(version);
+			System.exit(0);
+		}
+
 		return new RunOptions.WithArgs(result, Arrays.copyOfRange(args, i, args.length));
 	}
 
 	private static void parseLongOption(RunOptions result, String option) {
 
-		if (option.equals("check")) {
+		if (option.equals("version")) {
+			result.versionOnly = true;
+		}
+		else if (option.equals("check")) {
 			result.checkOnly = true;
 		}
 		else if (option.equals("alert")) {
@@ -86,7 +98,10 @@ public class RunOptions {
 			char option = options.charAt(0);
 			options = options.substring(1);
 
-			if (option == 'c') {
+			if (option == 'v') {
+				result.versionOnly = true;
+			}
+			else if (option == 'c') {
 				result.checkOnly = true;
 			}
 			else if (option == 'a') {

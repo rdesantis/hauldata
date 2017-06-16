@@ -74,4 +74,6 @@ public class RunDbp {
 			}
 		}
 	}
+
+	static {QuietLog4j.please();}
 }
