@@ -25,6 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.slf4j.LoggerFactory;
+
+import com.hauldata.dbpa.ManageDbp;
 import com.hauldata.dbpa.manage.resources.JobsResource;
 import com.hauldata.dbpa.manage.sql.JobScheduleSql;
 import com.hauldata.dbpa.manage.sql.ScheduleSql;
@@ -32,6 +35,8 @@ import com.hauldata.dbpa.process.Context;
 import com.hauldata.util.schedule.ScheduleSet;
 
 public class JobScheduler {
+
+	private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ManageDbp.class);
 
 	private static final int shutdownWaitSeconds = 10;
 	private static final long shutdownWaitMillis = shutdownWaitSeconds * 1000L;
@@ -136,7 +141,7 @@ public class JobScheduler {
 			schedules = ScheduleSet.parse(schedule);
 		}
 		catch (Exception ex) {
-			// TODO: Log the bad schedule exception.
+			LOGGER.error("Cannot start schedule: " + name, ex.getMessage());
 			return;
 		}
 
@@ -323,6 +328,8 @@ public class JobScheduler {
 		PreparedStatement stmt = null;
 		ResultSet rs = null;
 
+		String name = "[not retrieved]";
+
 		try {
 			conn = context.getConnection(null);
 
@@ -334,13 +341,16 @@ public class JobScheduler {
 
 			while (rs.next()) {
 
-				String name = rs.getString(1);
+				name = rs.getString(1);
 
 				jobsResource.run(name);
 			}
 		}
-		catch (SQLException e) {
-			// TODO: Log failed query to retrieve scheduled job names 
+		catch (SQLException se) {
+			LOGGER.error("Database query to retrieve scheduled job names failed", se.getMessage());
+		}
+		catch (RuntimeException re) {
+			LOGGER.error("Startup of scheduled job failed: " + name, re.getMessage());
 		}
 		finally {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}

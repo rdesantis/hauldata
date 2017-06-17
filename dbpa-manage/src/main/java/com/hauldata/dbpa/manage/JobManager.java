@@ -30,7 +30,10 @@ import java.util.Properties;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
+import org.slf4j.LoggerFactory;
+
 import com.hauldata.dbpa.DBPA;
+import com.hauldata.dbpa.ManageDbp;
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.Logger;
 import com.hauldata.dbpa.manage.JobManagerException;
@@ -52,6 +55,8 @@ import com.hauldata.dbpa.process.DbProcess;
 public class JobManager {
 
 	private static final String managerProgramName = "ManageDbp";
+
+	private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ManageDbp.class);
 
 	private static JobManager manager;
 
@@ -476,11 +481,11 @@ public class JobManager {
 			try {
 				updateRun(result);
 			}
-			catch (SQLException e) {
+			catch (SQLException se) {
 				// Failed trying to update job status in the database.
 				// Don't let this prevent orderly shutdown.
 
-				// TODO: Log failure to update job status in database.
+				LOGGER.warn("Failed updating job status in database", se);
 			}
 		}
 	}
