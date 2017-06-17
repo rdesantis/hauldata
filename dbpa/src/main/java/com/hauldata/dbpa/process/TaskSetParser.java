@@ -469,6 +469,7 @@ abstract class TaskSetParser {
 		stringFunctionParsers.put(KW.SUBSTRING.name(), new SubstringParser());
 		stringFunctionParsers.put(KW.UPPER.name(), new UpperParser());
 		stringFunctionParsers.put(KW.ERROR_MESSAGE.name(), new ErrorMessageParser());
+		stringFunctionParsers.put(KW.CHAR.name(), new CharParser());
 
 		datetimeFunctionParsers = new HashMap<String, FunctionParser<LocalDateTime>>();
 		datetimeFunctionParsers.put(KW.ISNULL.name(), new IsNullParser<LocalDateTime>(datetimeTermParser));
@@ -2699,6 +2700,16 @@ abstract class TaskSetParser {
 			Expression<String> string = parseStringExpression();
 
 			return new Upper(string);
+		}
+	}
+
+	private class CharParser implements FunctionParser<String> {
+
+		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<Integer> ascii = parseIntegerExpression();
+
+			return new Char(ascii);
 		}
 	}
 
