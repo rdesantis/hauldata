@@ -16,23 +16,19 @@
 
 package com.hauldata.dbpa.manage.resources;
 
-import javax.ws.rs.ClientErrorException;
+import java.sql.SQLException;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManagerException.AlreadyStarted;
 import com.hauldata.dbpa.manage.JobManagerException.NotAvailable;
-import com.hauldata.dbpa.manage.JobManagerException.NotStarted;
 
 @Path("/manager")
 @Produces(MediaType.APPLICATION_JSON)
@@ -46,49 +42,19 @@ public class ManagerResource {
 
 	@PUT
 	@Timed
-	public void startup() {
-		try {
-			JobManager.getInstance().startup();
-		}
-		catch (NotAvailable ex) {
-				throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (AlreadyStarted ex) {
-			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
+	public void startup() throws NotAvailable, SQLException  {
+		JobManager.getInstance().startup();
 	}
 
 	@GET
 	@Timed
 	public boolean isStarted() {
-		try {
-			return JobManager.getInstance().isStarted();
-		}
-		catch (NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
+		return JobManager.getInstance().isStarted();
 	}
 
 	@DELETE
 	@Timed
-	public void shutdown() {
-		try {
-			JobManager.getInstance().shutdown();
-		}
-		catch (NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (NotStarted ex) {
-			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
+	public void shutdown() throws NotAvailable, InterruptedException {
+		JobManager.getInstance().shutdown();
 	}
 }

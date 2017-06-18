@@ -22,7 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.ws.rs.WebApplicationException;
+import javax.naming.NameNotFoundException;
 
 import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.JobManagerException.NotAvailable;
@@ -57,7 +57,7 @@ public class SchedulesResourceTest extends TestCase {
 		JobManager.killInstance();
 	}
 
-	public void testPut() {
+	public void testPut() throws SQLException {
 
 		deleteNoError(garbageName);
 
@@ -66,7 +66,7 @@ public class SchedulesResourceTest extends TestCase {
 		assertTrue(id != -1);
 	}
 
-	public void testPutOver() {
+	public void testPutOver() throws SQLException {
 
 		int id = schedulesResource.put(garbageName, garbageBody);
 
@@ -77,7 +77,7 @@ public class SchedulesResourceTest extends TestCase {
 		assertEquals(id, newId);
 	}
 
-	public void testGetPostive() {
+	public void testGetPostive() throws NameNotFoundException, IllegalArgumentException, SQLException {
 
 		// Positive test: can get an existing script
 
@@ -88,7 +88,7 @@ public class SchedulesResourceTest extends TestCase {
 		assertEquals(garbageBody, checkBody);
 	}
 
-	public void testGetNegative() {
+	public void testGetNegative() throws IllegalArgumentException, SQLException {
 
 		// Negative test: attempt to get a non-existent schedule fails as expected
 
@@ -99,15 +99,15 @@ public class SchedulesResourceTest extends TestCase {
 			schedulesResource.get(bogusName);
 			isNonExistentGotten = true;
 		}
-		catch (Exception ex) {
-			assertIsWebAppException(notFoundMessage(bogusName), 404, ex);
+		catch (NameNotFoundException ex) {
+			assertEquals(notFoundMessage(bogusName), ex.getMessage());
 			isNonExistentGotten = false;
 		}
 
 		assertFalse(isNonExistentGotten);
 	}
 
-	public void testDeletePositive() {
+	public void testDeletePositive() throws NameNotFoundException, SQLException {
 
 		// Positive test: can get an existing schedule
 
@@ -116,7 +116,7 @@ public class SchedulesResourceTest extends TestCase {
 		schedulesResource.delete(garbageName);
 	}
 
-	public void testDeleteNegative() {
+	public void testDeleteNegative() throws SQLException {
 
 		// Negative test: attempt to delete a non-existent schedule fails as expected
 
@@ -127,15 +127,15 @@ public class SchedulesResourceTest extends TestCase {
 			schedulesResource.delete(bogusName);
 			isNonExistentDeleted = true;
 		}
-		catch (Exception ex) {
-			assertIsWebAppException(notFoundMessage(bogusName), 404, ex);
+		catch (NameNotFoundException ex) {
+			assertEquals(notFoundMessage(bogusName), ex.getMessage());
 			isNonExistentDeleted = false;
 		}
 
 		assertFalse(isNonExistentDeleted);
 	}
 
-	public void testGetNames() {
+	public void testGetNames() throws SQLException {
 
 		// Create a bunch of like-named schedules and a not-like-named schedule.
 
@@ -165,7 +165,7 @@ public class SchedulesResourceTest extends TestCase {
 		assertTrue(likeNames.size() < allNames.size());
 	}
 
-	public void testValidatePositive() {
+	public void testValidatePositive() throws SQLException, NameNotFoundException, IllegalArgumentException {
 
 		ScheduleValidation validation;
 
@@ -175,7 +175,7 @@ public class SchedulesResourceTest extends TestCase {
 		assertTrue(validation.isValid());
 	}
 
-	public void testValidateNegative() {
+	public void testValidateNegative() throws SQLException, NameNotFoundException, IllegalArgumentException {
 
 		ScheduleValidation validation;
 
@@ -187,7 +187,7 @@ public class SchedulesResourceTest extends TestCase {
 		assertNotNull(validation.getValidationMessage());
 	}
 
-	public void testValidateNonExistent() {
+	public void testValidateNonExistent() throws IllegalArgumentException, SQLException {
 
 		deleteNoError(bogusName);
 
@@ -196,15 +196,15 @@ public class SchedulesResourceTest extends TestCase {
 			schedulesResource.validate(bogusName);
 			isNonExistentValidated = true;
 		}
-		catch (Exception ex) {
-			assertIsWebAppException(notFoundMessage(bogusName), 404, ex);
+		catch (NameNotFoundException ex) {
+			assertEquals(notFoundMessage(bogusName), ex.getMessage());
 			isNonExistentValidated = false;
 		}
 
 		assertFalse(isNonExistentValidated);
 	}
 
-	public void testGetNoneRunning() {
+	public void testGetNoneRunning() throws SQLException {
 		List<String> names = schedulesResource.getRunning();
 		assertTrue(names.isEmpty());
 	}
@@ -243,12 +243,5 @@ public class SchedulesResourceTest extends TestCase {
 
 	private String notFoundMessage(String name) {
 		return SchedulesResource.scheduleNotFoundMessageStem + name;
-	}
-
-	private void assertIsWebAppException(String message, int status, Exception ex) {
-		assertTrue(ex instanceof WebApplicationException);
-		WebApplicationException wex = (WebApplicationException)ex;
-		assertEquals(message, wex.getMessage());
-		assertEquals(status, wex.getResponse().getStatus());
 	}
 }

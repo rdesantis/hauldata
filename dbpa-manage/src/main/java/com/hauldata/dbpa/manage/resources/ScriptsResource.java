@@ -18,7 +18,6 @@ package com.hauldata.dbpa.manage.resources;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
@@ -27,20 +26,16 @@ import javax.naming.NamingException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.InternalServerErrorException;
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.core.MediaType;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.loader.FileLoader;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManagerException.NotAvailable;
 import com.hauldata.dbpa.manage_control.api.ScriptParameter;
 import com.hauldata.dbpa.manage_control.api.ScriptValidation;
 import com.hauldata.dbpa.process.DbProcess;
@@ -60,91 +55,32 @@ public class ScriptsResource {
 
 	public ScriptsResource() {}
 
-	// TODO: Use exception mapping instead of duplicating code.
-	// See https://dennis-xlc.gitbooks.io/restful-java-with-jax-rs-2-0-2rd-edition/content/en/part1/chapter7/exception_handling.html
-
 	@PUT
 	@Path("{name}")
 	@Timed
-	public void put(@PathParam("name") String name, String body) {
-		try {
-			files.put(name, body);
-		}
-		catch (NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
+	public void put(@PathParam("name") String name, String body) throws IOException {
+		files.put(name, body);
 	}
 
 	@GET
 	@Path("{name}")
 	@Timed
-	public String get(@PathParam("name") String name) {
-		try {
-			return files.get(name);
-		}
-		catch (FileNotFoundException ex) {
-			throw new NotFoundException(scriptNotFoundMessageStem + name);
-		}
-		catch (NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
+	public String get(@PathParam("name") String name) throws IOException {
+		return files.get(name);
 	}
 
 	@DELETE
 	@Path("{name}")
 	@Timed
-	public void delete(@PathParam("name") String name) {
-		try {
-			files.delete(name);
-		}
-		catch (NoSuchFileException ex) {
-			throw new NotFoundException(scriptNotFoundMessageStem + name);
-		}
-		catch (NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
+	public void delete(@PathParam("name") String name) throws IOException {
+		files.delete(name);
 	}
 
 	@GET
 	@Path("-/names")
 	@Timed
-	public List<String> getNames(@QueryParam("like") String likeName) {
-		try {
-			return files.getNames(likeName);
-		}
-		catch (NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@GET
-	@Path("-/validations/{name}")
-	@Timed
-	public ScriptValidation validate(@PathParam("name") String name) {
-		try {
-			return validateScript(name);
-		}
-		catch (FileNotFoundException ex) {
-			throw new NotFoundException(scriptNotFoundMessageStem + name);
-		}
-		catch (NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
+	public List<String> getNames(@QueryParam("like") String likeName) throws IOException {
+		return files.getNames(likeName);
 	}
 
 	/**
@@ -160,7 +96,10 @@ public class ScriptsResource {
 	 * @throws IOException for any other file system error
 	 * @throws Exception if validation otherwise fails fatally not due to invalid syntax
  	 */
-	private ScriptValidation validateScript(String name) throws Exception {
+	@GET
+	@Path("-/validations/{name}")
+	@Timed
+	public ScriptValidation validate(@PathParam("name") String name) throws IOException {
 
 		JobManager manager = JobManager.getInstance();
 
@@ -172,13 +111,13 @@ public class ScriptsResource {
 			process = manager.getContext().loader.load(name);
 			parameters = process.getParameters();
 		}
+		catch (FileNotFoundException ex) {
+			throw new FileNotFoundException(scriptNotFoundMessageStem + name);
+		}
 		catch (RuntimeException | NamingException ex) {
 			// See TaskSetParser.parseTasks() for parse exceptions.
 			// TODO: Define a SyntaxError exception that collects all syntax errors
 			validationMessage = ex.getMessage();
-		}
-		catch (Exception ex) {
-			throw ex;
 		}
 
 		return new ScriptValidation(process != null, validationMessage, toScriptParameters(parameters));

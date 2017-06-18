@@ -16,25 +16,21 @@
 
 package com.hauldata.dbpa.manage.resources;
 
-import java.nio.file.NoSuchFileException;
+import java.io.IOException;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.InternalServerErrorException;
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.core.MediaType;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManagerException.NotAvailable;
 
 @Path("/propfiles")
 @Produces(MediaType.APPLICATION_JSON)
@@ -46,69 +42,32 @@ public class PropertiesFilesResource {
 	public static final String notFoundMessageStem = files.getNotFoundMessageStem();
 
 	public PropertiesFilesResource() {}
-	// TODO: Use exception mapping instead of duplicating code.
-	// See https://dennis-xlc.gitbooks.io/restful-java-with-jax-rs-2-0-2rd-edition/content/en/part1/chapter7/exception_handling.html
 
 	@PUT
 	@Path("{name}")
 	@Timed
-	public void put(@PathParam("name") String name, String body) {
-		try {
-			files.put(name, body);
-		}
-		catch (NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
+	public void put(@PathParam("name") String name, String body) throws IOException {
+		files.put(name, body);
 	}
 
 	@GET
 	@Path("{name}")
 	@Timed
-	public String get(@PathParam("name") String name) {
-		try {
-			return files.get(name);
-		}
-		catch (NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
+	public String get(@PathParam("name") String name) throws IOException {
+		return files.get(name);
 	}
 
 	@DELETE
 	@Path("{name}")
 	@Timed
-	public void delete(@PathParam("name") String name) {
-		try {
-			files.delete(name);
-		}
-		catch (NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (NoSuchFileException ex) {
-			throw new NotFoundException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
+	public void delete(@PathParam("name") String name) throws IOException {
+		files.delete(name);
 	}
 
 	@GET
 	@Path("-/names")
 	@Timed
-	public List<String> getNames(@QueryParam("like") String likeName) {
-		try {
-			return files.getNames(likeName);
-		}
-		catch (NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
+	public List<String> getNames(@QueryParam("like") String likeName) throws IOException {
+		return files.getNames(likeName);
 	}
 }

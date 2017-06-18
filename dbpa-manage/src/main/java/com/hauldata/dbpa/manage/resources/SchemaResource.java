@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -23,16 +23,13 @@ import java.sql.Statement;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.core.MediaType;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManagerException.NotAvailable;
 import com.hauldata.dbpa.manage.JobManagerException.SchemaException;
 import com.hauldata.dbpa.process.Context;
 
@@ -43,58 +40,15 @@ public class SchemaResource {
 
 	public SchemaResource() {}
 
-	// TODO: Use exception mapping instead of duplicating code.
-	// See https://dennis-xlc.gitbooks.io/restful-java-with-jax-rs-2-0-2rd-edition/content/en/part1/chapter7/exception_handling.html
-
-	@GET
-	@Timed
-	public boolean confirm() {
-		try {
-			return confirmSchema();
-		}
-		catch (NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@PUT
-	@Timed
-	public void create() {
-		try {
-			createSchema();
-		}
-		catch (NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@DELETE
-	@Timed
-	public void delete() {
-		try {
-			deleteSchema();
-		}
-		catch (NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
 	/**
 	 * Create the set of database tables used to store job configurations
 	 * and run results.
 	 * @throws SQLException if schema creation fails due to a database issue
 	 * @throws JobException due to a job manager issue
 	 */
-	public void createSchema() throws SQLException, SchemaException {
+	@PUT
+	@Timed
+	public void create() throws SQLException, SchemaException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -127,7 +81,9 @@ public class SchemaResource {
 	 * @throws SQLException if schema removal fails due to a database issue
 	 * @throws JobException due to a job manager issue
 	 */
-	public void deleteSchema() throws SQLException, SchemaException {
+	@DELETE
+	@Timed
+	public void delete() throws SQLException, SchemaException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -176,7 +132,9 @@ public class SchemaResource {
 	 * @return true if all tables exist correctly, false otherwise
 	 * @throws SQLException, JobException
 	 */
-	public boolean confirmSchema() throws SQLException, SchemaException {
+	@GET
+	@Timed
+	public boolean confirm() throws SQLException, SchemaException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();

@@ -209,7 +209,7 @@ public class JobManager {
 		boolean schemaExists = false;
 		try {
 			SchemaResource schema = new SchemaResource();
-			schemaExists = schema.confirmSchema();
+			schemaExists = schema.confirm();
 		}
 		catch (Exception ex) {}
 

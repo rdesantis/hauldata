@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -31,19 +31,15 @@ import javax.naming.NameNotFoundException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.InternalServerErrorException;
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.core.MediaType;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManagerException;
 import com.hauldata.dbpa.manage.sql.CommonSql;
 import com.hauldata.dbpa.manage.sql.JobScheduleSql;
 import com.hauldata.dbpa.manage.sql.ScheduleSql;
@@ -60,123 +56,6 @@ public class SchedulesResource {
 
 	public SchedulesResource() {}
 
-	@PUT
-	@Path("{name}")
-	@Timed
-	public int put(@PathParam("name") String name, String body) {
-		try {
-			return putSchedule(name, body);
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@GET
-	@Path("{name}")
-	@Timed
-	public String get(@PathParam("name") String name) {
-		try {
-			return getSchedule(name);
-		}
-		catch (NameNotFoundException ex) {
-			throw new NotFoundException(ex.getMessage());
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@DELETE
-	@Path("{name}")
-	@Timed
-	public void delete(@PathParam("name") String name) {
-		try {
-			deleteSchedule(name);
-		}
-		catch (NameNotFoundException ex) {
-			throw new NotFoundException(ex.getMessage());
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@GET
-	@Timed
-	public Map<String, String> getAll(@QueryParam("like") String likeName) {
-		try {
-			return getSchedules(likeName);
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@GET
-	@Path("-/names")
-	@Timed
-	public List<String> getNames(@QueryParam("like") String likeName) {
-		try {
-			Map<String, String> schedules = getSchedules(likeName);
-			if (schedules == null) {
-				return null;
-			}
-			return schedules.keySet().stream().sorted().collect(Collectors.toList());
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@GET
-	@Path("-/validations/{name}")
-	@Timed
-	public ScheduleValidation validate(@PathParam("name") String name) {
-		try {
-			return validateSchedule(name);
-		}
-		catch (NameNotFoundException ex) {
-			throw new NotFoundException(ex.getMessage());
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@GET
-	@Path("-/running")
-	@Timed
-	public List<String> getRunning() {
-		try {
-			return getRunningSchedules();
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
 	/**
 	 * Store a schedule in the database.
 	 *
@@ -186,7 +65,10 @@ public class SchedulesResource {
 	 * already existed, it is overwritten and the ID is not changed.
 	 * @throws SQLException if the schedule cannot be stored
 	 */
-	public int putSchedule(String name, String schedule) throws SQLException {
+	@PUT
+	@Path("{name}")
+	@Timed
+	public int put(@PathParam("name") String name, String schedule) throws SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -253,7 +135,9 @@ public class SchedulesResource {
 	 * or an empty list if no schedule with a matching name is found
 	 * @throws SQLException if the schedules cannot be retrieved
 	 */
-	public Map<String, String> getSchedules(String likeName) throws SQLException {
+	@GET
+	@Timed
+	public Map<String, String> getAll(@QueryParam("like") String likeName) throws SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -297,6 +181,27 @@ public class SchedulesResource {
 	}
 
 	/**
+	 * Retrieve a list of schedule names from the database
+	 * that match an optional SQL wildcard pattern
+	 *
+	 * @param likeName is the name wildcard pattern or null to get all schedule names
+	 * @return a list of schedule names retrieved from the database
+	 * or an empty list if no schedule with a matching name is found
+	 * @throws SQLException if the schedule names cannot be retrieved
+	 */
+	@GET
+	@Path("-/names")
+	@Timed
+	public List<String> getNames(@QueryParam("like") String likeName) throws SQLException {
+
+		Map<String, String> schedules = getAll(likeName);
+		if (schedules == null) {
+			return null;
+		}
+		return schedules.keySet().stream().sorted().collect(Collectors.toList());
+	}
+
+	/**
 	 * Return a schedule
 	 *
 	 * @param name is the name of the schedule
@@ -305,9 +210,12 @@ public class SchedulesResource {
 	 * @throws IllegalArgumentException if the name contains wildcards and matches multiple schedule names
 	 * @throws SQLException if the schedule cannot be retrieved
 	 */
-	public String getSchedule(String name) throws SQLException, NameNotFoundException, IllegalArgumentException {
+	@GET
+	@Path("{name}")
+	@Timed
+	public String get(@PathParam("name") String name) throws SQLException, NameNotFoundException, IllegalArgumentException {
 
-		Map<String, String> schedules = getSchedules(name);
+		Map<String, String> schedules = getAll(name);
 
 		if (schedules.size() == 0) {
 			throw new NameNotFoundException(scheduleNotFoundMessageStem + name);
@@ -327,7 +235,10 @@ public class SchedulesResource {
 	 * @throws NameNotFoundException if the schedule does not exist
 	 * @throws SQLException if the schedule cannot be deleted
 	 */
-	public void deleteSchedule(String name) throws NameNotFoundException, SQLException {
+	@DELETE
+	@Path("{name}")
+	@Timed
+	public void delete(@PathParam("name") String name) throws NameNotFoundException, SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -397,9 +308,12 @@ public class SchedulesResource {
 	 * @throws IllegalArgumentException if the name contains wildcards and matches multiple schedule names
 	 * @throws SQLException if the schedule cannot be retrieved
 	 */
-	public ScheduleValidation validateSchedule(String name) throws SQLException, NameNotFoundException, IllegalArgumentException {
+	@GET
+	@Path("-/validations/{name}")
+	@Timed
+	public ScheduleValidation validate(@PathParam("name") String name) throws SQLException, NameNotFoundException, IllegalArgumentException {
 
-		String schedule = getSchedule(name);
+		String schedule = get(name);
 
 		boolean valid = false;
 		String validationMessage = null;
@@ -422,7 +336,10 @@ public class SchedulesResource {
 	 * @return a list of names of running schedules.
 	 * @throws SQLException
 	 */
-	public List<String> getRunningSchedules() throws SQLException {
+	@GET
+	@Path("-/running")
+	@Timed
+	public List<String> getRunning() throws SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();

@@ -16,6 +16,7 @@
 
 package com.hauldata.dbpa.manage.resources;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -24,7 +25,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.ws.rs.WebApplicationException;
+import javax.naming.NameNotFoundException;
+import javax.naming.NamingException;
 
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.manage.JobManager;
@@ -69,7 +71,7 @@ public class JobsResourceTest extends TestCase {
 		super(name);
 	}
 
-	protected void setUp() throws SQLException {
+	protected void setUp() throws SQLException, IOException {
 
 		JobManager.instantiate(true).startup();
 
@@ -116,7 +118,7 @@ public class JobsResourceTest extends TestCase {
 		JobManager.killInstance();
 	}
 
-	public void testPut() {
+	public void testPut() throws NameNotFoundException, SQLException {
 
 		deleteNoError(detritusName);
 
@@ -125,7 +127,7 @@ public class JobsResourceTest extends TestCase {
 		assertTrue(id != -1);
 	}
 
-	public void testPutOver() {
+	public void testPutOver() throws NameNotFoundException, SQLException {
 
 		Job job = new Job(crapScriptName, someArguments, someSchedules, true);
 
@@ -138,7 +140,7 @@ public class JobsResourceTest extends TestCase {
 		assertEquals(id, newId);
 	}
 
-	public void testGetPositive() {
+	public void testGetPositive() throws NameNotFoundException, SQLException {
 
 		// Positive test: can get an existing job
 
@@ -159,7 +161,7 @@ public class JobsResourceTest extends TestCase {
 		assertEquals(detritusJob.isEnabled(), checkJob.isEnabled());
 	}
 
-	public void testGetCaseMismatch() {
+	public void testGetCaseMismatch() throws NameNotFoundException, SQLException {
 
 		// Try getting an existing job with the wrong case in the name.
 		// The initial JobsResource.get(String) threw an exception for this case.
@@ -173,7 +175,7 @@ public class JobsResourceTest extends TestCase {
 		jobsResource.get(wrongCaseName);
 	}
 
-	public void testGetNegative() {
+	public void testGetNegative() throws SQLException {
 
 		// Negative test: attempt to get a non-existent job fails as expected
 
@@ -184,15 +186,15 @@ public class JobsResourceTest extends TestCase {
 			jobsResource.get(bogusName);
 			isNonExistentGotten = true;
 		}
-		catch (Exception ex) {
-			assertIsWebAppException(notFoundMessage(bogusName), 404, ex);
+		catch (NameNotFoundException ex) {
+			assertEquals(notFoundMessage(bogusName), ex.getMessage());
 			isNonExistentGotten = false;
 		}
 
 		assertFalse(isNonExistentGotten);
 	}
 
-	public void testDeletePositive() {
+	public void testDeletePositive() throws NameNotFoundException, SQLException {
 
 		// Positive test: can get an existing job
 
@@ -201,7 +203,7 @@ public class JobsResourceTest extends TestCase {
 		jobsResource.delete(detritusName);
 	}
 
-	public void testDeleteNegative() {
+	public void testDeleteNegative() throws SQLException {
 
 		// Negative test: attempt to delete a non-existent job fails as expected
 
@@ -212,15 +214,15 @@ public class JobsResourceTest extends TestCase {
 			jobsResource.delete(bogusName);
 			isNonExistentDeleted = true;
 		}
-		catch (Exception ex) {
-			assertIsWebAppException(notFoundMessage(bogusName), 404, ex);
+		catch (NameNotFoundException ex) {
+			assertEquals(notFoundMessage(bogusName), ex.getMessage());
 			isNonExistentDeleted = false;
 		}
 
 		assertFalse(isNonExistentDeleted);
 	}
 
-	public void testGetNames() {
+	public void testGetNames() throws NameNotFoundException, SQLException {
 
 		// Create a bunch of like-named jobs and a not-like-named job.
 
@@ -252,7 +254,7 @@ public class JobsResourceTest extends TestCase {
 		assertTrue(likeNames.size() < allNames.size());
 	}
 
-	public void testRun() {
+	public void testRun() throws SQLException, IOException, NamingException {
 
 		ScriptsResource scriptsResource = new ScriptsResource();
 		scriptsResource.put(sleepJobName, sleepScript);
@@ -293,7 +295,7 @@ public class JobsResourceTest extends TestCase {
 		assertTrue(state.getStartTime().until(state.getEndTime(), ChronoUnit.SECONDS) >= 5);
 	}
 
-	public void testStopRun() {
+	public void testStopRun() throws SQLException, IOException, NamingException {
 
 		String stopJobName = sleepJobName + "stop";
 
@@ -330,7 +332,7 @@ public class JobsResourceTest extends TestCase {
 		assertTrue(state.getStartTime().until(state.getEndTime(), ChronoUnit.SECONDS) < 5);
 	}
 
-	public void testScheduleRun() {
+	public void testScheduleRun() throws NameNotFoundException, SQLException, IOException {
 
 		final String scriptName = "DO_NOTHING";
 		final String taskName = "SAY_NOT_MUCH";
@@ -400,12 +402,5 @@ public class JobsResourceTest extends TestCase {
 
 	private String notFoundMessage(String name) {
 		return JobsResource.jobNotFoundMessageStem + name;
-	}
-
-	private void assertIsWebAppException(String message, int status, Exception ex) {
-		assertTrue(ex instanceof WebApplicationException);
-		WebApplicationException wex = (WebApplicationException)ex;
-		assertEquals(message, wex.getMessage());
-		assertEquals(status, wex.getResponse().getStatus());
 	}
 }

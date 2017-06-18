@@ -22,6 +22,13 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
 import com.hauldata.dbpa.manage.JobManager;
+import com.hauldata.dbpa.manage.exceptions.DefaultExceptionMapper;
+import com.hauldata.dbpa.manage.exceptions.FileNotFoundExceptionMapper;
+import com.hauldata.dbpa.manage.exceptions.JobManagerExceptionMapper;
+import com.hauldata.dbpa.manage.exceptions.NameNotFoundExceptionMapper;
+import com.hauldata.dbpa.manage.exceptions.NoSuchElementExceptionMapper;
+import com.hauldata.dbpa.manage.exceptions.NoSuchFileExceptionMapper;
+import com.hauldata.dbpa.manage.exceptions.RuntimeExceptionMapper;
 import com.hauldata.dbpa.manage.resources.JobsResource;
 import com.hauldata.dbpa.manage.resources.ManagerResource;
 import com.hauldata.dbpa.manage.resources.PropertiesFilesResource;
@@ -75,6 +82,18 @@ public class ManageDbp extends Application<Configuration> {
 		final JobsResource jobs = new JobsResource();
 
 		// TODO: Register health check(s) here.
+
+		// Exception mappers
+
+		environment.jersey().register(new DefaultExceptionMapper());
+		environment.jersey().register(new FileNotFoundExceptionMapper());
+		environment.jersey().register(new JobManagerExceptionMapper());
+		environment.jersey().register(new NameNotFoundExceptionMapper());
+		environment.jersey().register(new NoSuchElementExceptionMapper());
+		environment.jersey().register(new NoSuchFileExceptionMapper());
+		environment.jersey().register(new RuntimeExceptionMapper());
+
+		// Resources
 
 		environment.jersey().register(service);
 		environment.jersey().register(manager);

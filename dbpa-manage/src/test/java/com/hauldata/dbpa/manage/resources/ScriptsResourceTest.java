@@ -16,10 +16,11 @@
 
 package com.hauldata.dbpa.manage.resources;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.NoSuchFileException;
 import java.sql.SQLException;
 import java.util.List;
-
-import javax.ws.rs.WebApplicationException;
 
 import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage_control.api.ScriptValidation;
@@ -56,12 +57,12 @@ public class ScriptsResourceTest extends TestCase {
 		JobManager.killInstance();
 	}
 
-	public void testPut() {
+	public void testPut() throws IOException {
 
 		scriptsResource.put(garbageName, garbageBody);
 	}
 
-	public void testGetPostive() {
+	public void testGetPostive() throws IOException {
 
 		// Positive test: can get an existing script
 
@@ -72,7 +73,7 @@ public class ScriptsResourceTest extends TestCase {
 		assertEquals(garbageBody, checkBody);
 	}
 
-	public void testGetNegative() {
+	public void testGetNegative() throws IOException {
 
 		// Negative test: attempt to get a non-existent script fails as expected
 
@@ -83,15 +84,15 @@ public class ScriptsResourceTest extends TestCase {
 			scriptsResource.get(bogusName);
 			isNonExistentGotten = true;
 		}
-		catch (Exception ex) {
-			assertIsWebAppException(notFoundMessage(bogusName), 404, ex);
+		catch (FileNotFoundException ex) {
+			assertEquals(notFoundMessage(bogusName), ex.getMessage());
 			isNonExistentGotten = false;
 		}
 
 		assertFalse(isNonExistentGotten);
 	}
 
-	public void testDeletePositive() {
+	public void testDeletePositive() throws IOException {
 
 		// Positive test: can get an existing script
 
@@ -100,7 +101,7 @@ public class ScriptsResourceTest extends TestCase {
 		scriptsResource.delete(garbageName);
 	}
 
-	public void testDeleteNegative() {
+	public void testDeleteNegative() throws IOException {
 
 		// Negative test: attempt to delete a non-existent script fails as expected
 
@@ -111,15 +112,15 @@ public class ScriptsResourceTest extends TestCase {
 			scriptsResource.delete(bogusName);
 			isNonExistentDeleted = true;
 		}
-		catch (Exception ex) {
-			assertIsWebAppException(notFoundMessage(bogusName), 404, ex);
+		catch (NoSuchFileException ex) {
+			assertEquals(notFoundMessage(bogusName), ex.getMessage());
 			isNonExistentDeleted = false;
 		}
 
 		assertFalse(isNonExistentDeleted);
 	}
 
-	public void testGetNames() {
+	public void testGetNames() throws IOException {
 
 		// Create a bunch of like-named scripts and a not-like-named script.
 
@@ -145,7 +146,7 @@ public class ScriptsResourceTest extends TestCase {
 		assertTrue(likeNames.size() < allNames.size());
 	}
 
-	public void testValidatePositive() {
+	public void testValidatePositive() throws IOException {
 
 		ScriptValidation validation;
 
@@ -168,7 +169,7 @@ public class ScriptsResourceTest extends TestCase {
 		assertEquals("DATETIME", validation.getParameters().get(2).getTypeName());
 	}
 
-	public void testValidateNegative() {
+	public void testValidateNegative() throws IOException {
 
 		ScriptValidation validation;
 
@@ -179,17 +180,16 @@ public class ScriptsResourceTest extends TestCase {
 		assertNotNull(validation.getValidationMessage());
 	}
 
-	public void testValidateNonExistent() {
+	public void testValidateNonExistent() throws IOException {
 
 		try { scriptsResource.delete(bogusName); } catch (Exception ex) {}
 
-		boolean isNonExistentValidated;
+		boolean isNonExistentValidated = true;
 		try {
 			scriptsResource.validate(bogusName);
-			isNonExistentValidated = true;
 		}
-		catch (Exception ex) {
-			assertIsWebAppException(notFoundMessage(bogusName), 404, ex);
+		catch (FileNotFoundException ex) {
+			assertEquals(notFoundMessage(bogusName), ex.getMessage());
 			isNonExistentValidated = false;
 		}
 
@@ -198,12 +198,5 @@ public class ScriptsResourceTest extends TestCase {
 
 	private String notFoundMessage(String name) {
 		return ScriptsResource.scriptNotFoundMessageStem + name;
-	}
-
-	private void assertIsWebAppException(String message, int status, Exception ex) {
-		assertTrue(ex instanceof WebApplicationException);
-		WebApplicationException wex = (WebApplicationException)ex;
-		assertEquals(message, wex.getMessage());
-		assertEquals(status, wex.getResponse().getStatus());
 	}
 }

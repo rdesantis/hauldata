@@ -42,15 +42,15 @@ public class SchemaResourceTest extends TestCase {
 
 	public void testSchema() throws Exception {
 
-		if (!schemaResource.confirmSchema()) {
+		if (!schemaResource.confirm()) {
 
-			schemaResource.deleteSchema();
+			schemaResource.delete();
 			
-			assertFalse(schemaResource.confirmSchema());
+			assertFalse(schemaResource.confirm());
 
-			schemaResource.createSchema();
+			schemaResource.create();
 
-			assertTrue(schemaResource.confirmSchema());
+			assertTrue(schemaResource.confirm());
 		}
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package com.hauldata.dbpa.manage.resources;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -27,30 +28,24 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import javax.naming.NameNotFoundException;
-import javax.ws.rs.ClientErrorException;
+import javax.naming.NamingException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.InternalServerErrorException;
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.ServiceUnavailableException;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobExecutor;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManagerException;
 import com.hauldata.dbpa.manage.sql.ArgumentSql;
 import com.hauldata.dbpa.manage.sql.CommonSql;
 import com.hauldata.dbpa.manage.sql.JobScheduleSql;
@@ -75,261 +70,6 @@ public class JobsResource {
 
 	public JobsResource() {}
 
-	// TODO: Use exception mapping instead of duplicating code.
-	// See https://dennis-xlc.gitbooks.io/restful-java-with-jax-rs-2-0-2rd-edition/content/en/part1/chapter7/exception_handling.html
-
-	@PUT
-	@Path("{name}")
-	@Timed
-	public int put(@PathParam("name") String name, Job job) {
-		try {
-			return putJob(name, job);
-		}
-		catch (NameNotFoundException ex) {
-			throw new NotFoundException(ex.getMessage());
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@GET
-	@Path("{name}")
-	@Timed
-	public Job get(@PathParam("name") String name) {
-		try {
-			return getJob(name);
-		}
-		catch (NameNotFoundException ex) {
-			throw new NotFoundException(ex.getMessage());
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@DELETE
-	@Path("{name}")
-	@Timed
-	public void delete(@PathParam("name") String name) {
-		try {
-			deleteJob(name);
-		}
-		catch (NameNotFoundException ex) {
-			throw new NotFoundException(ex.getMessage());
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@PUT
-	@Path("{name}/script")
-	@Timed
-	public void putScriptName(@PathParam("name") String name, String scriptName) {
-		try {
-			putJobString(name, JobSql.scriptNameColumn, scriptName);
-		}
-		catch (NameNotFoundException ex) {
-			throw new NotFoundException(ex.getMessage());
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@PUT
-	@Path("{name}/arguments")
-	@Timed
-	public void putArguments(@PathParam("name") String name, List<ScriptArgument> arguments) {
-		try {
-			putJobArguments(name, arguments);
-		}
-		catch (NameNotFoundException ex) {
-			throw new NotFoundException(ex.getMessage());
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@PUT
-	@Path("{name}/schedules")
-	@Timed
-	public void putSchedules(@PathParam("name") String name, List<String> scheduleNames) {
-		try {
-			putJobSchedules(name, scheduleNames);
-		}
-		catch (NameNotFoundException ex) {
-			throw new NotFoundException(ex.getMessage());
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@PUT
-	@Path("{name}/enabled")
-	@Timed
-	public void putEnabled(@PathParam("name") String name, boolean enabled) {
-		try {
-			putJobEnabled(name, enabled);
-		}
-		catch (NameNotFoundException ex) {
-			throw new NotFoundException(ex.getMessage());
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@DELETE
-	@Path("{name}/arguments")
-	@Timed
-	public void deleteArguments(@PathParam("name") String name) {
-		putArguments(name, null);
-	}
-
-	@DELETE
-	@Path("{name}/schedules")
-	@Timed
-	public void deleteScheduleNames(@PathParam("name") String name) {
-		putSchedules(name, null);
-	}
-
-	@GET
-	@Path("-/names")
-	@Timed
-	public List<String> getNames(@QueryParam("like") String likeName) {
-		try {
-			return getJobNames(likeName);
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@GET
-	@Path("-/runs")
-	@Timed
-	public List<JobRun> getRuns(@QueryParam("like") String likeName, @QueryParam("latest") Boolean latest) {
-		try {
-			return getJobRuns(likeName, latest);
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@GET
-	@Path("-/running")
-	@Timed
-	public List<JobRun> getRunning() {
-		try {
-			return JobManager.getInstance().getRunning();
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (JobManagerException.NotStarted ex) {
-			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@POST
-	@Path("-/running/{name}")
-	@Timed
-	public int run(@PathParam("name") String name) {
-		try {
-			Job job = getJob(name);
-			return JobManager.getInstance().run(name, job).getRunId();
-		}
-		catch (NameNotFoundException ex) {
-			throw new NotFoundException(ex.getMessage());
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (JobManagerException.NotStarted ex) {
-			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@GET
-	@Path("-/running/{id}")
-	@Timed
-	public JobRun getRunning(@PathParam("id") int id) {
-		try {
-			return JobManager.getInstance().getRunning(id);
-		}
-		catch (NoSuchElementException ex) {
-			throw new NotFoundException(ex.getMessage());
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (JobManagerException.NotStarted ex) {
-			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
-	@DELETE
-	@Path("-/running/{id}")
-	@Timed
-	public void stop(@PathParam("id") int id) {
-		try {
-			JobManager.getInstance().stopRun(id);
-		}
-		catch (NoSuchElementException ex) {
-			throw new NotFoundException(ex.getMessage());
-		}
-		catch (JobManagerException.NotAvailable ex) {
-			throw new ServiceUnavailableException(ex.getMessage());
-		}
-		catch (JobManagerException.NotStarted ex) {
-			throw new ClientErrorException(ex.getMessage(), Response.Status.CONFLICT);
-		}
-		catch (Exception ex) {
-			throw new InternalServerErrorException(ex.getLocalizedMessage());
-		}
-	}
-
 	/**
 	 * Store a job in the database.
 	 *
@@ -339,7 +79,10 @@ public class JobsResource {
 	 * @throws NameNotFoundException if one or more of the specified schedules for the job does not exist
 	 * @throws SQLException if the job cannot be stored for any reason
 	 */
-	public int putJob(String name, Job job) throws SQLException, NameNotFoundException {
+	@PUT
+	@Path("{name}")
+	@Timed
+	public int put(@PathParam("name") String name, Job job) throws SQLException, NameNotFoundException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -520,6 +263,21 @@ public class JobsResource {
 	}
 
 	/**
+	 * Update the name of the script in a job in the database.
+	 *
+	 * @param name is the job name.
+	 * @param scriptName is the new script name to store.
+	 * @throws NameNotFoundException if the job does not exist
+	 * @throws SQLException if the job cannot be stored for any reason
+	 */
+	@PUT
+	@Path("{name}/script")
+	@Timed
+	public void putScriptName(@PathParam("name") String name, String scriptName) throws NameNotFoundException, SQLException {
+		putJobString(name, JobSql.scriptNameColumn, scriptName);
+	}
+
+	/**
 	 * Update a string-valued column in a job in the database.
 	 *
 	 * @param name is the job name.
@@ -556,7 +314,10 @@ public class JobsResource {
 	 * @throws NameNotFoundException if the job does not exist
 	 * @throws SQLException if the job cannot be updated for any reason
 	 */
-	private void putJobArguments(String name, List<ScriptArgument> arguments) throws NameNotFoundException, SQLException {
+	@PUT
+	@Path("{name}/arguments")
+	@Timed
+	public void putArguments(@PathParam("name") String name, List<ScriptArgument> arguments) throws NameNotFoundException, SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -593,7 +354,10 @@ public class JobsResource {
 	 * @throws NameNotFoundException if the job does not exist
 	 * @throws SQLException if the job cannot be updated for any reason
 	 */
-	public void putJobSchedules(String name, List<String> scheduleNames) throws NameNotFoundException, SQLException {
+	@PUT
+	@Path("{name}/schedules")
+	@Timed
+	public void putSchedules(@PathParam("name") String name, List<String> scheduleNames) throws NameNotFoundException, SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -640,35 +404,33 @@ public class JobsResource {
 		}
 	}
 
-	private SimpleEntry<Integer, Boolean> getIdEnabled(Connection conn, JobSql jobSql, String name) throws SQLException, NameNotFoundException {
+	/**
+	 * Delete the arguments in a job in the database.
+	 *
+	 * @param name is the job name.
+	 * @throws NameNotFoundException if the job does not exist
+	 * @throws SQLException if the job cannot be updated for any reason
+	 */
+	@DELETE
+	@Path("{name}/arguments")
+	@Timed
+	public void deleteArguments(@PathParam("name") String name) throws NameNotFoundException, SQLException {
+		putArguments(name, null);
+	}
 
-		int id = -1;
-		boolean enabled = false;
-
-		PreparedStatement stmt = null;
-		ResultSet rs = null;
-
-		try {
-			stmt = conn.prepareStatement(jobSql.selectIdEnabled, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-
-			stmt.setString(1, name);
-
-			rs = stmt.executeQuery();
-
-			if (rs.next()) {
-				id = rs.getInt(1);
-				enabled = (rs.getInt(2) == 1);
-			}
-			else {
-				throw new NameNotFoundException(jobNotFoundMessageStem + name);
-			}
-		}
-		finally {
-			try { if (rs != null) rs.close(); } catch (Exception exx) {}
-			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
-		}
-
-		return new SimpleEntry<Integer, Boolean>(id, enabled);
+	/**
+	 * Delete the schedules in a job in the database.
+	 * If the job was scheduled, it becomes unscheduled.
+	 *
+	 * @param name is the job name.
+	 * @throws NameNotFoundException if the job does not exist
+	 * @throws SQLException if the job cannot be updated for any reason
+	 */
+	@DELETE
+	@Path("{name}/schedules")
+	@Timed
+	public void deleteScheduleNames(@PathParam("name") String name) throws NameNotFoundException, SQLException {
+		putSchedules(name, null);
 	}
 
 	/**
@@ -680,7 +442,10 @@ public class JobsResource {
 	 * @throws NameNotFoundException if the job does not exist
 	 * @throws SQLException if the job cannot be stored for any reason
 	 */
-	public void putJobEnabled(String name, boolean enabled) throws NameNotFoundException, SQLException {
+	@PUT
+	@Path("{name}/enabled")
+	@Timed
+	public void putEnabled(@PathParam("name") String name, boolean enabled) throws NameNotFoundException, SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -714,6 +479,37 @@ public class JobsResource {
 		finally {
 			if (conn != null) context.releaseConnection(null);
 		}
+	}
+
+	private SimpleEntry<Integer, Boolean> getIdEnabled(Connection conn, JobSql jobSql, String name) throws SQLException, NameNotFoundException {
+
+		int id = -1;
+		boolean enabled = false;
+
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+
+		try {
+			stmt = conn.prepareStatement(jobSql.selectIdEnabled, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+
+			stmt.setString(1, name);
+
+			rs = stmt.executeQuery();
+
+			if (rs.next()) {
+				id = rs.getInt(1);
+				enabled = (rs.getInt(2) == 1);
+			}
+			else {
+				throw new NameNotFoundException(jobNotFoundMessageStem + name);
+			}
+		}
+		finally {
+			try { if (rs != null) rs.close(); } catch (Exception exx) {}
+			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
+		}
+
+		return new SimpleEntry<Integer, Boolean>(id, enabled);
 	}
 
 	private List<Integer> getScheduleIds(Connection conn, JobScheduleSql jobScheduleSql, int id) throws SQLException, NameNotFoundException {
@@ -869,7 +665,10 @@ public class JobsResource {
 	 * @throws IllegalArgumentException if the name contains wildcards and matches multiple job names
 	 * @throws SQLException if the job cannot be retrieved
 	 */
-	public Job getJob(String name) throws SQLException, NameNotFoundException {
+	@GET
+	@Path("{name}")
+	@Timed
+	public Job get(@PathParam("name") String name) throws SQLException, NameNotFoundException {
 
 		Map<String, Job> jobs = getJobs(name);
 
@@ -891,7 +690,10 @@ public class JobsResource {
 	 * @return a list of job names or an empty list if no job with a matching name is found
 	 * @throws SQLException if an error occurs
 	 */
-	public List<String> getJobNames(String likeName) throws SQLException {
+	@GET
+	@Path("-/names")
+	@Timed
+	public List<String> getNames(@QueryParam("like") String likeName) throws SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -940,7 +742,10 @@ public class JobsResource {
 	 * @throws NameNotFoundException if the job does not exist
 	 * @throws SQLException if any other error occurs
 	 */
-	public void deleteJob(String name) throws NameNotFoundException, SQLException {
+	@DELETE
+	@Path("{name}")
+	@Timed
+	public void delete(@PathParam("name") String name) throws NameNotFoundException, SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -973,7 +778,10 @@ public class JobsResource {
 	 * @return the list of runs
 	 * @throws SQLException if any error occurs
 	 */
-	public List<JobRun> getJobRuns(String likeName, Boolean latest) throws SQLException {
+	@GET
+	@Path("-/runs")
+	@Timed
+	public List<JobRun> getRuns(@QueryParam("like") String likeName, @QueryParam("latest") Boolean latest) throws SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -1031,6 +839,35 @@ public class JobsResource {
 		}
 
 		return runs;
+	}
+
+	@GET
+	@Path("-/running")
+	@Timed
+	public List<JobRun> getRunning() {
+		return JobManager.getInstance().getRunning();
+	}
+
+	@POST
+	@Path("-/running/{name}")
+	@Timed
+	public int run(@PathParam("name") String name) throws SQLException, IOException, NamingException {
+		Job job = get(name);
+		return JobManager.getInstance().run(name, job).getRunId();
+	}
+
+	@GET
+	@Path("-/running/{id}")
+	@Timed
+	public JobRun getRunning(@PathParam("id") int id) {
+		return JobManager.getInstance().getRunning(id);
+	}
+
+	@DELETE
+	@Path("-/running/{id}")
+	@Timed
+	public void stop(@PathParam("id") int id) {
+		JobManager.getInstance().stopRun(id);
 	}
 
 	private LocalDateTime getLocalDateTime(ResultSet rs, int columnIndex) throws SQLException {

@@ -16,6 +16,7 @@
 
 package com.hauldata.dbpa.manage;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -24,6 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import javax.naming.NamingException;
 
 import org.slf4j.LoggerFactory;
 
@@ -343,14 +346,19 @@ public class JobScheduler {
 
 				name = rs.getString(1);
 
-				jobsResource.run(name);
+				try {
+					jobsResource.run(name);
+				}
+				catch (RuntimeException | IOException | NamingException ex) {
+					LOGGER.error("Startup of scheduled job failed: " + name, ex.getMessage());
+				}
 			}
 		}
 		catch (SQLException se) {
-			LOGGER.error("Database query to retrieve scheduled job names failed", se.getMessage());
+			LOGGER.error(String.format("Database query to retrieve scheduled job names failed for scheduleId = %s", scheduleId), se.getMessage());
 		}
-		catch (RuntimeException re) {
-			LOGGER.error("Startup of scheduled job failed: " + name, re.getMessage());
+		catch (Exception e) {
+			LOGGER.error(String.format("Unanticipated error starting jobs for scheduleId = %s", scheduleId), e.getMessage());
 		}
 		finally {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}
