@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -41,9 +41,9 @@ import com.hauldata.dbpa.manage.JobManagerException.NotAvailable;
 @Consumes(MediaType.APPLICATION_JSON)
 public class PropertiesFilesResource {
 
-	public static final String fileNotFoundMessageStem = "Properties file not found: ";
+	static private FilesResource files = new FilesResource("Properties", ".properties", JobManager.getInstance().getContext().getPropertiesParentPath());
 
-	static private FilesResource files = new FilesResource(".properties", JobManager.getInstance().getContext().getPropertiesParentPath());
+	public static final String notFoundMessageStem = files.getNotFoundMessageStem();
 
 	public PropertiesFilesResource() {}
 	// TODO: Use exception mapping instead of duplicating code.
@@ -90,7 +90,7 @@ public class PropertiesFilesResource {
 			throw new ServiceUnavailableException(ex.getMessage());
 		}
 		catch (NoSuchFileException ex) {
-			throw new NotFoundException(fileNotFoundMessageStem + name);
+			throw new NotFoundException(ex.getMessage());
 		}
 		catch (Exception ex) {
 			throw new InternalServerErrorException(ex.getLocalizedMessage());

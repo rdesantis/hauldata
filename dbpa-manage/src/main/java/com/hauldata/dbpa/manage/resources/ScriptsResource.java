@@ -51,11 +51,12 @@ import com.hauldata.dbpa.variable.VariableBase;
 @Consumes(MediaType.APPLICATION_JSON)
 public class ScriptsResource {
 
-	public static final String scriptNotFoundMessageStem = "Script not found: ";
-
 	static private FilesResource files = new FilesResource(
+			"Script",
 			"." + FileLoader.processFileExt,
 			Paths.get(((FileLoader)JobManager.getInstance().getContext().loader).getProcessPathString()));
+
+	public static final String scriptNotFoundMessageStem = files.getNotFoundMessageStem();
 
 	public ScriptsResource() {}
 

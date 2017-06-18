@@ -29,6 +29,12 @@ import javax.naming.NameNotFoundException;
 
 public class CommonSql {
 
+	private static final String notFoundMessageStem = "%s not found: ";
+
+	public static String getNotFoundMessageStem(String entityName) {
+		return String.format(notFoundMessageStem, entityName);
+	}
+
 	/**
 	 * Use reflection to initialize data members from like-named members with "_" suffix
 	 * substituting tablePrefix where "%1$s" appears in the "_" member.
@@ -124,7 +130,7 @@ public class CommonSql {
 				id = rs.getInt(1);
 			}
 			else if (entityName != null) {
-				throw new NameNotFoundException(entityName + " not found: " + name);
+				throw new NameNotFoundException(getNotFoundMessageStem(entityName) + name);
 			}
 		}
 		finally {

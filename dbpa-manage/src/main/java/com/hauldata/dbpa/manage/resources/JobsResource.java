@@ -48,6 +48,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.Timed;
+import com.hauldata.dbpa.manage.JobExecutor;
 import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.JobManagerException;
 import com.hauldata.dbpa.manage.sql.ArgumentSql;
@@ -68,9 +69,9 @@ import com.hauldata.dbpa.process.Context;
 @Consumes(MediaType.APPLICATION_JSON)
 public class JobsResource {
 
-	public static final String jobNotFoundMessageStem = "Job not found: ";
+	public static final String jobNotFoundMessageStem = CommonSql.getNotFoundMessageStem("Job");
 	public static final String scheduleNotFoundMessageStem = "One or more schedules not found for job: ";
-	public static final String runningNotFoundMessageStem = "Running job ID not found: ";
+	public static final String runningNotFoundMessageStem = JobExecutor.getRunningNotFoundMessageStem();
 
 	public JobsResource() {}
 
@@ -85,7 +86,7 @@ public class JobsResource {
 			return putJob(name, job);
 		}
 		catch (NameNotFoundException ex) {
-			throw new NotFoundException(scheduleNotFoundMessageStem + name);
+			throw new NotFoundException(ex.getMessage());
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -103,7 +104,7 @@ public class JobsResource {
 			return getJob(name);
 		}
 		catch (NameNotFoundException ex) {
-			throw new NotFoundException(jobNotFoundMessageStem + name);
+			throw new NotFoundException(ex.getMessage());
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -121,7 +122,7 @@ public class JobsResource {
 			deleteJob(name);
 		}
 		catch (NameNotFoundException ex) {
-			throw new NotFoundException(jobNotFoundMessageStem + name);
+			throw new NotFoundException(ex.getMessage());
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -139,7 +140,7 @@ public class JobsResource {
 			putJobString(name, JobSql.scriptNameColumn, scriptName);
 		}
 		catch (NameNotFoundException ex) {
-			throw new NotFoundException(jobNotFoundMessageStem + name);
+			throw new NotFoundException(ex.getMessage());
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -157,7 +158,7 @@ public class JobsResource {
 			putJobArguments(name, arguments);
 		}
 		catch (NameNotFoundException ex) {
-			throw new NotFoundException(jobNotFoundMessageStem + name);
+			throw new NotFoundException(ex.getMessage());
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -175,7 +176,7 @@ public class JobsResource {
 			putJobSchedules(name, scheduleNames);
 		}
 		catch (NameNotFoundException ex) {
-			throw new NotFoundException(jobNotFoundMessageStem + name);
+			throw new NotFoundException(ex.getMessage());
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -193,7 +194,7 @@ public class JobsResource {
 			putJobEnabled(name, enabled);
 		}
 		catch (NameNotFoundException ex) {
-			throw new NotFoundException(jobNotFoundMessageStem + name);
+			throw new NotFoundException(ex.getMessage());
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -274,7 +275,7 @@ public class JobsResource {
 			return JobManager.getInstance().run(name, job).getRunId();
 		}
 		catch (NameNotFoundException ex) {
-			throw new NotFoundException(jobNotFoundMessageStem + name);
+			throw new NotFoundException(ex.getMessage());
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -295,7 +296,7 @@ public class JobsResource {
 			return JobManager.getInstance().getRunning(id);
 		}
 		catch (NoSuchElementException ex) {
-			throw new NotFoundException(runningNotFoundMessageStem + String.valueOf(id));
+			throw new NotFoundException(ex.getMessage());
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -316,7 +317,7 @@ public class JobsResource {
 			JobManager.getInstance().stopRun(id);
 		}
 		catch (NoSuchElementException ex) {
-			throw new NotFoundException(runningNotFoundMessageStem + String.valueOf(id));
+			throw new NotFoundException(ex.getMessage());
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -460,7 +461,7 @@ public class JobsResource {
 			}
 
 			if (ids.size() != distinctNames.size()) {
-				throw new NameNotFoundException("Some schedule names not found");
+				throw new NameNotFoundException("Some schedule names not found for job");
 			}
 		}
 		finally {
@@ -659,7 +660,7 @@ public class JobsResource {
 				enabled = (rs.getInt(2) == 1);
 			}
 			else {
-				throw new NameNotFoundException("Job not found: " + name);
+				throw new NameNotFoundException(jobNotFoundMessageStem + name);
 			}
 		}
 		finally {
@@ -873,7 +874,7 @@ public class JobsResource {
 		Map<String, Job> jobs = getJobs(name);
 
 		if (jobs.size() == 0) {
-			throw new NameNotFoundException();
+			throw new NameNotFoundException(jobNotFoundMessageStem + name);
 		}
 		else if (1 < jobs.size()) {
 			throw new IllegalArgumentException();

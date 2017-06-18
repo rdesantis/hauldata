@@ -41,6 +41,12 @@ import com.hauldata.dbpa.process.DbProcess;
  */
 public class JobExecutor {
 
+	private static final String runningNotFoundMessageStem = "Running job ID not found: ";
+
+	public static String getRunningNotFoundMessageStem() {
+		return runningNotFoundMessageStem;
+	}
+
 	// See http://stackoverflow.com/questions/3096842/wait-for-one-of-several-threads
 
 	private ExecutorService es;
@@ -164,7 +170,7 @@ public class JobExecutor {
 			SubmittedRun submission = submissions.get(runId);
 
 			if (submission == null) {
-				throw new NoSuchElementException("Run is not in progress");
+				throw new NoSuchElementException(runningNotFoundMessageStem + String.valueOf(runId));
 			}
 
 			return submission.run;
@@ -236,7 +242,7 @@ public class JobExecutor {
 			SubmittedRun submission = submissions.get(runId);
 
 			if (submission == null) {
-				throw new NoSuchElementException("Run is not in progress");
+				throw new NoSuchElementException(runningNotFoundMessageStem + String.valueOf(runId));
 			}
 
 			return submission.future.cancel(true);

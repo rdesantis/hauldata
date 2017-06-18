@@ -56,7 +56,7 @@ import com.hauldata.util.schedule.ScheduleSet;
 @Consumes(MediaType.APPLICATION_JSON)
 public class SchedulesResource {
 
-	public static final String scheduleNotFoundMessageStem = "Schedule not found: ";
+	public static final String scheduleNotFoundMessageStem = CommonSql.getNotFoundMessageStem( "Schedule");
 
 	public SchedulesResource() {}
 
@@ -83,7 +83,7 @@ public class SchedulesResource {
 			return getSchedule(name);
 		}
 		catch (NameNotFoundException ex) {
-			throw new NotFoundException(scheduleNotFoundMessageStem + name);
+			throw new NotFoundException(ex.getMessage());
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -101,7 +101,7 @@ public class SchedulesResource {
 			deleteSchedule(name);
 		}
 		catch (NameNotFoundException ex) {
-			throw new NotFoundException(scheduleNotFoundMessageStem + name);
+			throw new NotFoundException(ex.getMessage());
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -152,7 +152,7 @@ public class SchedulesResource {
 			return validateSchedule(name);
 		}
 		catch (NameNotFoundException ex) {
-			throw new NotFoundException(scheduleNotFoundMessageStem + name);
+			throw new NotFoundException(ex.getMessage());
 		}
 		catch (JobManagerException.NotAvailable ex) {
 			throw new ServiceUnavailableException(ex.getMessage());
@@ -310,10 +310,10 @@ public class SchedulesResource {
 		Map<String, String> schedules = getSchedules(name);
 
 		if (schedules.size() == 0) {
-			throw new NameNotFoundException();
+			throw new NameNotFoundException(scheduleNotFoundMessageStem + name);
 		}
 		else if (1 < schedules.size()) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Schedule name matches multiple schedules: " + name);
 		}
 
 		return schedules.values().stream().findFirst().orElse(null);

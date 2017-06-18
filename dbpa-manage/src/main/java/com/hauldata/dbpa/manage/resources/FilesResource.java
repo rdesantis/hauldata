@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2017, Ronald DeSantis
+ *
+ *	Licensed under the Apache License, Version 2.0 (the "License");
+ *	you may not use this file except in compliance with the License.
+ *	You may obtain a copy of the License at
+ *
+ *		http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *	Unless required by applicable law or agreed to in writing, software
+ *	distributed under the License is distributed on an "AS IS" BASIS,
+ *	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *	See the License for the specific language governing permissions and
+ *	limitations under the License.
+ */
+
 package com.hauldata.dbpa.manage.resources;
 
 import java.io.BufferedReader;
@@ -19,16 +35,29 @@ import java.util.List;
 
 public class FilesResource {
 
+	private static final String cannotCreateMessageStem = "Cannot create %s file: ";
+	private static final String notFoundMessageStem = "%s file not found: ";
+
+	private String typeName;
 	private String fileExt;
 	private Path parentPath;
 
-	public FilesResource(String fileExt, Path parentPath) {
+	public FilesResource(String typeName, String fileExt, Path parentPath) {
+		this.typeName = typeName;
 		this.fileExt = fileExt;
 		this.parentPath = parentPath;
 	}
 
 	private Path getFilePath(String fileName) {
 		return parentPath.resolve(fileName + fileExt).toAbsolutePath().normalize();
+	}
+
+	public String getCannotCreateMessageStem() {
+		return String.format(cannotCreateMessageStem,  typeName);
+	}
+
+	public String getNotFoundMessageStem() {
+		return String.format(notFoundMessageStem,  typeName);
 	}
 
 	/**
@@ -46,6 +75,9 @@ public class FilesResource {
 			writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filePathName)));
 
 			writer.write(body);
+		}
+		catch (FileNotFoundException ex) {
+			throw new FileNotFoundException(getCannotCreateMessageStem() + name + "; " + ex.getMessage());
 		}
 		finally {
 			if (writer != null) {
@@ -78,6 +110,9 @@ public class FilesResource {
 				bodyBuilder.append(charBuffer, 0, count);
 			}
 		}
+		catch (FileNotFoundException ex) {
+			throw new FileNotFoundException(getNotFoundMessageStem() + name);
+		}
 		finally {
 			if (reader != null) {
 				try { reader.close(); } catch (Exception ex) {}
@@ -94,7 +129,12 @@ public class FilesResource {
 	 * @throws IOException for any other file system error
 	 */
 	public void delete(String name) throws IOException  {
-		Files.delete(getFilePath(name));
+		try {
+			Files.delete(getFilePath(name));
+		}
+		catch (NoSuchFileException ex) {
+			throw new NoSuchFileException(getNotFoundMessageStem() + name);
+		}
 	}
 
 	/**
