@@ -33,7 +33,6 @@ import javax.naming.NamingException;
 import org.slf4j.LoggerFactory;
 
 import com.hauldata.dbpa.DBPA;
-import com.hauldata.dbpa.ManageDbp;
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.Logger;
 import com.hauldata.dbpa.manage.JobManagerException;
@@ -56,7 +55,7 @@ public class JobManager {
 
 	private static final String managerProgramName = "ManageDbp";
 
-	private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ManageDbp.class);
+	private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(JobManager.class);
 
 	private static JobManager manager;
 
@@ -298,6 +297,8 @@ public class JobManager {
 			throw new JobManagerException.NotStarted(JobManagerException.mustStartupBeforeJobRunMessage);
 		}
 
+		LOGGER.info("Running job: {}", jobName);
+
 		// Instantiate the process, arguments, and context,
 		// submit the process to the executor,
 		// and update the database with run status.
@@ -446,6 +447,8 @@ public class JobManager {
 	 */
 	public boolean stopRun(int runId) throws NoSuchElementException {
 
+		LOGGER.info("Stop job run ID {}", runId);
+
 		if (!isStarted()) {
 			throw new JobManagerException.NotStarted(JobManagerException.notStartedNoJobRunningMessage);
 		}
@@ -473,6 +476,8 @@ public class JobManager {
 	 * @throws InterruptedException
 	 */
 	private void stopAllRuns() throws InterruptedException   {
+
+		LOGGER.info("Stopping all job runs");
 
 		executor.stopAll();
 

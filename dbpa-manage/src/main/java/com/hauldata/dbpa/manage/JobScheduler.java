@@ -30,7 +30,6 @@ import javax.naming.NamingException;
 
 import org.slf4j.LoggerFactory;
 
-import com.hauldata.dbpa.ManageDbp;
 import com.hauldata.dbpa.manage.resources.JobsResource;
 import com.hauldata.dbpa.manage.sql.JobScheduleSql;
 import com.hauldata.dbpa.manage.sql.ScheduleSql;
@@ -39,7 +38,7 @@ import com.hauldata.util.schedule.ScheduleSet;
 
 public class JobScheduler {
 
-	private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ManageDbp.class);
+	private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(JobScheduler.class);
 
 	private static final int shutdownWaitSeconds = 10;
 	private static final long shutdownWaitMillis = shutdownWaitSeconds * 1000L;
@@ -99,6 +98,8 @@ public class JobScheduler {
 	 */
 	public void startAll() throws SQLException {
 
+		LOGGER.info("Starting all schedules");
+
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
 		JobScheduleSql jobScheduleSql = manager.getJobScheduleSql();
@@ -139,12 +140,14 @@ public class JobScheduler {
 	 */
 	private void start(int id, String name, String schedule) {
 
+		LOGGER.info("Starting schedule ID {}: {}", id, name);
+
 		ScheduleSet schedules;
 		try {
 			schedules = ScheduleSet.parse(schedule);
 		}
 		catch (Exception ex) {
-			LOGGER.error("Cannot start schedule: " + name, ex.getMessage());
+			LOGGER.error("Cannot start schedule: {} - {}", name, ex.getMessage());
 			return;
 		}
 
@@ -195,6 +198,8 @@ public class JobScheduler {
 	 */
 	private boolean stop(int id) throws InterruptedException {
 
+		LOGGER.info("Stopping schedule ID {}", id);
+
 		// If the thread is running, remove it from the map, interrupt it, and wait a modest time
 		// for it to die so the caller has some likelihood that any jobs that happen to have been
 		// running on the schedule have terminated.
@@ -230,6 +235,8 @@ public class JobScheduler {
 	 * launched by a schedule.  Caller is responsible for stopping the jobs.
 	 */
 	public void stopAll() {
+
+		LOGGER.info("Stopping all schedules");
 
 		synchronized (scheduleThreads) {
 			for (Thread scheduleThread : scheduleThreads.values()) {
@@ -331,8 +338,6 @@ public class JobScheduler {
 		PreparedStatement stmt = null;
 		ResultSet rs = null;
 
-		String name = "[not retrieved]";
-
 		try {
 			conn = context.getConnection(null);
 
@@ -344,21 +349,21 @@ public class JobScheduler {
 
 			while (rs.next()) {
 
-				name = rs.getString(1);
+				String name = rs.getString(1);
 
 				try {
 					jobsResource.run(name);
 				}
 				catch (RuntimeException | IOException | NamingException ex) {
-					LOGGER.error("Startup of scheduled job failed: " + name, ex.getMessage());
+					LOGGER.error("Startup of scheduled job failed: {} - {}", name, ex.getMessage());
 				}
 			}
 		}
 		catch (SQLException se) {
-			LOGGER.error(String.format("Database query to retrieve scheduled job names failed for scheduleId = %s", scheduleId), se.getMessage());
+			LOGGER.error("Database query to retrieve scheduled job names failed for schedule ID {} - {}", scheduleId, se.getMessage());
 		}
 		catch (Exception e) {
-			LOGGER.error(String.format("Unanticipated error starting jobs for scheduleId = %s", scheduleId), e.getMessage());
+			LOGGER.error("Unanticipated error starting jobs for schedule ID {} - {}", scheduleId, e.getMessage());
 		}
 		finally {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}
