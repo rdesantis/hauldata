@@ -130,11 +130,14 @@ public class SchemaResource {
 	/**
 	 * Confirm the existence of all the job-related tables with correct columns
 	 * @return true if all tables exist correctly, false otherwise
-	 * @throws SQLException, JobException
+	 * @throws RuntimeException if required properties to set up the connection were not provided,
+	 * or if the connection could not be established.
+	 * @throws SQLException if an unexpected SQL error occurred; non-existent or incorrect table
+	 * is NOT an unexpected error.
 	 */
 	@GET
 	@Timed
-	public boolean confirm() throws SQLException, SchemaException {
+	public boolean confirm() throws SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();

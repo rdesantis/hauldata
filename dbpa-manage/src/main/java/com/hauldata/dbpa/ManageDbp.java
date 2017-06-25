@@ -29,6 +29,8 @@ import com.hauldata.dbpa.manage.exceptions.NameNotFoundExceptionMapper;
 import com.hauldata.dbpa.manage.exceptions.NoSuchElementExceptionMapper;
 import com.hauldata.dbpa.manage.exceptions.NoSuchFileExceptionMapper;
 import com.hauldata.dbpa.manage.exceptions.RuntimeExceptionMapper;
+import com.hauldata.dbpa.manage.health.ManagerHealthCheck;
+import com.hauldata.dbpa.manage.health.SchemaHealthCheck;
 import com.hauldata.dbpa.manage.resources.JobsResource;
 import com.hauldata.dbpa.manage.resources.ManagerResource;
 import com.hauldata.dbpa.manage.resources.PropertiesFilesResource;
@@ -81,7 +83,10 @@ public class ManageDbp extends Application<Configuration> {
 		final SchedulesResource schedules = new SchedulesResource();
 		final JobsResource jobs = new JobsResource();
 
-		// TODO: Register health check(s) here.
+		// Health checks
+
+		environment.healthChecks().register("schema", new SchemaHealthCheck());
+		environment.healthChecks().register("manager", new ManagerHealthCheck());
 
 		// Exception mappers
 
