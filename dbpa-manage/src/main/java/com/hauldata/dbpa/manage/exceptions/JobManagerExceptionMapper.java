@@ -21,15 +21,16 @@ import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
 import com.hauldata.dbpa.manage.JobManagerException.BaseException;
+import com.hauldata.dbpa.manage_control.api.ExceptionEntity;
 
 @Provider
 public class JobManagerExceptionMapper implements ExceptionMapper<BaseException> {
 
 	@Override
-	public Response toResponse(BaseException ex) {
+	public Response toResponse(BaseException exception) {
 
 		Response.Status status = null;
-		switch (ex.getType()) {
+		switch (exception.getType()) {
 		case AVAILABILITY:
 			status = Response.Status.SERVICE_UNAVAILABLE;
 			break;
@@ -40,6 +41,6 @@ public class JobManagerExceptionMapper implements ExceptionMapper<BaseException>
 			status = Response.Status.INTERNAL_SERVER_ERROR;
 			break;
 		}
-		return Response.status(status).entity(ex.getMessage()).build();
+		return ExceptionEntity.response(status, exception);
 	}
 }

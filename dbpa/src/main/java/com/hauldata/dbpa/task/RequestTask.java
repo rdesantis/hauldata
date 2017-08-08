@@ -883,13 +883,15 @@ public abstract class RequestTask extends Task {
 	 */
 	private Object getValue(JsonParser parser, JsonParser.Event event, int parameterType) {
 
+		if (event == JsonParser.Event.VALUE_NULL) {
+			return null;
+		}
+
 		if (parameterType == Types.NULL) {
 			// Caller could not determine the exact type needed for setObject(Object).
 			// Return the actual value cast to the nearest type match.
 
 			switch (event) {
-			case VALUE_NULL:
-				return null;
 			case VALUE_FALSE:
 				return (Boolean)false;
 			case VALUE_TRUE:
@@ -947,6 +949,7 @@ public abstract class RequestTask extends Task {
 		case Types.TIMESTAMP:
 			return LocalDateTime.parse(parser.getString());
 
+		case Types.BIT:
 		case Types.BOOLEAN: {
 			switch (event) {
 			case VALUE_FALSE:

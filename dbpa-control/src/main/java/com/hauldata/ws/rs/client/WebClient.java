@@ -45,6 +45,8 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 
+import com.hauldata.dbpa.manage_control.api.ExceptionEntity;
+
 /**
  * Dynamically generated web client
  */
@@ -141,8 +143,8 @@ class WebClientInvocationHandler implements InvocationHandler {
 			result = webMethod.invoke(proxy, args);
 		}
 		catch (WebApplicationException wax) {
-			String message = wax.getResponse().readEntity(String.class);
-			throw new RuntimeException(message);
+			ExceptionEntity entity = wax.getResponse().readEntity(ExceptionEntity.class);
+			throw new RuntimeException(entity.getMessage());
 		}
 		return result;
 	}

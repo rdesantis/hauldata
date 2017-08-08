@@ -21,11 +21,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
+import com.hauldata.dbpa.manage_control.api.ExceptionEntity;
+
 @Provider
 public class NameNotFoundExceptionMapper implements ExceptionMapper<NameNotFoundException> {
 
 	@Override
 	public Response toResponse(NameNotFoundException exception) {
-		return NotFoundExceptionMapper.toResponse(exception);
+		return ExceptionEntity.response(Response.Status.NOT_FOUND, exception);
 	}
 }
