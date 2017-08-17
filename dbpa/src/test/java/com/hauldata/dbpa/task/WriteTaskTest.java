@@ -31,7 +31,7 @@ public class WriteTaskTest extends TaskTest {
 		String script =
 				"VARIABLES number INT, word VARCHAR END VARIABLES\n" +
 				"TASK WriteCsv \n" +
-				"	WRITE CSV 'valuesTest.csv' \n" +
+				"	WRITE CSV 'valuesTest.csv' NOQUOTES \n" +
 				"	HEADERS 'A string', 'An integer', 'A date' \n" +
 				"	FROM VALUES ('first', 1, DATEFROMPARTS(2017, 3, 5)), ('SECOND Row', 22, DATEFROMPARTS(1999, 12, 31)) \n" +
 				"END TASK\n" +
@@ -40,7 +40,7 @@ public class WriteTaskTest extends TaskTest {
 				"	HEADERS 'Stringy', 'Integral Value', 'Important Date' \n" +
 				"	FROM VALUES ('first', 1, DATEFROMPARTS(2017, 3, 5)), ('SECOND Row', 22, DATEFROMPARTS(1999, 12, 31)) \n" +
 				"END TASK\n" +
-				"TASK ReadCsv AFTER \n" +
+				"TASK ReadCsv AFTER WriteCsv \n" +
 				"	READ CSV '../../../../target/test/resources/data/valuesTest.csv' \n" +
 				"	HEADERS 'A string', 'An integer', 'A date' \n" +
 				"	INTO SQL INSERT INTO test.threecolumns (a_string, an_integer, a_datetime) VALUES (?,?, ?) \n" +

@@ -29,7 +29,7 @@ public abstract class TargetPage {
 		 * return the page for writing.  Throw an exception if the file or
 		 * sheet can't be created either physically or logically. 
 		 */
-		TargetPage create(File.Owner fileOwner, PageIdentifier id, TargetHeaders headers) throws IOException;
+		TargetPage create(File.Owner fileOwner, PageIdentifier id, File.Options options, TargetHeaders headers) throws IOException;
 
 		/**
 		 * Physically position the file or sheet for appending and
@@ -44,7 +44,7 @@ public abstract class TargetPage {
 		 * return the page for writing.  Throw an exception if the file or
 		 * sheet can't be created or appended either physically or logically. 
 		 */
-		TargetPage write(File.Owner fileOwner, PageIdentifier id, TargetHeaders headers) throws IOException;
+		TargetPage write(File.Owner fileOwner, PageIdentifier id, File.Options options, TargetHeaders headers) throws IOException;
 	}
 
 	private PageNode node;

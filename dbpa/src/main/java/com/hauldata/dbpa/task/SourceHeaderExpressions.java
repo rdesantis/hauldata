@@ -19,31 +19,34 @@ package com.hauldata.dbpa.task;
 import java.util.ArrayList;
 
 import com.hauldata.dbpa.expression.Expression;
-import com.hauldata.dbpa.file.TargetHeaders;
+import com.hauldata.dbpa.file.SourceHeaders;
 
-public class WriteHeaderExpressions extends HeaderExpressions {
+public class SourceHeaderExpressions extends HeaderExpressions {
 
-	protected boolean fromMetadata;
+	protected boolean mustValidate;
+	protected boolean toMetadata;
 
-	public WriteHeaderExpressions(
+	public SourceHeaderExpressions(
 			boolean exist,
-			boolean fromMetadata,
+			boolean mustValidate,
+			boolean toMetadata,
 			ArrayList<Expression<String>> captions) {
 
 		super(exist, captions);
 
-		this.fromMetadata = fromMetadata;
+		this.mustValidate = mustValidate;
+		this.toMetadata = toMetadata;
 	}
 
-	public WriteHeaderExpressions() {
-		this(false, false, new ArrayList<Expression<String>>());
+	public boolean mustValidate() {
+		return mustValidate;
 	}
 
-	public boolean fromMetadata() {
-		return fromMetadata;
+	public boolean toMetadata() {
+		return toMetadata;
 	}
 
-	public TargetHeaders evaluate() {
-		return new TargetHeaders(exist, fromMetadata, evaluateCaptions());
+	public SourceHeaders evaluate() {
+		return new SourceHeaders(exist, mustValidate, toMetadata, evaluateCaptions());
 	}
 }

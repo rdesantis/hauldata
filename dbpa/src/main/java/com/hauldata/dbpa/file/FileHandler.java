@@ -25,22 +25,48 @@ public class FileHandler {
 	private String name;
 	private boolean hasSheets;
 	private TargetPage.Factory targetFactory;
+	private File.Options.Factory targetOptionsFactory;
 	private SourcePage.Factory sourceFactory;
+	private File.Options.Factory sourceOptionsFactory;
 
 	private FileHandler(
 			String name,
 			boolean hasSheets,
 			TargetPage.Factory targetFactory,
-			SourcePage.Factory sourceFactory) {
+			File.Options.Factory targetOptionsFactory,
+			SourcePage.Factory sourceFactory,
+			File.Options.Factory sourceOptionsFactory) {
 		this.name = name;
 		this.hasSheets = hasSheets;
 		this.targetFactory = targetFactory;
+		this.targetOptionsFactory = targetOptionsFactory;
 		this.sourceFactory = sourceFactory;
+		this.sourceOptionsFactory = sourceOptionsFactory;
 	}
 
 	// Static members
 
 	static private Map<String, FileHandler> handlers = new HashMap<String, FileHandler>();
+
+	/**
+	 * Register a file handler for a specific file type.
+	 * @param name is the type name, e.g., 'CSV', 'XLSX'
+	 * @param hasSheets is true if the file type supports multiple named sheets in a file
+	 * @param targetFactory is a factory that instantiates TargetPage objects for the type
+	 * @param targetOptionsFactory is a factory that instantiates File.Options objects for TargetPage for the type
+	 * @param sourceFactory is a factory that instantiates SourcePage objects for the type
+	 * @param sourceOptionsFactory is a factory that instantiates File.Options objects for SourcePage for the type
+	 */
+	static public void register(
+			String name,
+			boolean hasSheets,
+			TargetPage.Factory targetFactory,
+			File.Options.Factory targetOptionsFactory,
+			SourcePage.Factory sourceFactory,
+			File.Options.Factory sourceOptionsFactory) {
+
+		handlers.put(name, new FileHandler(name, hasSheets, targetFactory, targetOptionsFactory, sourceFactory, sourceOptionsFactory));
+	}
 
 	/**
 	 * Register a file handler for a specific file type.
@@ -55,7 +81,7 @@ public class FileHandler {
 			TargetPage.Factory targetFactory,
 			SourcePage.Factory sourceFactory) {
 
-		handlers.put(name, new FileHandler(name, hasSheets, targetFactory, sourceFactory));
+		handlers.put(name, new FileHandler(name, hasSheets, targetFactory, null, sourceFactory, null));
 	}
 
 	/**
@@ -95,7 +121,15 @@ public class FileHandler {
 		return targetFactory;
 	}
 
+	public File.Options makeTargetOptions() {
+		return targetOptionsFactory != null ? targetOptionsFactory.make() : null;
+	}
+
 	public SourcePage.Factory getSourceFactory() {
 		return sourceFactory;
+	}
+
+	public File.Options makeSourceOptions() {
+		return sourceOptionsFactory != null ? sourceOptionsFactory.make() : null;
 	}
 }

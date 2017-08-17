@@ -32,7 +32,7 @@ public class ForReadTask extends FileTask implements TaskSetParent {
 
 	private ArrayList<VariableBase> variables;
 	private PageIdentifierExpression page;
-	private ReadHeaderExpressions headers;
+	private SourceHeaderExpressions headers;
 	private ColumnExpressions columns;
 	private NestedTaskSet taskSet;
 
@@ -40,7 +40,7 @@ public class ForReadTask extends FileTask implements TaskSetParent {
 			Task.Prologue prologue,
 			ArrayList<VariableBase> variables,
 			PageIdentifierExpression page,
-			ReadHeaderExpressions headers,
+			SourceHeaderExpressions headers,
 			ColumnExpressions columns) {
 
 		super(prologue);

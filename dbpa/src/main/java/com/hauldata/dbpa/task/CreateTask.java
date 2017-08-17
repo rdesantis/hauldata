@@ -18,6 +18,7 @@ package com.hauldata.dbpa.task;
 
 import java.io.IOException;
 
+import com.hauldata.dbpa.file.File;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.TargetHeaders;
 import com.hauldata.dbpa.process.Context;
@@ -25,15 +26,18 @@ import com.hauldata.dbpa.process.Context;
 public class CreateTask extends FileTask {
 
 	private PageIdentifierExpression page;
-	private WriteHeaderExpressions headers;
+	private File.Options options;
+	private TargetHeaderExpressions headers;
 
 	public CreateTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
-			WriteHeaderExpressions headers) {
+			File.Options options,
+			TargetHeaderExpressions headers) {
 
 		super(prologue);
 		this.page = page;
+		this.options = options;
 		this.headers = headers;
 	}
 
@@ -44,7 +48,7 @@ public class CreateTask extends FileTask {
 		TargetHeaders headers = this.headers.evaluate();
 
 		try {
-			page.create(context.files, headers);
+			page.create(context.files, options, headers);
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();

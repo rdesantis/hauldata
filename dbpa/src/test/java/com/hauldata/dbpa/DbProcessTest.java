@@ -167,7 +167,14 @@ public class DbProcessTest extends TaskTest {
 				"TASK WaitforDelay3 AFTER Scheduler3 WAITFOR DELAY '0:0:3' END TASK \n" +
 				"TASK WaitforTime3 AFTER Scheduler3 WAITFOR TIME FORMAT(DATEADD(SECOND, 3, GETDATE()), 'HH:mm:ss') END TASK \n" +
 				"TASK LOG 'Early anonymous task' END TASK \n" +
+				// Expected failures
 				"TASK AFTER FailDueToNotSet FAILS GO END TASK \n " +
+				"TASK AFTER DbInsert FAILS GO END TASK \n " +
+				"TASK AFTER DbParam FAILS GO END TASK \n " +
+				// Caught
+//				"TASK AFTER LoadCSV2 FAILS GO END TASK \n " +
+//				"TASK AFTER OpenNonExistent FAILS GO END TASK \n " +
+//				"TASK AFTER ForLoop FAILS GO END TASK \n " +
 				"";
 
 		String[] args = new String[] { "11" };

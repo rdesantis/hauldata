@@ -22,9 +22,13 @@ public abstract class FlatFile extends File implements PageNode {
 
 	protected Headers headers;
 
-	public FlatFile(Owner owner, Path path) {
-		super(owner, path);
+	public FlatFile(Owner owner, Path path, Options options) {
+		super(owner, path, options);
 		this.headers = null;
+	}
+
+	public FlatFile(Owner owner, Path path) {
+		this(owner, path, null);
 	}
 
 	@Override

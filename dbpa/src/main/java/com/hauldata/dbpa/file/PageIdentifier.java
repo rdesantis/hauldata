@@ -43,8 +43,8 @@ public abstract class PageIdentifier {
 	 * @throws RuntimeException if this operation is inconsistent with previous usage of the file or sheet
 	 * @throws IOException
 	 */
-	public TargetPage create(File.Owner fileOwner, TargetHeaders headers) throws IOException {
-		return handler.getTargetFactory().create(fileOwner, this, headers);
+	public TargetPage create(File.Owner fileOwner, File.Options options, TargetHeaders headers) throws IOException {
+		return handler.getTargetFactory().create(fileOwner, this, options, headers);
 	}
 
 	/**
@@ -67,8 +67,8 @@ public abstract class PageIdentifier {
 	 * @throws RuntimeException if this operation is inconsistent with previous usage of the file or sheet
 	 * @throws IOException
 	 */
-	public TargetPage write(File.Owner fileOwner, TargetHeaders headers) throws IOException {
-		return handler.getTargetFactory().write(fileOwner, this, headers);
+	public TargetPage write(File.Owner fileOwner, File.Options options, TargetHeaders headers) throws IOException {
+		return handler.getTargetFactory().write(fileOwner, this, options, headers);
 	}
 
 	/**

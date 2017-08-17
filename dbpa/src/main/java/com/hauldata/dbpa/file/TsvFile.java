@@ -29,14 +29,14 @@ public class TsvFile extends DsvFile {
 
 	public static void registerHandler(String name) {
 		File.Factory fileFactory = new File.Factory() {
-			public File instantiate(Node.Owner owner, Object path) { return new TsvFile((File.Owner)owner, (Path)path); }
+			public File instantiate(Node.Owner owner, Object path, File.Options options) { return new TsvFile((File.Owner)owner, (Path)path, options); }
 			public String getTypeName() { return typeName; }
 		};
 		FileHandler.register(name, false, new TargetFilePage.Factory(fileFactory), null);
 	}
 	
-	public TsvFile(Owner owner, Path path) {
-		super(owner, path, '\t');
+	public TsvFile(Owner owner, Path path, Options options) {
+		super(owner, path, '\t', options);
 	}
 
 	// Node overrides

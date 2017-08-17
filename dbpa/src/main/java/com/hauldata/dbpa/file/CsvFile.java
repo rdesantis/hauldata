@@ -35,14 +35,47 @@ public class CsvFile extends DsvFile {
 
 	public static void registerHandler(String name) {
 		File.Factory fileFactory = new File.Factory() {
-			public File instantiate(Node.Owner owner, Object path) { return new CsvFile((File.Owner)owner, (Path)path); }
+			public File instantiate(Node.Owner owner, Object path, File.Options options) { return new CsvFile((File.Owner)owner, (Path)path, options); }
 			public String getTypeName() { return typeName; }
 		};
-		FileHandler.register(name, false, new TargetFilePage.Factory(fileFactory), new SourceFilePage.Factory(fileFactory));
+		FileHandler.register(name, false, new TargetFilePage.Factory(fileFactory), new TargetOptions.Factory(), new SourceFilePage.Factory(fileFactory), null);
 	}
 
-	public CsvFile(Owner owner, Path path) {
-		super(owner, path, ',');
+	public CsvFile(Owner owner, Path path, Options options) {
+		super(owner, path, ',', options);
+	}
+
+	private static class TargetOptions implements File.Options {
+
+		public static final TargetOptions DEFAULT = new TargetOptions();
+
+		boolean noQuotes = false;
+
+		@Override
+		public boolean set(String name) {
+			if (name.equals("NOQUOTES")) {
+				noQuotes = true;
+				return true;
+			}
+			return false;
+		}
+
+		public boolean isNoQuotes() {
+			return noQuotes;
+		}
+
+		public static class Factory implements File.Options.Factory {
+			@Override
+			public Options make() {
+				return new TargetOptions();
+			}
+		}
+	}
+
+	private TargetOptions getTargetOptions() {
+		// TODO: This function should just be the (TargetOptions)getOptions() cast.
+		// But due to undocumented APPEND without prior CREATE, getOptions() may return null.
+		return getOptions() != null ? (TargetOptions)getOptions() : TargetOptions.DEFAULT;
 	}
 
 	// Node overrides
@@ -54,10 +87,11 @@ public class CsvFile extends DsvFile {
 
 	// PageNode overrides
 
+	private final String quote = "\"";
+	private final String quote_quote = quote + quote;
+
 	public void writeColumn(int columnIndex, Object object) throws IOException {
 
-		final String quote = "\"";
-		final String quote_quote = quote + quote;
 		
 		if (1 < columnIndex) {
 			writer.write(separator);
@@ -66,10 +100,12 @@ public class CsvFile extends DsvFile {
 		if (object != null) {
 			String value = object.toString();
 			if (object instanceof String || object instanceof Character) {
-				if (value.contains(quote)) {
-					value = value.replace(quote, quote_quote);
+				if (mustQuote(value)) {
+					if (value.contains(quote)) {
+						value = value.replace(quote, quote_quote);
+					}
+					value = quote + value + quote;
 				}
-				value = quote + value + quote;
 			}
 			writer.write(value);
 		}
@@ -77,6 +113,10 @@ public class CsvFile extends DsvFile {
 		if (columnIndex == headers.getColumnCount()) {
 			writer.write(String.format("%n"));
 		}
+	}
+
+	private boolean mustQuote(String value) {
+		return value.contains(quote) || 0 <= value.indexOf(separator) || !getTargetOptions().isNoQuotes();
 	}
 
 	public Object readColumn(int columnIndex) throws IOException {

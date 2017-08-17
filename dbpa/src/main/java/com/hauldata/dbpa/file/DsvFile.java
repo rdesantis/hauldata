@@ -35,9 +35,9 @@ public abstract class DsvFile extends TextFile {
 	protected Writer writer;
 	protected DsvTokenizer tokenizer;
 
-	public DsvFile(Owner owner, Path path, char separator) {
+	public DsvFile(Owner owner, Path path, char separator, Options options) {
 
-		super(owner, path);
+		super(owner, path, options);
 		this.separator = separator;
 
 		writer = null;

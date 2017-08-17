@@ -27,7 +27,7 @@ public abstract class Node {
 	}
 
 	public static interface Factory {
-		Node instantiate(Owner owner, Object key);
+		Node instantiate(Owner owner, Object key, File.Options options);
 		String getTypeName();
 	}
 
@@ -100,8 +100,8 @@ public abstract class Node {
 	 * isOpen() on the node returns false.  The caller must physically create the entity
 	 * represented by the node and upon success call setOpen(true) on the node.
 	 */
-	public static Node getForCreate(Owner owner, Object key, Factory factory) {
-		return get(owner, key, false, true, factory, "create", true);
+	public static Node getForCreate(Owner owner, Object key, Factory factory, File.Options options) {
+		return get(owner, key, false, true, factory, options, "create", true);
 	}
 
 	/**
@@ -112,7 +112,7 @@ public abstract class Node {
 	 * represented by the node and upon success call setOpen(true) on the node.
 	 */
 	public static Node getForAppend(Owner owner, Object key, Factory factory) {
-		return get(owner, key, false, false, factory, "append", true);
+		return get(owner, key, false, false, factory, null, "append", true);
 	}
 
 	/**
@@ -123,8 +123,8 @@ public abstract class Node {
 	 * If isOpen() on the node returns false, the caller must physically create the entity
 	 * represented by the node and upon success call setOpen(true) on the node.
 	 */
-	public static Node getForWrite(Owner owner, Object key, Factory factory) {
-		return get(owner, key, false, false, factory, "write", true);
+	public static Node getForWrite(Owner owner, Object key, Factory factory, File.Options options) {
+		return get(owner, key, false, false, factory, options, "write", true);
 	}
 
 	/**
@@ -135,7 +135,7 @@ public abstract class Node {
 	 * represented by the node and upon success call setOpen(true) on the node.
 	 */
 	public static Node getForOpen(Owner owner, Object key, Factory factory) {
-		return get(owner, key, false, true, factory, "re-open", false);
+		return get(owner, key, false, true, factory, null, "re-open", false);
 	}
 
 	/**
@@ -145,7 +145,7 @@ public abstract class Node {
 	 * isOpen() on the node returns true.
 	 */
 	public static Node getForLoad(Owner owner, Object key, Factory factory) {
-		return get(owner, key, true, false, factory, "load", false);
+		return get(owner, key, true, false, factory, null, "load", false);
 	}
 
 	/**
@@ -157,7 +157,7 @@ public abstract class Node {
 	 * represented by the node and upon success call setOpen(true) on the node.
 	 */
 	public static Node getForRead(Owner owner, Object key, Factory factory) {
-		return get(owner, key, false, false, factory, "read", false);
+		return get(owner, key, false, false, factory, null, "read", false);
 	}
 
 	/**
@@ -169,6 +169,7 @@ public abstract class Node {
 			boolean mustBeOpen,
 			boolean cantBeOpen,
 			Factory factory,
+			File.Options options,
 			String verb,
 			boolean writableNotReadable) {
 		
@@ -182,7 +183,7 @@ public abstract class Node {
 			throwRuntimeException(factory.getTypeName(), "open for " + (writableNotReadable ? "reading" : "writing"), verb, key);
 		}
 		if (node == null) {
-			node = factory.instantiate(owner, key);
+			node = factory.instantiate(owner, key, options);
 			node.setState(false,  writableNotReadable, !writableNotReadable);
 			owner.put(key, node);
 		}

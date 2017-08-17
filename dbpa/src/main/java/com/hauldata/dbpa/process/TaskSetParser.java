@@ -787,11 +787,15 @@ abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
-			PageIdentifierExpression page = parsePageIdentifier(true);
+			FileHandler handler = parseFileHandler(true);
 
-			WriteHeaderExpressions headers = parseWriteHeaders(KW.END.name());
+			PageIdentifierExpression page = parsePageIdentifier(handler);
 
-			return new CreateTask(prologue, page, headers);
+			File.Options options = parseFileOptions(true, handler);
+
+			TargetHeaderExpressions headers = parseTargetHeaders(KW.END.name());
+
+			return new CreateTask(prologue, page, options, headers);
 		}
 	}
 
@@ -799,7 +803,9 @@ abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
-			PageIdentifierExpression page = parsePageIdentifier(true);
+			FileHandler handler = parseFileHandler(true);
+
+			PageIdentifierExpression page = parsePageIdentifier(handler);
 
 			Source source = parseSource(KW.APPEND.name(), KW.FROM.name(), false, true);
 
@@ -811,13 +817,17 @@ abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
-			PageIdentifierExpression page = parsePageIdentifier(true);
+			FileHandler handler = parseFileHandler(true);
 
-			WriteHeaderExpressions headers = parseWriteHeaders(KW.FROM.name());
+			PageIdentifierExpression page = parsePageIdentifier(handler);
+
+			File.Options options = parseFileOptions(true, handler);
+
+			TargetHeaderExpressions headers = parseTargetHeaders(KW.FROM.name());
 
 			Source source = parseSource(KW.WRITE.name(), KW.FROM.name(), false, true);
 
-			return new WriteTask(prologue, page, headers, source);
+			return new WriteTask(prologue, page, options, headers, source);
 		}
 	}
 
@@ -835,11 +845,15 @@ abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
-			PageIdentifierExpression page = parsePageIdentifier(true);
+			FileHandler handler = parseFileHandler(false);
 
-			ReadHeaderExpressions headers = parseReadHeaders(KW.END.name());
+			PageIdentifierExpression page = parsePageIdentifier(handler);
 
-			return new OpenTask(prologue, page, headers);
+			File.Options options = parseFileOptions(false, handler);
+
+			SourceHeaderExpressions headers = parseSourceHeaders(KW.END.name());
+
+			return new OpenTask(prologue, page, options, headers);
 		}
 	}
 
@@ -847,7 +861,9 @@ abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
-			PageIdentifierExpression page = parsePageIdentifier(false);
+			FileHandler handler = parseFileHandler(false);
+
+			PageIdentifierExpression page = parsePageIdentifier(handler);
 
 			ColumnExpressions columns = parseColumns();
 
@@ -861,9 +877,13 @@ abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
-			PageIdentifierExpression page = parsePageIdentifier(false);
+			FileHandler handler = parseFileHandler(false);
 
-			ReadHeaderExpressions headers = parseReadHeaders(KW.INTO.name());
+			PageIdentifierExpression page = parsePageIdentifier(handler);
+
+			File.Options options = parseFileOptions(false, handler);
+
+			SourceHeaderExpressions headers = parseSourceHeaders(KW.INTO.name());
 
 			ColumnExpressions columns = parseColumns();
 
@@ -871,7 +891,7 @@ abstract class TaskSetParser {
 
 			DataTarget target = parseDataTarget(KW.LOAD.name(), KW.INTO.name(), true, headers.exist());
 
-			return new ReadTask(prologue, page, headers, columns, target);
+			return new ReadTask(prologue, page, options, headers, columns, target);
 		}
 	}
 
@@ -1206,9 +1226,11 @@ abstract class TaskSetParser {
 				Task.Prologue prologue,
 				ArrayList<VariableBase> variables) throws IOException, NamingException {
 
-			PageIdentifierExpression page = parsePageIdentifier(false);
+			FileHandler handler = parseFileHandler(false);
 
-			ReadHeaderExpressions headers = parseReadHeaders(KW.TASK.name());
+			PageIdentifierExpression page = parsePageIdentifier(handler);
+
+			SourceHeaderExpressions headers = parseSourceHeaders(KW.TASK.name());
 
 			ColumnExpressions columns = parseColumns();
 
@@ -1939,10 +1961,14 @@ abstract class TaskSetParser {
 		return variable;
 	}
 
-	private PageIdentifierExpression parsePageIdentifier(boolean writeNotRead) throws IOException {
+	private FileHandler parseFileHandler(boolean writeNotRead) throws IOException {
 
 		String typeName = tokenizer.nextWordUpperCase();
-		FileHandler handler = FileHandler.get(typeName, writeNotRead);
+		return FileHandler.get(typeName, writeNotRead);
+	}
+
+	private PageIdentifierExpression parsePageIdentifier(FileHandler handler) throws IOException {
+
 		Expression<String> filePath = parseStringExpression();
 		if (!handler.getHasSheets()) {
 			return new FileIdentifierExpression(handler, filePath);
@@ -1954,7 +1980,26 @@ abstract class TaskSetParser {
 		}
 	}
 
-	private WriteHeaderExpressions parseWriteHeaders(String wordAfterHeaders) throws IOException {
+	private File.Options parseFileOptions(boolean writeNotRead, FileHandler handler) throws IOException {
+
+		File.Options options = writeNotRead ? handler.makeTargetOptions() : handler.makeSourceOptions(); 
+		if (options != null) {
+			while (tokenizer.hasNextWord()) {
+
+				BacktrackingTokenizerMark mark = tokenizer.mark();
+
+				String name = tokenizer.nextWordUpperCase();
+
+				if (!options.set(name)) {
+					tokenizer.reset(mark);
+					break;
+				}
+			}
+		}
+		return options;
+	}
+
+	private TargetHeaderExpressions parseTargetHeaders(String wordAfterHeaders) throws IOException {
 
 		tokenizer.skipWordIgnoreCase(KW.WITH.name());
 		boolean noHeaders = tokenizer.skipWordIgnoreCase(KW.NO.name());
@@ -1969,10 +2014,10 @@ abstract class TaskSetParser {
 
 		boolean headersFromMetadata = !noHeaders && (captions.size() == 0);
 
-		return new WriteHeaderExpressions(!noHeaders, headersFromMetadata, captions);
+		return new TargetHeaderExpressions(!noHeaders, headersFromMetadata, captions);
 	}
 
-	private ReadHeaderExpressions parseReadHeaders(String wordAfterHeaders) throws IOException {
+	private SourceHeaderExpressions parseSourceHeaders(String wordAfterHeaders) throws IOException {
 
 		boolean noHeaders = false;
 		boolean ignoreHeaders = tokenizer.skipWordIgnoreCase(KW.IGNORE.name());
@@ -1996,7 +2041,7 @@ abstract class TaskSetParser {
 
 		boolean headersToMetadata = !noHeaders && !ignoreHeaders && !validateHeaders;
 
-		return new ReadHeaderExpressions(!noHeaders, validateHeaders, headersToMetadata, captions);
+		return new SourceHeaderExpressions(!noHeaders, validateHeaders, headersToMetadata, captions);
 	}
 
 	private ColumnExpressions parseColumns() throws IOException {

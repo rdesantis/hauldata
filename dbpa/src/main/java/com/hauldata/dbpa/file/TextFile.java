@@ -31,8 +31,12 @@ public abstract class TextFile extends FlatFile {
 	private static final String preferredCharset = "windows-1252";
 	private static final String fallbackCharset = "ISO-8859-1";
 
+	public TextFile(Owner owner, Path path, Options options) {
+		super(owner, path, options);
+	}
+
 	public TextFile(Owner owner, Path path) {
-		super(owner, path);
+		this(owner, path, null);
 	}
 
 	public static Charset getDefaultCharset() {

@@ -31,10 +31,10 @@ public class TargetSheetPage extends TargetPage {
 		}
 
 		@Override
-		public TargetPage create(File.Owner fileOwner, PageIdentifier id, TargetHeaders headers) throws IOException {
+		public TargetPage create(File.Owner fileOwner, PageIdentifier id, File.Options options, TargetHeaders headers) throws IOException {
 
 			Book book = appendBook(fileOwner, id);
-			Sheet sheet = (Sheet)Sheet.getForCreate(book, ((SheetIdentifier)id).getSheetName(), sheetFactory);
+			Sheet sheet = (Sheet)Sheet.getForCreate(book, ((SheetIdentifier)id).getSheetName(), sheetFactory, options);
 			sheet.setHeaders(headers);
 			sheet.create();
 			sheet.setOpen(true);
@@ -56,10 +56,10 @@ public class TargetSheetPage extends TargetPage {
 		}
 
 		@Override
-		public TargetPage write(File.Owner fileOwner, PageIdentifier id, TargetHeaders headers) throws IOException {
+		public TargetPage write(File.Owner fileOwner, PageIdentifier id, File.Options options, TargetHeaders headers) throws IOException {
 
 			Book book = appendBook(fileOwner, id);
-			Sheet sheet = (Sheet)Sheet.getForWrite(book, ((SheetIdentifier)id).getSheetName(), sheetFactory);
+			Sheet sheet = (Sheet)Sheet.getForWrite(book, ((SheetIdentifier)id).getSheetName(), sheetFactory, options);
 			if (!sheet.isOpen()) {
 				sheet.setHeaders(headers);
 				sheet.create();

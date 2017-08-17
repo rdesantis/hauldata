@@ -34,7 +34,7 @@ public class TxtFile extends TextFile {
 
 	public static void registerHandler(String name) {
 		File.Factory fileFactory = new File.Factory() {
-			public File instantiate(Node.Owner owner, Object path) { return new TxtFile((File.Owner)owner, (Path)path); }
+			public File instantiate(Node.Owner owner, Object path, File.Options options) { return new TxtFile((File.Owner)owner, (Path)path, options); }
 			public String getTypeName() { return typeName; }
 		};
 		FileHandler.register(name, false, new TargetFilePage.Factory(fileFactory), new SourceFilePage.Factory(fileFactory));
@@ -44,8 +44,8 @@ public class TxtFile extends TextFile {
 	private BufferedReader reader;
 	private String lookaheadRow;
 
-	public TxtFile(Owner owner, Path path) {
-		super(owner, path);
+	public TxtFile(Owner owner, Path path, Options options) {
+		super(owner, path, options);
 	}
 
 	// Node overrides

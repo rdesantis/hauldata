@@ -39,7 +39,7 @@ public class ColumnExpressions {
 	 * to the extent possible at task parse time.
 	 * @param headers
 	 */
-	public void validate(ReadHeaderExpressions headers) {
+	public void validate(SourceHeaderExpressions headers) {
 
 		if (!headers.exist()) {
 			for (ExpressionBase column : columns) {
