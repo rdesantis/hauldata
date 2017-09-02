@@ -44,6 +44,26 @@ public abstract class DsvFile extends TextFile {
 		tokenizer = null;
 	}
 
+	protected static class SourceOptions implements File.Options {
+
+		public static final SourceOptions DEFAULT = new SourceOptions();
+
+		protected boolean raw = false;
+
+		@Override
+		public boolean set(String name) {
+			return false;
+		}
+
+		public boolean isRaw() {
+			return raw;
+		}
+	}
+
+	protected SourceOptions getSourceOptions() {
+		return getOptions() != null ? (SourceOptions)getOptions() : SourceOptions.DEFAULT;
+	}
+
 	// Node overrides
 
 	/**
@@ -79,7 +99,7 @@ public abstract class DsvFile extends TextFile {
 
 		Reader reader = getReader();
 
-		tokenizer = new DsvTokenizer(reader, separator);
+		tokenizer = new DsvTokenizer(reader, separator, !getSourceOptions().isRaw());
 
 		SourceHeaders headers = getSourceHeaders();
 		if (headers.exist()) {

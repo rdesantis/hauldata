@@ -45,6 +45,16 @@ public class WriteTaskTest extends TaskTest {
 				"	HEADERS 'A string', 'An integer', 'A date' \n" +
 				"	INTO SQL INSERT INTO test.threecolumns (a_string, an_integer, a_datetime) VALUES (?,?, ?) \n" +
 				"END TASK\n" +
+				"TASK WriteCrLf \n" +
+				"	WRITE CSV 'crlf.csv' NOQUOTES CRLF \n" +
+				"	HEADERS 'Header CrLf' \n" +
+				"	FROM VALUES ('line 1'), ('line 2') \n" +
+				"END TASK\n" +
+				"TASK WriteLf \n" +
+				"	WRITE CSV 'lf.csv' LF NOQUOTES \n" +
+				"	HEADERS 'Header Lf' \n" +
+				"	FROM VALUES ('1st line'), ('2nd line') \n" +
+				"END TASK\n" +
 				"";
 
 		Level logLevel = Level.error;

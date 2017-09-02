@@ -38,22 +38,28 @@ public class CsvFile extends DsvFile {
 			public File instantiate(Node.Owner owner, Object path, File.Options options) { return new CsvFile((File.Owner)owner, (Path)path, options); }
 			public String getTypeName() { return typeName; }
 		};
-		FileHandler.register(name, false, new TargetFilePage.Factory(fileFactory), new TargetOptions.Factory(), new SourceFilePage.Factory(fileFactory), null);
+		FileHandler.register(
+				name, false,
+				new TargetFilePage.Factory(fileFactory), new CsvTargetOptions.Factory(),
+				new SourceFilePage.Factory(fileFactory), new CsvSourceOptions.Factory());
 	}
 
 	public CsvFile(Owner owner, Path path, Options options) {
 		super(owner, path, ',', options);
 	}
 
-	private static class TargetOptions implements File.Options {
+	private static class CsvTargetOptions extends TextFile.TargetOptions {
 
-		public static final TargetOptions DEFAULT = new TargetOptions();
+		public static final CsvTargetOptions DEFAULT = new CsvTargetOptions();
 
-		boolean noQuotes = false;
+		private boolean noQuotes = false;
 
 		@Override
 		public boolean set(String name) {
-			if (name.equals("NOQUOTES")) {
+			if (super.set(name)) {
+				return true;
+			}
+			else if (name.equals("NOQUOTES")) {
 				noQuotes = true;
 				return true;
 			}
@@ -67,15 +73,35 @@ public class CsvFile extends DsvFile {
 		public static class Factory implements File.Options.Factory {
 			@Override
 			public Options make() {
-				return new TargetOptions();
+				return new CsvTargetOptions();
 			}
 		}
 	}
 
-	private TargetOptions getTargetOptions() {
-		// TODO: This function should just be the (TargetOptions)getOptions() cast.
-		// But due to undocumented APPEND without prior CREATE, getOptions() may return null.
-		return getOptions() != null ? (TargetOptions)getOptions() : TargetOptions.DEFAULT;
+	protected CsvTargetOptions getCsvTargetOptions() {
+		return getOptions() != null ? (CsvTargetOptions)getOptions() : CsvTargetOptions.DEFAULT;
+	}
+
+	private static class CsvSourceOptions extends DsvFile.SourceOptions {
+
+		@Override
+		public boolean set(String name) {
+			if (super.set(name)) {
+				return true;
+			}
+			else if (name.equals("RAW")) {
+				raw = true;
+				return true;
+			}
+			return false;
+		}
+
+		public static class Factory implements File.Options.Factory {
+			@Override
+			public Options make() {
+				return new CsvSourceOptions();
+			}
+		}
 	}
 
 	// Node overrides
@@ -111,12 +137,12 @@ public class CsvFile extends DsvFile {
 		}
 
 		if (columnIndex == headers.getColumnCount()) {
-			writer.write(String.format("%n"));
+			writer.write(getTargetOptions().getEndOfLine());
 		}
 	}
 
 	private boolean mustQuote(String value) {
-		return value.contains(quote) || 0 <= value.indexOf(separator) || !getTargetOptions().isNoQuotes();
+		return value.contains(quote) || 0 <= value.indexOf(separator) || !getCsvTargetOptions().isNoQuotes();
 	}
 
 	public Object readColumn(int columnIndex) throws IOException {

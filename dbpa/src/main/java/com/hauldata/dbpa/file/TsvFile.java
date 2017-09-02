@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ public class TsvFile extends DsvFile {
 			public File instantiate(Node.Owner owner, Object path, File.Options options) { return new TsvFile((File.Owner)owner, (Path)path, options); }
 			public String getTypeName() { return typeName; }
 		};
-		FileHandler.register(name, false, new TargetFilePage.Factory(fileFactory), null);
+		FileHandler.register(name, false, new TargetFilePage.Factory(fileFactory), new TargetOptions.Factory(), null, null);
 	}
 	
 	public TsvFile(Owner owner, Path path, Options options) {

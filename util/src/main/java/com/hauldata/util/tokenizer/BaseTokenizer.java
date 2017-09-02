@@ -48,7 +48,7 @@ public abstract class BaseTokenizer {
 	private Token lookbackToken;
 	private int lineNumber;
 
-	protected BaseTokenizer(Reader reader) {
+	protected BaseTokenizer(Reader reader, boolean isNumericRecognized) {
 
 		this.reader = reader;
 
@@ -56,8 +56,10 @@ public abstract class BaseTokenizer {
 		for (i = 0; i <= maxSupportedCharCode; ++i) {
 			charType[i] = CharType.unknown;
 		}
-		for (i = (int)'0'; i <= (int)'9'; ++i) {
-			charType[i] = CharType.numeric;
+		if (isNumericRecognized) {
+			for (i = (int)'0'; i <= (int)'9'; ++i) {
+				charType[i] = CharType.numeric;
+			}
 		}
 		charType[(int)cr] = CharType.endOfLine;
 		charType[(int)lf] = CharType.endOfLine;
@@ -71,6 +73,10 @@ public abstract class BaseTokenizer {
 		lookaheadChar = noChar;
 		lookaheadToken = null;
 		lookbackToken = null;
+	}
+
+	protected BaseTokenizer(Reader reader) {
+		this(reader, true);
 	}
 
     /**

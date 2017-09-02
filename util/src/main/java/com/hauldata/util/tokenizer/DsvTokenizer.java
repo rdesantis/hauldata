@@ -24,8 +24,8 @@ import java.io.Reader;
  */
 public class DsvTokenizer extends BaseTokenizer {
 
-	public DsvTokenizer(Reader reader, char delimiter) {
-		super(reader);
+	public DsvTokenizer(Reader reader, char delimiter, boolean isNumericRecognized) {
+		super(reader, isNumericRecognized);
 
 		charType[(int)'"'] = CharType.quote;
 		charType[(int)delimiter] = CharType.delimiter;
@@ -33,6 +33,10 @@ public class DsvTokenizer extends BaseTokenizer {
 		eolIsSignificant(true);
 		splitQuoteIsAllowed(true);
 		negativeIsRespected(true);
+	}
+
+	public DsvTokenizer(Reader reader, char delimiter) {
+		this(reader, delimiter, true);
 	}
 
 	@Override

@@ -129,4 +129,41 @@ public abstract class TextFile extends FlatFile {
 
 		return writer;
 	}
+
+	protected static class TargetOptions implements File.Options {
+
+		public static final TargetOptions DEFAULT = new TargetOptions();
+
+		private String endOfLine = String.format("%n");
+
+		@Override
+		public boolean set(String name) {
+			if (name.equals("CRLF")) {
+				endOfLine = "\r\n";
+				return true;
+			}
+			else if (name.equals("LF")) {
+				endOfLine = "\n";
+				return true;
+			}
+			return false;
+		}
+
+		public String getEndOfLine() {
+			return endOfLine;
+		}
+
+		public static class Factory implements File.Options.Factory {
+			@Override
+			public Options make() {
+				return new TargetOptions();
+			}
+		}
+	}
+
+	protected TargetOptions getTargetOptions() {
+		// TODO: This function should just be the (TargetOptions)getOptions() cast.
+		// But due to undocumented APPEND without prior CREATE, getOptions() may return null.
+		return getOptions() != null ? (TargetOptions)getOptions() : TargetOptions.DEFAULT;
+	}
 }
