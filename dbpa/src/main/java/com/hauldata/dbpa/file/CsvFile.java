@@ -19,6 +19,7 @@ package com.hauldata.dbpa.file;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import com.hauldata.util.tokenizer.BacktrackingTokenizer;
 import com.hauldata.util.tokenizer.Delimiter;
 import com.hauldata.util.tokenizer.EndOfLine;
 import com.hauldata.util.tokenizer.Quoted;
@@ -35,16 +36,16 @@ public class CsvFile extends DsvFile {
 
 	public static void registerHandler(String name) {
 		File.Factory fileFactory = new File.Factory() {
-			public File instantiate(Node.Owner owner, Object path, File.Options options) { return new CsvFile((File.Owner)owner, (Path)path, options); }
+			public File instantiate(Node.Owner owner, Object path, FileOptions options) { return new CsvFile((File.Owner)owner, (Path)path, options); }
 			public String getTypeName() { return typeName; }
 		};
 		FileHandler.register(
 				name, false,
-				new TargetFilePage.Factory(fileFactory), new CsvTargetOptions.Factory(),
-				new SourceFilePage.Factory(fileFactory), new CsvSourceOptions.Factory());
+				new TargetFilePage.Factory(fileFactory), new CsvTargetOptions.Parser(),
+				new SourceFilePage.Factory(fileFactory), new CsvSourceOptions.Parser());
 	}
 
-	public CsvFile(Owner owner, Path path, Options options) {
+	public CsvFile(Owner owner, Path path, FileOptions options) {
 		super(owner, path, ',', options);
 	}
 
@@ -54,26 +55,33 @@ public class CsvFile extends DsvFile {
 
 		private boolean noQuotes = false;
 
-		@Override
-		public boolean set(String name) {
-			if (super.set(name)) {
-				return true;
-			}
-			else if (name.equals("NOQUOTES")) {
-				noQuotes = true;
-				return true;
-			}
-			return false;
-		}
-
 		public boolean isNoQuotes() {
 			return noQuotes;
 		}
 
-		public static class Factory implements File.Options.Factory {
+		public static class Parser extends TargetOptions.Parser {
+
 			@Override
-			public Options make() {
-				return new CsvTargetOptions();
+			public FileOptions parse(BacktrackingTokenizer tokenizer) throws IOException {
+
+				CsvTargetOptions options = new CsvTargetOptions();
+				boolean mayBeMoreOptions;
+				do {
+					if (!(mayBeMoreOptions = super.parse(tokenizer, options))) {
+						mayBeMoreOptions = parse(tokenizer, options);
+					}
+				}
+				while (mayBeMoreOptions);
+				return options;
+			}
+
+			protected boolean parse(BacktrackingTokenizer tokenizer, CsvTargetOptions options) throws IOException {
+
+				boolean mayBeMoreOptions;
+				if ((mayBeMoreOptions = tokenizer.skipWordIgnoreCase("NOQUOTES"))) {
+					options.noQuotes = true;
+				}
+				return mayBeMoreOptions;
 			}
 		}
 	}
@@ -84,22 +92,16 @@ public class CsvFile extends DsvFile {
 
 	private static class CsvSourceOptions extends DsvFile.SourceOptions {
 
-		@Override
-		public boolean set(String name) {
-			if (super.set(name)) {
-				return true;
-			}
-			else if (name.equals("RAW")) {
-				raw = true;
-				return true;
-			}
-			return false;
-		}
+		public static class Parser implements FileOptions.Parser {
 
-		public static class Factory implements File.Options.Factory {
 			@Override
-			public Options make() {
-				return new CsvSourceOptions();
+			public FileOptions parse(BacktrackingTokenizer tokenizer) throws IOException {
+
+				SourceOptions options = new SourceOptions();
+				if (tokenizer.skipWordIgnoreCase("RAW")) {
+					options.raw = true;
+				}
+				return options;
 			}
 		}
 	}

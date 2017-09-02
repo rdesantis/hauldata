@@ -34,17 +34,17 @@ public class TxtFile extends TextFile {
 
 	public static void registerHandler(String name) {
 		File.Factory fileFactory = new File.Factory() {
-			public File instantiate(Node.Owner owner, Object path, File.Options options) { return new TxtFile((File.Owner)owner, (Path)path, options); }
+			public File instantiate(Node.Owner owner, Object path, FileOptions options) { return new TxtFile((File.Owner)owner, (Path)path, options); }
 			public String getTypeName() { return typeName; }
 		};
-		FileHandler.register(name, false, new TargetFilePage.Factory(fileFactory), new TargetOptions.Factory(), new SourceFilePage.Factory(fileFactory), null);
+		FileHandler.register(name, false, new TargetFilePage.Factory(fileFactory), new TargetOptions.Parser(), new SourceFilePage.Factory(fileFactory), null);
 	}
 
 	private BufferedWriter writer;
 	private BufferedReader reader;
 	private String lookaheadRow;
 
-	public TxtFile(Owner owner, Path path, Options options) {
+	public TxtFile(Owner owner, Path path, FileOptions options) {
 		super(owner, path, options);
 	}
 

@@ -35,7 +35,7 @@ public abstract class DsvFile extends TextFile {
 	protected Writer writer;
 	protected DsvTokenizer tokenizer;
 
-	public DsvFile(Owner owner, Path path, char separator, Options options) {
+	public DsvFile(Owner owner, Path path, char separator, FileOptions options) {
 
 		super(owner, path, options);
 		this.separator = separator;
@@ -44,16 +44,11 @@ public abstract class DsvFile extends TextFile {
 		tokenizer = null;
 	}
 
-	protected static class SourceOptions implements File.Options {
+	protected static class SourceOptions implements FileOptions {
 
 		public static final SourceOptions DEFAULT = new SourceOptions();
 
 		protected boolean raw = false;
-
-		@Override
-		public boolean set(String name) {
-			return false;
-		}
 
 		public boolean isRaw() {
 			return raw;

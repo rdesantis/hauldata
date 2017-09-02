@@ -791,7 +791,7 @@ abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(handler);
 
-			File.Options options = parseFileOptions(true, handler);
+			FileOptions options = parseFileOptions(true, handler);
 
 			TargetHeaderExpressions headers = parseTargetHeaders(KW.END.name());
 
@@ -821,7 +821,7 @@ abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(handler);
 
-			File.Options options = parseFileOptions(true, handler);
+			FileOptions options = parseFileOptions(true, handler);
 
 			TargetHeaderExpressions headers = parseTargetHeaders(KW.FROM.name());
 
@@ -849,7 +849,7 @@ abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(handler);
 
-			File.Options options = parseFileOptions(false, handler);
+			FileOptions options = parseFileOptions(false, handler);
 
 			SourceHeaderExpressions headers = parseSourceHeaders(KW.END.name());
 
@@ -881,7 +881,7 @@ abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(handler);
 
-			File.Options options = parseFileOptions(false, handler);
+			FileOptions options = parseFileOptions(false, handler);
 
 			SourceHeaderExpressions headers = parseSourceHeaders(KW.INTO.name());
 
@@ -1980,21 +1980,12 @@ abstract class TaskSetParser {
 		}
 	}
 
-	private File.Options parseFileOptions(boolean writeNotRead, FileHandler handler) throws IOException {
+	private FileOptions parseFileOptions(boolean writeNotRead, FileHandler handler) throws IOException {
 
-		File.Options options = writeNotRead ? handler.makeTargetOptions() : handler.makeSourceOptions(); 
-		if (options != null) {
-			while (tokenizer.hasNextWord()) {
-
-				BacktrackingTokenizerMark mark = tokenizer.mark();
-
-				String name = tokenizer.nextWordUpperCase();
-
-				if (!options.set(name)) {
-					tokenizer.reset(mark);
-					break;
-				}
-			}
+		FileOptions options = null;
+		FileOptions.Parser parser = handler.getOptionsParser(writeNotRead);
+		if (parser != null) {
+			options = parser.parse(tokenizer);
 		}
 		return options;
 	}

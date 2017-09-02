@@ -29,7 +29,7 @@ public class TargetFilePage extends TargetPage {
 		}
 
 		@Override
-		public TargetPage create(File.Owner fileOwner, PageIdentifier id, File.Options options, TargetHeaders headers) throws IOException {
+		public TargetPage create(File.Owner fileOwner, PageIdentifier id, FileOptions options, TargetHeaders headers) throws IOException {
 			FlatFile file = (FlatFile)File.getForCreate(fileOwner, id.getPath(), fileFactory, options);
 			file.setHeaders(headers);
 			file.create();
@@ -49,7 +49,7 @@ public class TargetFilePage extends TargetPage {
 		}
 
 		@Override
-		public TargetPage write(File.Owner fileOwner, PageIdentifier id, File.Options options, TargetHeaders headers) throws IOException {
+		public TargetPage write(File.Owner fileOwner, PageIdentifier id, FileOptions options, TargetHeaders headers) throws IOException {
 			FlatFile file = (FlatFile)File.getForWrite(fileOwner, id.getPath(), fileFactory, options);
 			if (!file.isOpen()) {
 				file.setHeaders(headers);

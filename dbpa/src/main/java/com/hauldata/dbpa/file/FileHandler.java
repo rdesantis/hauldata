@@ -25,23 +25,23 @@ public class FileHandler {
 	private String name;
 	private boolean hasSheets;
 	private TargetPage.Factory targetFactory;
-	private File.Options.Factory targetOptionsFactory;
+	private FileOptions.Parser targetOptionsParser;
 	private SourcePage.Factory sourceFactory;
-	private File.Options.Factory sourceOptionsFactory;
+	private FileOptions.Parser sourceOptionsParser;
 
 	private FileHandler(
 			String name,
 			boolean hasSheets,
 			TargetPage.Factory targetFactory,
-			File.Options.Factory targetOptionsFactory,
+			FileOptions.Parser targetOptionsParser,
 			SourcePage.Factory sourceFactory,
-			File.Options.Factory sourceOptionsFactory) {
+			FileOptions.Parser sourceOptionsParser) {
 		this.name = name;
 		this.hasSheets = hasSheets;
 		this.targetFactory = targetFactory;
-		this.targetOptionsFactory = targetOptionsFactory;
+		this.targetOptionsParser = targetOptionsParser;
 		this.sourceFactory = sourceFactory;
-		this.sourceOptionsFactory = sourceOptionsFactory;
+		this.sourceOptionsParser = sourceOptionsParser;
 	}
 
 	// Static members
@@ -53,19 +53,19 @@ public class FileHandler {
 	 * @param name is the type name, e.g., 'CSV', 'XLSX'
 	 * @param hasSheets is true if the file type supports multiple named sheets in a file
 	 * @param targetFactory is a factory that instantiates TargetPage objects for the type
-	 * @param targetOptionsFactory is a factory that instantiates File.Options objects for TargetPage for the type
+	 * @param targetOptionsParser is a parser that instantiates FileOptions objects for TargetPage for the type
 	 * @param sourceFactory is a factory that instantiates SourcePage objects for the type
-	 * @param sourceOptionsFactory is a factory that instantiates File.Options objects for SourcePage for the type
+	 * @param sourceOptionsParser is a factory that instantiates FileOptions objects for SourcePage for the type
 	 */
 	static public void register(
 			String name,
 			boolean hasSheets,
 			TargetPage.Factory targetFactory,
-			File.Options.Factory targetOptionsFactory,
+			FileOptions.Parser targetOptionsParser,
 			SourcePage.Factory sourceFactory,
-			File.Options.Factory sourceOptionsFactory) {
+			FileOptions.Parser sourceOptionsParser) {
 
-		handlers.put(name, new FileHandler(name, hasSheets, targetFactory, targetOptionsFactory, sourceFactory, sourceOptionsFactory));
+		handlers.put(name, new FileHandler(name, hasSheets, targetFactory, targetOptionsParser, sourceFactory, sourceOptionsParser));
 	}
 
 	/**
@@ -121,15 +121,16 @@ public class FileHandler {
 		return targetFactory;
 	}
 
-	public File.Options makeTargetOptions() {
-		return targetOptionsFactory != null ? targetOptionsFactory.make() : null;
-	}
-
 	public SourcePage.Factory getSourceFactory() {
 		return sourceFactory;
 	}
 
-	public File.Options makeSourceOptions() {
-		return sourceOptionsFactory != null ? sourceOptionsFactory.make() : null;
+	public FileOptions.Parser getOptionsParser(boolean writeNotRead) {
+		if (writeNotRead) {
+			return targetOptionsParser;
+		}
+		else {
+			return sourceOptionsParser;
+		}
 	}
 }

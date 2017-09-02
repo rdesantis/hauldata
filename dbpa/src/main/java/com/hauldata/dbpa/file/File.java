@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import java.nio.file.Path;
 
 public abstract class File extends Node {
 
-	private Options options;
+	private FileOptions options;
 
 	public static abstract class Owner implements Node.Owner {
 
@@ -42,21 +42,7 @@ public abstract class File extends Node {
 		}
 	}
 
-	public static interface Options {
-		/**
-		 * Set an option if it is defined
-		 *
-		 * @param name is the name of the option to set.
-		 * @return true if the named option is defined for the file type, otherwise false.
-		 */
-		boolean set(String name);
-
-		public static interface Factory {
-			Options make();
-		}
-	}
-
-	protected File(Owner owner, Path path, Options options) {
+	protected File(Owner owner, Path path, FileOptions options) {
 		super(owner, path);
 		this.options = options;
 	}
@@ -70,7 +56,7 @@ public abstract class File extends Node {
 		return ((Path)key).toString();
 	}
 
-	public Options getOptions() {
+	public FileOptions getOptions() {
 		return options;
 	}
 }

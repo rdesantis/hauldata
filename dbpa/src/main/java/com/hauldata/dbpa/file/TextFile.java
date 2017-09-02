@@ -26,12 +26,14 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 
+import com.hauldata.util.tokenizer.BacktrackingTokenizer;
+
 public abstract class TextFile extends FlatFile {
 
 	private static final String preferredCharset = "windows-1252";
 	private static final String fallbackCharset = "ISO-8859-1";
 
-	public TextFile(Owner owner, Path path, Options options) {
+	public TextFile(Owner owner, Path path, FileOptions options) {
 		super(owner, path, options);
 	}
 
@@ -130,33 +132,40 @@ public abstract class TextFile extends FlatFile {
 		return writer;
 	}
 
-	protected static class TargetOptions implements File.Options {
+	protected static class TargetOptions implements FileOptions {
 
 		public static final TargetOptions DEFAULT = new TargetOptions();
 
 		private String endOfLine = String.format("%n");
 
-		@Override
-		public boolean set(String name) {
-			if (name.equals("CRLF")) {
-				endOfLine = "\r\n";
-				return true;
-			}
-			else if (name.equals("LF")) {
-				endOfLine = "\n";
-				return true;
-			}
-			return false;
-		}
-
 		public String getEndOfLine() {
 			return endOfLine;
 		}
 
-		public static class Factory implements File.Options.Factory {
+		public static class Parser implements FileOptions.Parser {
+
 			@Override
-			public Options make() {
-				return new TargetOptions();
+			public FileOptions parse(BacktrackingTokenizer tokenizer) throws IOException {
+
+				TargetOptions options = new TargetOptions();
+				boolean mayBeMoreOptions;
+				do {
+					mayBeMoreOptions = parse(tokenizer, options);
+				}
+				while (mayBeMoreOptions);
+				return options;
+			}
+
+			protected boolean parse(BacktrackingTokenizer tokenizer, TargetOptions options) throws IOException {
+
+				boolean mayBeMoreOptions = true;
+				if ((mayBeMoreOptions = tokenizer.skipWordIgnoreCase("CRLF"))) {
+					options.endOfLine = "\r\n";
+				}
+				else if ((mayBeMoreOptions = tokenizer.skipWordIgnoreCase("LF"))) {
+					options.endOfLine = "\n";
+				}
+				return mayBeMoreOptions;
 			}
 		}
 	}

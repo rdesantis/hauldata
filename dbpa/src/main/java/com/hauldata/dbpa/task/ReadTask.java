@@ -20,7 +20,7 @@ import java.io.IOException;
 
 import com.hauldata.dbpa.datasource.DataTarget;
 import com.hauldata.dbpa.file.Columns;
-import com.hauldata.dbpa.file.File;
+import com.hauldata.dbpa.file.FileOptions;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.file.SourcePage;
@@ -29,7 +29,7 @@ import com.hauldata.dbpa.process.Context;
 public class ReadTask extends FileTask {
 
 	private PageIdentifierExpression page;
-	private File.Options options;
+	private FileOptions options;
 	private SourceHeaderExpressions headers;
 	private ColumnExpressions columns;
 	private DataTarget target;
@@ -37,7 +37,7 @@ public class ReadTask extends FileTask {
 	public ReadTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
-			File.Options options,
+			FileOptions options,
 			SourceHeaderExpressions headers,
 			ColumnExpressions columns,
 			DataTarget target) {
