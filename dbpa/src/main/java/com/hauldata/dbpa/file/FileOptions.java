@@ -25,4 +25,9 @@ public interface FileOptions {
 	public static interface Parser {
 		FileOptions parse(BacktrackingTokenizer tokenizer) throws IOException;
 	}
+
+	@FunctionalInterface
+	public static interface Modifier {
+		void modify(BacktrackingTokenizer tokenizer, FileOptions options);
+	}
 }

@@ -18,8 +18,9 @@ package com.hauldata.dbpa.file;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
-import com.hauldata.util.tokenizer.BacktrackingTokenizer;
 import com.hauldata.util.tokenizer.Delimiter;
 import com.hauldata.util.tokenizer.EndOfLine;
 import com.hauldata.util.tokenizer.Quoted;
@@ -61,27 +62,20 @@ public class CsvFile extends DsvFile {
 
 		public static class Parser extends TargetOptions.Parser {
 
-			@Override
-			public FileOptions parse(BacktrackingTokenizer tokenizer) throws IOException {
+			static Map<String, Modifier> modifiers;
 
-				CsvTargetOptions options = new CsvTargetOptions();
-				boolean mayBeMoreOptions;
-				do {
-					if (!(mayBeMoreOptions = super.parse(tokenizer, options))) {
-						mayBeMoreOptions = parse(tokenizer, options);
-					}
-				}
-				while (mayBeMoreOptions);
-				return options;
+			static {
+				modifiers = new HashMap<String, Modifier>();
+				modifiers.put("NOQUOTES", (tokenizer, options) -> {((CsvTargetOptions)options).noQuotes = true;});
 			}
 
-			protected boolean parse(BacktrackingTokenizer tokenizer, CsvTargetOptions options) throws IOException {
+			Parser() {
+				super(modifiers);
+			}
 
-				boolean mayBeMoreOptions;
-				if ((mayBeMoreOptions = tokenizer.skipWordIgnoreCase("NOQUOTES"))) {
-					options.noQuotes = true;
-				}
-				return mayBeMoreOptions;
+			@Override
+			protected FileOptions makeDefaultOptions() {
+				return new CsvTargetOptions();
 			}
 		}
 	}
@@ -92,16 +86,22 @@ public class CsvFile extends DsvFile {
 
 	private static class CsvSourceOptions extends DsvFile.SourceOptions {
 
-		public static class Parser implements FileOptions.Parser {
+		public static class Parser extends FileOptionsParser {
+
+			static Map<String, Modifier> modifiers;
+
+			static {
+				modifiers = new HashMap<String, Modifier>();
+				modifiers.put("RAW", (tokenizer, options) -> {((CsvSourceOptions)options).raw = true;});
+			}
+
+			Parser() {
+				super(modifiers);
+			}
 
 			@Override
-			public FileOptions parse(BacktrackingTokenizer tokenizer) throws IOException {
-
-				SourceOptions options = new SourceOptions();
-				if (tokenizer.skipWordIgnoreCase("RAW")) {
-					options.raw = true;
-				}
-				return options;
+			protected FileOptions makeDefaultOptions() {
+				return new CsvSourceOptions();
 			}
 		}
 	}
@@ -120,7 +120,7 @@ public class CsvFile extends DsvFile {
 
 	public void writeColumn(int columnIndex, Object object) throws IOException {
 
-		
+
 		if (1 < columnIndex) {
 			writer.write(separator);
 		}

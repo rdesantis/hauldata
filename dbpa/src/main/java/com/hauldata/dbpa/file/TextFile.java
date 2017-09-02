@@ -25,8 +25,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-
-import com.hauldata.util.tokenizer.BacktrackingTokenizer;
+import java.util.HashMap;
+import java.util.Map;
 
 public abstract class TextFile extends FlatFile {
 
@@ -142,30 +142,27 @@ public abstract class TextFile extends FlatFile {
 			return endOfLine;
 		}
 
-		public static class Parser implements FileOptions.Parser {
+		public static class Parser extends FileOptionsParser {
 
-			@Override
-			public FileOptions parse(BacktrackingTokenizer tokenizer) throws IOException {
+			static Map<String, Modifier> modifiers;
 
-				TargetOptions options = new TargetOptions();
-				boolean mayBeMoreOptions;
-				do {
-					mayBeMoreOptions = parse(tokenizer, options);
-				}
-				while (mayBeMoreOptions);
-				return options;
+			static {
+				modifiers = new HashMap<String, Modifier>();
+				modifiers.put("CRLF", (tokenizer, options) -> {((TargetOptions)options).endOfLine = "\r\n";});
+				modifiers.put("LF", (tokenizer, options) -> {((TargetOptions)options).endOfLine = "\n";});
 			}
 
-			protected boolean parse(BacktrackingTokenizer tokenizer, TargetOptions options) throws IOException {
+			protected Parser() {
+				super(modifiers);
+			}
 
-				boolean mayBeMoreOptions = true;
-				if ((mayBeMoreOptions = tokenizer.skipWordIgnoreCase("CRLF"))) {
-					options.endOfLine = "\r\n";
-				}
-				else if ((mayBeMoreOptions = tokenizer.skipWordIgnoreCase("LF"))) {
-					options.endOfLine = "\n";
-				}
-				return mayBeMoreOptions;
+			protected Parser(Map<String, Modifier> subModifiers) {
+				super(combine(modifiers, subModifiers));
+			}
+
+			@Override
+			protected FileOptions makeDefaultOptions() {
+				return new TargetOptions();
 			}
 		}
 	}
