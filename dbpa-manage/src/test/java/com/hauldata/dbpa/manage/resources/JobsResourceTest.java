@@ -164,15 +164,18 @@ public class JobsResourceTest extends TestCase {
 	public void testGetCaseMismatch() throws NameNotFoundException, SQLException {
 
 		// Try getting an existing job with the wrong case in the name.
-		// The initial JobsResource.get(String) threw an exception for this case.
 		// The actual result would depend on whether the database is case-sensitive
 		// for string comparisons.  We don't care here whether the job is actually
-		// found or not.  We just want to be sure the call doesn't throw an exception.
+		// found or not.  We just want to be sure that if the call throws an exception,
+		// it is NameNotFoundException and no other.
 
 		testPut();
 
 		String wrongCaseName = detritusName.toUpperCase();
-		jobsResource.get(wrongCaseName);
+		try {
+			jobsResource.get(wrongCaseName);
+		}
+		catch (NameNotFoundException ex) {}
 	}
 
 	public void testGetNegative() throws SQLException {

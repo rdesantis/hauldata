@@ -30,7 +30,6 @@ import javax.ws.rs.core.MediaType;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
-import com.hauldata.dbpa.manage.JobManagerException.SchemaException;
 import com.hauldata.dbpa.process.Context;
 
 @Path("/schema")
@@ -48,7 +47,7 @@ public class SchemaResource {
 	 */
 	@PUT
 	@Timed
-	public void create() throws SQLException, SchemaException {
+	public void create() throws SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -83,7 +82,7 @@ public class SchemaResource {
 	 */
 	@DELETE
 	@Timed
-	public void delete() throws SQLException, SchemaException {
+	public void delete() throws SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();

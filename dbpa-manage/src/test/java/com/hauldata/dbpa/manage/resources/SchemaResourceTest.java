@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,34 +16,28 @@
 
 package com.hauldata.dbpa.manage.resources;
 
-import java.sql.SQLException;
-
 import com.hauldata.dbpa.manage.JobManager;
 
 import junit.framework.TestCase;
 
 public class SchemaResourceTest extends TestCase {
 
-	SchemaResource schemaResource;
 
 	public SchemaResourceTest(String name) {
 		super(name);
 	}
 
-	protected void setUp() throws SQLException {
-		JobManager.instantiate(false).startup();
-		schemaResource = new SchemaResource();
-	}
-
-	protected void tearDown() throws InterruptedException {
-		JobManager.getInstance().shutdown();
-		JobManager.killInstance();
-	}
-
 	public void testSchema() throws Exception {
 
-		if (!schemaResource.confirm()) {
+		JobManager manager = JobManager.instantiate(false);
+		SchemaResource schemaResource = new SchemaResource();
 
+		if (manager.canStartup()) {
+			manager.startup();
+
+			assertTrue(schemaResource.confirm());
+		}
+		else {
 			schemaResource.delete();
 			
 			assertFalse(schemaResource.confirm());
@@ -52,5 +46,8 @@ public class SchemaResourceTest extends TestCase {
 
 			assertTrue(schemaResource.confirm());
 		}
+
+		JobManager.getInstance().shutdown();
+		JobManager.killInstance();
 	}
 }

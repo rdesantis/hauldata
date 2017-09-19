@@ -45,6 +45,12 @@
 		    <artifactId>jackson-datatype-jsr310</artifactId>
 			<version>${jackson-annotations.version}</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.h2database/h2 -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<version>1.4.196</version>
+		</dependency>
 	</dependencies>
 
 	<build>

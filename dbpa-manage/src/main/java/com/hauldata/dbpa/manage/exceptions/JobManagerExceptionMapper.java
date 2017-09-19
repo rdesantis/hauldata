@@ -37,9 +37,6 @@ public class JobManagerExceptionMapper implements ExceptionMapper<BaseException>
 		case CONFLICT:
 			status = Response.Status.CONFLICT;
 			break;
-		case SCHEMA:
-			status = Response.Status.INTERNAL_SERVER_ERROR;
-			break;
 		}
 		return ExceptionEntity.response(status, exception);
 	}

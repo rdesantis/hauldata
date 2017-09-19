@@ -25,7 +25,6 @@ import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Properties;
 
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
@@ -142,15 +141,7 @@ public class JobManager {
 		ContextProperties contextProps = new ContextProperties(managerProgramName, jobContextProps);
 		context = contextProps.createContext(null);
 
-		Properties schemaProps = contextProps.getProperties("schema");
-		if (schemaProps == null) {
-			throw new JobManagerException.SchemaPropertiesNotFound();
-		}
-
-		String tablePrefix = schemaProps.getProperty("tablePrefix");
-		if (tablePrefix == null) {
-			throw new JobManagerException.SchemaTablePrefixPropertyNotFound();
-		}
+		String tablePrefix = context.connectionProps.getProperty("managerTablePrefix", "");
 
 		jobSql = new JobSql(tablePrefix);
 		argumentSql = new ArgumentSql(tablePrefix);

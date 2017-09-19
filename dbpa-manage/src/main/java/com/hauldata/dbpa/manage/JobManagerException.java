@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -20,8 +20,6 @@ public class JobManagerException {
 
 	public static final String notAvailableMessage = "Job Manager is not available";
 	public static final String alreadyUnavailableMessage = "Job Manager is already unavailable";
-	public static final String schemaPropertiesNotFoundMessage = "Job schema properties not found";
-	public static final String schemaTablePrefixPropertyNotFoundMessage = "Job schema tablePrefix property not found";
 	public static final String schedulerNotAvailableMessage = "Job Scheduler is not available";
 	public static final String alreadyStartedMessage = "Job Manager is already started";
 	public static final String mustStartupBeforeJobRunMessage = "Must startup Job Manager before running jobs";
@@ -30,7 +28,7 @@ public class JobManagerException {
 
 	// Abstract classes
 
-	public enum Type { AVAILABILITY, CONFLICT, SCHEMA };
+	public enum Type { AVAILABILITY, CONFLICT };
 
 	public static abstract class BaseException extends RuntimeException {
 		private static final long serialVersionUID = 1L;
@@ -49,11 +47,6 @@ public class JobManagerException {
 		protected ConflictException(String message) { super(Type.CONFLICT, message); }
 	}
 
-	public static abstract class SchemaException extends BaseException {
-		private static final long serialVersionUID = 1L;
-		protected SchemaException(String message) { super(Type.SCHEMA, message); }
-	}
-
 	// Concrete classes
 
 	public static class NotAvailable extends AvailabilityException {
@@ -64,16 +57,6 @@ public class JobManagerException {
 	public static class AlreadyUnavailable extends ConflictException {
 		private static final long serialVersionUID = 1L;
 		public AlreadyUnavailable() { super(alreadyUnavailableMessage); }
-	}
-
-	public static class SchemaPropertiesNotFound extends SchemaException {
-		private static final long serialVersionUID = 1L;
-		public SchemaPropertiesNotFound() { super(schemaPropertiesNotFoundMessage); }
-	}
-
-	public static class SchemaTablePrefixPropertyNotFound extends SchemaException {
-		private static final long serialVersionUID = 1L;
-		public SchemaTablePrefixPropertyNotFound() { super(schemaTablePrefixPropertyNotFoundMessage); }
 	}
 
 	public static class SchedulerNotAvailable extends AvailabilityException {
