@@ -41,7 +41,7 @@ public class JobRun {
 
 		this.runId = -1;
 		this.jobName = jobName;
-		this.state = new JobState(JobStatus.notRun, null, null);
+		this.state = new JobState(JobStatus.notRun, null, null, null);
 	}
 
 	public JobRun(
@@ -80,38 +80,44 @@ public class JobRun {
 
 	// Status updates
 
+	public void loadFailed(String message) {
+		setEndStatusNow(JobStatus.loadFailed, message);
+	}
+
+	public void submitFailed(String message) {
+		setEndStatusNow(JobStatus.submitFailed, message);
+	}
+
 	public void runInProgress() {
 		state = new JobState(
 							JobStatus.runInProgress,
 							LocalDateTime.now(),
+							null,
 							null);
 	}
 
-	public void parseFailed() {
-		setEndStatusNow(JobStatus.parseFailed);
-	}
-
-	public void runFailed() {
-		setEndStatusNow(JobStatus.runFailed);
+	public void runFailed(String message) {
+		setEndStatusNow(JobStatus.runFailed, message);
 	}
 
 	public void runSucceeded() {
-		setEndStatusNow(JobStatus.runSucceeded);
+		setEndStatusNow(JobStatus.runSucceeded, null);
 	}
 
 	public void runTerminated() {
-		setEndStatusNow(JobStatus.runTerminated);
+		setEndStatusNow(JobStatus.runTerminated, null);
 	}
 
 	public void controllerShutdown() {
-		setEndStatusNow(JobStatus.controllerShutdown);
+		setEndStatusNow(JobStatus.controllerShutdown, null);
 	}
 
-	public void setEndStatusNow(JobStatus status) {
+	public void setEndStatusNow(JobStatus status, String message) {
 		state = new JobState(
 							status,
 							state.getStartTime(),
-							LocalDateTime.now());
+							LocalDateTime.now(),
+							message);
 	}
 
 	// Setter

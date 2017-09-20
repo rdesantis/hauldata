@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -39,6 +39,8 @@ public class JobState {
 	@JsonDeserialize(using = LocalDateTimeDeserializer.class)
 	private LocalDateTime endTime;
 
+	private String message;
+
 	public JobState() {
 		// Jackson deserialization
 	}
@@ -46,11 +48,13 @@ public class JobState {
 	public JobState(
 			JobStatus status,
 			LocalDateTime startTime,
-			LocalDateTime endTime) {
+			LocalDateTime endTime,
+			String message) {
 
 		this.status = status;
 		this.startTime = startTime;
 		this.endTime = endTime;
+		this.message = message;
 	}
 
 	@Override
@@ -59,7 +63,8 @@ public class JobState {
 				"{" +
 				String.valueOf(status) + "," +
 				String.valueOf(startTime) + "," +
-				String.valueOf(endTime) +
+				String.valueOf(endTime) + "," +
+				String.valueOf(message) +
 				"}";
 	}
 
@@ -76,5 +81,10 @@ public class JobState {
 	@JsonProperty
 	public LocalDateTime getEndTime() {
 		return endTime;
+	}
+
+	@JsonProperty
+	public String getMessage() {
+		return message;
 	}
 }

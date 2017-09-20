@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -20,14 +20,16 @@ public class RunSql extends CommonSql {
 
 	public static final String tableName = "JobRun";
 
-	public final static String createTable_ = "CREATE TABLE %1$s" + tableName + " " +
-			"( id INTEGER, jobId INTEGER, jobName VARCHAR(255), status TINYINT, startTime DATETIME, endTime DATETIME, PRIMARY KEY (id) )";
-	public final static String insert_ = "INSERT INTO %1$s" + tableName + " (id, jobId, jobName, status) VALUES (?,?,?,?)";
-	public final static String selectLastId_ = "SELECT MAX(id) FROM %1$s" + tableName;
-	public final static String update_ = "UPDATE %1$s" + tableName + " SET status = ?, startTime = ?, endTime = ? WHERE id = ?";
-	public final static String selectAllColumns_ = "SELECT id, jobId, jobName, status, startTime, endTime FROM %1$s" + tableName;
+	public static int maxMessageLength = 255;
 
-	public final static String select_ = "SELECT id, run.jobName, status, startTime, endTime FROM %1$s" + tableName + " AS run";
+	public final static String createTable_ = "CREATE TABLE %1$s" + tableName + " " +
+			"( id INTEGER, jobId INTEGER, jobName VARCHAR(255), status TINYINT, startTime DATETIME, endTime DATETIME, message VARCHAR(255), PRIMARY KEY (id) )";
+	public final static String insert_ = "INSERT INTO %1$s" + tableName + " (id, jobId, jobName, status, message) VALUES (?,?,?,?,?)";
+	public final static String selectLastId_ = "SELECT MAX(id) FROM %1$s" + tableName;
+	public final static String update_ = "UPDATE %1$s" + tableName + " SET status = ?, startTime = ?, endTime = ?, message = ? WHERE id = ?";
+	public final static String selectAllColumns_ = "SELECT id, jobId, jobName, status, startTime, endTime, message FROM %1$s" + tableName;
+
+	public final static String select_ = "SELECT id, run.jobName, status, startTime, endTime, message FROM %1$s" + tableName + " AS run";
 	public final static String selectAllLastId_ = "SELECT jobName, MAX(id) AS maxId FROM %1$s" + tableName + " GROUP BY jobName";
 
 	public String selectLast =	"%1$s INNER JOIN (%2$s) AS mr ON mr.jobName = run.jobName AND run.id = mr.maxId";

@@ -827,8 +827,9 @@ public class JobsResource {
 				JobStatus status = JobStatus.valueOf(rs.getInt(3));
 				LocalDateTime startTime = getLocalDateTime(rs, 4);
 				LocalDateTime endTime = getLocalDateTime(rs, 5);
+				String message = rs.getString(6);
 
-				runs.add(new JobRun(runId, jobName, new JobState(status, startTime, endTime)));
+				runs.add(new JobRun(runId, jobName, new JobState(status, startTime, endTime, message)));
 			}
 		}
 		finally {

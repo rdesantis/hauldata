@@ -16,6 +16,7 @@
 
 package com.hauldata.dbpa.manage;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -35,11 +36,13 @@ import com.hauldata.dbpa.DBPA;
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.Logger;
 import com.hauldata.dbpa.manage.JobManagerException;
+import com.hauldata.dbpa.manage.resources.JobsResource;
 import com.hauldata.dbpa.manage.resources.SchemaResource;
 import com.hauldata.dbpa.manage_control.api.Job;
 import com.hauldata.dbpa.manage_control.api.JobRun;
 import com.hauldata.dbpa.manage_control.api.ScriptArgument;
 import com.hauldata.dbpa.manage_control.api.JobState;
+import com.hauldata.dbpa.manage_control.api.JobStatus;
 import com.hauldata.dbpa.manage.sql.JobSql;
 import com.hauldata.dbpa.manage.sql.ArgumentSql;
 import com.hauldata.dbpa.manage.sql.CommonSql;
@@ -259,6 +262,13 @@ public class JobManager {
 					JobRun result = executor.getCompleted();
 					try {
 						updateRun(result);
+
+						if (result.getState().getStatus() == JobStatus.runFailed) {
+							// TODO: Alert job run failed
+						}
+					}
+					catch (SQLException ex) {
+						// TODO: Alert database error
 					}
 					catch (Exception ex) {
 						// updateRun() does not throw InterruptedException.
@@ -270,6 +280,34 @@ public class JobManager {
 			catch (InterruptedException iex) {
 				// InterruptedException terminates the loop and ends the thread as desired.
 			}
+		}
+	}
+
+	/**
+	 * Start a job with alerting for failed job start.
+	 *
+	 * @param name
+	 * @return
+	 * @throws SQLException
+	 * @throws IOException
+	 * @throws NamingException
+	 */
+	public void run(String name) throws SQLException, IOException, NamingException {
+
+		try {
+			run(name, new JobsResource().get(name));
+		}
+		catch (FileNotFoundException fex) {
+			// TODO: Alert script file not found
+			throw fex;
+		}
+		catch (IOException | NamingException | RuntimeException lex) {
+			// TODO: Alert error loading script
+			throw lex;
+		}
+		catch (SQLException sex) {
+			// TODO: Alert database error
+			throw sex;
 		}
 	}
 
@@ -345,6 +383,7 @@ public class JobManager {
 			stmt.setInt(2, jobId);
 			stmt.setString(3, jobName);
 			stmt.setInt(4, run.getState().getStatus().getId());
+			setMessage(stmt, 5, run.getState().getMessage());
 
 			int runId;
 			synchronized (this) {
@@ -389,8 +428,9 @@ public class JobManager {
 			stmt.setInt(1, state.getStatus().getId());
 			setTimestamp(stmt, 2, state.getStartTime());
 			setTimestamp(stmt, 3, state.getEndTime());
+			setMessage(stmt, 4, state.getMessage());
 
-			stmt.setInt(4, run.getRunId());
+			stmt.setInt(5, run.getRunId());
 
 			stmt.executeUpdate();
 		}
@@ -408,6 +448,17 @@ public class JobManager {
 		}
 		else {
 			stmt.setNull(parameterIndex, Types.TIMESTAMP);
+		}
+	}
+
+	private void setMessage(PreparedStatement stmt, int parameterIndex, String message) throws SQLException {
+
+		if (message != null) {
+			String trimmedMessage = (message.length() <= RunSql.maxMessageLength) ? message : message.substring(0, RunSql.maxMessageLength);
+			stmt.setString(parameterIndex, trimmedMessage);
+		}
+		else {
+			stmt.setNull(parameterIndex, Types.VARCHAR);
 		}
 	}
 

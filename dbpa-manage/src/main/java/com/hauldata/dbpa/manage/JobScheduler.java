@@ -30,7 +30,6 @@ import javax.naming.NamingException;
 
 import org.slf4j.LoggerFactory;
 
-import com.hauldata.dbpa.manage.resources.JobsResource;
 import com.hauldata.dbpa.manage.sql.JobScheduleSql;
 import com.hauldata.dbpa.manage.sql.ScheduleSql;
 import com.hauldata.dbpa.process.Context;
@@ -44,7 +43,6 @@ public class JobScheduler {
 	private static final long shutdownWaitMillis = shutdownWaitSeconds * 1000L;
 
 	private Map<Integer, Thread> scheduleThreads;
-	private JobsResource jobsResource;
 
 	private class RunningSchedule implements Runnable {
 
@@ -82,7 +80,6 @@ public class JobScheduler {
 		// So use regular HashMap and explicitly synchronize access.
 
 		scheduleThreads = new HashMap<Integer, Thread>();
-		jobsResource = new JobsResource(); 
 	}
 
 	/**
@@ -352,7 +349,7 @@ public class JobScheduler {
 				String name = rs.getString(1);
 
 				try {
-					jobsResource.run(name);
+					manager.run(name);
 				}
 				catch (RuntimeException | IOException | NamingException ex) {
 					LOGGER.error("Startup of scheduled job failed: {} - {}", name, ex.getMessage());

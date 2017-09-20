@@ -36,6 +36,8 @@ public class SchemaResourceTest extends TestCase {
 			manager.startup();
 
 			assertTrue(schemaResource.confirm());
+
+			manager.shutdown();
 		}
 		else {
 			schemaResource.delete();
@@ -47,7 +49,6 @@ public class SchemaResourceTest extends TestCase {
 			assertTrue(schemaResource.confirm());
 		}
 
-		JobManager.getInstance().shutdown();
 		JobManager.killInstance();
 	}
 }

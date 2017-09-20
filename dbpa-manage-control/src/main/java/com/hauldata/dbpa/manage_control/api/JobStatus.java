@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public enum JobStatus {
 
-	notRun(0), parseFailed(1), runInProgress(2), runFailed(3), runSucceeded(4), runTerminated(5), controllerShutdown(6);
+	notRun(0), loadFailed(1), submitFailed(2), runInProgress(3), runFailed(4), runSucceeded(5), runTerminated(6), controllerShutdown(7);
 
 	private int id;
 

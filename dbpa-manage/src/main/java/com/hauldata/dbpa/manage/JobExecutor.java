@@ -85,7 +85,7 @@ public class JobExecutor {
 				result.runTerminated();
 			}
 			catch (Exception ex) {
-				result.runFailed();
+				result.runFailed(ex.getMessage());
 			}
 
 			try { context.close(); } catch (Exception ex) {}
@@ -188,6 +188,7 @@ public class JobExecutor {
 
 		JobRun completedRun = null;
 		JobStatus exceptionStatus = null;
+		String completionMessage = null;
 
 		synchronized (submissions) {
 
@@ -199,6 +200,7 @@ public class JobExecutor {
 			}
 			catch (ExecutionException eex) {
 				exceptionStatus = JobStatus.runFailed;
+				completionMessage = eex.getMessage();
 			}
 
 			if (completedRun == null) {
@@ -211,7 +213,7 @@ public class JobExecutor {
 
 				if (possibleSubmission.isPresent()) {
 					completedRun = possibleSubmission.get().run;
-					completedRun.setEndStatusNow(exceptionStatus);
+					completedRun.setEndStatusNow(exceptionStatus, completionMessage);
 				}
 			}
 
