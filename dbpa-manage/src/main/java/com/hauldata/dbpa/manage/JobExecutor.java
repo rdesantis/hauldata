@@ -85,7 +85,7 @@ public class JobExecutor {
 				result.runTerminated();
 			}
 			catch (Exception ex) {
-				result.runFailed(ex.getMessage());
+				result.runFailed(Optional.ofNullable(ex.getMessage()).orElse(ex.getClass().getName()));
 			}
 
 			try { context.close(); } catch (Exception ex) {}
@@ -200,7 +200,7 @@ public class JobExecutor {
 			}
 			catch (ExecutionException eex) {
 				exceptionStatus = JobStatus.runFailed;
-				completionMessage = eex.getMessage();
+				completionMessage = Optional.ofNullable(eex.getMessage()).orElse(eex.getClass().getName());
 			}
 
 			if (completedRun == null) {

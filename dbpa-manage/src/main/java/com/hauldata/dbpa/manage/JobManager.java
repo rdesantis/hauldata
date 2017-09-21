@@ -26,6 +26,7 @@ import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
@@ -49,6 +50,7 @@ import com.hauldata.dbpa.manage.sql.CommonSql;
 import com.hauldata.dbpa.manage.sql.ScheduleSql;
 import com.hauldata.dbpa.manage.sql.JobScheduleSql;
 import com.hauldata.dbpa.manage.sql.RunSql;
+import com.hauldata.dbpa.process.Alert;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.ContextProperties;
 import com.hauldata.dbpa.process.DbProcess;
@@ -63,6 +65,7 @@ public class JobManager {
 
 	private Analyzer analyzer;
 
+	private ContextProperties contextProps;
 	private Context context;
 
 	private JobSql jobSql;
@@ -141,7 +144,7 @@ public class JobManager {
 
 		// Manager context.
 
-		ContextProperties contextProps = new ContextProperties(managerProgramName, jobContextProps);
+		contextProps = new ContextProperties(managerProgramName, jobContextProps);
 		context = contextProps.createContext(null);
 
 		String tablePrefix = context.connectionProps.getProperty("managerTablePrefix", "");
@@ -264,16 +267,16 @@ public class JobManager {
 						updateRun(result);
 
 						if (result.getState().getStatus() == JobStatus.runFailed) {
-							// TODO: Alert job run failed
+
+							logAndAlert("Job run failed: {} - {}", result.getJobName(), result.getState().getMessage(), "unspecified failure");
 						}
-					}
-					catch (SQLException ex) {
-						// TODO: Alert database error
 					}
 					catch (Exception ex) {
 						// updateRun() does not throw InterruptedException.
 						// Nothing to be done about SQL exceptions and such.
 						// Want to keep running even though the run table may not be getting updated.
+
+						logAndAlert("Error recording job completion: {} - {}", result.getJobName(), ex.getMessage(), ex.getClass().getName());
 					}
 				}
 			}
@@ -294,20 +297,41 @@ public class JobManager {
 	 */
 	public void run(String name) throws SQLException, IOException, NamingException {
 
+		Exception ex = null;
+		String defaultMessage = null;
 		try {
 			run(name, new JobsResource().get(name));
 		}
 		catch (FileNotFoundException fex) {
-			// TODO: Alert script file not found
+			ex = fex; defaultMessage = "Script file not found";
 			throw fex;
 		}
 		catch (IOException | NamingException | RuntimeException lex) {
-			// TODO: Alert error loading script
+			ex = lex; defaultMessage = "Error loading script";
 			throw lex;
 		}
 		catch (SQLException sex) {
-			// TODO: Alert database error
+			ex = sex; defaultMessage = "Database error during job start";
 			throw sex;
+		}
+		finally {
+			if (ex != null) {
+				logAndAlert("Failed to start job: {} - {}", name, ex.getMessage(), defaultMessage);
+			}
+		}
+	}
+
+	private void logAndAlert(String logIntroMessage, String processID, String failMessage, String defaultMessage) {
+
+		String message = Optional.ofNullable(failMessage).orElse(defaultMessage);
+
+		LOGGER.warn(logIntroMessage, processID, message);
+
+		try {
+			Alert.send(processID, contextProps, message);
+		}
+		catch (Exception ex) {
+			LOGGER.error("Cannot send alerts: {}", Optional.ofNullable(ex.getMessage()).orElse(ex.getClass().getName()));
 		}
 	}
 

@@ -18,8 +18,8 @@ package com.hauldata.dbpa;
 
 import java.util.Arrays;
 
+import com.hauldata.dbpa.process.Alert;
 import com.hauldata.dbpa.process.ContextProperties;
-import com.hauldata.dbpa.run.Alert;
 import com.hauldata.dbpa.run.RunOptions;
 import com.hauldata.dbpa.run.Runner;
 

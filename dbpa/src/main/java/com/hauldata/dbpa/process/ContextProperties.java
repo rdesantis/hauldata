@@ -19,6 +19,8 @@ package com.hauldata.dbpa.process;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import com.hauldata.dbpa.DBPA;
@@ -41,6 +43,8 @@ public class ContextProperties {
 	private Properties ftpProps;
 	private Properties pathProps;
 	private Properties logProps;
+
+	private Map<String, Properties> properties;
 
 	private ContextProperties() {
 
@@ -80,6 +84,13 @@ public class ContextProperties {
 		ftpProps = getProperties("ftp", defaults.ftpProps);
 		pathProps = getProperties("path", defaults.pathProps);
 		logProps = getProperties("log", defaults.logProps);
+
+		properties = new HashMap<String, Properties>();
+		properties.put("jdbc", connectionProps);
+		properties.put("mail", sessionProps);
+		properties.put("ftp", ftpProps);
+		properties.put("path", pathProps);
+		properties.put("log", logProps);
 	}
 
 	public Context createContext(String processId) {
@@ -111,14 +122,13 @@ public class ContextProperties {
 
 	/**
 	 * Return properties that apply to the indicated usage in this context.
-	 * If this ContextProperties object was created with the constructor that
-	 * specifies defaults, the defaults are ignored by this function.
 	 *
 	 * @param usage is the usage for the properties
 	 * @return the properties
 	 */
+
 	public Properties getProperties(String usage) {
-		return getProperties(usage, null);
+		return properties.get(usage);
 	}
 
 	private Properties getProperties(String usage, Properties defaults) {

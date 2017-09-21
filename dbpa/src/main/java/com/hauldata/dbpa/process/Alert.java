@@ -14,7 +14,7 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.run;
+package com.hauldata.dbpa.process;
 
 import java.util.Properties;
 
@@ -29,7 +29,6 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
 import com.hauldata.dbpa.connection.EmailConnection;
-import com.hauldata.dbpa.process.ContextProperties;
 
 public class Alert {
 
@@ -42,8 +41,8 @@ public class Alert {
 		Properties properties = contextProps.getProperties("mail");
 		String from = properties.getProperty("alertFrom");
 		String to = properties.getProperty("alertTo");
-		String subject = properties.getProperty("alertSubject", "DBPA script failure: %s");
-		
+		String subject = properties.getProperty("alertSubject", "DBPA job failure: %s");
+
 		if (from == null || to == null) {
 			throw new RuntimeException("Email alertFrom and/or alertTo properties are not set");
 		}
