@@ -16,6 +16,7 @@
 
 package com.hauldata.dbpa.file;
 
+import java.awt.HeadlessException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -28,15 +29,16 @@ import java.util.Date;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.streaming.SXSSFSheet;
 
 import com.hauldata.dbpa.file.XlsxTargetBook.XlsxCellStyle;
 
 public class XlsxTargetSheet extends XlsxSheet {
 
-	private Sheet sheet;
+	private SXSSFSheet sheet;
 	private int rowIndex;
 	private Row row;
+	private int columnCount;
 
 	public XlsxTargetSheet(Book owner, String name) {
 		super(owner, name);
@@ -44,6 +46,7 @@ public class XlsxTargetSheet extends XlsxSheet {
 		sheet = null;
 		rowIndex = 0;
 		row = null;
+		columnCount = 0;
 	}
 
 	// Node overrides
@@ -52,6 +55,7 @@ public class XlsxTargetSheet extends XlsxSheet {
 	public void create() throws IOException {
 
 		sheet = ((XlsxTargetBook)owner).getBook().createSheet(getName());
+		sheet.trackAllColumnsForAutoSizing();
 
 		// The following is duplicated in DsvFile.create() and should probably be moved to common code
 		// but TxtFile has a different implementation.
@@ -73,6 +77,25 @@ public class XlsxTargetSheet extends XlsxSheet {
 
 	@Override
 	public void close() throws IOException {
+
+		try {
+			for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+				sheet.autoSizeColumn(columnIndex);
+			}
+		}
+		catch (HeadlessException ex) {
+			// Per https://poi.apache.org/spreadsheet/quick-guide.html:
+			//
+			// Warning:
+			// To calculate column width Sheet.autoSizeColumn uses Java2D classes that throw exception if graphical environment is not available.
+			// In case if graphical environment is not available, you must tell Java that you are running in headless mode and set the following system property:
+			// java.awt.headless=true . You should also ensure that the fonts you use in your workbook are available to Java.
+			//
+			// Per http://www.oracle.com/technetwork/articles/javase/headless-136834.html#headlessexception:
+			//
+			// You can also use the following command line if you plan to run the same application in both a headless and a traditional environment:
+			// java -Djava.awt.headless=true
+		}
 
 		if (headers.exist()) {
 			sheet.createFreezePane(0, 1);
@@ -150,19 +173,11 @@ public class XlsxTargetSheet extends XlsxSheet {
 			cell.setCellValue(cellImage);
 		}
 
-		// Extend column width to hold the widest string encountered.
+		// Can't depend on the number of columns in the last row for true column count,
+		// because trailing null columns are not written.  Must detect attempted writes.
 
-		if (cellImage != null) {
-			final int excelColumnPaddingWidthInCharacters = 2;
-			final int excelMaxColumnWidthInCharacters = 255;
-			final int excelColumnWidthUnitsPerCharacter = 256;
-
-			int cellWidth = Math.min(cellImage.length() + excelColumnPaddingWidthInCharacters, excelMaxColumnWidthInCharacters) * excelColumnWidthUnitsPerCharacter;
-
-			Sheet sheet = row.getSheet();
-			if (cellWidth > sheet.getColumnWidth(columnIndex - 1)) {
-				sheet.setColumnWidth(columnIndex - 1, cellWidth);
-			}
+		if (columnCount < columnIndex) {
+			columnCount = columnIndex;
 		}
 	}
 
