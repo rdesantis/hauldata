@@ -28,11 +28,13 @@ public class XlsxTargetBook extends XlsxBook {
 	private FileOutputStream out;
 	private SXSSFWorkbook book;
 
-	private CellStyle dateStyle;
-	private CellStyle datetimeStyle;
+	public enum XlsxCellStyle { date, datetime, integer, money };
 
+	private CellStyle[] cellStyles;
 	private final String dateFormatString = "mm/dd/yyyy";
 	private final String datetimeFormatString = "mm/dd/yyyy hh:mm:ss AM/PM";
+	private final String integerFormatString = "0";
+	private final String moneyFormatString = "0.00";
 
 	public XlsxTargetBook(Owner owner, Path path) {
 		super(owner, path);
@@ -45,12 +47,8 @@ public class XlsxTargetBook extends XlsxBook {
 		return book;
 	}
 
-	public CellStyle getDateStyle() {
-		return dateStyle;
-	}
-
-	public CellStyle getDatetimeStyle() {
-		return datetimeStyle;
+	public CellStyle getCellStyle(XlsxCellStyle style) {
+		return cellStyles[style.ordinal()];
 	}
 
 	// Node overrides
@@ -61,11 +59,18 @@ public class XlsxTargetBook extends XlsxBook {
 		out = new FileOutputStream(getName());
 		book = new SXSSFWorkbook();
 
-		dateStyle = book.createCellStyle();
-		dateStyle.setDataFormat(book.createDataFormat().getFormat(dateFormatString));
+		cellStyles = new CellStyle[XlsxCellStyle.values().length];
+		createCellStyle(XlsxCellStyle.date, dateFormatString);
+		createCellStyle(XlsxCellStyle.datetime, datetimeFormatString);
+		createCellStyle(XlsxCellStyle.integer, integerFormatString);
+		createCellStyle(XlsxCellStyle.money, moneyFormatString);
+	}
 
-		datetimeStyle = book.createCellStyle();
-		datetimeStyle.setDataFormat(book.createDataFormat().getFormat(datetimeFormatString));
+	private void createCellStyle(XlsxCellStyle style, String formatString) {
+
+		int index = style.ordinal();
+		cellStyles[index] = book.createCellStyle();
+		cellStyles[index].setDataFormat(book.createDataFormat().getFormat(formatString));
 	}
 
 	@Override

@@ -144,6 +144,8 @@ public class DbProcessTestTables {
 		String columns = "(" +
 				"	a_string varchar(255)," +
 				"	an_integer int," +
+				"	a_bigint bigint," +
+				"	a_decimal decimal(12,2)," +
 				"	a_datetime datetime" +
 				")";
 

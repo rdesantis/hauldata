@@ -174,7 +174,7 @@ public class ReadTaskTest extends TaskTest {
 				"TASK WriteFourth AFTER WRITE XLSX 'readable.xlsx' 'Fourth' SHEET WITH HEADERS 'Humpty', 'Dumpty', 'Wall' FROM VALUES (1, 2, 3) END TASK\n" +
 				"TASK InsertFifth AFTER RUN SQL\n" +
 				"	USE test; TRUNCATE TABLE threecolumns; TRUNCATE TABLE threecolumns_validate;\n" +
-				"	INSERT INTO threecolumns VALUES ('first', 1, NULL), ('second', 2, '1999-12-31'), ('third', 3, '2017-03-24 00:18:59');\n" +
+				"	INSERT INTO threecolumns VALUES ('first', 1, 1, 1, NULL), ('second', 2, 9223372036854775807, 123.45, '1999-12-31'), ('third', 3, -1, NULL, '2017-03-24 00:18:59');\n" +
 				"END TASK\n" +
 				"TASK WriteFifth AFTER WRITE XLSX 'readable.xlsx' 'Fifth' SHEET FROM TABLE 'test.threecolumns' END TASK\n" +
 				"TASK AFTER RUN SQL TRUNCATE TABLE test.things_validate; TRUNCATE TABLE test.lotsofdata_validate; END TASK\n" +

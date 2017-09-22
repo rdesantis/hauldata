@@ -17,6 +17,8 @@
 package com.hauldata.dbpa.file;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -27,6 +29,8 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+
+import com.hauldata.dbpa.file.XlsxTargetBook.XlsxCellStyle;
 
 public class XlsxTargetSheet extends XlsxSheet {
 
@@ -90,6 +94,18 @@ public class XlsxTargetSheet extends XlsxSheet {
 		if (object == null) {
 			// Leave cell empty
 		}
+		else if (object instanceof Short || object instanceof Integer) {
+			cell.setCellValue(((Number)object).doubleValue());
+			cell.setCellStyle(((XlsxTargetBook)owner).getCellStyle(XlsxCellStyle.integer));
+		}
+		else if (object instanceof Long || object instanceof BigInteger) {
+			cellImage = object.toString();
+			cell.setCellValue(cellImage);
+		}
+		else if (object instanceof BigDecimal && ((BigDecimal)object).scale() == 2) {
+			cell.setCellValue(((Number)object).doubleValue());
+			cell.setCellStyle(((XlsxTargetBook)owner).getCellStyle(XlsxCellStyle.money));
+		}
 		else if (object instanceof Number) {
 			cell.setCellValue(((Number)object).doubleValue());
 		}
@@ -120,10 +136,10 @@ public class XlsxTargetSheet extends XlsxSheet {
 
 			CellStyle style = null;
 			if (time.equals(LocalTime.MIDNIGHT)) {
-				style = ((XlsxTargetBook)owner).getDateStyle();
+				style = ((XlsxTargetBook)owner).getCellStyle(XlsxCellStyle.date);
 			}
 			else {
-				style = ((XlsxTargetBook)owner).getDatetimeStyle();
+				style = ((XlsxTargetBook)owner).getCellStyle(XlsxCellStyle.datetime);
 			}
 			cell.setCellStyle(style);
 
