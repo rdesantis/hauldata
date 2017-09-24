@@ -266,7 +266,7 @@ public class JobsResourceTest extends TestCase {
 		Job job = new Job(sleepJobName, null, null, true);
 		jobsResource.put(sleepJobName, job);
 
-		int id = jobsResource.run(sleepJobName);
+		int id = jobsResource.run(sleepJobName, null);
 
 		try { Thread.sleep(1000L); } catch (InterruptedException e) {}
 
@@ -309,7 +309,7 @@ public class JobsResourceTest extends TestCase {
 		Job job = new Job(stopJobName, null, null, true);
 		jobsResource.put(stopJobName, job);
 
-		int id = jobsResource.run(stopJobName);
+		int id = jobsResource.run(stopJobName, null);
 
 		try { Thread.sleep(1000L); } catch (InterruptedException e) {}
 

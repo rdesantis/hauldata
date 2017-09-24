@@ -849,11 +849,38 @@ public class JobsResource {
 		return JobManager.getInstance().getRunning();
 	}
 
+	/**
+	 * Run a job optionally changing the value(s) of argument(s) passed to the job
+	 *
+	 * @param name is the name of the job to run
+	 * @param arguments is a list of (name, value) pairs where each "name" matches an argument
+	 * in the job definition and the corresponding "value" replaces the argument value in the
+	 * job definition when invoking the job
+	 * @return the run ID of the started job
+	 * @throws NameNotFoundException if the job does not exist
+	 * @throws IllegalArgumentException if a provided argument name does not match an argument
+	 * @throws SQLException if the job cannot be retrieved
+	 * @throws IOException if an error occurs retrieving the job's script
+	 * @throws NamingException if an error occurs parsing the job's script
+	 */
 	@POST
 	@Path("-/running/{name}")
 	@Timed
-	public int run(@PathParam("name") String name) throws SQLException, IOException, NamingException {
+	public int run(@PathParam("name") String name, List<ScriptArgument> arguments) throws SQLException, IOException, NamingException {
+
 		Job job = get(name);
+
+		if (arguments != null) {
+			for (ScriptArgument newArgument : arguments) {
+
+				ScriptArgument oldArgument = job.getArguments().stream().filter(oA -> oA.getName().equals(newArgument.getName())).findAny().
+						orElseThrow(() -> new IllegalArgumentException("No such argument: " + newArgument.getName()));
+
+				int index = job.getArguments().indexOf(oldArgument);
+				job.getArguments().set(index, newArgument);
+			}
+		}
+
 		return JobManager.getInstance().run(name, job).getRunId();
 	}
 

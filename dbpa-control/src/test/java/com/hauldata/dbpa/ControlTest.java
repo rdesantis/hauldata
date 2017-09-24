@@ -29,6 +29,7 @@ import com.hauldata.dbpa.control.interfaces.Scripts;
 import com.hauldata.dbpa.manage_control.api.Job;
 import com.hauldata.dbpa.manage_control.api.JobRun;
 import com.hauldata.dbpa.manage_control.api.ScheduleValidation;
+import com.hauldata.dbpa.manage_control.api.ScriptArgument;
 import com.hauldata.ws.rs.client.WebClient;
 
 import junit.framework.TestCase;
@@ -59,15 +60,13 @@ public class ControlTest extends TestCase {
 
 		boolean isStarted = manager.isStarted();
 
-		System.out.println();
-		System.out.println("Manager is started? " + String.valueOf(isStarted));
+		assertTrue(isStarted);
 
 		// Schema
 
 		boolean isConfirmed = schema.confirm();
 
-		System.out.println();
-		System.out.println("Schema is confirmed? " + String.valueOf(isConfirmed));
+		assertTrue(isConfirmed);
 
 		// Scripts
 
@@ -78,12 +77,7 @@ public class ControlTest extends TestCase {
 
 		System.out.println();
 
-		try {
-			names = scripts.getNames(likeName);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+		names = scripts.getNames(likeName);
 
 		System.out.println("List of script names:");
 		if (names == null) {
@@ -101,16 +95,10 @@ public class ControlTest extends TestCase {
 		// get
 
 		name = "NotGarbage";
-		String schedule = "[get failed]";
 
 		System.out.println();
 
-		try {
-			schedule = schedules.get(name);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+		String schedule = schedules.get(name);
 
 		System.out.println("Schedule '" + name + "' = " + schedule);
 
@@ -120,14 +108,9 @@ public class ControlTest extends TestCase {
 
 		System.out.println();
 
-		try {
-			names = schedules.getNames(likeName);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+		names = schedules.getNames(likeName);
 
-		System.out.println("List of schedule names:");
+		System.out.format("List of schedule names like '%s':\n", likeName);
 		if (names == null) {
 			System.out.println("[empty]");
 		}
@@ -145,12 +128,7 @@ public class ControlTest extends TestCase {
 
 		System.out.println();
 
-		try {
-			validation = schedules.validate(validateName);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+		validation = schedules.validate(validateName);
 
 		System.out.println("Schedule '" + validateName + "' validation:");
 		if (validation == null) {
@@ -168,47 +146,45 @@ public class ControlTest extends TestCase {
 		System.out.println();
 
 		int id = -1;
-		try {
-			id = schedules.put(putName, putSchedule);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+		id = schedules.put(putName, putSchedule);
+
+		assertFalse(id == -1);
 
 		System.out.println("Schedule '" + putName + "' id: " + String.valueOf(id));
 
 		// delete
 
 		String deletedName = "Doesn't exist";
-		boolean deleted = false;
+		boolean isDeleted = false;
 
 		System.out.println();
 
 		try {
 			schedules.delete(deletedName);
-			deleted = true;
+			isDeleted = true;
 		}
 		catch (Exception ex) {
 			System.out.println(ex.getLocalizedMessage());
 		}
 
-		System.out.println("Schedule '" + deletedName + "' deleted? " + String.valueOf(deleted));
+		assertFalse(isDeleted);
 
 		// get doesn't exist
 
 		name = deletedName;
-		schedule = "[get failed]";
+		boolean isGotten = false;
 
 		System.out.println();
 
 		try {
 			schedule = schedules.get(name);
+			isGotten = true;
 		}
 		catch (Exception ex) {
 			System.out.println(ex.getLocalizedMessage());
 		}
 
-		System.out.println("Schedule '" + name + "' = " + schedule);
+		assertFalse(isGotten);
 
 		// Jobs
 
@@ -219,12 +195,7 @@ public class ControlTest extends TestCase {
 
 		System.out.println();
 
-		try {
-			names = jobs.getNames(likeName);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+		names = jobs.getNames(likeName);
 
 		System.out.println("List of job names:");
 		if (names == null) {
@@ -244,12 +215,7 @@ public class ControlTest extends TestCase {
 
 		System.out.println();
 
-		try {
-			job = jobs.get(name);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+		job = jobs.get(name);
 
 		System.out.println("Job '" + name + "' = " + String.valueOf(job));
 
@@ -258,16 +224,12 @@ public class ControlTest extends TestCase {
 		// run
 
 		String runName = "sleep5";
+		List<ScriptArgument> noArgs = new LinkedList<ScriptArgument>();
 
 		System.out.println();
 
 		id = -1;
-		try {
-			id = jobs.run(runName);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+		id = jobs.run(runName, noArgs);
 
 		System.out.println("Job run '" + runName + "' id: " + String.valueOf(id));
 
@@ -277,20 +239,10 @@ public class ControlTest extends TestCase {
 
 		System.out.println();
 
-		try {
-			run = jobs.getRunning(id);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+		run = jobs.getRunning(id);
 
 		System.out.println("Job now running:");
-		if (run == null) {
-			System.out.println("[get failed]");
-		}
-		else {
-			System.out.println(run.toString());
-		}
+		System.out.println(run.toString());
 
 		List<JobRun> runs = null;
 
@@ -300,12 +252,7 @@ public class ControlTest extends TestCase {
 
 		System.out.println();
 
-		try {
-			runs = jobs.getRunning();
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+		runs = jobs.getRunning();
 
 		System.out.println("List of jobs running:");
 		if (runs == null) {
@@ -323,12 +270,7 @@ public class ControlTest extends TestCase {
 
 		System.out.println();
 
-		try {
-			runs = jobs.getRuns("%", true);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+		runs = jobs.getRuns("%", true);
 
 		System.out.println("List of latest job runs:");
 		if (runs == null) {
@@ -354,12 +296,9 @@ public class ControlTest extends TestCase {
 		System.out.println();
 
 		id = -1;
-		try {
-			id = schedules.put(putName, putSchedule);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+		id = schedules.put(putName, putSchedule);
+
+		assertFalse(id == -1);
 
 		System.out.println("Schedule '" + putName + "' id: " + String.valueOf(id));
 
@@ -372,13 +311,8 @@ public class ControlTest extends TestCase {
 
 		System.out.println();
 
-		try {
-			jobs.putScheduleNames(name, putNames);
-			jobs.putEnabled(name, true);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+		jobs.putScheduleNames(name, putNames);
+		jobs.putEnabled(name, true);
 
 		System.out.println("Job '" + name + "' added schedule '" + putName + "'");
 
@@ -388,12 +322,7 @@ public class ControlTest extends TestCase {
 
 		System.out.println();
 
-		try {
-			names = schedules.getRunning();
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+		names = schedules.getRunning();
 
 		System.out.println("List of schedules running:");
 		if (names == null) {
@@ -415,12 +344,7 @@ public class ControlTest extends TestCase {
 
 		System.out.println();
 
-		try {
-			names = schedules.getRunning();
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+		names = schedules.getRunning();
 
 		System.out.println("List of schedules running:");
 		if (names == null) {
@@ -434,11 +358,6 @@ public class ControlTest extends TestCase {
 
 		// Jobs - putEnabled(false)
 
-		try {
-			jobs.putEnabled(name, false);
-		}
-		catch (Exception ex) {
-			System.out.println(ex.getLocalizedMessage());
-		}
+		jobs.putEnabled(name, false);
 	}
 }

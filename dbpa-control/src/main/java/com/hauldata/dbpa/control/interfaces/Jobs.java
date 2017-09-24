@@ -88,7 +88,7 @@ public interface Jobs {
 
 	@POST
 	@Path("-/running/{name}")
-	public int run(@PathParam("name") String name);
+	public int run(@PathParam("name") String name, List<ScriptArgument> arguments);
 
 	@GET
 	@Path("-/running/{id}")

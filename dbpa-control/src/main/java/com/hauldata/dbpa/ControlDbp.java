@@ -743,16 +743,38 @@ public class ControlDbp {
 		return names;
 	}
 
-	static class StartJobCommand extends StandardNamedObjectCommand {
+	static class StartJobCommand implements TransitiveCommand {
 
 		@Override
-		protected String execute(String name) {
+		public boolean supportsPlural() { return false; }
 
-			int id = jobs.run(name);
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+
+			// Parse.
+
+			String name = nextEntityName(tokenizer);
+
+			List<ScriptArgument> arguments = null;
+			if (skipWordOrPluralIgnoreCase(tokenizer, KW.ARGUMENT.name())) {
+				arguments = nextArguments(tokenizer);
+			}
+			else {
+				// Server will not accept null arguments entity; use empty list instead.
+				arguments = new LinkedList<ScriptArgument>();
+			}
+
+			endOfLine(tokenizer);
+
+			// Execute.
+
+			int id = jobs.run(name, arguments);
 
 			String message = String.format("Running job \"%s\" with ID %d\n", name, id);
 
-			return message;
+			System.out.printf(message);
+
+			return false;
 		}
 	}
 
