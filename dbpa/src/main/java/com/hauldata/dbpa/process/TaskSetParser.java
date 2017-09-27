@@ -192,6 +192,7 @@ abstract class TaskSetParser {
 		ATTACH,
 		ATTACHMENT,
 		DIRECTORY,
+		COMMAND,
 		SYNC,
 		SYNCHRONOUSLY,
 		ASYNC,
@@ -740,14 +741,43 @@ abstract class TaskSetParser {
 
 	class RunTaskParser implements TaskParser {
 
-		public Task parse(Task.Prologue prologue) throws IOException {
+		public Task parse(Task.Prologue prologue) throws IOException, NamingException {
 
-			if (tokenizer.skipWordIgnoreCase(KW.SCRIPT.name())) {
+			if (tokenizer.skipWordIgnoreCase(KW.PROCESS.name())) {
+				return taskParsers.get(KW.PROCESS.name()).parse(prologue);
+			}
+			else if (tokenizer.skipWordIgnoreCase(KW.COMMAND.name())) {
+				return parseRunCommand(prologue);
+			}
+			else if (tokenizer.skipWordIgnoreCase(KW.SCRIPT.name())) {
 				return parseRunScript(prologue);
 			}
 			else {
 				return parseRun(prologue);
 			}
+		}
+
+		private Task parseRunCommand(Task.Prologue prologue) throws IOException {
+
+			Expression<String> name = parseStringExpression();
+
+			List<ExpressionBase> arguments = new LinkedList<ExpressionBase>();
+			if (tokenizer.skipWordIgnoreCase(KW.WITH.name()) || (!atEndOfTask() && !tokenizer.hasNextWordIgnoreCase(KW.RETURNING.name()))) {
+				do {
+					arguments.add(parseAnyExpression());
+				} while (tokenizer.skipDelimiter(","));
+			}
+
+			VariableBase resultParam = null;
+			if (tokenizer.skipWordIgnoreCase(KW.RETURNING.name())) {
+				resultParam = parseVariableReference();
+				if (resultParam.getType() != VariableType.INTEGER) {
+					throw new InputMismatchException(
+							KW.RETURNING.name() + " variable for " + KW.RUN.name() + " " + KW.TASK.name() + " must be of type " + KW.INTEGER.name());
+				}
+			}
+
+			return new RunCommandTask(prologue, name, arguments, resultParam);
 		}
 
 		private Task parseRunScript(Task.Prologue prologue) throws IOException {
