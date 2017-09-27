@@ -61,7 +61,7 @@ public class AsyncProcessTask extends ProcessTask {
 		SyncProcessTask processTask = new SyncProcessTask(new Prologue(asyncTaskName, noPredecessors, null, null, null), evaluatedName, evaluatedArguments);
 
 		for (Task waitTask : asyncSuccessors) {
-			waitTask.putPredecessor(processTask, Result.completed);
+			waitTask.putRemainingPredecessor(processTask, Result.completed);
 			processTask.addSuccessor(waitTask);
 		}
 

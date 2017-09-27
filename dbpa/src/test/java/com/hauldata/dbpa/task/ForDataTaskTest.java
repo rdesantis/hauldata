@@ -131,9 +131,9 @@ public class ForDataTaskTest extends TaskTest {
 
 		String processId = "ForTableTest";
 		String script =
-				"VARIABLES id INT, name VARCHAR, scriptName VARCHAR, enabled INT END VARIABLES \n" +
-						"TASK Loop FOR id, name, scriptName, enabled FROM TABLE 'test.dbpjob' \n" +
-					"TASK Echo LOG FORMAT(id, 'd') + ', ' + name + ', ' + scriptName + ', ' + FORMAT(enabled, 'd') END TASK \n" +
+				"VARIABLES id INT, name VARCHAR, description VARCHAR, size INT END VARIABLES \n" +
+						"TASK Loop FOR name, description, size FROM TABLE 'test.things' \n" +
+					"TASK Echo LOG name + ', ' + description + ', ' + FORMAT(size, 'd') END TASK \n" +
 				"END TASK \n" +
 				"";
 

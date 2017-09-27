@@ -88,6 +88,7 @@ public abstract class Task {
 		this.parent = prologue.parent;
 
 		this.successors = new LinkedList<Task>();
+		this.remainingPredecessors = new HashMap<Task, Task.Result>();
 		this.result = null;
 	}
 
@@ -124,8 +125,10 @@ public abstract class Task {
 		this.predecessors = predecessors;
 	}
 
-	public void putPredecessor(Task predecessor, Result result) {
-		predecessors.put(predecessor, result);
+	public void putRemainingPredecessor(Task predecessor, Result result) {
+		synchronized (remainingPredecessors) {
+			remainingPredecessors.put(predecessor, result);
+		}
 	}
 
 	/**
@@ -203,10 +206,13 @@ public abstract class Task {
 	 * The initial task state must account for the following scenarios:
 	 * - A task may initially go into either the submitted queue or the waiting queue.
 	 * - A task may be executed multiple times if it is contained in a looping structure.
+	 * - A WAITFOR ASYNC task may have additional predecessors added after it has been initialized.
 	 */
 	public void initialize() {
 
-		remainingPredecessors = new HashMap<Task, Task.Result>(predecessors);
+		synchronized (remainingPredecessors) {
+			remainingPredecessors.putAll(predecessors);
+		}
 		exception = null;
 		result = Result.waiting;
 	}
