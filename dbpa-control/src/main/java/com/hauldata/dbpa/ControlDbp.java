@@ -243,6 +243,7 @@ public class ControlDbp {
 
 		listCommands.put(KW.RUNNING.name(), new ListRunningCommand());
 
+		createCommands.put(KW.SCHEDULE.name(), new CreateScheduleCommand());
 		putCommands.put(KW.SCHEDULE.name(), new PutFileCommand(scheduleType));
 		getCommands.put(KW.SCHEDULE.name(), new GetFileCommand(scheduleType));
 		deleteCommands.put(KW.SCHEDULE.name(), new DeleteObjectCommand(scheduleType));
@@ -252,7 +253,7 @@ public class ControlDbp {
 		validateCommands.put(KW.SCHEDULE.name(), new ValidateScheduleCommand());
 		listRunningCommands.put(KW.SCHEDULE.name(), new ListRunningSchedulesCommand());
 
-		putCommands.put(KW.JOB.name(), new PutJobCommand());
+		createCommands.put(KW.JOB.name(), new CreateJobCommand());
 		deleteCommands.put(KW.JOB.name(), new DeleteObjectCommand(jobType));
 		listCommands.put(KW.JOB.name(), new ListObjectsCommand(jobType));
 		showCommands.put(KW.JOB.name(), new ShowObjectCommand(jobType));
@@ -561,6 +562,30 @@ public class ControlDbp {
 		}
 	}
 
+	static class CreateScheduleCommand implements TransitiveCommand {
+
+		@Override
+		public boolean supportsPlural() { return false; }
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+
+			// Parse.
+
+			String name = nextEntityName(tokenizer);
+
+			String body = tokenizer.nextQuoted().getBody();
+
+			endOfLine(tokenizer);
+
+			// Execute.
+
+			schedules.put(name, body);
+
+			return false;
+		}
+	}
+
 	static class ValidateScheduleCommand extends StandardDisplayCommand {
 
 		@Override
@@ -589,7 +614,7 @@ public class ControlDbp {
 		}
 	}
 
-	static class PutJobCommand extends WriteJobCommand {
+	static class CreateJobCommand extends WriteJobCommand {
 
 		@Override
 		protected boolean execute(String name, Set<Component> components, Job job) {
