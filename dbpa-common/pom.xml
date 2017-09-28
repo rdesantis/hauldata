@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>com.hauldata</groupId>
 		<artifactId>dbpa-parent</artifactId>
-		<version>1.5.3</version>
+		<version>1.6</version>
 	</parent>
 
 	<artifactId>dbpa-common</artifactId>
