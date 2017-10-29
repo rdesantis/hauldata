@@ -313,8 +313,15 @@ class LogicalDayOfMonthSchedule extends ChronoDateSchedule {
 		if ((ordinal < 0) || (4 < ordinal)) {
 			throw new RuntimeException("Instance in month must be between 0 and 4");
 		}
+		if (day.equals(LogicalDay.DAY) && ordinal != 0) {
+			// This code should never be reached.
+			// DateSchedule.logicalDayOfMonth() redirects this case to OrdinalDayOfMonthSchedule.
+			throw new RuntimeException("For logical DAY of month schedule, only LAST instance is supported");
+		}
 
-		LocalDate result = (ordinal == 0) ? shiftToLastDayOfWeekOfMonth(day, startDate) : shiftToOrdinalDayOfWeekOfMonth(ordinal, day, startDate);
+		LocalDate result =
+				day.equals(LogicalDay.DAY) ? shiftToLastDayOfMonth(startDate) :
+				(ordinal == 0) ? shiftToLastDayOfWeekOfMonth(day, startDate) : shiftToOrdinalDayOfWeekOfMonth(ordinal, day, startDate);
 
 		if (result.isBefore(startDate)) {
 			result = result.plusMonths(1);

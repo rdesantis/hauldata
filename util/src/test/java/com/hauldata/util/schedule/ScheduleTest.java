@@ -122,7 +122,7 @@ public class ScheduleTest extends TestCase {
 			return ScheduleSet.parse(scheduleText);
 		}
 		catch (Exception e) {
-			throw new AssertionFailedError("Failed parsing: " + scheduleText);
+			throw new AssertionFailedError("Failed parsing: " + e.getMessage());
 		}
 	}
 
@@ -175,6 +175,15 @@ public class ScheduleTest extends TestCase {
 
 		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 27), noon)), LocalDateTime.of(LocalDate.of(2017, 10, 31), midnight));
 
+		schedules = testParse("Every 2 months on last day from '2/29/2016' at '12:00 PM'");
+
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2016, 2, 29), noon)), LocalDateTime.of(LocalDate.of(2016, 2, 29), noon));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2016, 3, 28), noon)), LocalDateTime.of(LocalDate.of(2016, 4, 30), noon));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2016, 4, 29), noon)), LocalDateTime.of(LocalDate.of(2016, 4, 30), noon));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2016, 4, 30), noon)), LocalDateTime.of(LocalDate.of(2016, 4, 30), noon));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 2, 27), noon)), LocalDateTime.of(LocalDate.of(2017, 2, 28), noon));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 2, 28), noon)), LocalDateTime.of(LocalDate.of(2017, 2, 28), noon));
+
 		schedules = testParse("Monthly on third Thursday from '10/18/2017'");
 
 		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 17), noon)), LocalDateTime.of(LocalDate.of(2017, 10, 19), midnight));
@@ -187,8 +196,6 @@ public class ScheduleTest extends TestCase {
 
 		// Memorial Day
 
-		// TODO: next line fails!  Requires a date but should not
-//		schedules = testParse("Every 12 months on last Monday from '5/1/2017'");
 		schedules = testParse("Every 12 months on last Monday from '5/1/2017' at '12:00 AM'");
 
 		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 1, 1), noon)), LocalDateTime.of(LocalDate.of(2017, 5, 29), midnight));
