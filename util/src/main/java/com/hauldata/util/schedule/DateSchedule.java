@@ -28,8 +28,8 @@ public abstract class DateSchedule {
 
 	/**
 	 * Instantiate a schedule for an event that occurs on one date
-	 * 
-	 * @param time is the time of the event
+	 *
+	 * @param date is the date of the event
 	 * @return the schedule
 	 */
 	public static DateSchedule onetime(LocalDate date) {
@@ -38,10 +38,10 @@ public abstract class DateSchedule {
 
 	/**
 	 * Instantiate a schedule for an event that recurs on multiple evenly-spaced dates
-	 * 
+	 *
 	 * @param unit is the time unit of the recurrence, e.g., day, week, month
 	 * @param frequency is the number of time units from one event to the next
-	 * @param startDate is the date of the first event
+	 * @param startDate is the earliest date allowed for an event
 	 * @param endDate is the latest date allowed for an event or null for an open-ended schedule
 	 * @return the schedule
 	 */
@@ -55,11 +55,11 @@ public abstract class DateSchedule {
 
 	/**
 	 * Instantiate a schedule for an event that recurs on certain days of the week
-	 * 
+	 *
 	 * @param frequency is the number of weeks from one set of days to the next,
 	 * e.g., 1 if the schedule recurs every week, 2 for every other week, etc.
 	 * @param days is the days of the week on which the event occurs
-	 * @param startDate is the date of the first event
+	 * @param startDate is the earliest date allowed for an event
 	 * @param endDate is the latest date allowed for an event or null for an open-ended schedule
 	 * @return the schedule
 	 */
@@ -73,12 +73,12 @@ public abstract class DateSchedule {
 
 	/**
 	 * Instantiate a schedule for an event that recurs on a certain day number of the month
-	 * 
+	 *
 	 * @param frequency is the number of months from one event to the next,
 	 * e.g., 1 if the schedule recurs every month, 2 for every other month, etc.
 	 * @param ordinal is the numeric day of the month on which the event occurs,
-	 * e.g., 1 for the 1st, 2 for the 2nd, etc. 
-	 * @param startDate is the date of the first event
+	 * e.g., 1 for the 1st, 2 for the 2nd, etc.
+	 * @param startDate is the earliest date allowed for an event
 	 * @param endDate is the latest date allowed for an event or null for an open-ended schedule
 	 * @return the schedule
 	 */
@@ -92,13 +92,13 @@ public abstract class DateSchedule {
 
 	/**
 	 * Instantiate a schedule for an event that recurs on a certain logical day of the month
-	 * 
+	 *
 	 * @param frequency is the number of months from one event to the next,
 	 * e.g., 1 if the schedule recurs every month, 2 for every other month, etc.
 	 * @param ordinal indicates the instance of the logical day within the month,
 	 * e.g., 1 for the 1st, 2 for the 2nd, etc., with 0 indicating the last instance in the month
 	 * @param day is the logical day of the month
-	 * @param startDate is the date of the first event
+	 * @param startDate is the earliest date allowed for an event
 	 * @param endDate is the latest date allowed for an event or null for an open-ended schedule
 	 * @return the schedule
 	 */
@@ -132,7 +132,7 @@ public abstract class DateSchedule {
 	/**
 	 * Return the date of the next scheduled event on or after
 	 * the indicated date.
-	 * 
+	 *
 	 * @param earliestDate is the earliest date allowed for the next event
 	 * @return the date of the next event or null if no more events are
 	 * scheduled on or after the date
@@ -156,7 +156,7 @@ class OnetimeDateSchedule extends DateSchedule {
 }
 
 abstract class ChronoDateSchedule extends DateSchedule {
-	
+
 	protected ChronoUnit unit;
 	protected int frequency;
 	protected LocalDate startDate;
@@ -173,7 +173,7 @@ abstract class ChronoDateSchedule extends DateSchedule {
 		}
 
 		if ((endDate != null) && endDate.isBefore(startDate)) {
-			throw new RuntimeException("End date cannot be earlier than start date");
+			throw new RuntimeException("Start date cannot be later than end date / first event cannot occur after end date");
 		}
 
 		this.unit = unit;
@@ -181,8 +181,6 @@ abstract class ChronoDateSchedule extends DateSchedule {
 		this.startDate = startDate;
 		this.endDate = endDate;
 	}
-
-	protected abstract LocalDate nextFrom(LocalDate nearbyDate, LocalDate earliestDate);
 
 	@Override
 	public LocalDate nextFrom(LocalDate earliestDate) {
@@ -206,10 +204,21 @@ abstract class ChronoDateSchedule extends DateSchedule {
 
 		return result;
 	}
+
+	/**
+	 * Return the date of the next scheduled event on or after
+	 * the indicated date, given a nearby date as a hint
+	 *
+	 * @param nearbyDate is a date that falls on or before earliestDate
+	 * within one full cycle of earliestDate beginning from startDate
+	 * @param earliestDate is the earliest date allowed for the next event
+	 * @return the date of the next event
+	 */
+	protected abstract LocalDate nextFrom(LocalDate nearbyDate, LocalDate earliestDate);
 }
 
 class RecurringDateSchedule extends ChronoDateSchedule {
-	
+
 	public RecurringDateSchedule(
 			ChronoUnit unit,
 			int frequency,
@@ -230,6 +239,27 @@ class RecurringDateSchedule extends ChronoDateSchedule {
 	}
 }
 
+class OrdinalDayOfMonthSchedule extends RecurringDateSchedule {
+
+	public OrdinalDayOfMonthSchedule(
+			int frequency,
+			int ordinal,
+			LocalDate startDate,
+			LocalDate endDate) {
+
+		super(ChronoUnit.MONTHS, frequency, shiftToFirstEvent(ordinal, startDate), endDate);
+	}
+
+	private static LocalDate shiftToFirstEvent(int ordinal, LocalDate startDate) {
+
+		if ((ordinal < 1) || (28 < ordinal)) {
+			throw new RuntimeException("Day of month must be between 1 and 28");
+		}
+
+		return startDate.getDayOfMonth() <= ordinal ? startDate : startDate.plusMonths(1).withDayOfMonth(ordinal);
+	}
+}
+
 class DaysOfWeekSchedule extends ChronoDateSchedule {
 
 	private Set<DayOfWeek> days;
@@ -241,11 +271,11 @@ class DaysOfWeekSchedule extends ChronoDateSchedule {
 			LocalDate endDate) {
 
 		super(ChronoUnit.WEEKS, frequency, startDate, endDate);
-		
+
 		if (days.isEmpty()) {
 			throw new RuntimeException("At least one day of the week must be selected");
 		}
-		
+
 		this.days = days;
 	}
 
@@ -254,41 +284,6 @@ class DaysOfWeekSchedule extends ChronoDateSchedule {
 
 		while (!days.contains(nearbyDate.getDayOfWeek()) || earliestDate.isAfter(nearbyDate)) {
 			nearbyDate = nearbyDate.plusDays(1);
-		}
-
-		return nearbyDate;
-	}
-}
-
-class OrdinalDayOfMonthSchedule extends ChronoDateSchedule {
-	
-	private int ordinal;
-
-	public OrdinalDayOfMonthSchedule(
-			int frequency,
-			int ordinal,
-			LocalDate startDate,
-			LocalDate endDate) {
-
-		super(ChronoUnit.MONTHS, frequency, startDate, endDate);
-
-		if ((ordinal < 1) || (28 < ordinal)) {
-			throw new RuntimeException("Day of month must be between 1 and 28");
-		}
-		
-		this.ordinal = ordinal;
-	}
-
-	@Override
-	protected LocalDate nextFrom(LocalDate nearbyDate, LocalDate earliestDate) {
-
-		nearbyDate =
-				nearbyDate.getDayOfMonth() < ordinal ? nearbyDate.withDayOfMonth(ordinal) :
-				nearbyDate.getDayOfMonth() == ordinal ? nearbyDate :
-				nearbyDate.plusMonths(1).withDayOfMonth(ordinal);
-
-		if (earliestDate.isAfter(nearbyDate)) {
-			nearbyDate = nearbyDate.plus(frequency, unit);
 		}
 
 		return nearbyDate;
@@ -307,19 +302,25 @@ class LogicalDayOfMonthSchedule extends ChronoDateSchedule {
 			LocalDate startDate,
 			LocalDate endDate) {
 
-		super(ChronoUnit.MONTHS, frequency, startDate, endDate);
+		super(ChronoUnit.MONTHS, frequency, shiftNearFirstEvent(ordinal, day, startDate), endDate);
+
+		this.ordinal = ordinal;
+		this.day = day;
+	}
+
+	private static LocalDate shiftNearFirstEvent(int ordinal, LogicalDay day, LocalDate startDate) {
 
 		if ((ordinal < 0) || (4 < ordinal)) {
 			throw new RuntimeException("Instance in month must be between 0 and 4");
 		}
 
-		if (startDate.getDayOfMonth() != 1) {
-			throw new RuntimeException("For logical day of month schedule, start date must be first of a month");
-			// See the note in shiftToOrdinalDayOfWeekOfMonth() before removing this restriction!
+		LocalDate result = (ordinal == 0) ? shiftToLastDayOfWeekOfMonth(day, startDate) : shiftToOrdinalDayOfWeekOfMonth(ordinal, day, startDate);
+
+		if (result.isBefore(startDate)) {
+			result = result.plusMonths(1);
 		}
 
-		this.ordinal = ordinal;
-		this.day = day;
+		return result.withDayOfMonth(1);
 	}
 
 	@Override
@@ -332,7 +333,7 @@ class LogicalDayOfMonthSchedule extends ChronoDateSchedule {
 				nearbyDate = shiftToLastDayOfMonth(nearbyDate);
 
 				if (earliestDate.isAfter(nearbyDate)) {
-					nearbyDate = nearbyDate.plus(frequency, unit);
+					nearbyDate = nearbyDate.plusMonths(frequency);
 					nearbyDate = shiftToLastDayOfMonth(nearbyDate);
 				}
 
@@ -344,27 +345,28 @@ class LogicalDayOfMonthSchedule extends ChronoDateSchedule {
 				throw new RuntimeException("For logical DAY of month schedule, only LAST instance is supported");
 			}
 		}
-		else if ((LogicalDay.MONDAY.compareTo(day) <= 0) && (0 <= day.compareTo(LogicalDay.SUNDAY))) {
+		else if ((LogicalDay.MONDAY.compareTo(day) <= 0) && (day.compareTo(LogicalDay.SUNDAY) <= 0)) {
+
 			if (ordinal == 0) {
 				// Last instance of day of week in month
 
-				nearbyDate = shiftToLastDayOfWeekOfMonth(nearbyDate);
+				nearbyDate = shiftToLastDayOfWeekOfMonth(day, nearbyDate);
 
 				if (earliestDate.isAfter(nearbyDate)) {
-					nearbyDate = nearbyDate.plus(frequency, unit);
-					nearbyDate = shiftToLastDayOfWeekOfMonth(nearbyDate);
+					nearbyDate = nearbyDate.plusMonths(frequency);
+					nearbyDate = shiftToLastDayOfWeekOfMonth(day, nearbyDate);
 				}
 
 				return nearbyDate;
 			}
 			else {
 				// First through fourth instance of day of week in month
-				
-				nearbyDate = shiftToOrdinalDayOfWeekOfMonth(nearbyDate);
+
+				nearbyDate = shiftToOrdinalDayOfWeekOfMonth(ordinal, day, nearbyDate);
 
 				if (earliestDate.isAfter(nearbyDate)) {
 					nearbyDate = nearbyDate.plus(frequency, unit);
-					nearbyDate = shiftToOrdinalDayOfWeekOfMonth(nearbyDate);
+					nearbyDate = shiftToOrdinalDayOfWeekOfMonth(ordinal, day, nearbyDate);
 				}
 
 				return nearbyDate;
@@ -374,14 +376,12 @@ class LogicalDayOfMonthSchedule extends ChronoDateSchedule {
 			throw new RuntimeException("Logical WEEKDAY and WEEKENDDAY of month are not implemented");
 		}
 	}
-	
-	private LocalDate shiftToLastDayOfMonth(LocalDate date) {
+
+	private static LocalDate shiftToLastDayOfMonth(LocalDate date) {
 		return date.withDayOfMonth(date.lengthOfMonth());
 	}
-	
-	private LocalDate shiftToLastDayOfWeekOfMonth(LocalDate date) {
 
-		// NOTE: The note in shiftToOrdinalDayOfWeekOfMonth() applies here too.
+	private static LocalDate shiftToLastDayOfWeekOfMonth(LogicalDay day, LocalDate date) {
 
 		date = shiftToLastDayOfMonth(date);
 
@@ -391,17 +391,11 @@ class LogicalDayOfMonthSchedule extends ChronoDateSchedule {
 		if (offsetFromRequiredDayOfWeek < 0) {
 			offsetFromRequiredDayOfWeek += 7;
 		}
+
 		return date.minusDays(offsetFromRequiredDayOfWeek);
 	}
 
-	private LocalDate shiftToOrdinalDayOfWeekOfMonth(LocalDate date) {
-
-		// NOTE: For an arbitrary date, this function may return a date either forward or backward
-		// in time relative to the argument date.  As used in the enclosing class, the shift
-		// must never be backward in time.  That is guaranteed by assuring in the class
-		// constructor that the argument date is always the first of the month.  If that restriction is
-		// removed in the constructor, this function must be modified to handle it.
-		// This note also applies to shiftToLastDayOfWeekOfMonth().
+	private static LocalDate shiftToOrdinalDayOfWeekOfMonth(int ordinal, LogicalDay day, LocalDate date) {
 
 		date = date.withDayOfMonth(1);
 
@@ -411,6 +405,7 @@ class LogicalDayOfMonthSchedule extends ChronoDateSchedule {
 		if (offsetToRequiredDayOfWeek < 0) {
 			offsetToRequiredDayOfWeek += 7;
 		}
+
 		return date.plusDays(offsetToRequiredDayOfWeek).plusWeeks(ordinal - 1);
 	}
 }

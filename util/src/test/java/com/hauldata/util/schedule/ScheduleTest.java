@@ -54,7 +54,7 @@ public class ScheduleTest extends TestCase {
 	public void testTime() {
 
 		TimeSchedule atNoon = TimeSchedule.onetime(noon);
-		
+
 		assertEquals(atNoon.nextFrom(tenAm), noon);
 		assertEquals(atNoon.nextFrom(noon), noon);
 		assertNull(atNoon.nextFrom(twoPm));
@@ -85,7 +85,7 @@ public class ScheduleTest extends TestCase {
 	}
 
 	public void testDateTime() {
-		
+
 		Schedule monToFri1030amTo0830pm = new Schedule(
 				DateSchedule.recurring(ChronoUnit.DAYS, 1, monday1109, friday1113),
 				TimeSchedule.recurring(ChronoUnit.HOURS, 2, tenThirtyAm, eightThirtyPm));
@@ -96,7 +96,7 @@ public class ScheduleTest extends TestCase {
 	}
 
 	public void testMulti() {
-		
+
 		Schedule mondaysAtFourPm = new Schedule(
 				DateSchedule.recurring(ChronoUnit.WEEKS, 1, monday1109, monday1116),
 				TimeSchedule.onetime(fourPm));
@@ -170,6 +170,34 @@ public class ScheduleTest extends TestCase {
 		testParse("Today every second from 1 second from now until 5 seconds from now");
 
 		testParse("Today at 1 seconds from now");
+
+		schedules = testParse("Monthly on last day from '10/27/2017'");
+
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 27), noon)), LocalDateTime.of(LocalDate.of(2017, 10, 31), midnight));
+
+		schedules = testParse("Monthly on third Thursday from '10/18/2017'");
+
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 17), noon)), LocalDateTime.of(LocalDate.of(2017, 10, 19), midnight));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 19), noon)), LocalDateTime.of(LocalDate.of(2017, 11, 16), midnight));
+
+		schedules = testParse("Monthly on third Thursday from '10/20/2017'");
+
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 17), noon)), LocalDateTime.of(LocalDate.of(2017, 11, 16), midnight));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 17), noon)), LocalDateTime.of(LocalDate.of(2017, 12, 21), midnight));
+
+		// Memorial Day
+
+		// TODO: next line fails!  Requires a date but should not
+//		schedules = testParse("Every 12 months on last Monday from '5/1/2017'");
+		schedules = testParse("Every 12 months on last Monday from '5/1/2017' at '12:00 AM'");
+
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 1, 1), noon)), LocalDateTime.of(LocalDate.of(2017, 5, 29), midnight));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 5, 29), midnight)), LocalDateTime.of(LocalDate.of(2017, 5, 29), midnight));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2018, 5, 1), noon)), LocalDateTime.of(LocalDate.of(2018, 5, 28), midnight));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 5, 29), noon)), LocalDateTime.of(LocalDate.of(2018, 5, 28), midnight));
+
+		schedules = testParse("Every 12 months on last Monday from '5/29/2017' at '12:00 PM'");
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 5, 28), midnight)), LocalDateTime.of(LocalDate.of(2017, 5, 29), noon));
 	}
 
 	public void testSleep() {
