@@ -424,7 +424,7 @@ class ScheduleParser {
 		else {
 			do {
 				result.add(DayOfWeek.valueOf(tokenizer.nextWordUpperCase()));
-			} while (tokenizer.hasNextDelimiter(","));
+			} while (tokenizer.skipDelimiter(","));
 		}
 
 		return result;

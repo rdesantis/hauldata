@@ -171,6 +171,30 @@ public class ScheduleTest extends TestCase {
 
 		testParse("Today at 1 seconds from now");
 
+		testParse("Weekdays at '10:00 AM'");
+
+		testParse("Every Monday, Wednesday, Friday at '12:59 PM'");
+
+		testParse("Monthly");
+
+		testParse("Every 3 months on first Friday at '6:00'");
+
+		schedules = testParse("Weekdays from '10/29/2017' at '10:00 AM'");
+
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 29), noon)), LocalDateTime.of(LocalDate.of(2017, 10, 30), tenAm));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 30), tenAm)), LocalDateTime.of(LocalDate.of(2017, 10, 30), tenAm));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 30), noon)), LocalDateTime.of(LocalDate.of(2017, 10, 31), tenAm));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 3), noon)), LocalDateTime.of(LocalDate.of(2017, 11, 6), tenAm));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2020, 8, 1), tenAm)), LocalDateTime.of(LocalDate.of(2020, 8, 3), tenAm));
+
+		schedules = testParse("Every Tuesday, Thursday from '12/29/2014' at '10:00 AM'");
+
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2014, 12, 29), noon)), LocalDateTime.of(LocalDate.of(2014, 12, 30), tenAm));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2014, 12, 30), tenAm)), LocalDateTime.of(LocalDate.of(2014, 12, 30), tenAm));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2014, 12, 30), noon)), LocalDateTime.of(LocalDate.of(2015, 1, 1), tenAm));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2015, 1, 1), noon)), LocalDateTime.of(LocalDate.of(2015, 1, 6), tenAm));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2020, 8, 1), tenAm)), LocalDateTime.of(LocalDate.of(2020, 8, 4), tenAm));
+
 		schedules = testParse("Monthly on last day from '10/27/2017'");
 
 		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 27), noon)), LocalDateTime.of(LocalDate.of(2017, 10, 31), midnight));
@@ -204,6 +228,7 @@ public class ScheduleTest extends TestCase {
 		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 5, 29), noon)), LocalDateTime.of(LocalDate.of(2018, 5, 28), midnight));
 
 		schedules = testParse("Every 12 months on last Monday from '5/29/2017' at '12:00 PM'");
+
 		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 5, 28), midnight)), LocalDateTime.of(LocalDate.of(2017, 5, 29), noon));
 	}
 
