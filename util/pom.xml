@@ -3,7 +3,7 @@
 
 	<groupId>com.hauldata</groupId>
 	<artifactId>util</artifactId>
-	<version>1.3</version>
+	<version>1.4</version>
 	<packaging>jar</packaging>
 
 	<name>Hauldata Utilities</name>
