@@ -17,7 +17,6 @@
 package com.hauldata.dbpa.task;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -29,7 +28,6 @@ import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.Transport;
-import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
@@ -37,10 +35,8 @@ import javax.mail.internet.MimeMultipart;
 
 import com.hauldata.dbpa.connection.EmailConnection;
 import com.hauldata.dbpa.expression.Expression;
+import com.hauldata.dbpa.process.Alert;
 import com.hauldata.dbpa.process.Context;
-import com.hauldata.util.tokenizer.Delimiter;
-import com.hauldata.util.tokenizer.DsvTokenizer;
-import com.hauldata.util.tokenizer.Token;
 
 public class EmailTask extends Task {
 
@@ -50,6 +46,7 @@ public class EmailTask extends Task {
 	private List<Expression<String>> cc;
 	private Expression<String> subject;
 	private Expression<String> body;
+	private boolean isHtml;
 	private List<Expression<String>> attachments;
 
 	public EmailTask(
@@ -60,6 +57,7 @@ public class EmailTask extends Task {
 			List<Expression<String>> cc,
 			Expression<String> subject,
 			Expression<String> body,
+			boolean isHtml,
 			List<Expression<String>> attachments) {
 
 		super(prologue);
@@ -69,6 +67,7 @@ public class EmailTask extends Task {
 		this.cc = cc;
 		this.subject = subject;
 		this.body = body;
+		this.isHtml = isHtml;
 		this.attachments = attachments;
 	}
 
@@ -83,10 +82,10 @@ public class EmailTask extends Task {
 
 			message.setFrom(new InternetAddress(from.evaluate()));
 			for (Expression<String> to : this.to) {
-				addRecipients(message, Message.RecipientType.TO, to);
+				Alert.addRecipients(message, Message.RecipientType.TO, to.evaluate());
 			}
 			for (Expression<String> cc : this.cc) {
-				addRecipients(message, Message.RecipientType.CC, cc);
+				Alert.addRecipients(message, Message.RecipientType.CC, cc.evaluate());
 			}
 
 			if (subject != null) {
@@ -97,8 +96,8 @@ public class EmailTask extends Task {
 
 			if (body != null) {
 				BodyPart messageBodyPart = new MimeBodyPart();
-				messageBodyPart.setText(body.evaluate());
-				
+				messageBodyPart.setContent(body.evaluate(), "text/" + (isHtml ? "html" : "plain"));
+
 				multipart.addBodyPart(messageBodyPart);
 			}
 
@@ -126,30 +125,6 @@ public class EmailTask extends Task {
 		catch (MessagingException | IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 			throw new RuntimeException("Email messaging failed: " + message);
-		}
-	}
-
-	private void addRecipients(Message message, Message.RecipientType type, Expression<String> recipients)
-			throws AddressException, IOException, MessagingException {
-
-		final Delimiter comma = new Delimiter(false, ",");
-
-		String evaluatedRecipients = recipients.evaluate() + ",";
-		DsvTokenizer tokenizer = new DsvTokenizer(new StringReader(evaluatedRecipients), ',');
-
-		StringBuilder recipient = new StringBuilder();
-		while (tokenizer.hasNext()) {
-			Token nextToken = tokenizer.nextToken();
-			if (nextToken.equals(comma)) {
-				String address = recipient.toString().trim();
-				if (!address.isEmpty()) {
-					message.addRecipient(type, new InternetAddress(address));
-				}
-				recipient = new StringBuilder();
-			}
-			else {
-				recipient.append(nextToken.render());
-			}
 		}
 	}
 }

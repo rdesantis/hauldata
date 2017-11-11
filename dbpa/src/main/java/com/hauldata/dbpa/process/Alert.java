@@ -16,19 +16,26 @@
 
 package com.hauldata.dbpa.process;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.Properties;
 
 import javax.mail.BodyPart;
 import javax.mail.Message;
+import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.Session;
 import javax.mail.Transport;
+import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
 import com.hauldata.dbpa.connection.EmailConnection;
+import com.hauldata.util.tokenizer.Delimiter;
+import com.hauldata.util.tokenizer.DsvTokenizer;
+import com.hauldata.util.tokenizer.Token;
 
 public class Alert {
 
@@ -54,7 +61,7 @@ public class Alert {
 		Message message = new MimeMessage(session);
 		try {
 			message.setFrom(new InternetAddress(from));
-			message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
+			addRecipients(message, Message.RecipientType.TO, to);
 			message.setSubject(String.format(subject, processID));
 			Multipart multipart = new MimeMultipart();
 			BodyPart messageBodyPart = new MimeBodyPart();
@@ -66,6 +73,30 @@ public class Alert {
 		}
 		catch (Exception ex) {
 			throw new RuntimeException(ex.getMessage());
+		}
+	}
+
+	public static void addRecipients(Message message, Message.RecipientType type, String recipients)
+			throws AddressException, IOException, MessagingException {
+
+		final Delimiter comma = new Delimiter(false, ",");
+
+		String evaluatedRecipients = recipients + ",";
+		DsvTokenizer tokenizer = new DsvTokenizer(new StringReader(evaluatedRecipients), ',');
+
+		StringBuilder recipient = new StringBuilder();
+		while (tokenizer.hasNext()) {
+			Token nextToken = tokenizer.nextToken();
+			if (nextToken.equals(comma)) {
+				String address = recipient.toString().trim();
+				if (!address.isEmpty()) {
+					message.addRecipient(type, new InternetAddress(address));
+				}
+				recipient = new StringBuilder();
+			}
+			else {
+				recipient.append(nextToken.render());
+			}
 		}
 	}
 }

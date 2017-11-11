@@ -190,6 +190,8 @@ abstract class TaskSetParser {
 		CC,
 		SUBJECT,
 		BODY,
+		TEXT,
+		HTML,
 		ATTACH,
 		ATTACHMENT,
 		DIRECTORY,
@@ -1075,8 +1077,15 @@ abstract class TaskSetParser {
 			}
 
 			Expression<String> body = null;
+			boolean isHtml = false;
 			if (tokenizer.skipWordIgnoreCase(KW.BODY.name())) {
 				body = parseStringExpression();
+				if (tokenizer.skipWordIgnoreCase(KW.TEXT.name())) {
+					isHtml = false;
+				}
+				else if (tokenizer.skipWordIgnoreCase(KW.HTML.name())) {
+					isHtml = true;
+				}
 			}
 
 			List<Expression<String>> attachments = new LinkedList<Expression<String>>();
@@ -1086,7 +1095,7 @@ abstract class TaskSetParser {
 				} while (tokenizer.skipDelimiter(","));
 			}
 
-			return new EmailTask(prologue, connection, from, to, cc, subject, body, attachments);
+			return new EmailTask(prologue, connection, from, to, cc, subject, body, isHtml, attachments);
 		}
 	}
 
