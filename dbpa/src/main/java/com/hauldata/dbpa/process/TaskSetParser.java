@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -2283,9 +2284,10 @@ abstract class TaskSetParser {
 		catch (Exception ex) { tokenizer.reset(mark); }
 
 		try { return parseDatetimeExpression(); }
-		catch (Exception ex) { tokenizer.reset(mark); }
+		catch (Exception ex) { tokenizer.reset(mark);
 
-		throw new InputMismatchException("Invalid expression");
+			throw new InputMismatchException(Optional.ofNullable(ex.getMessage()).orElse(ex.getClass().getName()));
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -2312,9 +2314,10 @@ abstract class TaskSetParser {
 		catch (Exception ex) { tokenizer.reset(mark); }
 
 		try { return parseDatetimeExpression(); }
-		catch (Exception ex) { tokenizer.reset(mark); }
+		catch (Exception ex) { tokenizer.reset(mark);
 
-		throw new InputMismatchException("Invalid expression");
+			throw new InputMismatchException(Optional.ofNullable(ex.getMessage()).orElse(ex.getClass().getName()));
+		}
 	}
 
 	private ExpressionBase parseFormatableExpression() {
@@ -2325,9 +2328,10 @@ abstract class TaskSetParser {
 		catch (Exception ex) { tokenizer.reset(mark); }
 
 		try { return parseDatetimeExpression(); }
-		catch (Exception ex) { tokenizer.reset(mark); }
+		catch (Exception ex) { tokenizer.reset(mark);
 
-		throw new InputMismatchException("Invalid expression for use with " + KW.FORMAT.name());
+			throw new InputMismatchException(Optional.ofNullable(ex.getMessage()).orElse(ex.getClass().getName()));
+		}
 	}
 
 	private Expression<Boolean> parseBooleanExpression() throws IOException {

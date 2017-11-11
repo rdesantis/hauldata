@@ -49,4 +49,11 @@ public class LogTaskTest extends LogTaskTestBase {
 		testLogTask(processId, Level.info, true, script, messages);
 		testLogTask(processId, Level.message, true, script, messages);
 	}
+
+	public void testLogNegativeTest() {
+
+		String script = "TASK LOG 'Next week is ' + FORMAT(DATEADD(WEEK, 1, GETDATE()), 'M/d/yyyy') END TASK";
+
+		assertBadSyntax(script, "At line 1: Unrecognized date part name for DATEADD");
+	}
 }
