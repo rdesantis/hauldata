@@ -59,7 +59,7 @@ public class TsvFile extends DsvFile {
 		}
 
 		if (columnIndex == headers.getColumnCount()) {
-			writer.write(String.format("%n"));
+			writer.write(getTargetOptions().getEndOfLine());
 		}
 	}
 

@@ -148,7 +148,7 @@ public class TxtFile extends TextFile {
 		if (object != null) {
 			writer.write(object.toString());
 		}
-		writer.newLine();
+		writer.write(getTargetOptions().getEndOfLine());
 	}
 
 	@Override
