@@ -36,6 +36,7 @@ public class ScheduleTest extends TestCase {
 	static LocalTime threeFifteenPm = LocalTime.of(15, 15);
 	static LocalTime fourPm = LocalTime.of(16, 0);
 	static LocalTime fourThirtyPm = LocalTime.of(16, 30);
+	static LocalTime fiveThirtyPm = LocalTime.of(17, 30);
 	static LocalTime eightThirtyPm = LocalTime.of(20, 30);
 	static LocalTime ninePm = LocalTime.of(21, 0);
 
@@ -198,6 +199,7 @@ public class ScheduleTest extends TestCase {
 		schedules = testParse("Monthly on last day from '10/27/2017'");
 
 		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 27), noon)), LocalDateTime.of(LocalDate.of(2017, 10, 31), midnight));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 1), midnight)), LocalDateTime.of(LocalDate.of(2017, 11, 30), midnight));
 
 		schedules = testParse("Every 2 months on last day from '2/29/2016' at '12:00 PM'");
 
@@ -217,6 +219,12 @@ public class ScheduleTest extends TestCase {
 
 		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 17), noon)), LocalDateTime.of(LocalDate.of(2017, 11, 16), midnight));
 		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 17), noon)), LocalDateTime.of(LocalDate.of(2017, 12, 21), midnight));
+
+		schedules = testParse("Every 2 weeks on Friday from '11/10/2017' at '5:30 PM'");
+
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 10), fourPm)), LocalDateTime.of(LocalDate.of(2017, 11, 10), fiveThirtyPm));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 10), ninePm)), LocalDateTime.of(LocalDate.of(2017, 11, 24), fiveThirtyPm));
+		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 24), ninePm)), LocalDateTime.of(LocalDate.of(2017, 12, 8), fiveThirtyPm));
 
 		// Memorial Day
 

@@ -282,11 +282,15 @@ class DaysOfWeekSchedule extends ChronoDateSchedule {
 	@Override
 	protected LocalDate nextFrom(LocalDate nearbyDate, LocalDate earliestDate) {
 
-		while (!days.contains(nearbyDate.getDayOfWeek()) || earliestDate.isAfter(nearbyDate)) {
-			nearbyDate = nearbyDate.plusDays(1);
+		LocalDate result = nearbyDate;
+
+		while (!days.contains(result.getDayOfWeek()) || earliestDate.isAfter(result)) {
+			result = result.plusDays(1);
 		}
 
-		return nearbyDate;
+		int weeksSkippedWithinCycle = (int)startDate.until(result, ChronoUnit.WEEKS) % frequency;
+
+		return weeksSkippedWithinCycle == 0 ? result : nearbyDate.plusWeeks(frequency);
 	}
 }
 
