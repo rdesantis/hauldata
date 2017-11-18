@@ -158,18 +158,20 @@ public class JobScheduler {
 	/**
 	 * Revise a schedule.
 	 * <p>
-	 * If the schedule with the indicated id was previously started and not subsequently stopped by
-	 * stopSchedule() or stopAllSchedules(), the scheduled is stopped if running and restarted as revised.
+	 * The schedule with the indicated id is stopped if running and restarted as revised.
+	 * <p>
 	 * If the schedule expired but was not explicitly stopped, it is restarted on the assumption that
-	 * after the revised it may now run.
+	 * after the revision it may now run.
+	 * If the schedule was neither running nor expired, it is started on the assumption that a previous
+	 * attempted revision stopped the schedule but the revision failed, and after this new revision
+	 * it may now run.
 	 * @param id identifies the schedule that was revised
 	 */
 	public void revise(int id, String name, String schedule) {
 
 		try {
-			if (stop(id)) {
-				start(id, name, schedule);
-			}
+			stop(id);
+			start(id, name, schedule);
 		}
 		catch (InterruptedException ex) {
 			// A new interrupt came in while waiting for the old schedule to terminate.

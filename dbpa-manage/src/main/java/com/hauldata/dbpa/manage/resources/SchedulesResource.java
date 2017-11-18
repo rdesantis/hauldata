@@ -16,7 +16,6 @@
 
 package com.hauldata.dbpa.manage.resources;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -69,6 +68,10 @@ public class SchedulesResource {
 	@Path("{name}")
 	@Timed
 	public int put(@PathParam("name") String name, String schedule) throws SQLException {
+
+		// Validate schedule; throws RuntimeException if not valid.
+
+		ScheduleSet.parse(schedule);
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -322,7 +325,7 @@ public class SchedulesResource {
 			ScheduleSet.parse(schedule);
 			valid = true;
 		}
-		catch (RuntimeException | IOException ex) {
+		catch (RuntimeException ex) {
 			validationMessage = ex.getMessage();
 		}
 

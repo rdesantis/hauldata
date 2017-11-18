@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 import com.hauldata.util.tokenizer.BacktrackingTokenizer;
 import com.hauldata.util.tokenizer.BacktrackingTokenizerMark;
@@ -124,9 +125,8 @@ public class ScheduleSet implements ScheduleBase {
 	 * @param source is the text to parse
 	 * @return the schedule set
 	 * @throws RuntimeException if the text cannot be parsed
-	 * @throws IOException
 	 */
-	public static ScheduleSet parse(String source) throws IOException {
+	public static ScheduleSet parse(String source) {
 
 		ScheduleSet result;
 
@@ -137,11 +137,13 @@ public class ScheduleSet implements ScheduleBase {
 				throw new RuntimeException("Unexpected tokens at the end of the schedule string");
 			}
 		}
-		catch (Exception ex) {
-			throw ex;
+		catch (IOException ex) {
+			// This method doesn't do physical I/O so can't throw I/O exception.
+			// If we get here somehow, re-throw it.
+			throw new RuntimeException(Optional.ofNullable(ex.getMessage()).orElse(ex.getClass().getName()));
 		}
 		finally {
-			tokenizer.close();
+			try { tokenizer.close(); } catch (Exception ex) {}
 		}
 
 		return result;
