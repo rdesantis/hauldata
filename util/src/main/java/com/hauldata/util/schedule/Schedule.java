@@ -423,7 +423,7 @@ class ScheduleParser {
 		}
 		else {
 			do {
-				result.add(DayOfWeek.valueOf(tokenizer.nextWordUpperCase()));
+				result.add(parseDayOfWeek());
 			} while (tokenizer.skipDelimiter(","));
 		}
 
@@ -467,13 +467,22 @@ class ScheduleParser {
 			day = LogicalDay.WEEKDAY;
 		}
 		else {
-			DayOfWeek dayOfWeek = DayOfWeek.valueOf(tokenizer.nextWordUpperCase());
-			day = LogicalDay.of(dayOfWeek);
+			day = LogicalDay.of(parseDayOfWeek());
 		}
 		return day;
 	}
 
-    /**
+	private DayOfWeek parseDayOfWeek() throws RuntimeException, IOException {
+
+		try {
+			return DayOfWeek.valueOf(tokenizer.nextWordUpperCase());
+		}
+		catch (NoSuchElementException /* also catches InputMismatchException */ | IllegalArgumentException ex) {
+			throw new InputMismatchException("Day of week not found where expected");
+		}
+	}
+
+	/**
      * Returns true if the next token in this tokenizer's input is a valid
      * name of a day of the week ignoring case.
      * The tokenizer does not advance past any input.
