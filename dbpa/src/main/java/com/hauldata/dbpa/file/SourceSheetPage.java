@@ -71,7 +71,7 @@ public class SourceSheetPage extends SourcePage {
 
 		private Book readBook(File.Owner fileOwner, PageIdentifier id) throws IOException {
 
-			Book book = (Book)File.getForRead(fileOwner, id.getPath(), bookFactory);
+			Book book = (Book)File.getForRead(fileOwner, ((PhysicalPageIdentifier)id).getPath(), bookFactory);
 			if (!book.isOpen()) {
 				book.open();
 				book.setOpen(true);

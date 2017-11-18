@@ -17,21 +17,8 @@
 package com.hauldata.dbpa.file;
 
 import java.io.IOException;
-import java.nio.file.Path;
 
-public abstract class PageIdentifier {
-
-	protected FileHandler handler;
-	protected Path path;
-
-	protected PageIdentifier(FileHandler handler, Path path) {
-		this.handler = handler;
-		this.path = path;
-	}
-
-	public Path getPath() {
-		return path;
-	}
+public interface PageIdentifier {
 
 	public abstract String getName();
 
@@ -43,9 +30,7 @@ public abstract class PageIdentifier {
 	 * @throws RuntimeException if this operation is inconsistent with previous usage of the file or sheet
 	 * @throws IOException
 	 */
-	public TargetPage create(File.Owner fileOwner, FileOptions options, TargetHeaders headers) throws IOException {
-		return handler.getTargetFactory().create(fileOwner, this, options, headers);
-	}
+	public TargetPage create(File.Owner fileOwner, FileOptions options, TargetHeaders headers) throws IOException;
 
 	/**
 	 * Opens the indicated file or sheet for appending; if already open, this is a NOP
@@ -55,9 +40,7 @@ public abstract class PageIdentifier {
 	 * @throws RuntimeException if this operation is inconsistent with previous usage of the file or sheet
 	 * @throws IOException
 	 */
-	public TargetPage append(File.Owner fileOwner) throws IOException {
-		return handler.getTargetFactory().append(fileOwner, this);
-	}
+	public TargetPage append(File.Owner fileOwner) throws IOException;
 
 	/**
 	 * If the indicated file or sheet is not open, creates it with the indicated headers; if already open, this is a NOP
@@ -67,9 +50,7 @@ public abstract class PageIdentifier {
 	 * @throws RuntimeException if this operation is inconsistent with previous usage of the file or sheet
 	 * @throws IOException
 	 */
-	public TargetPage write(File.Owner fileOwner, FileOptions options, TargetHeaders headers) throws IOException {
-		return handler.getTargetFactory().write(fileOwner, this, options, headers);
-	}
+	public TargetPage write(File.Owner fileOwner, FileOptions options, TargetHeaders headers) throws IOException;
 
 	/**
 	 * Opens the indicated file or sheet with the indicated headers and returns the page for reading
@@ -79,9 +60,7 @@ public abstract class PageIdentifier {
 	 * @throws RuntimeException if this operation is inconsistent with previous usage of the file or sheet
 	 * @throws IOException
 	 */
-	public SourcePage open(File.Owner fileOwner, SourceHeaders headers) throws IOException {
-		return handler.getSourceFactory().open(fileOwner, this, headers);
-	}
+	public SourcePage open(File.Owner fileOwner, SourceHeaders headers) throws IOException;
 
 	/**
 	 * Positions the open file or sheet for loading and return the page for reading
@@ -90,9 +69,7 @@ public abstract class PageIdentifier {
 	 * @throws RuntimeException if this operation is inconsistent with previous usage of the file or sheet
 	 * @throws IOException
 	 */
-	public SourcePage load(File.Owner fileOwner) throws IOException {
-		return handler.getSourceFactory().load(fileOwner, this);
-	}
+	public SourcePage load(File.Owner fileOwner) throws IOException;
 
 	/**
 	 * Opens the file or sheet with the indicated headers or positions it for loading,
@@ -102,7 +79,5 @@ public abstract class PageIdentifier {
 	 * @throws RuntimeException if this operation is inconsistent with previous usage of the file or sheet
 	 * @throws IOException
 	 */
-	public SourcePage read(File.Owner fileOwner, SourceHeaders headers) throws IOException {
-		return handler.getSourceFactory().read(fileOwner, this, headers);
-	}
+	public SourcePage read(File.Owner fileOwner, SourceHeaders headers) throws IOException;
 }

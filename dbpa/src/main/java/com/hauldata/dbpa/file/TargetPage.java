@@ -101,6 +101,8 @@ public abstract class TargetPage {
 					}
 				} while (source.next());
 			}
+
+			node.flush();
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();

@@ -29,7 +29,7 @@ public class WriteTaskTest extends TaskTest {
 
 		String processId = "WriteValuesTest";
 		String script =
-				"VARIABLES number INT, word VARCHAR END VARIABLES\n" +
+				"VARIABLES number INT, word VARCHAR, text VARCHAR END VARIABLES\n" +
 				"TASK WriteCsv \n" +
 				"	WRITE CSV 'valuesTest.csv' NOQUOTES \n" +
 				"	HEADERS 'A string', 'An integer', 'A date' \n" +
@@ -54,6 +54,17 @@ public class WriteTaskTest extends TaskTest {
 				"	WRITE CSV 'lf.csv' LF NOQUOTES \n" +
 				"	HEADERS 'Header Lf' \n" +
 				"	FROM VALUES ('1st line'), ('2nd line') \n" +
+				"END TASK\n" +
+				"TASK WriteHtml \n" +
+				"	DO \n" +
+				"	TASK \n" +
+				"		WRITE HTML text TABLE STYLE 'border-collapse:collapse;border:solid red' BODY STYLE 'border:solid blue' CELL STYLE 'border:solid black' \n" +
+				"		HEADERS 'First', 'Second' \n" +
+				"		FROM VALUES ('<i>cell A1</i>', 'cell B1'), ('<tr style=\"background-color:#4CAF50\">cell A2', '<td style=\"border:double\">cell B2') \n" +
+				"	END TASK \n" +
+				"	TASK AFTER\n" +
+				"		WRITE TXT 'html.txt' NO HEADERS FROM VALUES (text) \n" +
+				"	END TASK \n" +
 				"END TASK\n" +
 				"";
 

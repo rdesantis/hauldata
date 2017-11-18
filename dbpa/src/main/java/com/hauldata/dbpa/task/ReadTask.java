@@ -22,6 +22,7 @@ import com.hauldata.dbpa.datasource.DataTarget;
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.FileOptions;
 import com.hauldata.dbpa.file.PageIdentifier;
+import com.hauldata.dbpa.file.PhysicalPageIdentifier;
 import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.file.SourcePage;
 import com.hauldata.dbpa.process.Context;
@@ -56,7 +57,7 @@ public class ReadTask extends FileTask {
 		PageIdentifier page = this.page.evaluate(context, false);
 		SourceHeaders headers = this.headers.evaluate();
 
-		context.files.assureNotOpen(page.getPath());
+		context.files.assureNotOpen(((PhysicalPageIdentifier)page).getPath());
 		try {
 			SourcePage sourcePage = page.read(context.files, headers);
 			Columns columns = this.columns.evaluate(sourcePage.getReadHeaders());

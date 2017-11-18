@@ -42,6 +42,8 @@ public interface PageNode {
 	 */
 	public void writeColumn(int columnIndex, Object object) throws IOException;
 
+	public void flush() throws IOException;
+
 	/**
 	 * Read a value from the next column of the current row or
 	 * EndOfLine.value if no columns remain.  An empty column

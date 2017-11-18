@@ -70,7 +70,7 @@ public class TargetSheetPage extends TargetPage {
 
 		private Book appendBook(File.Owner fileOwner, PageIdentifier id) throws IOException {
 
-			Book book = (Book)Book.getForAppend(fileOwner, id.getPath(), bookFactory);
+			Book book = (Book)Book.getForAppend(fileOwner, ((PhysicalPageIdentifier)id).getPath(), bookFactory);
 			if (!book.isOpen()) {
 				book.create();
 				book.setOpen(true);

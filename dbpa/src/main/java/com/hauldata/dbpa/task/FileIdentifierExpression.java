@@ -22,7 +22,7 @@ import com.hauldata.dbpa.file.FileIdentifier;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.process.Context;
 
-public class FileIdentifierExpression extends PageIdentifierExpression {
+public class FileIdentifierExpression extends PhysicalPageIdentifierExpression {
 
 	public FileIdentifierExpression(FileHandler handler, Expression<String> filePath) {
 		super(handler, filePath);

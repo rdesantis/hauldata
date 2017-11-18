@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,24 +16,24 @@
 
 package com.hauldata.dbpa.task;
 
-import com.hauldata.dbpa.expression.Expression;
-import com.hauldata.dbpa.file.FileHandler;
+import com.hauldata.dbpa.file.HtmlPageIdentifier;
 import com.hauldata.dbpa.file.PageIdentifier;
-import com.hauldata.dbpa.file.SheetIdentifier;
 import com.hauldata.dbpa.process.Context;
+import com.hauldata.dbpa.variable.Variable;
 
-public class SheetIdentifierExpression extends PhysicalPageIdentifierExpression {
+public class HtmlPageIdentifierExpression implements PageIdentifierExpression {
 
-	protected Expression<String> sheetName;
+	private Variable<String> variable;
 
-	public SheetIdentifierExpression(FileHandler handler, Expression<String> filePath, Expression<String> sheetName) {
-
-		super(handler, filePath);
-		this.sheetName = sheetName;
+	public HtmlPageIdentifierExpression(Variable<String> variable) {
+		this.variable = variable;
 	}
 
 	@Override
 	public PageIdentifier evaluate(Context context, boolean writeNotRead) {
-		return new SheetIdentifier(handler, context.getDataPath(filePath.evaluate(), writeNotRead), sheetName.evaluate());
+		if (!writeNotRead) {
+			throw new RuntimeException("Internal error - READ HTML not implemented");
+		}
+		return new HtmlPageIdentifier(variable);
 	}
 }

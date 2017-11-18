@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,20 +16,9 @@
 
 package com.hauldata.dbpa.task;
 
-import com.hauldata.dbpa.expression.Expression;
-import com.hauldata.dbpa.file.FileHandler;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.process.Context;
 
-public abstract class PageIdentifierExpression {
-
-	protected FileHandler handler;
-	protected Expression<String> filePath;
-
-	protected PageIdentifierExpression(FileHandler handler, Expression<String> filePath) {
-		this.handler = handler;
-		this.filePath = filePath;
-	}
-
-	public abstract PageIdentifier evaluate(Context context, boolean writeNotRead);
+public interface PageIdentifierExpression {
+	public PageIdentifier evaluate(Context context, boolean writeNotRead);
 }

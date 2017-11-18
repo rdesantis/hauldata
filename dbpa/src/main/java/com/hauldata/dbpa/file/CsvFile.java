@@ -66,7 +66,7 @@ public class CsvFile extends DsvFile {
 
 			static {
 				modifiers = new HashMap<String, Modifier>();
-				modifiers.put("NOQUOTES", (tokenizer, options) -> {((CsvTargetOptions)options).noQuotes = true;});
+				modifiers.put("NOQUOTES", (parser, options) -> {((CsvTargetOptions)options).noQuotes = true;});
 			}
 
 			Parser() {
@@ -92,7 +92,7 @@ public class CsvFile extends DsvFile {
 
 			static {
 				modifiers = new HashMap<String, Modifier>();
-				modifiers.put("RAW", (tokenizer, options) -> {((CsvSourceOptions)options).raw = true;});
+				modifiers.put("RAW", (parser, options) -> {((CsvSourceOptions)options).raw = true;});
 			}
 
 			Parser() {

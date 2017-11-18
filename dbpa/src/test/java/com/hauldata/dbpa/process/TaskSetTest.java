@@ -248,7 +248,7 @@ public class TaskSetTest extends TaskTest {
 		int frequency = 2;
 		int cycles = 3;
 
-		final int fuzzMillis = 150;
+		final int fuzzMillis = 250;
 		final float fuzzSeconds = (float)fuzzMillis / 1000f;
 
 		Analyzer.RecordIterator recordIterator = analyzer.recordIterator("ScheduleTest", "SHOWTIMES");

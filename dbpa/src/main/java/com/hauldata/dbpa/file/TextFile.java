@@ -148,8 +148,8 @@ public abstract class TextFile extends FlatFile {
 
 			static {
 				modifiers = new HashMap<String, Modifier>();
-				modifiers.put("CRLF", (tokenizer, options) -> {((TargetOptions)options).endOfLine = "\r\n";});
-				modifiers.put("LF", (tokenizer, options) -> {((TargetOptions)options).endOfLine = "\n";});
+				modifiers.put("CRLF", (parser, options) -> {((TargetOptions)options).endOfLine = "\r\n";});
+				modifiers.put("LF", (parser, options) -> {((TargetOptions)options).endOfLine = "\n";});
 			}
 
 			protected Parser() {
@@ -172,4 +172,7 @@ public abstract class TextFile extends FlatFile {
 		// But due to undocumented APPEND without prior CREATE, getOptions() may return null.
 		return getOptions() != null ? (TargetOptions)getOptions() : TargetOptions.DEFAULT;
 	}
+
+	@Override
+	public void flush() throws IOException {}
 }

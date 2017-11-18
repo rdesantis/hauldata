@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.hauldata.dbpa.file.FileOptions.Modifier;
+import com.hauldata.dbpa.process.TaskSetParser;
 import com.hauldata.util.tokenizer.BacktrackingTokenizer;
 import com.hauldata.util.tokenizer.BacktrackingTokenizerMark;
 
@@ -56,8 +57,9 @@ abstract class FileOptionsParser implements FileOptions.Parser {
 	protected abstract FileOptions makeDefaultOptions();
 
 	@Override
-	public FileOptions parse(BacktrackingTokenizer tokenizer) throws IOException {
+	public FileOptions parse(TaskSetParser parser) throws IOException {
 
+		BacktrackingTokenizer tokenizer = parser.getTokenizer();
 		FileOptions options = makeDefaultOptions();
 
 		boolean matchedAnyOption;
@@ -76,7 +78,7 @@ abstract class FileOptionsParser implements FileOptions.Parser {
 				}
 				if (matchedAllWords) {
 					matchedAnyOption = true;
-					modifier.getValue().modify(tokenizer, options);
+					modifier.getValue().modify(parser, options);
 					break;
 				}
 				else {

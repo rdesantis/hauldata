@@ -76,31 +76,7 @@ public class XlsxTargetSheet extends XlsxSheet {
 	}
 
 	@Override
-	public void close() throws IOException {
-
-		try {
-			for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-				sheet.autoSizeColumn(columnIndex);
-			}
-		}
-		catch (HeadlessException ex) {
-			// Per https://poi.apache.org/spreadsheet/quick-guide.html:
-			//
-			// Warning:
-			// To calculate column width Sheet.autoSizeColumn uses Java2D classes that throw exception if graphical environment is not available.
-			// In case if graphical environment is not available, you must tell Java that you are running in headless mode and set the following system property:
-			// java.awt.headless=true . You should also ensure that the fonts you use in your workbook are available to Java.
-			//
-			// Per http://www.oracle.com/technetwork/articles/javase/headless-136834.html#headlessexception:
-			//
-			// You can also use the following command line if you plan to run the same application in both a headless and a traditional environment:
-			// java -Djava.awt.headless=true
-		}
-
-		if (headers.exist()) {
-			sheet.createFreezePane(0, 1);
-		}
-	}
+	public void close() throws IOException {}
 
 	// PageNode overrides
 
@@ -178,6 +154,33 @@ public class XlsxTargetSheet extends XlsxSheet {
 
 		if (columnCount < columnIndex) {
 			columnCount = columnIndex;
+		}
+	}
+
+	@Override
+	public void flush() throws IOException {
+
+		try {
+			for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+				sheet.autoSizeColumn(columnIndex);
+			}
+		}
+		catch (HeadlessException ex) {
+			// Per https://poi.apache.org/spreadsheet/quick-guide.html:
+			//
+			// Warning:
+			// To calculate column width Sheet.autoSizeColumn uses Java2D classes that throw exception if graphical environment is not available.
+			// In case if graphical environment is not available, you must tell Java that you are running in headless mode and set the following system property:
+			// java.awt.headless=true . You should also ensure that the fonts you use in your workbook are available to Java.
+			//
+			// Per http://www.oracle.com/technetwork/articles/javase/headless-136834.html#headlessexception:
+			//
+			// You can also use the following command line if you plan to run the same application in both a headless and a traditional environment:
+			// java -Djava.awt.headless=true
+		}
+
+		if (headers.exist()) {
+			sheet.createFreezePane(0, 1);
 		}
 	}
 

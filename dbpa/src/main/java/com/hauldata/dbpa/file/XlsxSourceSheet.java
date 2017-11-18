@@ -177,4 +177,5 @@ public class XlsxSourceSheet extends XlsxSheet {
 	@Override public void create() throws IOException {}
 	@Override public void append() throws IOException {}
 	@Override public void writeColumn(int columnIndex, Object object) {}
+	@Override public void flush() {}
 }

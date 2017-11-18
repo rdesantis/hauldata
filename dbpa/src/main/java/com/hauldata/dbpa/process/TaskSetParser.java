@@ -54,7 +54,7 @@ import com.hauldata.util.tokenizer.*;
 /**
  * Base class parser for a set of tasks at either outer process level or inner nested level
  */
-abstract class TaskSetParser {
+public abstract class TaskSetParser {
 
 	TaskSetParser thisTaskSetParser;
 
@@ -495,6 +495,10 @@ abstract class TaskSetParser {
 		XlsxBook.registerHandler(KW.XLSX.name());
 	}
 
+	public BacktrackingTokenizer getTokenizer() {
+		return tokenizer;
+	}
+
 	public void close() {
 		try { tokenizer.close(); } catch (IOException e) {}
 	}
@@ -850,11 +854,44 @@ abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
+			if (tokenizer.skipWordIgnoreCase(KW.HTML.name())) {
+				return parseWriteHtmlTask(prologue);
+			}
+			else {
+				return parseWriteFileTask(prologue);
+			}
+		}
+
+		public Task parseWriteFileTask(Task.Prologue prologue) throws IOException {
+
 			FileHandler handler = parseFileHandler(true);
 
 			PageIdentifierExpression page = parsePageIdentifier(handler);
 
 			FileOptions options = parseFileOptions(true, handler);
+
+			TargetHeaderExpressions headers = parseTargetHeaders(KW.FROM.name());
+
+			Source source = parseSource(KW.WRITE.name(), KW.FROM.name(), false, true);
+
+			return new WriteTask(prologue, page, options, headers, source);
+		}
+
+		@SuppressWarnings("unchecked")
+		public Task parseWriteHtmlTask(Task.Prologue prologue) throws IOException {
+
+			VariableBase variable = parseVariableReference();
+
+			if (!variable.getType().equals(VariableType.VARCHAR)) {
+				throw new InputMismatchException(
+						"Target variable for " + KW.WRITE.name() + " " + KW.HTML.name() + " " + KW.TASK.name() + " must be of type " + KW.VARCHAR.name());
+			}
+
+			PageIdentifierExpression page = new HtmlPageIdentifierExpression((Variable<String>)variable);
+
+			final Html.TargetOptions.Parser optionsParser = new Html.TargetOptions.Parser();
+
+			FileOptions options = optionsParser.parse(thisTaskSetParser);
 
 			TargetHeaderExpressions headers = parseTargetHeaders(KW.FROM.name());
 
@@ -2025,7 +2062,7 @@ abstract class TaskSetParser {
 		FileOptions options = null;
 		FileOptions.Parser parser = handler.getOptionsParser(writeNotRead);
 		if (parser != null) {
-			options = parser.parse(tokenizer);
+			options = parser.parse(this);
 		}
 		return options;
 	}
@@ -2598,7 +2635,7 @@ abstract class TaskSetParser {
 		}
 	}
 
-	private Expression<String> parseStringExpression() throws IOException {
+	public Expression<String> parseStringExpression() throws IOException {
 
 		Expression<String> left = parseStringTerm();
 		while (tokenizer.skipDelimiter("+")) {

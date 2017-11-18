@@ -79,6 +79,7 @@ public class RequestTaskTest extends TaskTest {
 				"	STATUS 'status' \n" +
 				"	INTO SQL INSERT INTO test.restarget (name, stuff, status) VALUES (?,?,?) \n" +
 				"END TASK\n" +
+/*
 				"TASK ArroPay \n" +
 				"	AFTER \n" +
 				"	--IF nothing IS NOT NULL \n" +
@@ -103,6 +104,7 @@ public class RequestTaskTest extends TaskTest {
 				"	STATUS 'status' MESSAGE 'message' \n" +
 				"	INTO SQL INSERT INTO test.restarget (stuff, name, scriptName, status, propName) VALUES (?,?,?,?,?) \n" +
 				"END TASK\n" +
+*/
 				"TASK NonUnique \n" +
 				"	AFTER \n" +
 				"	REQUEST 'url' GET 'fred', 'ethel', 'lucy', 'ricky', 'ethel' \n" +

@@ -30,7 +30,7 @@ public class TargetFilePage extends TargetPage {
 
 		@Override
 		public TargetPage create(File.Owner fileOwner, PageIdentifier id, FileOptions options, TargetHeaders headers) throws IOException {
-			FlatFile file = (FlatFile)File.getForCreate(fileOwner, id.getPath(), fileFactory, options);
+			FlatFile file = (FlatFile)File.getForCreate(fileOwner, ((PhysicalPageIdentifier)id).getPath(), fileFactory, options);
 			file.setHeaders(headers);
 			file.create();
 			file.setOpen(true);
@@ -39,7 +39,7 @@ public class TargetFilePage extends TargetPage {
 
 		@Override
 		public TargetPage append(File.Owner fileOwner, PageIdentifier id) throws IOException {
-			FlatFile file = (FlatFile)File.getForAppend(fileOwner, id.getPath(), fileFactory);
+			FlatFile file = (FlatFile)File.getForAppend(fileOwner, ((PhysicalPageIdentifier)id).getPath(), fileFactory);
 			if (!file.isOpen()) {
 				file.setHeaders(new TargetHeaders());
 				file.append();
@@ -50,7 +50,7 @@ public class TargetFilePage extends TargetPage {
 
 		@Override
 		public TargetPage write(File.Owner fileOwner, PageIdentifier id, FileOptions options, TargetHeaders headers) throws IOException {
-			FlatFile file = (FlatFile)File.getForWrite(fileOwner, id.getPath(), fileFactory, options);
+			FlatFile file = (FlatFile)File.getForWrite(fileOwner, ((PhysicalPageIdentifier)id).getPath(), fileFactory, options);
 			if (!file.isOpen()) {
 				file.setHeaders(headers);
 				file.create();

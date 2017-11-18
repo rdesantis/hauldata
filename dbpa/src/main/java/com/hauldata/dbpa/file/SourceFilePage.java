@@ -30,7 +30,7 @@ public class SourceFilePage extends SourcePage {
 
 		@Override
 		public SourcePage open(File.Owner fileOwner, PageIdentifier id, SourceHeaders headers) throws IOException {
-			FlatFile file = (FlatFile)File.getForOpen(fileOwner, id.getPath(), fileFactory);
+			FlatFile file = (FlatFile)File.getForOpen(fileOwner, ((PhysicalPageIdentifier)id).getPath(), fileFactory);
 			file.setHeaders(headers);
 			file.open();
 			file.setOpen(true);
@@ -39,14 +39,14 @@ public class SourceFilePage extends SourcePage {
 
 		@Override
 		public SourcePage load(File.Owner fileOwner, PageIdentifier id) throws IOException {
-			FlatFile file = (FlatFile)File.getForLoad(fileOwner, id.getPath(), fileFactory);
+			FlatFile file = (FlatFile)File.getForLoad(fileOwner, ((PhysicalPageIdentifier)id).getPath(), fileFactory);
 			file.load();
 			return new SourceFilePage(file);
 		}
 
 		@Override
 		public SourcePage read(File.Owner fileOwner, PageIdentifier id, SourceHeaders headers) throws IOException {
-			FlatFile file = (FlatFile)File.getForRead(fileOwner, id.getPath(), fileFactory);
+			FlatFile file = (FlatFile)File.getForRead(fileOwner, ((PhysicalPageIdentifier)id).getPath(), fileFactory);
 			if (!file.isOpen()) {
 				file.setHeaders(headers);
 				file.open();

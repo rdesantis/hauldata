@@ -21,6 +21,7 @@ import java.util.ArrayList;
 
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.PageIdentifier;
+import com.hauldata.dbpa.file.PhysicalPageIdentifier;
 import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.file.SourcePage;
 import com.hauldata.dbpa.process.Context;
@@ -67,7 +68,7 @@ public class ForReadTask extends FileTask implements TaskSetParent {
 		PageIdentifier page = this.page.evaluate(context, false);
 		SourceHeaders headers = this.headers.evaluate();
 
-		context.files.assureNotOpen(page.getPath());
+		context.files.assureNotOpen(((PhysicalPageIdentifier)page).getPath());
 		Context nestedContext = null;
 		try {
 			SourcePage sourcePage = page.read(context.files, headers);

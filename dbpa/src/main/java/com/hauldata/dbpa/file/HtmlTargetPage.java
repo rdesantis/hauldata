@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,18 +16,9 @@
 
 package com.hauldata.dbpa.file;
 
-import java.io.IOException;
+public class HtmlTargetPage extends TargetPage {
 
-import com.hauldata.dbpa.process.TaskSetParser;
-
-public interface FileOptions {
-
-	public static interface Parser {
-		FileOptions parse(TaskSetParser parser) throws IOException;
-	}
-
-	@FunctionalInterface
-	public static interface Modifier {
-		void modify(TaskSetParser parser, FileOptions options) throws IOException;
+	public HtmlTargetPage(Html html) {
+		super(html);
 	}
 }
