@@ -58,7 +58,7 @@ public class WriteTaskTest extends TaskTest {
 				"TASK WriteHtml \n" +
 				"	DO \n" +
 				"	TASK \n" +
-				"		WRITE HTML text TABLE STYLE 'border-collapse:collapse;border:solid red' BODY STYLE 'border:solid blue' CELL STYLE 'border:solid black' \n" +
+				"		WRITE HTML text TABLE STYLE 'border-collapse:collapse;border:solid red' BODY STYLE 'border:solid blue' CELL STYLE 'border: 1px solid black' \n" +
 				"		HEADERS 'First', 'Second' \n" +
 				"		FROM VALUES ('<i>cell A1</i>', 'cell B1'), ('<tr style=\"background-color:#4CAF50\">cell A2', '<td style=\"border:double\">cell B2') \n" +
 				"	END TASK \n" +

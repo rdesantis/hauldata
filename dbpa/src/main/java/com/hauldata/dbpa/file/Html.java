@@ -18,6 +18,7 @@ package com.hauldata.dbpa.file;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.variable.Variable;
@@ -29,12 +30,17 @@ public class Html implements PageNode {
 		private Expression<String> tableStyle = null;
 		private Expression<String> headStyle = null;
 		private Expression<String> bodyStyle = null;
-		private Expression<String> cellStyle = null;
-		
+		private Expression<String> headCellStyle = null;
+		private Expression<String> bodyCellStyle = null;
+
+		private String evaluatedHeadCellStyle = null;
+		private String evaluatedBodyCellStyle = null;
+
 		public String getTableStyle() { return evaluate(tableStyle); }
 		public String getHeadStyle() { return evaluate(headStyle); }
 		public String getBodyStyle() { return evaluate(bodyStyle); }
-		public String getCellStyle() { return evaluate(cellStyle); }
+		public String getHeadCellStyle() { return Optional.ofNullable(evaluatedHeadCellStyle).orElse((evaluatedHeadCellStyle = evaluate(headCellStyle))); }
+		public String getBodyCellStyle() { return Optional.ofNullable(evaluatedBodyCellStyle).orElse((evaluatedBodyCellStyle = evaluate(bodyCellStyle))); }
 
 		private static String evaluate(Expression<String> expression) {
 			return (expression != null) ? expression.evaluate() : null;
@@ -49,7 +55,10 @@ public class Html implements PageNode {
 				modifiers.put("TABLE STYLE", (parser, options) -> {((TargetOptions)options).tableStyle = parser.parseStringExpression();});
 				modifiers.put("HEAD STYLE", (parser, options) -> {((TargetOptions)options).headStyle = parser.parseStringExpression();});
 				modifiers.put("BODY STYLE", (parser, options) -> {((TargetOptions)options).bodyStyle = parser.parseStringExpression();});
-				modifiers.put("CELL STYLE", (parser, options) -> {((TargetOptions)options).cellStyle = parser.parseStringExpression();});
+				modifiers.put("HEAD CELL STYLE", (parser, options) -> {((TargetOptions)options).headCellStyle = parser.parseStringExpression();});
+				modifiers.put("BODY CELL STYLE", (parser, options) -> {((TargetOptions)options).bodyCellStyle = parser.parseStringExpression();});
+				modifiers.put("CELL STYLE", (parser, options) ->
+						{((TargetOptions)options).bodyCellStyle = ((TargetOptions)options).headCellStyle = parser.parseStringExpression();});
 			}
 
 			public Parser() {
@@ -108,16 +117,6 @@ public class Html implements PageNode {
 			isHeader = false;
 
 			if (rowIndex == 1) {
-				String cellStyle = options.getCellStyle();
-				if (cellStyle != null) {
-					startTag("style", null, true);
-					content.append("th, td {");
-					content.append(cellStyle);
-					content.append("}");
-					endLine();
-					endTag("style");
-				}
-
 				startTag("table", options.getTableStyle(), true);
 				if (headers.exist()) {
 					startTag("thead", options.getHeadStyle(), true);
@@ -151,19 +150,20 @@ public class Html implements PageNode {
 			}
 		}
 
-		String columnTag = isHeader ? "th" : "td";
-		boolean columnNeedsStartTag = true;
+		String cellTag = isHeader ? "th" : "td";
+		String cellStyle = isHeader ? options.getHeadCellStyle() : options.getBodyCellStyle();
+		boolean cellNeedsStartTag = true;
 		if (object instanceof String) {
 			String value = (String)object;
-			if (value.startsWith("<" + columnTag)) {
-				columnNeedsStartTag = false;
+			if (value.startsWith("<" + cellTag)) {
+				cellNeedsStartTag = false;
 			}
 		}
-		if (columnNeedsStartTag){
-			startTag(columnTag, null, false);
+		if (cellNeedsStartTag){
+			startTag(cellTag, cellStyle, false);
 		}
 		content.append(object.toString());
-		endTag(columnTag);
+		endTag(cellTag);
 	}
 
 	private void startTag(String tag, String style, boolean eol) {
