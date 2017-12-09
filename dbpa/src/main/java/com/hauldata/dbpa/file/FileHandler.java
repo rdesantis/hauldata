@@ -25,17 +25,17 @@ public class FileHandler {
 	private String name;
 	private boolean hasSheets;
 	private TargetPage.Factory targetFactory;
-	private FileOptions.Parser targetOptionsParser;
+	private PageOptions.Parser targetOptionsParser;
 	private SourcePage.Factory sourceFactory;
-	private FileOptions.Parser sourceOptionsParser;
+	private PageOptions.Parser sourceOptionsParser;
 
 	private FileHandler(
 			String name,
 			boolean hasSheets,
 			TargetPage.Factory targetFactory,
-			FileOptions.Parser targetOptionsParser,
+			PageOptions.Parser targetOptionsParser,
 			SourcePage.Factory sourceFactory,
-			FileOptions.Parser sourceOptionsParser) {
+			PageOptions.Parser sourceOptionsParser) {
 		this.name = name;
 		this.hasSheets = hasSheets;
 		this.targetFactory = targetFactory;
@@ -61,9 +61,9 @@ public class FileHandler {
 			String name,
 			boolean hasSheets,
 			TargetPage.Factory targetFactory,
-			FileOptions.Parser targetOptionsParser,
+			PageOptions.Parser targetOptionsParser,
 			SourcePage.Factory sourceFactory,
-			FileOptions.Parser sourceOptionsParser) {
+			PageOptions.Parser sourceOptionsParser) {
 
 		handlers.put(name, new FileHandler(name, hasSheets, targetFactory, targetOptionsParser, sourceFactory, sourceOptionsParser));
 	}
@@ -125,7 +125,7 @@ public class FileHandler {
 		return sourceFactory;
 	}
 
-	public FileOptions.Parser getOptionsParser(boolean writeNotRead) {
+	public PageOptions.Parser getOptionsParser(boolean writeNotRead) {
 		if (writeNotRead) {
 			return targetOptionsParser;
 		}

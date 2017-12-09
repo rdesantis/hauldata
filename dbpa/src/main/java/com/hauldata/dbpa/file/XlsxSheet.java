@@ -24,8 +24,12 @@ public abstract class XlsxSheet extends com.hauldata.dbpa.file.Sheet {
 	static final String typeName = "XLSX sheet";
 	static public String typeName() { return typeName; }
 
+	public XlsxSheet(Book owner, String name, PageOptions options) {
+		super(owner, name, options);
+	}
+
 	public XlsxSheet(Book owner, String name) {
-		super(owner, name);
+		this(owner, name, null);
 	}
 
 	// Node overrides

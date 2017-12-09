@@ -35,9 +35,9 @@ public class HtmlPageIdentifier implements PageIdentifier {
 	}
 
 	@Override
-	public TargetPage write(Owner fileOwner, FileOptions options, TargetHeaders headers) throws IOException {
+	public TargetPage write(Owner fileOwner, PageOptions options, TargetHeaders headers) throws IOException {
 
-		Html html = new Html(variable, (Html.TargetOptions)options);
+		Html html = new Html(variable, (HtmlOptions)options);
 		html.setHeaders(headers);
 
 		if (headers.exist() && !headers.fromMetadata()) {
@@ -50,7 +50,7 @@ public class HtmlPageIdentifier implements PageIdentifier {
 	}
 
 	// Never called.
-	@Override public TargetPage create(Owner fileOwner, FileOptions options, TargetHeaders headers) { return null; }
+	@Override public TargetPage create(Owner fileOwner, PageOptions options, TargetHeaders headers) { return null; }
 	@Override public TargetPage append(Owner fileOwner) { return null; }
 	@Override public SourcePage open(Owner fileOwner, SourceHeaders headers) { return null; }
 	@Override public SourcePage load(Owner fileOwner) { return null; }

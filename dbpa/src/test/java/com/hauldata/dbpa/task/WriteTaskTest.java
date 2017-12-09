@@ -66,6 +66,11 @@ public class WriteTaskTest extends TaskTest {
 				"		WRITE TXT 'html.txt' NO HEADERS FROM VALUES (text) \n" +
 				"	END TASK \n" +
 				"END TASK\n" +
+				"TASK WriteStyledXls \n" +
+				"	WRITE XLSX 'styledTest.xlsx' 'Styled' STYLED TABLE STYLE 'border-collapse:collapse;border:solid red' BODY STYLE 'border:solid blue' CELL STYLE 'border: 1px solid black' \n" +
+				"	HEADERS 'First', 'Second' \n" +
+				"	FROM VALUES ('<td style=\"font-style:italic\">cell A1', 'cell B1'), ('<tr style=\"background-color:#4CAF50\">cell A2', '<td style=\"border:double\">cell B2') \n" +
+				"END TASK\n" +
 				"";
 
 		Level logLevel = Level.error;

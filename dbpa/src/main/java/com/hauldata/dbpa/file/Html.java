@@ -16,71 +16,19 @@
 
 package com.hauldata.dbpa.file;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
-import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.variable.Variable;
 
 public class Html implements PageNode {
 
-	public static class TargetOptions implements FileOptions {
-
-		private Expression<String> tableStyle = null;
-		private Expression<String> headStyle = null;
-		private Expression<String> bodyStyle = null;
-		private Expression<String> headCellStyle = null;
-		private Expression<String> bodyCellStyle = null;
-
-		private String evaluatedHeadCellStyle = null;
-		private String evaluatedBodyCellStyle = null;
-
-		public String getTableStyle() { return evaluate(tableStyle); }
-		public String getHeadStyle() { return evaluate(headStyle); }
-		public String getBodyStyle() { return evaluate(bodyStyle); }
-		public String getHeadCellStyle() { return Optional.ofNullable(evaluatedHeadCellStyle).orElse((evaluatedHeadCellStyle = evaluate(headCellStyle))); }
-		public String getBodyCellStyle() { return Optional.ofNullable(evaluatedBodyCellStyle).orElse((evaluatedBodyCellStyle = evaluate(bodyCellStyle))); }
-
-		private static String evaluate(Expression<String> expression) {
-			return (expression != null) ? expression.evaluate() : null;
-		}
-
-		public static class Parser extends FileOptionsParser {
-
-			static Map<String, Modifier> modifiers;
-
-			static {
-				modifiers = new HashMap<String, Modifier>();
-				modifiers.put("TABLE STYLE", (parser, options) -> {((TargetOptions)options).tableStyle = parser.parseStringExpression();});
-				modifiers.put("HEAD STYLE", (parser, options) -> {((TargetOptions)options).headStyle = parser.parseStringExpression();});
-				modifiers.put("BODY STYLE", (parser, options) -> {((TargetOptions)options).bodyStyle = parser.parseStringExpression();});
-				modifiers.put("HEAD CELL STYLE", (parser, options) -> {((TargetOptions)options).headCellStyle = parser.parseStringExpression();});
-				modifiers.put("BODY CELL STYLE", (parser, options) -> {((TargetOptions)options).bodyCellStyle = parser.parseStringExpression();});
-				modifiers.put("CELL STYLE", (parser, options) ->
-						{((TargetOptions)options).bodyCellStyle = ((TargetOptions)options).headCellStyle = parser.parseStringExpression();});
-			}
-
-			public Parser() {
-				super(modifiers);
-			}
-
-			@Override
-			protected FileOptions makeDefaultOptions() {
-				return new TargetOptions();
-			}
-		}
-	}
-
 	private Variable<String> variable;
-	private TargetOptions options;
+	private HtmlOptions options;
 	private Headers headers;
 
 	private int rowIndex;
 	private boolean isHeader;
 	private StringBuilder content;
 
-	public Html(Variable<String> variable, TargetOptions options) {
+	public Html(Variable<String> variable, HtmlOptions options) {
 		this.variable = variable;
 		this.options = options;
 

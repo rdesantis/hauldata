@@ -20,54 +20,54 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.hauldata.dbpa.file.FileOptions.Modifier;
+import com.hauldata.dbpa.file.PageOptions.Modifier;
 import com.hauldata.dbpa.process.TaskSetParser;
 import com.hauldata.util.tokenizer.BacktrackingTokenizer;
 import com.hauldata.util.tokenizer.BacktrackingTokenizerMark;
 
 /**
- * Parser target or source options for a file type
+ * Parser target or source options for a page type
  *
  * A subclass provides a map of option keywords to option modifiers and this
  * abstract base class implements the parsing.  This class provides for
  * options to be specified at multiple levels in a class hierarchy.
  */
-abstract class FileOptionsParser implements FileOptions.Parser {
+abstract class PageOptionsParser implements PageOptions.Parser {
 
-	private Map<String[], FileOptions.Modifier> modifiers;
+	private Map<String[], PageOptions.Modifier> modifiers;
 
-	protected FileOptionsParser(Map<String, FileOptions.Modifier> modifiers) {
+	protected PageOptionsParser(Map<String, PageOptions.Modifier> modifiers) {
 
-		this.modifiers = new HashMap<String[], FileOptions.Modifier>();
-		for (Map.Entry<String, FileOptions.Modifier> modifier : modifiers.entrySet()) {
+		this.modifiers = new HashMap<String[], PageOptions.Modifier>();
+		for (Map.Entry<String, PageOptions.Modifier> modifier : modifiers.entrySet()) {
 			String[] tokens = modifier.getKey().split(" ");
 			this.modifiers.put(tokens, modifier.getValue());
 		}
 	}
 
-	protected static Map<String, FileOptions.Modifier> combine(
-			Map<String, FileOptions.Modifier> superModifiers,
-			Map<String, FileOptions.Modifier> subModifiers) {
+	protected static Map<String, PageOptions.Modifier> combine(
+			Map<String, PageOptions.Modifier> superModifiers,
+			Map<String, PageOptions.Modifier> subModifiers) {
 
-		Map<String, FileOptions.Modifier> modifiers = new HashMap<String, Modifier>(superModifiers);
+		Map<String, PageOptions.Modifier> modifiers = new HashMap<String, Modifier>(superModifiers);
 		modifiers.putAll(subModifiers);
 		return modifiers;
 	}
 
-	protected abstract FileOptions makeDefaultOptions();
+	protected abstract PageOptions makeDefaultOptions();
 
 	@Override
-	public FileOptions parse(TaskSetParser parser) throws IOException {
+	public PageOptions parse(TaskSetParser parser) throws IOException {
 
 		BacktrackingTokenizer tokenizer = parser.getTokenizer();
-		FileOptions options = makeDefaultOptions();
+		PageOptions options = makeDefaultOptions();
 
 		boolean matchedAnyOption;
 		do {
 			matchedAnyOption = false;
 			BacktrackingTokenizerMark mark = tokenizer.mark();
 
-			for (Map.Entry<String[], FileOptions.Modifier> modifier : modifiers.entrySet()) {
+			for (Map.Entry<String[], PageOptions.Modifier> modifier : modifiers.entrySet()) {
 
 				boolean matchedAllWords = true;
 				for (String word : modifier.getKey()) {

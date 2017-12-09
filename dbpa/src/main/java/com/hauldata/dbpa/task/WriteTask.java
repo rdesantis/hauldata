@@ -19,7 +19,7 @@ package com.hauldata.dbpa.task;
 import java.io.IOException;
 
 import com.hauldata.dbpa.datasource.Source;
-import com.hauldata.dbpa.file.FileOptions;
+import com.hauldata.dbpa.file.PageOptions;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.TargetHeaders;
 import com.hauldata.dbpa.file.TargetPage;
@@ -28,14 +28,14 @@ import com.hauldata.dbpa.process.Context;
 public class WriteTask extends FileTask {
 
 	private PageIdentifierExpression page;
-	private FileOptions options;
+	private PageOptions options;
 	private TargetHeaderExpressions headers;
 	private Source source;
 
 	public WriteTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
-			FileOptions options,
+			PageOptions options,
 			TargetHeaderExpressions headers,
 			Source source) {
 

@@ -29,24 +29,27 @@ public abstract class XlsxBook extends Book {
 	public static void registerHandler(String name) {
 
 		Book.Factory targetBookFactory = new Book.Factory() {
-			public Book instantiate(Node.Owner owner, Object path, FileOptions options) { return new XlsxTargetBook((File.Owner)owner, (Path)path); }
+			public Book instantiate(Node.Owner owner, Object path, PageOptions options) { return new XlsxTargetBook((File.Owner)owner, (Path)path); }
 			public String getTypeName() { return typeName(); }
 		};
 		Sheet.Factory targetSheetFactory = new Sheet.Factory() {
-			public Sheet instantiate(Node.Owner book, Object name, FileOptions options) { return new XlsxTargetSheet((Book)book, (String)name); }
+			public Sheet instantiate(Node.Owner book, Object name, PageOptions options) { return new XlsxTargetSheet((Book)book, (String)name, (XlsxTargetSheet.TargetOptions)options); }
 			public String getTypeName() { return XlsxSheet.typeName(); }
 		};
 
 		Book.Factory sourceBookFactory = new Book.Factory() {
-			public Book instantiate(Node.Owner owner, Object path, FileOptions options) { return new XlsxSourceBook((File.Owner)owner, (Path)path); }
+			public Book instantiate(Node.Owner owner, Object path, PageOptions options) { return new XlsxSourceBook((File.Owner)owner, (Path)path); }
 			public String getTypeName() { return typeName(); }
 		};
 		Sheet.Factory sourceSheetFactory = new Sheet.Factory() {
-			public Sheet instantiate(Node.Owner book, Object name, FileOptions options) { return new XlsxSourceSheet((Book)book, (String)name); }
+			public Sheet instantiate(Node.Owner book, Object name, PageOptions options) { return new XlsxSourceSheet((Book)book, (String)name); }
 			public String getTypeName() { return XlsxSheet.typeName(); }
 		};
 
-		FileHandler.register(name, true, new TargetSheetPage.Factory(targetBookFactory, targetSheetFactory), new SourceSheetPage.Factory(sourceBookFactory, sourceSheetFactory));
+		FileHandler.register(
+				name, true,
+				new TargetSheetPage.Factory(targetBookFactory, targetSheetFactory), new XlsxTargetSheet.TargetOptions.Parser(),
+				new SourceSheetPage.Factory(sourceBookFactory, sourceSheetFactory), null);
 	}
 
 	protected XlsxBook(Owner owner, Path path) {

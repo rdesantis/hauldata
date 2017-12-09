@@ -18,10 +18,22 @@ package com.hauldata.dbpa.file;
 
 public abstract class Sheet extends Node implements PageNode {
 
+	private PageOptions options;
+
 	protected Headers headers;
 
-	public Sheet(Owner owner, String name) {
+	public Sheet(Owner owner, String name, PageOptions options) {
 		super(owner, name);
+		this.options = options;
+		this.headers = null;
+	}
+
+	public Sheet(Owner owner, String name) {
+		this(owner, name, null);
+	}
+
+	public PageOptions getOptions() {
+		return options;
 	}
 
 	@Override

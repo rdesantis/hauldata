@@ -20,15 +20,22 @@ import java.nio.file.Path;
 
 public abstract class FlatFile extends File implements PageNode {
 
+	private PageOptions options;
+
 	protected Headers headers;
 
-	public FlatFile(Owner owner, Path path, FileOptions options) {
-		super(owner, path, options);
+	public FlatFile(Owner owner, Path path, PageOptions options) {
+		super(owner, path);
+		this.options = options;
 		this.headers = null;
 	}
 
 	public FlatFile(Owner owner, Path path) {
 		this(owner, path, null);
+	}
+
+	public PageOptions getOptions() {
+		return options;
 	}
 
 	@Override

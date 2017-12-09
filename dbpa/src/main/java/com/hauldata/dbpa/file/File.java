@@ -20,8 +20,6 @@ import java.nio.file.Path;
 
 public abstract class File extends Node {
 
-	private FileOptions options;
-
 	public static abstract class Owner implements Node.Owner {
 
 		public abstract File put(Path path, File file);
@@ -42,21 +40,12 @@ public abstract class File extends Node {
 		}
 	}
 
-	protected File(Owner owner, Path path, FileOptions options) {
-		super(owner, path);
-		this.options = options;
-	}
-
 	protected File(Owner owner, Path path) {
-		this(owner, path, null);
+		super(owner, path);
 	}
 
 	@Override
 	public String getName() {
 		return ((Path)key).toString();
-	}
-
-	public FileOptions getOptions() {
-		return options;
 	}
 }

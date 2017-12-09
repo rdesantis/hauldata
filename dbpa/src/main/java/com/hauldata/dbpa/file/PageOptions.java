@@ -20,14 +20,14 @@ import java.io.IOException;
 
 import com.hauldata.dbpa.process.TaskSetParser;
 
-public interface FileOptions {
+public interface PageOptions {
 
 	public static interface Parser {
-		FileOptions parse(TaskSetParser parser) throws IOException;
+		PageOptions parse(TaskSetParser parser) throws IOException;
 	}
 
 	@FunctionalInterface
 	public static interface Modifier {
-		void modify(TaskSetParser parser, FileOptions options) throws IOException;
+		void modify(TaskSetParser parser, PageOptions options) throws IOException;
 	}
 }

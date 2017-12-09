@@ -33,7 +33,7 @@ public abstract class PhysicalPageIdentifier implements PageIdentifier {
 		return path;
 	}
 
-	public TargetPage create(File.Owner fileOwner, FileOptions options, TargetHeaders headers) throws IOException {
+	public TargetPage create(File.Owner fileOwner, PageOptions options, TargetHeaders headers) throws IOException {
 		return handler.getTargetFactory().create(fileOwner, this, options, headers);
 	}
 
@@ -43,7 +43,7 @@ public abstract class PhysicalPageIdentifier implements PageIdentifier {
 	}
 
 	@Override
-	public TargetPage write(File.Owner fileOwner, FileOptions options, TargetHeaders headers) throws IOException {
+	public TargetPage write(File.Owner fileOwner, PageOptions options, TargetHeaders headers) throws IOException {
 		return handler.getTargetFactory().write(fileOwner, this, options, headers);
 	}
 

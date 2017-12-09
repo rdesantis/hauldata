@@ -33,7 +33,7 @@ public abstract class TextFile extends FlatFile {
 	private static final String preferredCharset = "windows-1252";
 	private static final String fallbackCharset = "ISO-8859-1";
 
-	public TextFile(Owner owner, Path path, FileOptions options) {
+	public TextFile(Owner owner, Path path, PageOptions options) {
 		super(owner, path, options);
 	}
 
@@ -132,7 +132,7 @@ public abstract class TextFile extends FlatFile {
 		return writer;
 	}
 
-	protected static class TargetOptions implements FileOptions {
+	protected static class TargetOptions implements PageOptions {
 
 		public static final TargetOptions DEFAULT = new TargetOptions();
 
@@ -142,7 +142,7 @@ public abstract class TextFile extends FlatFile {
 			return endOfLine;
 		}
 
-		public static class Parser extends FileOptionsParser {
+		public static class Parser extends PageOptionsParser {
 
 			static Map<String, Modifier> modifiers;
 
@@ -161,7 +161,7 @@ public abstract class TextFile extends FlatFile {
 			}
 
 			@Override
-			protected FileOptions makeDefaultOptions() {
+			protected PageOptions makeDefaultOptions() {
 				return new TargetOptions();
 			}
 		}

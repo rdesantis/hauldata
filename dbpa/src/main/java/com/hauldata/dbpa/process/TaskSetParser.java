@@ -828,7 +828,7 @@ public abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(handler);
 
-			FileOptions options = parseFileOptions(true, handler);
+			PageOptions options = parseFileOptions(true, handler);
 
 			TargetHeaderExpressions headers = parseTargetHeaders(KW.END.name());
 
@@ -868,7 +868,7 @@ public abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(handler);
 
-			FileOptions options = parseFileOptions(true, handler);
+			PageOptions options = parseFileOptions(true, handler);
 
 			TargetHeaderExpressions headers = parseTargetHeaders(KW.FROM.name());
 
@@ -889,9 +889,9 @@ public abstract class TaskSetParser {
 
 			PageIdentifierExpression page = new HtmlPageIdentifierExpression((Variable<String>)variable);
 
-			final Html.TargetOptions.Parser optionsParser = new Html.TargetOptions.Parser();
+			final HtmlOptions.Parser optionsParser = new HtmlOptions.Parser();
 
-			FileOptions options = optionsParser.parse(thisTaskSetParser);
+			PageOptions options = optionsParser.parse(thisTaskSetParser);
 
 			TargetHeaderExpressions headers = parseTargetHeaders(KW.FROM.name());
 
@@ -919,7 +919,7 @@ public abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(handler);
 
-			FileOptions options = parseFileOptions(false, handler);
+			PageOptions options = parseFileOptions(false, handler);
 
 			SourceHeaderExpressions headers = parseSourceHeaders(KW.END.name());
 
@@ -951,7 +951,7 @@ public abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(handler);
 
-			FileOptions options = parseFileOptions(false, handler);
+			PageOptions options = parseFileOptions(false, handler);
 
 			SourceHeaderExpressions headers = parseSourceHeaders(KW.INTO.name());
 
@@ -2057,10 +2057,10 @@ public abstract class TaskSetParser {
 		}
 	}
 
-	private FileOptions parseFileOptions(boolean writeNotRead, FileHandler handler) throws IOException {
+	private PageOptions parseFileOptions(boolean writeNotRead, FileHandler handler) throws IOException {
 
-		FileOptions options = null;
-		FileOptions.Parser parser = handler.getOptionsParser(writeNotRead);
+		PageOptions options = null;
+		PageOptions.Parser parser = handler.getOptionsParser(writeNotRead);
 		if (parser != null) {
 			options = parser.parse(this);
 		}

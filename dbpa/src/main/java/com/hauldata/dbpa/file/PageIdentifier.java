@@ -30,7 +30,7 @@ public interface PageIdentifier {
 	 * @throws RuntimeException if this operation is inconsistent with previous usage of the file or sheet
 	 * @throws IOException
 	 */
-	public TargetPage create(File.Owner fileOwner, FileOptions options, TargetHeaders headers) throws IOException;
+	public TargetPage create(File.Owner fileOwner, PageOptions options, TargetHeaders headers) throws IOException;
 
 	/**
 	 * Opens the indicated file or sheet for appending; if already open, this is a NOP
@@ -50,7 +50,7 @@ public interface PageIdentifier {
 	 * @throws RuntimeException if this operation is inconsistent with previous usage of the file or sheet
 	 * @throws IOException
 	 */
-	public TargetPage write(File.Owner fileOwner, FileOptions options, TargetHeaders headers) throws IOException;
+	public TargetPage write(File.Owner fileOwner, PageOptions options, TargetHeaders headers) throws IOException;
 
 	/**
 	 * Opens the indicated file or sheet with the indicated headers and returns the page for reading

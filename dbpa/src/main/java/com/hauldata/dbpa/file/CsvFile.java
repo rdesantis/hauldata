@@ -37,7 +37,7 @@ public class CsvFile extends DsvFile {
 
 	public static void registerHandler(String name) {
 		File.Factory fileFactory = new File.Factory() {
-			public File instantiate(Node.Owner owner, Object path, FileOptions options) { return new CsvFile((File.Owner)owner, (Path)path, options); }
+			public File instantiate(Node.Owner owner, Object path, PageOptions options) { return new CsvFile((File.Owner)owner, (Path)path, options); }
 			public String getTypeName() { return typeName; }
 		};
 		FileHandler.register(
@@ -46,7 +46,7 @@ public class CsvFile extends DsvFile {
 				new SourceFilePage.Factory(fileFactory), new CsvSourceOptions.Parser());
 	}
 
-	public CsvFile(Owner owner, Path path, FileOptions options) {
+	public CsvFile(Owner owner, Path path, PageOptions options) {
 		super(owner, path, ',', options);
 	}
 
@@ -74,7 +74,7 @@ public class CsvFile extends DsvFile {
 			}
 
 			@Override
-			protected FileOptions makeDefaultOptions() {
+			protected PageOptions makeDefaultOptions() {
 				return new CsvTargetOptions();
 			}
 		}
@@ -86,7 +86,7 @@ public class CsvFile extends DsvFile {
 
 	private static class CsvSourceOptions extends DsvFile.SourceOptions {
 
-		public static class Parser extends FileOptionsParser {
+		public static class Parser extends PageOptionsParser {
 
 			static Map<String, Modifier> modifiers;
 
@@ -100,7 +100,7 @@ public class CsvFile extends DsvFile {
 			}
 
 			@Override
-			protected FileOptions makeDefaultOptions() {
+			protected PageOptions makeDefaultOptions() {
 				return new CsvSourceOptions();
 			}
 		}

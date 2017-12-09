@@ -18,7 +18,7 @@ package com.hauldata.dbpa.task;
 
 import java.io.IOException;
 
-import com.hauldata.dbpa.file.FileOptions;
+import com.hauldata.dbpa.file.PageOptions;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.process.Context;
@@ -26,13 +26,13 @@ import com.hauldata.dbpa.process.Context;
 public class OpenTask extends FileTask {
 
 	private PageIdentifierExpression page;
-	private FileOptions options;
+	private PageOptions options;
 	private SourceHeaderExpressions headers;
 
 	public OpenTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
-			FileOptions options,
+			PageOptions options,
 			SourceHeaderExpressions headers) {
 
 		super(prologue);

@@ -35,7 +35,7 @@ public abstract class DsvFile extends TextFile {
 	protected Writer writer;
 	protected DsvTokenizer tokenizer;
 
-	public DsvFile(Owner owner, Path path, char separator, FileOptions options) {
+	public DsvFile(Owner owner, Path path, char separator, PageOptions options) {
 
 		super(owner, path, options);
 		this.separator = separator;
@@ -44,7 +44,7 @@ public abstract class DsvFile extends TextFile {
 		tokenizer = null;
 	}
 
-	protected static class SourceOptions implements FileOptions {
+	protected static class SourceOptions implements PageOptions {
 
 		public static final SourceOptions DEFAULT = new SourceOptions();
 
