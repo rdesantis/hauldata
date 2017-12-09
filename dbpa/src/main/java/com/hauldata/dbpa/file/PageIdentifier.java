@@ -60,7 +60,7 @@ public interface PageIdentifier {
 	 * @throws RuntimeException if this operation is inconsistent with previous usage of the file or sheet
 	 * @throws IOException
 	 */
-	public SourcePage open(File.Owner fileOwner, SourceHeaders headers) throws IOException;
+	public SourcePage open(File.Owner fileOwner, PageOptions options, SourceHeaders headers) throws IOException;
 
 	/**
 	 * Positions the open file or sheet for loading and return the page for reading
@@ -79,5 +79,5 @@ public interface PageIdentifier {
 	 * @throws RuntimeException if this operation is inconsistent with previous usage of the file or sheet
 	 * @throws IOException
 	 */
-	public SourcePage read(File.Owner fileOwner, SourceHeaders headers) throws IOException;
+	public SourcePage read(File.Owner fileOwner, PageOptions options, SourceHeaders headers) throws IOException;
 }

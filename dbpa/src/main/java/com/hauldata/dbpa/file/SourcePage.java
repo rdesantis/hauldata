@@ -30,7 +30,7 @@ public abstract class SourcePage {
 		 * return the page for reading.  Throw an exception if the file or
 		 * sheet can't be opened either physically or logically.
 		 */
-		SourcePage open(File.Owner fileOwner, PageIdentifier id, SourceHeaders headers) throws IOException;
+		SourcePage open(File.Owner fileOwner, PageIdentifier id, PageOptions options, SourceHeaders headers) throws IOException;
 
 		/**
 		 * Physically position the open file or sheet for loading and
@@ -45,7 +45,7 @@ public abstract class SourcePage {
 		 * return the page for reading.  Throw an exception if the file or
 		 * sheet can't be opened or loaded either physically or logically.
 		 */
-		SourcePage read(File.Owner fileOwner, PageIdentifier id, SourceHeaders headers) throws IOException;
+		SourcePage read(File.Owner fileOwner, PageIdentifier id, PageOptions options, SourceHeaders headers) throws IOException;
 	}
 
 	private PageNode node;

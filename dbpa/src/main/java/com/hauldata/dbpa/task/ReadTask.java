@@ -59,7 +59,7 @@ public class ReadTask extends FileTask {
 
 		context.files.assureNotOpen(((PhysicalPageIdentifier)page).getPath());
 		try {
-			SourcePage sourcePage = page.read(context.files, headers);
+			SourcePage sourcePage = page.read(context.files, options, headers);
 			Columns columns = this.columns.evaluate(sourcePage.getReadHeaders());
 			read(context, sourcePage, headers, columns, target);
 		}

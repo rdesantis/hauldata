@@ -48,7 +48,7 @@ public class OpenTask extends FileTask {
 		SourceHeaders headers = this.headers.evaluate();
 
 		try {
-			page.open(context.files, headers);
+			page.open(context.files, options, headers);
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();

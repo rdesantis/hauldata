@@ -20,6 +20,7 @@ import java.io.IOException;
 
 import com.hauldata.dbpa.file.File;
 import com.hauldata.dbpa.file.PageIdentifier;
+import com.hauldata.dbpa.file.PageOptions;
 import com.hauldata.dbpa.file.PhysicalPageIdentifier;
 import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.file.SourcePage;
@@ -35,8 +36,8 @@ public class SourceFilePage extends SourcePage {
 		}
 
 		@Override
-		public SourcePage open(File.Owner fileOwner, PageIdentifier id, SourceHeaders headers) throws IOException {
-			FlatFile file = (FlatFile)File.getForOpen(fileOwner, ((PhysicalPageIdentifier)id).getPath(), fileFactory);
+		public SourcePage open(File.Owner fileOwner, PageIdentifier id, PageOptions options, SourceHeaders headers) throws IOException {
+			FlatFile file = (FlatFile)File.getForOpen(fileOwner, ((PhysicalPageIdentifier)id).getPath(), fileFactory, options);
 			file.setHeaders(headers);
 			file.open();
 			file.setOpen(true);
@@ -51,8 +52,8 @@ public class SourceFilePage extends SourcePage {
 		}
 
 		@Override
-		public SourcePage read(File.Owner fileOwner, PageIdentifier id, SourceHeaders headers) throws IOException {
-			FlatFile file = (FlatFile)File.getForRead(fileOwner, ((PhysicalPageIdentifier)id).getPath(), fileFactory);
+		public SourcePage read(File.Owner fileOwner, PageIdentifier id, PageOptions options, SourceHeaders headers) throws IOException {
+			FlatFile file = (FlatFile)File.getForRead(fileOwner, ((PhysicalPageIdentifier)id).getPath(), fileFactory, options);
 			if (!file.isOpen()) {
 				file.setHeaders(headers);
 				file.open();

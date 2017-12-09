@@ -58,7 +58,7 @@ public class HtmlPageIdentifier implements PageIdentifier {
 	// Never called.
 	@Override public TargetPage create(Owner fileOwner, PageOptions options, TargetHeaders headers) { return null; }
 	@Override public TargetPage append(Owner fileOwner) { return null; }
-	@Override public SourcePage open(Owner fileOwner, SourceHeaders headers) { return null; }
+	@Override public SourcePage open(Owner fileOwner, PageOptions options, SourceHeaders headers) { return null; }
 	@Override public SourcePage load(Owner fileOwner) { return null; }
-	@Override public SourcePage read(Owner fileOwner, SourceHeaders headers) { return null; }
+	@Override public SourcePage read(Owner fileOwner, PageOptions options, SourceHeaders headers) { return null; }
 }

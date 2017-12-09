@@ -20,6 +20,7 @@ import java.io.IOException;
 
 import com.hauldata.dbpa.file.File;
 import com.hauldata.dbpa.file.PageIdentifier;
+import com.hauldata.dbpa.file.PageOptions;
 import com.hauldata.dbpa.file.PhysicalPageIdentifier;
 import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.file.SourcePage;
@@ -37,10 +38,10 @@ public class SourceSheetPage extends SourcePage {
 		}
 
 		@Override
-		public SourcePage open(File.Owner fileOwner, PageIdentifier id, SourceHeaders headers) throws IOException {
+		public SourcePage open(File.Owner fileOwner, PageIdentifier id, PageOptions options, SourceHeaders headers) throws IOException {
 
 			Book book = readBook(fileOwner, id);
-			Sheet sheet = (Sheet)Sheet.getForOpen(book, ((SheetIdentifier)id).getSheetName(), sheetFactory);
+			Sheet sheet = (Sheet)Sheet.getForOpen(book, ((SheetIdentifier)id).getSheetName(), sheetFactory, options);
 			sheet.setHeaders(headers);
 			sheet.open();
 			sheet.setOpen(true);
@@ -59,10 +60,10 @@ public class SourceSheetPage extends SourcePage {
 		}
 
 		@Override
-		public SourcePage read(File.Owner fileOwner, PageIdentifier id, SourceHeaders headers) throws IOException {
+		public SourcePage read(File.Owner fileOwner, PageIdentifier id, PageOptions options, SourceHeaders headers) throws IOException {
 
 			Book book = readBook(fileOwner, id);
-			Sheet sheet = (Sheet)Sheet.getForRead(book, ((SheetIdentifier)id).getSheetName(), sheetFactory);
+			Sheet sheet = (Sheet)Sheet.getForRead(book, ((SheetIdentifier)id).getSheetName(), sheetFactory, options);
 			if (!sheet.isOpen()) {
 				sheet.setHeaders(headers);
 				sheet.open();
@@ -77,7 +78,7 @@ public class SourceSheetPage extends SourcePage {
 
 		private Book readBook(File.Owner fileOwner, PageIdentifier id) throws IOException {
 
-			Book book = (Book)File.getForRead(fileOwner, ((PhysicalPageIdentifier)id).getPath(), bookFactory);
+			Book book = (Book)File.getForRead(fileOwner, ((PhysicalPageIdentifier)id).getPath(), bookFactory, null);
 			if (!book.isOpen()) {
 				book.open();
 				book.setOpen(true);

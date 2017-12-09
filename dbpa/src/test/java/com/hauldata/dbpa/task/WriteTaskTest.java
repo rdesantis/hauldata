@@ -95,9 +95,18 @@ public class WriteTaskTest extends TaskTest {
 				"		WRITE XLSX 'styledTest.xlsx' 'Body' STYLED \n" +
 				"		TABLE STYLE 'border-collapse:collapse' \n" +
 				"		BODY STYLE 'border:dashed orange;background-color:yellow' \n" +
-				"		HEADERS 'First', '<th style=\"color:red;border :  thick AquaMarine;background-color:LightBlue;font-weight:bold \">Second' FROM VALUES \n" +
+				"		HEADERS 'First', '<th style=\"color:red;border : thick solid AquaMarine;background-color:LightBlue;font-weight:bold \">Second' FROM VALUES \n" +
 				"		('cell A1', 'cell B1'), \n" +
 				"		('cell A2', 'cell B2') \n" +
+				"	END TASK \n" +
+				"	TASK AFTER \n" +
+				"		WRITE XLSX 'styledTest.xlsx' 'Head and Body' STYLED \n" +
+				"		TABLE STYLE 'border-collapse:collapse' \n" +
+				"		HEAD STYLE 'border:dotted lime' \n" +
+				"		BODY STYLE 'border:dashed orange;background-color:yellow' \n" +
+				"		HEADERS 'First', '<th style=\"color:red;border : thick solid AquaMarine;background-color:LightBlue;font-weight:bold \">Second', 'Third' FROM VALUES \n" +
+				"		('cell A1', 'cell B1', 'cell C1'), \n" +
+				"		('cell A2', 'cell B2', 'cell C2') \n" +
 				"	END TASK \n" +
 				"END TASK\n" +
 				"";

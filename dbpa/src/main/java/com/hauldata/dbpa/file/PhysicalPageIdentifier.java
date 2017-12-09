@@ -48,8 +48,8 @@ public abstract class PhysicalPageIdentifier implements PageIdentifier {
 	}
 
 	@Override
-	public SourcePage open(File.Owner fileOwner, SourceHeaders headers) throws IOException {
-		return handler.getSourceFactory().open(fileOwner, this, headers);
+	public SourcePage open(File.Owner fileOwner, PageOptions options, SourceHeaders headers) throws IOException {
+		return handler.getSourceFactory().open(fileOwner, this, options, headers);
 	}
 
 	@Override
@@ -58,7 +58,7 @@ public abstract class PhysicalPageIdentifier implements PageIdentifier {
 	}
 
 	@Override
-	public SourcePage read(File.Owner fileOwner, SourceHeaders headers) throws IOException {
-		return handler.getSourceFactory().read(fileOwner, this, headers);
+	public SourcePage read(File.Owner fileOwner, PageOptions options, SourceHeaders headers) throws IOException {
+		return handler.getSourceFactory().read(fileOwner, this, options, headers);
 	}
 }

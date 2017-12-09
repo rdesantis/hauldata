@@ -1312,13 +1312,15 @@ public abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(handler);
 
+			PageOptions options = parseFileOptions(false, handler);
+
 			SourceHeaderExpressions headers = parseSourceHeaders(KW.TASK.name());
 
 			ColumnExpressions columns = parseColumns();
 
 			columns.validate(headers);
 
-			return new ForReadTask(prologue, variables, page, headers, columns);
+			return new ForReadTask(prologue, variables, page, options, headers, columns);
 		}
 
 		@SuppressWarnings("unchecked")

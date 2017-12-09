@@ -134,8 +134,8 @@ public abstract class Node {
 	 * isOpen() on the node returns false.  The caller must physically open the entity
 	 * represented by the node and upon success call setOpen(true) on the node.
 	 */
-	public static Node getForOpen(Owner owner, Object key, Factory factory) {
-		return get(owner, key, false, true, factory, null, "re-open", false);
+	public static Node getForOpen(Owner owner, Object key, Factory factory, PageOptions options) {
+		return get(owner, key, false, true, factory, options, "re-open", false);
 	}
 
 	/**
@@ -156,8 +156,8 @@ public abstract class Node {
 	 * If isOpen() on the node returns false, the caller must physically open the entity
 	 * represented by the node and upon success call setOpen(true) on the node.
 	 */
-	public static Node getForRead(Owner owner, Object key, Factory factory) {
-		return get(owner, key, false, false, factory, null, "read", false);
+	public static Node getForRead(Owner owner, Object key, Factory factory, PageOptions options) {
+		return get(owner, key, false, false, factory, options, "read", false);
 	}
 
 	/**

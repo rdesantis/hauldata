@@ -21,6 +21,7 @@ import java.util.ArrayList;
 
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.PageIdentifier;
+import com.hauldata.dbpa.file.PageOptions;
 import com.hauldata.dbpa.file.PhysicalPageIdentifier;
 import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.file.SourcePage;
@@ -33,6 +34,7 @@ public class ForReadTask extends FileTask implements TaskSetParent {
 
 	private ArrayList<VariableBase> variables;
 	private PageIdentifierExpression page;
+	private PageOptions options;
 	private SourceHeaderExpressions headers;
 	private ColumnExpressions columns;
 	private NestedTaskSet taskSet;
@@ -41,12 +43,14 @@ public class ForReadTask extends FileTask implements TaskSetParent {
 			Task.Prologue prologue,
 			ArrayList<VariableBase> variables,
 			PageIdentifierExpression page,
+			PageOptions options,
 			SourceHeaderExpressions headers,
 			ColumnExpressions columns) {
 
 		super(prologue);
 		this.variables = variables;
 		this.page = page;
+		this.options = options;
 		this.headers = headers;
 		this.columns = columns;
 	}
@@ -71,7 +75,7 @@ public class ForReadTask extends FileTask implements TaskSetParent {
 		context.files.assureNotOpen(((PhysicalPageIdentifier)page).getPath());
 		Context nestedContext = null;
 		try {
-			SourcePage sourcePage = page.read(context.files, headers);
+			SourcePage sourcePage = page.read(context.files, options, headers);
 			Columns columns = this.columns.evaluate(sourcePage.getReadHeaders());
 
 			nestedContext = context.makeNestedContext(getName());
