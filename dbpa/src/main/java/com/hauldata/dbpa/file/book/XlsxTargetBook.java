@@ -14,7 +14,7 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.file;
+package com.hauldata.dbpa.file.book;
 
 import java.io.FileOutputStream;
 import java.io.IOException;

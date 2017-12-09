@@ -14,9 +14,16 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.file;
+package com.hauldata.dbpa.file.book;
 
 import java.io.IOException;
+
+import com.hauldata.dbpa.file.File;
+import com.hauldata.dbpa.file.PageIdentifier;
+import com.hauldata.dbpa.file.PageOptions;
+import com.hauldata.dbpa.file.PhysicalPageIdentifier;
+import com.hauldata.dbpa.file.TargetHeaders;
+import com.hauldata.dbpa.file.TargetPage;
 
 public class TargetSheetPage extends TargetPage {
 

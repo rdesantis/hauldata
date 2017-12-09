@@ -14,8 +14,12 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.file;
+package com.hauldata.dbpa.file.html;
 
+import com.hauldata.dbpa.file.Headers;
+import com.hauldata.dbpa.file.PageNode;
+import com.hauldata.dbpa.file.SourceHeaders;
+import com.hauldata.dbpa.file.TargetHeaders;
 import com.hauldata.dbpa.variable.Variable;
 
 public class Html implements PageNode {

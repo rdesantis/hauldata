@@ -14,7 +14,9 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.file;
+package com.hauldata.dbpa.file.html;
+
+import com.hauldata.dbpa.file.TargetPage;
 
 public class HtmlTargetPage extends TargetPage {
 

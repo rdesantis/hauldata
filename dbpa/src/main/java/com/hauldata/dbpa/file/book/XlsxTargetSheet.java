@@ -14,7 +14,7 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.file;
+package com.hauldata.dbpa.file.book;
 
 import java.awt.HeadlessException;
 import java.io.IOException;
@@ -44,7 +44,10 @@ import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFFont;
 
-import com.hauldata.dbpa.file.XlsxTargetBook.XlsxCellStyle;
+import com.hauldata.dbpa.file.PageOptions;
+import com.hauldata.dbpa.file.TargetHeaders;
+import com.hauldata.dbpa.file.book.XlsxTargetBook.XlsxCellStyle;
+import com.hauldata.dbpa.file.html.HtmlOptions;
 
 public class XlsxTargetSheet extends XlsxSheet {
 

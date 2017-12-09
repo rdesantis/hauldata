@@ -14,7 +14,14 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.file;
+package com.hauldata.dbpa.file.book;
+
+import com.hauldata.dbpa.file.Headers;
+import com.hauldata.dbpa.file.Node;
+import com.hauldata.dbpa.file.PageNode;
+import com.hauldata.dbpa.file.PageOptions;
+import com.hauldata.dbpa.file.SourceHeaders;
+import com.hauldata.dbpa.file.TargetHeaders;
 
 public abstract class Sheet extends Node implements PageNode {
 

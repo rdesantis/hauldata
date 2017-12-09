@@ -14,13 +14,18 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.file;
+package com.hauldata.dbpa.file.flat;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.hauldata.dbpa.file.File;
+import com.hauldata.dbpa.file.FileHandler;
+import com.hauldata.dbpa.file.Node;
+import com.hauldata.dbpa.file.PageOptions;
+import com.hauldata.dbpa.file.PageOptionsParser;
 import com.hauldata.util.tokenizer.Delimiter;
 import com.hauldata.util.tokenizer.EndOfLine;
 import com.hauldata.util.tokenizer.Quoted;

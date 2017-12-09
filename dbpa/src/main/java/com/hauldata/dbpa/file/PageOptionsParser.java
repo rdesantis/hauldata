@@ -32,7 +32,7 @@ import com.hauldata.util.tokenizer.BacktrackingTokenizerMark;
  * abstract base class implements the parsing.  This class provides for
  * options to be specified at multiple levels in a class hierarchy.
  */
-abstract class PageOptionsParser implements PageOptions.Parser {
+public abstract class PageOptionsParser implements PageOptions.Parser {
 
 	private Map<String[], PageOptions.Modifier> modifiers;
 

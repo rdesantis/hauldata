@@ -23,7 +23,7 @@ import com.hauldata.dbpa.datasource.Source;
 
 public abstract class TargetPage {
 
-	interface Factory {
+	public interface Factory {
 		/**
 		 * Physically create the file or sheet with the indicated headers and
 		 * return the page for writing.  Throw an exception if the file or

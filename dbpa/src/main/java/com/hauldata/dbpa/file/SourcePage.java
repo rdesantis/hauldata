@@ -24,7 +24,7 @@ import com.hauldata.util.tokenizer.EndOfLine;
 
 public abstract class SourcePage {
 
-	interface Factory {
+	public interface Factory {
 		/**
 		 * Physically open the file or sheet with the indicated headers and
 		 * return the page for reading.  Throw an exception if the file or

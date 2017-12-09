@@ -16,8 +16,8 @@
 
 package com.hauldata.dbpa.task;
 
-import com.hauldata.dbpa.file.HtmlPageIdentifier;
 import com.hauldata.dbpa.file.PageIdentifier;
+import com.hauldata.dbpa.file.html.HtmlPageIdentifier;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.variable.Variable;
 

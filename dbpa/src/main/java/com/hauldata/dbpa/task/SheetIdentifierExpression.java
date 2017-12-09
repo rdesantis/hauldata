@@ -19,7 +19,7 @@ package com.hauldata.dbpa.task;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.FileHandler;
 import com.hauldata.dbpa.file.PageIdentifier;
-import com.hauldata.dbpa.file.SheetIdentifier;
+import com.hauldata.dbpa.file.book.SheetIdentifier;
 import com.hauldata.dbpa.process.Context;
 
 public class SheetIdentifierExpression extends PhysicalPageIdentifierExpression {

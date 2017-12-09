@@ -14,12 +14,14 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.file;
+package com.hauldata.dbpa.file.book;
+
+import com.hauldata.dbpa.file.PageOptions;
 
 /**
  * Microsoft Excel XLSX worksheet
  */
-public abstract class XlsxSheet extends com.hauldata.dbpa.file.Sheet {
+public abstract class XlsxSheet extends com.hauldata.dbpa.file.book.Sheet {
 
 	static final String typeName = "XLSX sheet";
 	static public String typeName() { return typeName; }

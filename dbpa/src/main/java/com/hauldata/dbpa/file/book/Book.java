@@ -14,11 +14,14 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.file;
+package com.hauldata.dbpa.file.book;
 
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import com.hauldata.dbpa.file.File;
+import com.hauldata.dbpa.file.Node;
 
 public abstract class Book extends File implements Node.Owner {
 

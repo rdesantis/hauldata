@@ -25,7 +25,7 @@ import com.hauldata.dbpa.datasource.DataSource;
 import com.hauldata.dbpa.datasource.StatementDataSource;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.expression.StringConstant;
-import com.hauldata.dbpa.file.TextFile;
+import com.hauldata.dbpa.file.flat.TextFile;
 import com.hauldata.dbpa.process.Context;
 
 public class RunScriptTask extends Task {

@@ -14,10 +14,17 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.file;
+package com.hauldata.dbpa.file.html;
 
 import java.io.IOException;
 
+import com.hauldata.dbpa.file.File;
+import com.hauldata.dbpa.file.PageIdentifier;
+import com.hauldata.dbpa.file.PageOptions;
+import com.hauldata.dbpa.file.SourceHeaders;
+import com.hauldata.dbpa.file.SourcePage;
+import com.hauldata.dbpa.file.TargetHeaders;
+import com.hauldata.dbpa.file.TargetPage;
 import com.hauldata.dbpa.file.File.Owner;
 import com.hauldata.dbpa.variable.Variable;
 

@@ -14,17 +14,24 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.file;
+package com.hauldata.dbpa.file.flat;
 
 import java.io.IOException;
 
+import com.hauldata.dbpa.file.File;
+import com.hauldata.dbpa.file.PageIdentifier;
+import com.hauldata.dbpa.file.PageOptions;
+import com.hauldata.dbpa.file.PhysicalPageIdentifier;
+import com.hauldata.dbpa.file.TargetHeaders;
+import com.hauldata.dbpa.file.TargetPage;
+
 public class TargetFilePage extends TargetPage {
 
-	protected static class Factory implements TargetPage.Factory {
+	public static class Factory implements TargetPage.Factory {
 
 		private File.Factory fileFactory;
 
-		Factory(File.Factory fileFactory) {
+		public Factory(File.Factory fileFactory) {
 			this.fileFactory = fileFactory;
 		}
 

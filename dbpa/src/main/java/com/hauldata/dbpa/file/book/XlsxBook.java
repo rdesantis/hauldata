@@ -14,9 +14,14 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.file;
+package com.hauldata.dbpa.file.book;
 
 import java.nio.file.Path;
+
+import com.hauldata.dbpa.file.File;
+import com.hauldata.dbpa.file.FileHandler;
+import com.hauldata.dbpa.file.Node;
+import com.hauldata.dbpa.file.PageOptions;
 
 /**
  * Microsoft Excel XLSX workbook

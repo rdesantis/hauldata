@@ -14,13 +14,16 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.file;
+package com.hauldata.dbpa.file.html;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 import com.hauldata.dbpa.expression.Expression;
+import com.hauldata.dbpa.file.PageOptions;
+import com.hauldata.dbpa.file.PageOptionsParser;
+import com.hauldata.dbpa.file.PageOptions.Modifier;
 
 public class HtmlOptions implements PageOptions {
 

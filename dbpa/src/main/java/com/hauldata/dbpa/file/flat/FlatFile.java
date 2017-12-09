@@ -14,9 +14,16 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.file;
+package com.hauldata.dbpa.file.flat;
 
 import java.nio.file.Path;
+
+import com.hauldata.dbpa.file.File;
+import com.hauldata.dbpa.file.Headers;
+import com.hauldata.dbpa.file.PageNode;
+import com.hauldata.dbpa.file.PageOptions;
+import com.hauldata.dbpa.file.SourceHeaders;
+import com.hauldata.dbpa.file.TargetHeaders;
 
 public abstract class FlatFile extends File implements PageNode {
 

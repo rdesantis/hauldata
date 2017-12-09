@@ -14,7 +14,7 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.file;
+package com.hauldata.dbpa.file.flat;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -27,6 +27,9 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.hauldata.dbpa.file.PageOptions;
+import com.hauldata.dbpa.file.PageOptionsParser;
 
 public abstract class TextFile extends FlatFile {
 

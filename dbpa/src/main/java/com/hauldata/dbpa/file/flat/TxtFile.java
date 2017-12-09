@@ -14,7 +14,7 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.file;
+package com.hauldata.dbpa.file.flat;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -22,6 +22,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
+import com.hauldata.dbpa.file.File;
+import com.hauldata.dbpa.file.FileHandler;
+import com.hauldata.dbpa.file.Node;
+import com.hauldata.dbpa.file.PageOptions;
+import com.hauldata.dbpa.file.SourceHeaders;
+import com.hauldata.dbpa.file.TargetHeaders;
 import com.hauldata.util.tokenizer.EndOfLine;
 
 /**
