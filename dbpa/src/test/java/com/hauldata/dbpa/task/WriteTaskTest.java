@@ -67,9 +67,12 @@ public class WriteTaskTest extends TaskTest {
 				"	END TASK \n" +
 				"END TASK\n" +
 				"TASK WriteStyledXls \n" +
-				"	WRITE XLSX 'styledTest.xlsx' 'Styled' STYLED TABLE STYLE 'border-collapse:collapse;border:solid red' BODY STYLE 'border:solid blue' CELL STYLE 'border: 1px solid black' \n" +
-				"	HEADERS 'First', 'Second' \n" +
-				"	FROM VALUES ('<td style=\"font-style:italic\">cell A1', 'cell B1'), ('<tr style=\"background-color:#4CAF50\">cell A2', '<td style=\"border:double\">cell B2') \n" +
+				"	WRITE XLSX 'styledTest.xlsx' 'Styled' STYLED \n" +
+				"	TABLE STYLE 'border-collapse:collapse;border:solid red' \n" +
+				"	HEAD STYLE 'background-color:LightBlue;font-weight:bold' BODY STYLE 'border:solid blue' CELL STYLE 'border: thin solid black' \n" +
+				"	HEADERS 'First', '<th style=\"color:red\">Second' FROM VALUES \n" +
+				"	('<td style=\"font-style:italic;border-bottom: medium dashed;text-decoration:line-through\">cell A1', 'cell B1'), \n" +
+				"	('<tr style=\"background-color:LemonChiffon\">cell A2', '<td style=\"border:double\">cell B2') \n" +
 				"END TASK\n" +
 				"";
 
