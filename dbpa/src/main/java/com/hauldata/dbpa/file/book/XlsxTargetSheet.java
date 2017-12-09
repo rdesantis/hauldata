@@ -58,11 +58,6 @@ public class XlsxTargetSheet extends XlsxSheet {
 
 	private ResolvedSheetStyles sheetStyles;
 
-	// TODO: These should be owned at the book level, not sheet!
-	private Map<StylesWithFormatting, XSSFCellStyle> stylesUsed;
-	private Map<FontStyles, XSSFFont> fontsUsed;
-	private Map<Integer, XSSFColor> colorsUsed;
-
 	public XlsxTargetSheet(Book owner, String name, PageOptions options) {
 		super(owner, name, options);
 
@@ -70,10 +65,6 @@ public class XlsxTargetSheet extends XlsxSheet {
 		rowIndex = 0;
 		rowValues = new ArrayList<Object>();
 		columnCount = 0;
-
-		stylesUsed = new HashMap<StylesWithFormatting, XSSFCellStyle>();
-		fontsUsed = new HashMap<FontStyles, XSSFFont>();
-		colorsUsed = new HashMap<Integer, XSSFColor>();
 	}
 
 	public static class TargetOptions extends HtmlOptions {
@@ -117,7 +108,7 @@ public class XlsxTargetSheet extends XlsxSheet {
 
 		sheetStyles = new ResolvedSheetStyles(getTargetOptions());
 
-		sheet = ((XlsxTargetBook)owner).getBook().createSheet(getName());
+		sheet = getOwner().getBook().createSheet(getName());
 		sheet.trackAllColumnsForAutoSizing();
 
 		// The following is duplicated in DsvFile.create() and should probably be moved to common code
@@ -223,14 +214,14 @@ public class XlsxTargetSheet extends XlsxSheet {
 		}
 		else if (object instanceof Short || object instanceof Integer) {
 			cell.setCellValue(((Number)object).doubleValue());
-			cell.setCellStyle(((XlsxTargetBook)owner).getCellStyle(XlsxCellStyle.integer));
+			cell.setCellStyle(getOwner().getCellStyle(XlsxCellStyle.integer));
 		}
 		else if (object instanceof Long || object instanceof BigInteger) {
 			cell.setCellValue(object.toString());
 		}
 		else if (object instanceof BigDecimal && ((BigDecimal)object).scale() == 2) {
 			cell.setCellValue(((Number)object).doubleValue());
-			cell.setCellStyle(((XlsxTargetBook)owner).getCellStyle(XlsxCellStyle.money));
+			cell.setCellStyle(getOwner().getCellStyle(XlsxCellStyle.money));
 		}
 		else if (object instanceof Number) {
 			cell.setCellValue(((Number)object).doubleValue());
@@ -261,10 +252,10 @@ public class XlsxTargetSheet extends XlsxSheet {
 
 			CellStyle style = null;
 			if (time.equals(LocalTime.MIDNIGHT)) {
-				style = ((XlsxTargetBook)owner).getCellStyle(XlsxCellStyle.date);
+				style = getOwner().getCellStyle(XlsxCellStyle.date);
 			}
 			else {
-				style = ((XlsxTargetBook)owner).getCellStyle(XlsxCellStyle.datetime);
+				style = getOwner().getCellStyle(XlsxCellStyle.datetime);
 			}
 			cell.setCellStyle(style);
 		}
@@ -289,11 +280,15 @@ public class XlsxTargetSheet extends XlsxSheet {
 
 		StylesWithFormatting stylesWithFormatting = new StylesWithFormatting(styles, formatIndex);
 
-		CellStyle finalStyle = stylesWithFormatting.getCellStyle(((XlsxTargetBook)owner).getBook(), stylesUsed, fontsUsed, colorsUsed);
+		CellStyle finalStyle = stylesWithFormatting.getCellStyle(getOwner().getBook(), getOwner().stylesUsed, getOwner().fontsUsed, getOwner().colorsUsed);
 
 		if (finalStyle != originalStyle) {
 			cell.setCellStyle(finalStyle);
 		}
+	}
+
+	private XlsxTargetBook getOwner() {
+		return (XlsxTargetBook)owner;
 	}
 
 	@Override

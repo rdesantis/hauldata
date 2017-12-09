@@ -19,14 +19,23 @@ package com.hauldata.dbpa.file.book;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
+import org.apache.poi.xssf.usermodel.XSSFFont;
 
 public class XlsxTargetBook extends XlsxBook {
 
 	private FileOutputStream out;
 	private SXSSFWorkbook book;
+
+	Map<StylesWithFormatting, XSSFCellStyle> stylesUsed;
+	Map<FontStyles, XSSFFont> fontsUsed;
+	Map<Integer, XSSFColor> colorsUsed;
 
 	public enum XlsxCellStyle { date, datetime, integer, money };
 
@@ -41,6 +50,10 @@ public class XlsxTargetBook extends XlsxBook {
 
 		out = null;
 		book = null;
+
+		stylesUsed = new HashMap<StylesWithFormatting, XSSFCellStyle>();
+		fontsUsed = new HashMap<FontStyles, XSSFFont>();
+		colorsUsed = new HashMap<Integer, XSSFColor>();
 	}
 
 	public SXSSFWorkbook getBook() {

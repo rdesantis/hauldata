@@ -23,7 +23,6 @@ import java.util.Optional;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.PageOptions;
 import com.hauldata.dbpa.file.PageOptionsParser;
-import com.hauldata.dbpa.file.PageOptions.Modifier;
 
 public class HtmlOptions implements PageOptions {
 

@@ -67,12 +67,38 @@ public class WriteTaskTest extends TaskTest {
 				"	END TASK \n" +
 				"END TASK\n" +
 				"TASK WriteStyledXls \n" +
-				"	WRITE XLSX 'styledTest.xlsx' 'Styled' STYLED \n" +
-				"	TABLE STYLE 'border-collapse:collapse;border:solid red' \n" +
-				"	HEAD STYLE 'background-color:LightBlue;font-weight:bold' BODY STYLE 'border:solid blue' CELL STYLE 'border: thin solid red' \n" +
-				"	HEADERS 'First', '<th style=\"color:red;border :  thick AquaMarine \">Second' FROM VALUES \n" +
-				"	('<td style=\"font-style:italic;border-bottom: medium dashed purple;text-decoration:line-through\">cell A1', 'cell B1'), \n" +
-				"	('<tr style=\"background-color:LemonChiffon\">cell A2', '<td style=\"border:double\">cell B2') \n" +
+				"	DO \n" +
+				"	TASK \n" +
+				"		WRITE XLSX 'styledTest.xlsx' 'Mixed' STYLED \n" +
+				"		TABLE STYLE 'border-collapse:collapse;border:solid red' \n" +
+				"		HEAD STYLE 'background-color:LightBlue;font-weight:bold' BODY STYLE 'border:solid blue' CELL STYLE 'border: thin solid red' \n" +
+				"		HEADERS 'First', '<th style=\"color:red;border :  thick AquaMarine \">Second' FROM VALUES \n" +
+				"		('<td style=\"font-style:italic;border-bottom: medium dashed purple;text-decoration:line-through\">cell A1', 'cell B1'), \n" +
+				"		('<tr style=\"background-color:LemonChiffon\">cell A2', '<td style=\"border:double\">cell B2') \n" +
+				"	END TASK \n" +
+				"	TASK AFTER \n" +
+				"		WRITE XLSX 'styledTest.xlsx' 'Table' \n" +
+				"		TABLE STYLE 'border-collapse:collapse;border:solid red' \n" +
+				"		HEADERS 'First', 'Second' FROM VALUES \n" +
+				"		('cell A1', 'cell B1'), \n" +
+				"		('cell A2', 'cell B2') \n" +
+				"	END TASK \n" +
+				"	TASK AFTER \n" +
+				"		WRITE XLSX 'styledTest.xlsx' 'Head' \n" +
+				"		TABLE STYLE 'border-collapse:collapse' \n" +
+				"		HEAD STYLE 'border:dotted lime' \n" +
+				"		HEADERS 'First', 'Second' FROM VALUES \n" +
+				"		('cell A1', 'cell B1'), \n" +
+				"		('cell A2', 'cell B2') \n" +
+				"	END TASK \n" +
+				"	TASK AFTER \n" +
+				"		WRITE XLSX 'styledTest.xlsx' 'Body' STYLED \n" +
+				"		TABLE STYLE 'border-collapse:collapse' \n" +
+				"		BODY STYLE 'border:dashed orange;background-color:yellow' \n" +
+				"		HEADERS 'First', '<th style=\"color:red;border :  thick AquaMarine;background-color:LightBlue;font-weight:bold \">Second' FROM VALUES \n" +
+				"		('cell A1', 'cell B1'), \n" +
+				"		('cell A2', 'cell B2') \n" +
+				"	END TASK \n" +
 				"END TASK\n" +
 				"";
 

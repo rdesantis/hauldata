@@ -18,7 +18,6 @@ package com.hauldata.dbpa.file.html;
 
 import java.io.IOException;
 
-import com.hauldata.dbpa.file.File;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.PageOptions;
 import com.hauldata.dbpa.file.SourceHeaders;
