@@ -529,24 +529,51 @@ class ValueStyles {
 	 * <p>
 	 * If object is a string that starts with the indicated HTML tag
 	 * including a style attribute, value returns the string with
-	 * the tag removed, and styles returns a non-null Styles object
-	 * reflecting the styling.
+	 * the tag removed, converted if possible to a numeric type,
+	 * and styles returns a non-null Styles object reflecting the styling.
 	 * <p>
 	 * Otherwise, value returns the original object and styles returns null.
 	 */
 	public static ValueStyles parse(TableTag tag, Object object) {
 
+		Styles styles = null;
 		if (object instanceof String) {
 			Matcher matcher = patterns[tag.ordinal()].matcher((String)object);
 
 			if (matcher.find()) {
-				String value = matcher.group(2);
-				String styling = matcher.group(1);
-				Styles styles = Styles.parse(styling);
-				return new ValueStyles(value, styles);
+				object = objectOf(matcher.group(2));
+				styles = Styles.parse(matcher.group(1));
 			}
 		}
-		return new ValueStyles(object, null);
+		return new ValueStyles(object, styles);
+	}
+
+	private static Object objectOf(String value) {
+
+		final Pattern pattern = Pattern.compile("\\A([\\+\\-]?\\d+)(\\.\\d+)?\\z");
+
+		Matcher matcher = pattern.matcher(value);
+		if (matcher.find()) {
+			String wholePart = matcher.group(1);
+			String decimalPart = matcher.group(2);
+
+			if (decimalPart == null) {
+				if (wholePart.length() <= 9) {
+					return new Integer(wholePart);
+				}
+				else if (wholePart.length() <= 19) {
+					return new Long(wholePart);
+				}
+				else {
+					return new BigInteger(wholePart);
+				}
+			}
+			else {
+				return new BigDecimal(value);
+			}
+		}
+
+		return value;
 	}
 }
 

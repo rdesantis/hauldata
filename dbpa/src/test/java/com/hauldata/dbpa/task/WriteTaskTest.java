@@ -119,7 +119,21 @@ public class WriteTaskTest extends TaskTest {
 				"	TASK AFTER \n" +
 				"		WRITE XLSX 'styledTest.xlsx' 'Answer' STYLED \n" +
 				"		NO HEADERS FROM VALUES \n" +
-				"		('The answer is', '<td style=\"border-bottom:double\">42') \n" +
+				"		('The answer is', '<td style=\"border-bottom:double\">42'), \n" +
+				"		('No, it''s ', '<td style=\"border-bottom:double\">1234567890'), \n" +
+				"		('No, it''s ', '<td style=\"border-bottom:double\">12345678901234567890'), \n" +
+				"		('No, it''s ', '<td style=\"border-bottom:double\">123.45'), \n" +
+				"		('No, it''s ', '<td style=\"border-bottom:double\">1.50'), \n" +
+				"		('No, it''s ', '<td style=\"border-bottom:double\">3.00'), \n" +
+				"		('No, it''s ', '<td style=\"border-bottom:double\">1.23456'), \n" +
+				"		('No, it''s ', '<td style=\"border-bottom:double\">3.14159265358979323846264'), \n" +
+				"		(NULL, NULL), \n" +
+				"		('<tr style=\"background-color: Beige\">', 123), \n" +
+				"		('<tr style=\"background-color: Beige\">', 4567), \n" +
+				"		('<tr style=\"background-color: DimGrey\">', DATEADD(DAY, 0, '12/31/1999')), \n" +
+				"		('<tr style=\"background-color: DimGrey\">', DATEADD(DAY, 0, '12/9/2017')), \n" +
+				"		('<tr style=\"background-color: Fuchsia\">', DATEADD(DAY, 0, '12/9/2017 1:23')), \n" +
+				"		('<tr style=\"background-color: Fuchsia\">', 'text') \n" +
 				"	END TASK \n" +
 				"END TASK\n" +
 				"";
