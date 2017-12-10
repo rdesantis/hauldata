@@ -1241,7 +1241,13 @@ class Styles extends AnyStyles {
 					else if (keyword.equals("border-top-style")) {
 						result.topBorderStyle = getBorderStyle(value);
 					}
+					else if (keyword.equals("border-top-width")) {
+						result.topBorderWidth = getBorderWidth(value);
+					}
 					else if (keyword.equals("border-width")) {
+						result.bottomBorderWidth = getBorderWidth(value);
+						result.leftBorderWidth = getBorderWidth(value);
+						result.rightBorderWidth = getBorderWidth(value);
 						result.topBorderWidth = getBorderWidth(value);
 					}
 					else if (keyword.equals("color")) {
