@@ -637,29 +637,17 @@ class SheetStyles {
 
 		switch (rowPosition) {
 		case HEADER: {
-
-			result.topBorderWidth = Styles.resolve(Styles.topBorderWidthGetter, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
-			result.topBorderStyle = Styles.resolve(Styles.topBorderStyleGetter, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
-			result.topBorderColor = Styles.resolve(Styles.topBorderColorGetter, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
-
+			resolveTopBorder(result, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
 			break;
 		}
 		case TOP: {
-
-			result.topBorderWidth = Styles.resolve(Styles.topBorderWidthGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
-			result.topBorderStyle = Styles.resolve(Styles.topBorderStyleGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
-			result.topBorderColor = Styles.resolve(Styles.topBorderColorGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
-
+			resolveTopBorder(result, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
 			break;
 		}
 		case NEXT:
 		case MIDDLE:
 		case BOTTOM: {
-
-			result.topBorderWidth = Styles.resolve(Styles.topBorderWidthGetter, cellStyles, rowStyles);
-			result.topBorderStyle = Styles.resolve(Styles.topBorderStyleGetter, cellStyles, rowStyles);
-			result.topBorderColor = Styles.resolve(Styles.topBorderColorGetter, cellStyles, rowStyles);
-
+			resolveTopBorder(result, cellStyles, rowStyles);
 			break;
 		}
 		}
@@ -671,16 +659,12 @@ class SheetStyles {
 			switch (columnPosition) {
 			case SINGLE:
 			case LEFT:{
-				result.leftBorderWidth = Styles.resolve(Styles.leftBorderWidthGetter, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
-				result.leftBorderStyle = Styles.resolve(Styles.leftBorderStyleGetter, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
-				result.leftBorderColor = Styles.resolve(Styles.leftBorderColorGetter, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
+				resolveLeftBorder(result, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
 				break;
 			}
 			case MIDDLE:
 			case RIGHT: {
-				result.leftBorderWidth = Styles.resolve(Styles.leftBorderWidthGetter, cellStyles);
-				result.leftBorderStyle = Styles.resolve(Styles.leftBorderStyleGetter, cellStyles);
-				result.leftBorderColor = Styles.resolve(Styles.leftBorderColorGetter, cellStyles);
+				resolveLeftBorder(result, cellStyles);
 				break;
 			}
 			}
@@ -688,28 +672,17 @@ class SheetStyles {
 			switch (columnPosition) {
 			case LEFT:
 			case MIDDLE: {
-				result.rightBorderWidth = Styles.resolve(Styles.rightBorderWidthGetter, cellStyles, headCellStyles);
-				result.rightBorderStyle = Styles.resolve(Styles.rightBorderStyleGetter, cellStyles, headCellStyles);
-				result.rightBorderColor = Styles.resolve(Styles.rightBorderColorGetter, cellStyles, headCellStyles);
+				resolveRightBorder(result, cellStyles, headCellStyles);
 				break;
 			}
 			case SINGLE:
 			case RIGHT: {
-				result.rightBorderWidth = Styles.resolve(Styles.rightBorderWidthGetter, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
-				result.rightBorderStyle = Styles.resolve(Styles.rightBorderStyleGetter, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
-				result.rightBorderColor = Styles.resolve(Styles.rightBorderColorGetter, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
+				resolveRightBorder(result, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
 				break;
 			}
 			}
 
-			result.backgroundColor = Styles.resolve(Styles.backgroundColorGetter, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
-
-			result.font.color = Styles.resolve(FontStyles.colorGetter, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
-			result.font.fontStyle = Styles.resolve(FontStyles.fontStyleGetter, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
-			result.font.fontWeight = Styles.resolve(FontStyles.fontWeightGetter, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
-			result.font.textDecorationLine = Styles.resolve(FontStyles.textDecorationLineGetter, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
-			result.font.textDecorationStyle = Styles.resolve(FontStyles.textDecorationStyleGetter, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
-
+			resolveNonBorders(result, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
 			break;
 		}
 		case NEXT:
@@ -719,16 +692,12 @@ class SheetStyles {
 			switch (columnPosition) {
 			case SINGLE:
 			case LEFT:{
-				result.leftBorderWidth = Styles.resolve(Styles.leftBorderWidthGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
-				result.leftBorderStyle = Styles.resolve(Styles.leftBorderStyleGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
-				result.leftBorderColor = Styles.resolve(Styles.leftBorderColorGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
+				resolveLeftBorder(result, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
 				break;
 			}
 			case MIDDLE:
 			case RIGHT: {
-				result.leftBorderWidth = Styles.resolve(Styles.leftBorderWidthGetter, cellStyles);
-				result.leftBorderStyle = Styles.resolve(Styles.leftBorderStyleGetter, cellStyles);
-				result.leftBorderColor = Styles.resolve(Styles.leftBorderColorGetter, cellStyles);
+				resolveLeftBorder(result, cellStyles);
 				break;
 			}
 			}
@@ -736,28 +705,17 @@ class SheetStyles {
 			switch (columnPosition) {
 			case LEFT:
 			case MIDDLE: {
-				result.rightBorderWidth = Styles.resolve(Styles.rightBorderWidthGetter, cellStyles, bodyCellStyles);
-				result.rightBorderStyle = Styles.resolve(Styles.rightBorderStyleGetter, cellStyles, bodyCellStyles);
-				result.rightBorderColor = Styles.resolve(Styles.rightBorderColorGetter, cellStyles, bodyCellStyles);
+				resolveRightBorder(result, cellStyles, bodyCellStyles);
 				break;
 			}
 			case SINGLE:
 			case RIGHT: {
-				result.rightBorderWidth = Styles.resolve(Styles.rightBorderWidthGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
-				result.rightBorderStyle = Styles.resolve(Styles.rightBorderStyleGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
-				result.rightBorderColor = Styles.resolve(Styles.rightBorderColorGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
+				resolveRightBorder(result, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
 				break;
 			}
 			}
 
-			result.backgroundColor = Styles.resolve(Styles.backgroundColorGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
-
-			result.font.color = Styles.resolve(FontStyles.colorGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
-			result.font.fontStyle = Styles.resolve(FontStyles.fontStyleGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
-			result.font.fontWeight = Styles.resolve(FontStyles.fontWeightGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
-			result.font.textDecorationLine = Styles.resolve(FontStyles.textDecorationLineGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
-			result.font.textDecorationStyle = Styles.resolve(FontStyles.textDecorationStyleGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
-
+			resolveNonBorders(result, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
 			break;
 		}
 		}
@@ -766,46 +724,83 @@ class SheetStyles {
 
 		switch (rowPosition) {
 		case HEADER: {
-
-			result.bottomBorderWidth = Styles.resolve(Styles.resolve(
-					Styles.bottomBorderWidthGetter, cellStyles, headCellStyles, rowStyles, headStyles),
-					Styles.topBorderWidthGetter, bodyCellStyles, bodyStyles);
-			result.bottomBorderStyle = Styles.resolve(Styles.resolve(
-					Styles.bottomBorderStyleGetter, cellStyles, headCellStyles, rowStyles, headStyles),
-					Styles.topBorderStyleGetter, bodyCellStyles, bodyStyles);
-			result.bottomBorderColor = Styles.resolve(Styles.resolve(
-					Styles.bottomBorderColorGetter, cellStyles, headCellStyles, rowStyles, headStyles),
-					Styles.topBorderColorGetter, bodyCellStyles, bodyStyles);
-
+			Styles[] bottomStyles = new Styles[] { cellStyles, headCellStyles, rowStyles, headStyles };
+			Styles[] topStyles = new Styles[] { bodyCellStyles, bodyStyles };
+			resolveBottomBorder(result, bottomStyles, topStyles);
 			break;
 		}
 		case NEXT:
 		case TOP:
 		case MIDDLE: {
-
-			result.bottomBorderWidth = Styles.resolve(Styles.resolve(
-					Styles.bottomBorderWidthGetter, cellStyles, bodyCellStyles, rowStyles),
-					Styles.topBorderWidthGetter, bodyCellStyles);
-			result.bottomBorderStyle = Styles.resolve(Styles.resolve(
-					Styles.bottomBorderStyleGetter, cellStyles, bodyCellStyles, rowStyles),
-					Styles.topBorderStyleGetter, bodyCellStyles);
-			result.bottomBorderColor = Styles.resolve(Styles.resolve(
-					Styles.bottomBorderColorGetter, cellStyles, bodyCellStyles, rowStyles),
-					Styles.topBorderColorGetter, bodyCellStyles);
-
+			Styles[] bottomStyles = new Styles[] { cellStyles, bodyCellStyles, rowStyles };
+			Styles[] topStyles = new Styles[] { bodyCellStyles };
+			resolveBottomBorder(result, bottomStyles, topStyles);
 			break;
 		}
 		case BOTTOM: {
-
-			result.bottomBorderWidth = Styles.resolve(Styles.bottomBorderWidthGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
-			result.bottomBorderStyle = Styles.resolve(Styles.bottomBorderStyleGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
-			result.bottomBorderColor = Styles.resolve(Styles.bottomBorderColorGetter, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
-
+			resolveBottomBorder(result, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
 			break;
 		}
 		}
 
 		return result;
+	}
+
+	private void resolveTopBorder(Styles result, Styles... stylesArray) {
+		result.topBorderWidth = resolve(Styles.topBorderWidthGetter, stylesArray);
+		result.topBorderStyle = resolve(Styles.topBorderStyleGetter, stylesArray);
+		result.topBorderColor = resolve(Styles.topBorderColorGetter, stylesArray);
+	}
+
+	private void resolveLeftBorder(Styles result, Styles... stylesArray) {
+		result.leftBorderWidth = resolve(Styles.leftBorderWidthGetter, stylesArray);
+		result.leftBorderStyle = resolve(Styles.leftBorderStyleGetter, stylesArray);
+		result.leftBorderColor = resolve(Styles.leftBorderColorGetter, stylesArray);
+	}
+
+	private void resolveRightBorder(Styles result, Styles... stylesArray) {
+		result.rightBorderWidth = resolve(Styles.rightBorderWidthGetter, stylesArray);
+		result.rightBorderStyle = resolve(Styles.rightBorderStyleGetter, stylesArray);
+		result.rightBorderColor = resolve(Styles.rightBorderColorGetter, stylesArray);
+	}
+
+	private void resolveBottomBorder(Styles result, Styles... stylesArray) {
+		result.bottomBorderWidth = resolve(Styles.bottomBorderWidthGetter, stylesArray);
+		result.bottomBorderStyle = resolve(Styles.bottomBorderStyleGetter, stylesArray);
+		result.bottomBorderColor = resolve(Styles.bottomBorderColorGetter, stylesArray);
+	}
+
+	private void resolveBottomBorder(Styles result, Styles[] bottomStylesArray, Styles[] topStylesArray) {
+		result.bottomBorderWidth = resolve(resolve(Styles.bottomBorderWidthGetter, bottomStylesArray), Styles.topBorderWidthGetter, topStylesArray);
+		result.bottomBorderStyle = resolve(resolve(Styles.bottomBorderStyleGetter, bottomStylesArray), Styles.topBorderStyleGetter, topStylesArray);
+		result.bottomBorderColor = resolve(resolve(Styles.bottomBorderColorGetter, bottomStylesArray), Styles.topBorderColorGetter, topStylesArray);
+	}
+
+	private void resolveNonBorders(Styles result, Styles... stylesArray) {
+		result.backgroundColor = resolve(Styles.backgroundColorGetter, stylesArray);
+
+		result.font.color = resolve(FontStyles.colorGetter, stylesArray);
+		result.font.fontStyle = resolve(FontStyles.fontStyleGetter, stylesArray);
+		result.font.fontWeight = resolve(FontStyles.fontWeightGetter, stylesArray);
+		result.font.textDecorationLine = resolve(FontStyles.textDecorationLineGetter, stylesArray);
+		result.font.textDecorationStyle = resolve(FontStyles.textDecorationStyleGetter, stylesArray);
+	}
+
+	@SafeVarargs
+	private static <Type> Type resolve(AnyStyles.StylesGetter<Type> getter, Styles... stylesArray) {
+		for (Styles styles : stylesArray) {
+			if (styles != null) {
+				Type result = getter.get(styles);
+				if (result != null) {
+					return result;
+				}
+			}
+		}
+		return null;
+	}
+
+	private static <Type> Type resolve(Type firstStyle, AnyStyles.StylesGetter<Type> getter, Styles... stylesArray) {
+		return (firstStyle != null) ? firstStyle : resolve(getter, stylesArray);
 	}
 }
 
@@ -1445,22 +1440,5 @@ class Styles extends AnyStyles {
 		case "thick": return BorderStyle.THICK;
 		default: return null;
 		}
-	}
-
-	@SafeVarargs
-	public static <Type> Type resolve(StylesGetter<Type> getter, Styles... stylesArray) {
-		for (Styles styles : stylesArray) {
-			if (styles != null) {
-				Type result = getter.get(styles);
-				if (result != null) {
-					return result;
-				}
-			}
-		}
-		return null;
-	}
-
-	public static <Type> Type resolve(Type firstStyle, StylesGetter<Type> getter, Styles... stylesArray) {
-		return (firstStyle != null) ? firstStyle : resolve(getter, stylesArray);
 	}
 }
