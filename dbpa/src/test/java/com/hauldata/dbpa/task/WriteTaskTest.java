@@ -120,9 +120,12 @@ public class WriteTaskTest extends TaskTest {
 				"		WRITE XLSX 'styledTest.xlsx' 'Answer' STYLED \n" +
 				"		NO HEADERS FROM VALUES \n" +
 				"		('The answer is', '<td style=\"border-bottom:double\">42'), \n" +
+				"		('No, it''s ', '<td style=\"border-bottom:double\">-42'), \n" +
 				"		('No, it''s ', '<td style=\"border-bottom:double\">1234567890'), \n" +
+				"		('No, it''s ', '<td style=\"border-bottom:double\">-1234567890'), \n" +
 				"		('No, it''s ', '<td style=\"border-bottom:double\">12345678901234567890'), \n" +
 				"		('No, it''s ', '<td style=\"border-bottom:double\">123.45'), \n" +
+				"		('No, it''s ', '<td style=\"border-bottom:double\">-123.45'), \n" +
 				"		('No, it''s ', '<td style=\"border-bottom:double\">1.50'), \n" +
 				"		('No, it''s ', '<td style=\"border-bottom:double\">3.00'), \n" +
 				"		('No, it''s ', '<td style=\"border-bottom:double\">1.23456'), \n" +
