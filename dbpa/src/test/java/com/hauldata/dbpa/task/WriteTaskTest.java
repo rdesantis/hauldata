@@ -108,6 +108,19 @@ public class WriteTaskTest extends TaskTest {
 				"		('cell A1', 'cell B1', 'cell C1'), \n" +
 				"		('cell A2', 'cell B2', 'cell C2') \n" +
 				"	END TASK \n" +
+				"	TASK AFTER \n" +
+				"		WRITE XLSX 'styledTest.xlsx' 'px' STYLED \n" +
+				"		TABLE STYLE 'border-collapse:collapse' \n" +
+				"		NO HEADERS FROM VALUES \n" +
+				"		('<td style=\"border: 0px solid\">0px', NULL, '<td style=\"border: 1px solid\">1px', NULL, '<td style=\"border: 2px solid\">2px'), \n" +
+				"		(NULL, '<td style=\"border: 3px solid\">3px', NULL, '<td style=\"border: 4px solid\">4px', NULL), \n" +
+				"		('<td style=\"border: 5px solid\">5px', NULL, '<td style=\"border: 10px solid\">10px', NULL, '<td style=\"border: 99999px solid\">99999px') \n" +
+				"	END TASK \n" +
+				"	TASK AFTER \n" +
+				"		WRITE XLSX 'styledTest.xlsx' 'Answer' STYLED \n" +
+				"		NO HEADERS FROM VALUES \n" +
+				"		('The answer is', '<td style=\"border-bottom:double\">42') \n" +
+				"	END TASK \n" +
 				"END TASK\n" +
 				"";
 

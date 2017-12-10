@@ -419,6 +419,10 @@ class StylesWithFormatting {
 
 	private static BorderStyle resolveBorderStyle(BorderStyle borderStyle, BorderStyle borderWidth) {
 
+		if (borderWidth == BorderStyle.NONE) {
+			return BorderStyle.NONE;
+		}
+
 		switch (borderStyle) {
 		case MEDIUM:
 			return (borderWidth != null) ? borderWidth : borderStyle;
@@ -1438,7 +1442,27 @@ class Styles extends AnyStyles {
 		case "thin": return BorderStyle.THIN;
 		case "medium": return BorderStyle.MEDIUM;
 		case "thick": return BorderStyle.THICK;
-		default: return null;
+		default: {
+			final Pattern pattern = Pattern.compile("\\A(\\d{1,4})px\\z");
+
+			Matcher matcher = pattern.matcher(borderProperty);
+			if (matcher.find()) {
+				int px = Integer.valueOf(matcher.group(1));
+				if (px == 0) {
+					return BorderStyle.NONE;
+				}
+				else if (px == 1 || px == 2) {
+					return BorderStyle.THIN;
+				}
+				else if (px == 3 || px == 4) {
+					return BorderStyle.MEDIUM;
+				}
+				else {
+					return BorderStyle.THICK;
+				}
+			}
+			return null;
+		}
 		}
 	}
 }
