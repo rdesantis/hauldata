@@ -130,6 +130,11 @@ public class WriteTaskTest extends TaskTest {
 				"		('No, it''s ', '<td style=\"border-bottom:double\">3.00'), \n" +
 				"		('No, it''s ', '<td style=\"border-bottom:double\">1.23456'), \n" +
 				"		('No, it''s ', '<td style=\"border-bottom:double\">3.14159265358979323846264'), \n" +
+				"		('No, it''s ', '<td style=\"border-bottom:double\">042'), \n" +
+				"		('No, it''s ', '<td style=\"border-bottom:double\">0'), \n" +
+				"		('No, it''s ', '<td style=\"border-bottom:double\">-0'), \n" +
+				"		('No, it''s ', '<td style=\"border-bottom:double\">0.1'), \n" +
+				"		('No, it''s ', '<td style=\"border-bottom:double\">-0.1'), \n" +
 				"		(NULL, NULL), \n" +
 				"		('<tr style=\"background-color: Beige\">', 123), \n" +
 				"		('<tr style=\"background-color: Beige\">', 4567), \n" +

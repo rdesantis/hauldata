@@ -548,9 +548,19 @@ class ValueStyles {
 		return new ValueStyles(object, styles);
 	}
 
+	/**
+	 * If a string can be converted to a numeric type, convert it
+	 *
+	 * @param value is the string to test for convertibility
+	 * @return a Numeric object that is the conversion of the value
+	 * if it can be converted, or the original value if it cannot
+	 * be converted.  However, a value starting with a leading zero
+	 * always returns the original value, unless the zero is the
+	 * only character or is followed immediately by a decimal point.
+	 */
 	private static Object objectOf(String value) {
 
-		final Pattern pattern = Pattern.compile("\\A([\\+\\-]?\\d+)(\\.\\d+)?\\z");
+		final Pattern pattern = Pattern.compile("\\A(-?(?:0|[1-9][0-9]*))(\\.\\d+)?\\z");
 
 		Matcher matcher = pattern.matcher(value);
 		if (matcher.find()) {
