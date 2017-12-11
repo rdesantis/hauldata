@@ -1299,7 +1299,15 @@ class Styles extends AnyStyles {
 	}
 
 	private static Integer getColor(String property) {
-		return cssColor.get(property);
+		Integer result = cssColor.get(property);
+		if (result == null) {
+			final Pattern pattern = Pattern.compile("\\#(\\p{XDigit}{6})\\z");
+			Matcher matcher = pattern.matcher(property);
+			if (matcher.find()) {
+				result = Integer.valueOf(matcher.group(1), 16);
+			}
+		}
+		return result;
 	}
 
 	private static Map<String, Integer> cssColor;

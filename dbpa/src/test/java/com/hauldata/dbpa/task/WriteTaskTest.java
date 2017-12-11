@@ -141,7 +141,11 @@ public class WriteTaskTest extends TaskTest {
 				"		('<tr style=\"background-color: DimGrey\">', DATEADD(DAY, 0, '12/31/1999')), \n" +
 				"		('<tr style=\"background-color: DimGrey\">', DATEADD(DAY, 0, '12/9/2017')), \n" +
 				"		('<tr style=\"background-color: Fuchsia\">', DATEADD(DAY, 0, '12/9/2017 1:23')), \n" +
-				"		('<tr style=\"background-color: Fuchsia\">', 'text') \n" +
+				"		('<tr style=\"background-color: Fuchsia\">', 'Fuschsia'), \n" +
+				"		('<tr style=\"background-color: #FF00FF\">', '#FF00FF'), \n" +
+				"		('<tr style=\"background-color: #E6E6FA\">', 'Lavender = #E6E6FA'), \n" +
+				"		('<tr style=\"background-color: HotPink \">', 'HotPink '), \n" +
+				"		('<tr style=\"background-color: #FF69B4\">', '#FF69B4') \n" +
 				"	END TASK \n" +
 				"END TASK\n" +
 				"";
