@@ -37,6 +37,7 @@ import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.FontUnderline;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
@@ -406,6 +407,10 @@ class StylesWithFormatting {
 		if (styles.backgroundColor != null) {
 			cellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 			cellStyle.setFillForegroundColor(getColor(styles.backgroundColor, book, colorsUsed));
+		}
+
+		if (styles.textAlign != null) {
+			cellStyle.setAlignment(styles.textAlign);
 		}
 
 		if (!styles.font.areDefault()) {
@@ -819,6 +824,7 @@ class SheetStyles {
 
 	private void resolveNonBorders(Styles result, Styles... stylesArray) {
 		result.backgroundColor = resolve(Styles.backgroundColorGetter, stylesArray);
+		result.textAlign = resolve(Styles.textAlignGetter, stylesArray);
 
 		result.font.color = resolve(FontStyles.colorGetter, stylesArray);
 		result.font.fontStyle = resolve(FontStyles.fontStyleGetter, stylesArray);
@@ -1003,6 +1009,7 @@ class Styles extends AnyStyles {
 	public Integer topBorderColor = null;
 
 	public Integer backgroundColor = null;
+	public HorizontalAlignment textAlign = null;
 
 	public FontStyles font = new FontStyles();
 
@@ -1022,6 +1029,7 @@ class Styles extends AnyStyles {
 	public static final StylesGetter<Integer> topBorderColorGetter = new StylesGetter<Integer>() {public Integer get(Styles styles) {return styles.topBorderColor;}};
 
 	public static final StylesGetter<Integer> backgroundColorGetter = new StylesGetter<Integer>() {public Integer get(Styles styles) {return styles.backgroundColor;}};
+	public static final StylesGetter<HorizontalAlignment> textAlignGetter = new StylesGetter<HorizontalAlignment>() {public HorizontalAlignment get(Styles styles) {return styles.textAlign;}};
 
 	@Override
 	public int hashCode() {
@@ -1042,6 +1050,7 @@ class Styles extends AnyStyles {
 				((topBorderColor != null) ? topBorderColor.intValue() : 0x1000000) << 3 ^
 
 				((backgroundColor != null) ? backgroundColor.intValue() : 0x1000000) << 5 ^
+				((textAlign != null) ? textAlign.ordinal() : HorizontalAlignment.values().length) << 28 ^
 
 				font.hashCode() << 8;
 	}
@@ -1069,6 +1078,7 @@ class Styles extends AnyStyles {
 				areSame(topBorderColor, other.topBorderColor) &&
 
 				areSame(backgroundColor, other.backgroundColor) &&
+				areSame(textAlign, other.textAlign) &&
 
 				font.equals(other.font);
 	}
@@ -1091,6 +1101,7 @@ class Styles extends AnyStyles {
 				topBorderColor == null &&
 
 				backgroundColor == null &&
+				textAlign == null &&
 
 				font.areDefault();
 	}
@@ -1269,6 +1280,9 @@ class Styles extends AnyStyles {
 					}
 					else if (keyword.equals("font-weight")) {
 						result.font.fontWeight = FontStyles.getFontWeight(value);
+					}
+					else if (keyword.equals("text-align")) {
+						result.textAlign = Styles.getTextAlign(value);
 					}
 					else if (keyword.equals("text-decoration")) {
 						String[] textProperties = value.split(" +");
@@ -1514,6 +1528,15 @@ class Styles extends AnyStyles {
 			}
 			return null;
 		}
+		}
+	}
+
+	public static HorizontalAlignment getTextAlign(String textProperty) {
+		switch (textProperty) {
+		case "center": return HorizontalAlignment.CENTER;
+		case "left": return HorizontalAlignment.LEFT;
+		case "right": return HorizontalAlignment.RIGHT;
+		default: return null;
 		}
 	}
 }

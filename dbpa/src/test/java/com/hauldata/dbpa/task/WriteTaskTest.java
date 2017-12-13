@@ -147,6 +147,15 @@ public class WriteTaskTest extends TaskTest {
 				"		('<tr style=\"background-color: HotPink \">', 'HotPink '), \n" +
 				"		('<tr style=\"background-color: #FF69B4\">', '#FF69B4') \n" +
 				"	END TASK \n" +
+				"	TASK AFTER \n" +
+				"		WRITE XLSX 'styledTest.xlsx' 'Aligned' STYLED \n" +
+				"		TABLE STYLE 'border-collapse:collapse;border:solid;text-align:center' \n" +
+				"		HEADERS 'First', 'Second', 'Third' FROM VALUES \n" +
+				"		('cell A1 elongated', 'cell B1', 'cell C1 elongated'), \n" +
+				"		('cell A2', 'cell B2 elongated', 'cell C1'), \n" +
+				"		('aaa', 'bbb', 'ccc'), \n" +
+				"		('<td style=\"text-align:left\">left', 'default', '<td style=\"text-align:right\">right') \n" +
+				"	END TASK \n" +
 				"END TASK\n" +
 				"";
 
