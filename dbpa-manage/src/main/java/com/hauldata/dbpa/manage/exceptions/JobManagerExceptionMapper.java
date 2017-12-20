@@ -21,7 +21,7 @@ import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
 import com.hauldata.dbpa.manage.JobManagerException.BaseException;
-import com.hauldata.dbpa.manage_control.api.ExceptionEntity;
+import com.hauldata.ws.rs.exception.WebException;
 
 @Provider
 public class JobManagerExceptionMapper implements ExceptionMapper<BaseException> {
@@ -38,6 +38,6 @@ public class JobManagerExceptionMapper implements ExceptionMapper<BaseException>
 			status = Response.Status.CONFLICT;
 			break;
 		}
-		return ExceptionEntity.response(status, exception);
+		return WebException.response(status, exception);
 	}
 }

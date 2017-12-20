@@ -22,13 +22,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
-import com.hauldata.dbpa.manage_control.api.ExceptionEntity;
+import com.hauldata.ws.rs.exception.WebException;
 
 @Provider
 public class NoSuchElementExceptionMapper implements ExceptionMapper<NoSuchElementException> {
 
 	@Override
 	public Response toResponse(NoSuchElementException exception) {
-		return ExceptionEntity.response(Response.Status.NOT_FOUND, exception);
+		return WebException.response(Response.Status.NOT_FOUND, exception);
 	}
 }

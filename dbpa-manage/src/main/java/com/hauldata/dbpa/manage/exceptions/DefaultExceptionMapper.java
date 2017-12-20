@@ -20,13 +20,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
-import com.hauldata.dbpa.manage_control.api.ExceptionEntity;
+import com.hauldata.ws.rs.exception.WebException;
 
 @Provider
 public class DefaultExceptionMapper implements ExceptionMapper<Exception> {
 
 	@Override
 	public Response toResponse(Exception exception) {
-		return ExceptionEntity.response(Response.Status.INTERNAL_SERVER_ERROR, exception);
+		return WebException.response(Response.Status.INTERNAL_SERVER_ERROR, exception);
 	}
 }

@@ -11,6 +11,7 @@
 
 	<modules>
 		<module>util</module>
+		<module>ws</module>
 		<module>dbpa</module>
 		<module>dbpa-common</module>
 		<module>dbpa-run</module>

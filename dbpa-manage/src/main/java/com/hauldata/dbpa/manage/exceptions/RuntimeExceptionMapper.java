@@ -20,13 +20,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
-import com.hauldata.dbpa.manage_control.api.ExceptionEntity;
+import com.hauldata.ws.rs.exception.WebException;
 
 @Provider
 public class RuntimeExceptionMapper implements ExceptionMapper<RuntimeException> {
 
 	@Override
 	public Response toResponse(RuntimeException exception) {
-		return ExceptionEntity.response(Response.Status.BAD_REQUEST, exception);
+		return WebException.response(Response.Status.BAD_REQUEST, exception);
 	}
 }

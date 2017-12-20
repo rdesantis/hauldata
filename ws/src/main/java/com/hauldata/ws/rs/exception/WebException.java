@@ -14,22 +14,22 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.manage_control.api;
+package com.hauldata.ws.rs.exception;
 
 import javax.ws.rs.core.Response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class ExceptionEntity {
+public class WebException {
 
 	private int code;
 	private String message;
 
-	public ExceptionEntity() {
+	public WebException() {
 		// Jackson deserialization
 	}
 
-	public ExceptionEntity(
+	public WebException(
 			Response.Status status,
 			Exception exception) {
 		code = status.getStatusCode();
@@ -49,7 +49,7 @@ public class ExceptionEntity {
 			Response.Status status,
 			Exception exception) {
 
-		ExceptionEntity entity = new ExceptionEntity(status, exception);
+		WebException entity = new WebException(status, exception);
 		return Response.status(status).entity(entity).build();
 	}
 

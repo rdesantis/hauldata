@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 
-import com.hauldata.dbpa.manage_control.api.ExceptionEntity;
+import com.hauldata.ws.rs.exception.WebException;
 
 /**
  * Dynamically generated web client
@@ -55,7 +55,7 @@ public class WebClient {
 	WebTarget baseTarget;
 
 	/**
-	 * Constructor
+	 * Construct a web client to access resources available from a base URL
 	 *
 	 * @param baseUrl is the base URL of the web resources to which the client will connect
 	 */
@@ -66,15 +66,19 @@ public class WebClient {
 	}
 
 	/**
-	 * Instantiate web client accessor for a resource whose interface has JAX-RS annotations
+	 * Instantiate a web resource from an interface that has JAX-RS annotations
 	 * <p>
 	 * Only those methods in the interface annotated as GET, PUT, POST, or DELETE are implemented.
 	 * For PUT and POST, it is assumed that the final parameter of each method contains the
 	 * data to be posted, and all preceding parameters are annotated QueryParm or PathParam.
 	 *
-	 * @param clientInterface is the class of the interface for which an accessor is to be instantiated
-	 * @return an accessor which can be cast to the interface being implemented
-	 * @throws ReflectiveOperationException
+	 * @param clientInterface is the class of the interface for the resource to be instantiated
+	 * @return a resource which can be cast to the interface being implemented and whose methods
+	 * can then be called as though they were local.  Any application exception thrown on the
+	 * server is mapped to RuntimeException locally.  The getMessage() method of the exception
+	 * returns the message from the exception thrown on the server.
+	 *
+	 * @throws ReflectiveOperationException if the interface cannot be analyzed
 	 */
 	public Object getResource(Class<?> clientInterface) throws ReflectiveOperationException {
 
@@ -98,7 +102,7 @@ class WebClientInvocationHandler implements InvocationHandler {
 	/**
 	 * Constructor - builds a JAX-RS / Jersey client implementation of the interface
 	 *
-	 * @see WebClient#of(Class, String)
+	 * @see WebClient#getResource(Class)
 	 */
 	public WebClientInvocationHandler(Class<?> clientInterface, WebTarget baseTarget) {
 
@@ -143,7 +147,7 @@ class WebClientInvocationHandler implements InvocationHandler {
 			result = webMethod.invoke(proxy, args);
 		}
 		catch (WebApplicationException wax) {
-			ExceptionEntity entity = wax.getResponse().readEntity(ExceptionEntity.class);
+			WebException entity = wax.getResponse().readEntity(WebException.class);
 			throw new RuntimeException(entity.getMessage());
 		}
 		return result;
@@ -156,13 +160,13 @@ class WebClientInvocationHandler implements InvocationHandler {
 abstract class WebMethod {
 
 	/**
-	 * Build a proxy class method for the web service client
+	 * Build a proxy class method for a web service end point
 	 *
-	 * @param method is the interface of a method to be implemented as a web service method based on its JAX-RS annotations
+	 * @param method is the interface of a method to be implemented as a web service end point based on its JAX-RS annotations
 	 * @param baseTarget is the Jersey target for the base URL of the service to which the client will connect
 	 * @param defaultProduces is the media type to be produced by the method if not otherwise annotated
 	 * @param defaultConsumes is the media type to be consumed by the method if not otherwise annotated
-	 * @return the web service method proxy or null if the specified method is not annotated as a web service
+	 * @return the web service end point proxy method or null if the specified method is not annotated as a web service
 	 */
 	public static WebMethod of(Method method, WebTarget baseTarget, MediaType defaultProduces, MediaType defaultConsumes) {
 		if (method.getAnnotation(GET.class) != null) {
