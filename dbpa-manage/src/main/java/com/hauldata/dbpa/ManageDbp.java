@@ -18,6 +18,7 @@ package com.hauldata.dbpa;
 
 import io.dropwizard.Application;
 import io.dropwizard.Configuration;
+import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
@@ -53,17 +54,7 @@ public class ManageDbp extends Application<Configuration> {
     @Override
     public void initialize(Bootstrap<Configuration> bootstrap) {
 
-		JobManager manager = JobManager.instantiate(false);
-
-		try {
-			if (manager.canStartup()) {
-				manager.startup();
-			}
-		}
-		catch (Exception ex) {
-			ex.printStackTrace();
-			System.exit(1);
-		}
+		JobManager.instantiate(false);
 
 		// Eventually may subclass Configuration as ServiceConfiguration and receive that here
 		// to control startup behavior.
@@ -107,7 +98,30 @@ public class ManageDbp extends Application<Configuration> {
 		environment.jersey().register(propFiles);
 		environment.jersey().register(schedules);
 		environment.jersey().register(jobs);
+
+		// Managed objects
+
+		environment.lifecycle().manage(new ManagedJobManager());
 	}
 
 	static {QuietLog4j.please();}
+}
+
+class ManagedJobManager implements Managed {
+
+	@Override
+	public void start() throws Exception {
+		JobManager manager = JobManager.getInstance();
+		if (manager.canStartup()) {
+			manager.startup();
+		}
+	}
+
+	@Override
+	public void stop() throws Exception {
+		JobManager manager = JobManager.getInstance();
+		if (manager.isStarted()) {
+			manager.shutdown();
+		}
+	}
 }
