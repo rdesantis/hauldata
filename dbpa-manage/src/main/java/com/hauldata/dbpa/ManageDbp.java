@@ -111,6 +111,18 @@ class ManagedJobManager implements Managed {
 
 	@Override
 	public void start() throws Exception {
+		// According to http://www.dropwizard.io/0.6.2/maven/apidocs/com/yammer/dropwizard/lifecycle/Managed.html,
+		// throwing an exception here should "halt the service startup".  However, it is observed in practice that the
+		// server continues to run.  It does not terminate.  So force termination.
+
+		try { actualStart(); }
+		catch (Exception ex) {
+			ex.printStackTrace();
+			System.exit(1);
+		}
+	}
+
+	private void actualStart() throws Exception {
 		JobManager manager = JobManager.getInstance();
 		if (manager.canStartup()) {
 			manager.startup();

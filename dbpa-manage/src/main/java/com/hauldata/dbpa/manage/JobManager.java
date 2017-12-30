@@ -45,6 +45,7 @@ import com.hauldata.dbpa.manage_control.api.ScriptArgument;
 import com.hauldata.dbpa.manage_control.api.JobState;
 import com.hauldata.dbpa.manage_control.api.JobStatus;
 import com.hauldata.dbpa.manage.sql.JobSql;
+import com.hauldata.dbpa.manage.sql.ManagerRunSql;
 import com.hauldata.dbpa.manage.sql.ArgumentSql;
 import com.hauldata.dbpa.manage.sql.CommonSql;
 import com.hauldata.dbpa.manage.sql.ScheduleSql;
@@ -68,6 +69,7 @@ public class JobManager {
 	private ContextProperties contextProps;
 	private Context context;
 
+	private ManagerRunSql managerRunSql;
 	private JobSql jobSql;
 	private ArgumentSql argumentSql;
 	private ScheduleSql scheduleSql;
@@ -149,6 +151,7 @@ public class JobManager {
 
 		String tablePrefix = context.connectionProps.getProperty("managerTablePrefix", "");
 
+		managerRunSql = new ManagerRunSql(tablePrefix);
 		jobSql = new JobSql(tablePrefix);
 		argumentSql = new ArgumentSql(tablePrefix);
 		scheduleSql = new ScheduleSql(tablePrefix);
@@ -162,6 +165,10 @@ public class JobManager {
 
 	public Context getContext() {
 		return context;
+	}
+
+	public ManagerRunSql getManagerRunSql() {
+		return managerRunSql;
 	}
 
 	public JobSql getJobSql() {
@@ -235,6 +242,23 @@ public class JobManager {
 			}
 			else if (isStarted()) {
 				throw new JobManagerException.AlreadyStarted();
+			}
+
+			// Reserve the database schema to prevent other JobManager instances from using it.
+
+			Connection conn = null;
+			try {
+				conn = context.getConnection(null);
+
+				int lastSequence = CommonSql.getNextId(conn, manager.getManagerRunSql().selectLastSequence) - 1;
+				int updateCount = CommonSql.executeUpdateNow(conn, manager.getManagerRunSql().updateStart, lastSequence);
+
+				if (updateCount != 1) {
+					throw new JobManagerException.SchemaInUse();
+				}
+			}
+			finally {
+				if (conn != null) context.releaseConnection(null);
 			}
 
 			// Instantiate a JobExecutor and create a job monitor thread
@@ -593,6 +617,25 @@ public class JobManager {
 
 		executor.close();
 		executor = null;
+
+		// Prepare data schema for next use and release it.
+
+		Connection conn = null;
+		try {
+			conn = context.getConnection(null);
+
+			int nextSequence = CommonSql.getNextId(conn, manager.getManagerRunSql().selectLastSequence);
+			CommonSql.execute(conn, manager.getManagerRunSql().insertSequence, nextSequence);
+
+			int lastSequence = nextSequence - 1;
+			CommonSql.executeUpdateNow(conn, manager.getManagerRunSql().updateEnd, lastSequence);
+		}
+		catch (SQLException sex) {
+			// Do nothing.
+		}
+		finally {
+			if (conn != null) context.releaseConnection(null);
+		}
 	}
 
 	/**

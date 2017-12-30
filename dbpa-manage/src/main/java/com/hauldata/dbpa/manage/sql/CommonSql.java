@@ -22,6 +22,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Iterator;
 
@@ -159,9 +161,10 @@ public class CommonSql {
 	 * @param conn is the connection
 	 * @param sql is the SQL to execute with one ? parameter
 	 * @param id is the integer value to substitute for the ? parameter
+	 * @return the result of PreparedStatement.executeUpdate()
 	 * @throws SQLException
 	 */
-	public static void execute(
+	public static int execute(
 			Connection conn,
 			String sql,
 			int id) throws SQLException {
@@ -173,7 +176,7 @@ public class CommonSql {
 
 			stmt.setInt(1, id);
 
-			stmt.executeUpdate();
+			return stmt.executeUpdate();
 		}
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
@@ -192,9 +195,10 @@ public class CommonSql {
 	 * @param columnName is the string to substituted into the %1$s placeholder
 	 * @param value is the string value to substitute for the first ? parameter
 	 * @param id is the integer value to substitute for the second ? parameter
+	 * @return the result of PreparedStatement.executeUpdate()
 	 * @throws SQLException
 	 */
-	public static void execute(
+	public static int execute(
 			Connection conn,
 			String sql,
 			String columnName,
@@ -211,7 +215,7 @@ public class CommonSql {
 			stmt.setString(1, value);
 			stmt.setInt(2, id);
 
-			stmt.executeUpdate();
+			return stmt.executeUpdate();
 		}
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
@@ -230,9 +234,10 @@ public class CommonSql {
 	 * @param columnName is the string to substituted into the %1$s placeholder
 	 * @param value is the integer value to substitute for the first ? parameter
 	 * @param id is the integer value to substitute for the second ? parameter
+	 * @return the result of PreparedStatement.executeUpdate()
 	 * @throws SQLException
 	 */
-	public static void execute(
+	public static int execute(
 			Connection conn,
 			String sql,
 			String columnName,
@@ -249,7 +254,41 @@ public class CommonSql {
 			stmt.setInt(1, value);
 			stmt.setInt(2, id);
 
-			stmt.executeUpdate();
+			return stmt.executeUpdate();
+		}
+		finally {
+			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
+		}
+	}
+
+	/**
+	 * Execute a SQL UPDATE statement setting a field to the current datetime after
+	 * an integer parameter substitution.
+	 * <p>
+	 * This is intended for updating a datetime column of an entity identified by its ID.
+	 *
+	 * @param conn is the connection
+	 * @param sql is the SQL to execute with two ? parameters, the first being for
+	 * a datetime column value in a SET clause and the second for an integer ID
+	 * value in a WHERE clause.
+	 * @param id is the integer value to substitute for the second ? parameter
+	 * @return the result of PreparedStatement.executeUpdate()
+	 * @throws SQLException
+	 */
+	public static int executeUpdateNow(
+			Connection conn,
+			String sql,
+			int id) throws SQLException {
+
+		PreparedStatement stmt = null;
+
+		try {
+			stmt = conn.prepareStatement(sql);
+
+			stmt.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
+			stmt.setInt(2, id);
+
+			return stmt.executeUpdate();
 		}
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}

@@ -30,6 +30,7 @@ import javax.ws.rs.core.MediaType;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
+import com.hauldata.dbpa.manage.sql.CommonSql;
 import com.hauldata.dbpa.process.Context;
 
 @Path("/schema")
@@ -62,11 +63,16 @@ public class SchemaResource {
 
 			stmt = conn.createStatement();
 
+			stmt.executeUpdate(manager.getManagerRunSql().createTable);
 			stmt.executeUpdate(manager.getJobSql().createTable);
 		    stmt.executeUpdate(manager.getArgumentSql().createTable);
 		    stmt.executeUpdate(manager.getScheduleSql().createTable);
 		    stmt.executeUpdate(manager.getJobScheduleSql().createTable);
 		    stmt.executeUpdate(manager.getRunSql().createTable);
+
+		    // Insert the seed row in the ManagerRun table.
+
+		    CommonSql.execute(conn, manager.getManagerRunSql().insertSequence, 0);
 		}
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception ex) {}
@@ -155,6 +161,7 @@ public class SchemaResource {
 			// Run a statement that does nothing but will fail if the table doesn't exist as required.
 
 			allTablesExistAsRequired =
+					trySelectNoRows(stmt, manager.getManagerRunSql().selectAllColumns) &&
 					trySelectNoRows(stmt, manager.getJobSql().selectAllColumns) &&
 					trySelectNoRows(stmt, manager.getArgumentSql().selectAllColumns) &&
 					trySelectNoRows(stmt, manager.getScheduleSql().selectAllColumns) &&
