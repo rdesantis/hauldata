@@ -27,9 +27,9 @@ public class ForDataTaskTest extends TaskTest {
 
 	/* MySQL stored proc:
 	DELIMITER //
-	CREATE PROCEDURE test.passer (INOUT bumped INT, i INT, v VARCHAR(255), d DATETIME)
+	CREATE PROCEDURE test.passer (INOUT bumped INT, i INT, v VARCHAR(255), d DATETIME, b BIT)
 	BEGIN
-		SELECT i, v, d;
+		SELECT i, v, d, b;
 	    SET bumped = bumped + 1;
 	END//
 	*/
@@ -38,10 +38,10 @@ public class ForDataTaskTest extends TaskTest {
 
 		String processId = "ForProcedureTest";
 		String script =
-				"VARIABLES anInt INT, aString VARCHAR, aDateTime DATETIME, five INT, now DATETIME END VARIABLES \n" +
-				"TASK SET five = 5, now = GETDATE() END TASK \n" +
-				"TASK Loop AFTER FOR anInt, aString, aDateTime FROM PROCEDURE 'test.passer' WITH 0, five + 4 IN, 'What have you!', now \n" +
-					"TASK Echo LOG FORMAT(anInt, 'd') + ',''' + aString + ''',' + FORMAT(aDateTime, 'yyyy-MM-dd HH:mm:ss') END TASK \n" +
+				"VARIABLES anInt INT, aString VARCHAR, aDateTime DATETIME, aBit BIT, five INT, now DATETIME, one BIT END VARIABLES \n" +
+				"TASK SET five = 5, now = GETDATE(), one = 1 END TASK \n" +
+				"TASK Loop AFTER FOR anInt, aString, aDateTime, aBit FROM PROCEDURE 'test.passer' WITH 0, five + 4 IN, 'What have you!', now, one \n" +
+					"TASK Echo LOG FORMAT(anInt, 'd') + ',''' + aString + ''',' + FORMAT(aDateTime, 'yyyy-MM-dd HH:mm:ss') + ',' + FORMAT(aBit, 'd') END TASK \n" +
 				"END TASK \n" +
 				"";
 
@@ -55,9 +55,10 @@ public class ForDataTaskTest extends TaskTest {
 
 		record = recordIterator.next();
 		String[] parts = record.message.split(",");
-		assertEquals(3, parts.length);
+		assertEquals(4, parts.length);
 		assertEquals("9", parts[0]);
 		assertEquals("'What have you!'", parts[1]);
+		assertEquals("1", parts[3]);
 
 		assertFalse(recordIterator.hasNext());
 	}
@@ -66,10 +67,10 @@ public class ForDataTaskTest extends TaskTest {
 
 		String processId = "ForProcedureInOutTest";
 		String script =
-				"VARIABLES anInt INT, aString VARCHAR, aDateTime DATETIME, bumpee INT, now DATETIME END VARIABLES \n" +
+				"VARIABLES anInt INT, aString VARCHAR, aDateTime DATETIME, aBit BIT, bumpee INT, now DATETIME END VARIABLES \n" +
 				"TASK SET bumpee = 5, now = GETDATE() END TASK \n" +
-				"TASK Loop AFTER FOR anInt, aString, aDateTime FROM PROCEDURE 'test.passer' WITH bumpee INOUT, 3 * 7, 'non' + ('sense'), now \n" +
-					"TASK Echo LOG FORMAT(anInt, 'd') + ',''' + aString + ''',' + FORMAT(aDateTime, 'yyyy-MM-dd HH:mm:ss') END TASK \n" +
+				"TASK Loop AFTER FOR anInt, aString, aDateTime, aBit FROM PROCEDURE 'test.passer' WITH bumpee INOUT, 3 * 7, 'non' + ('sense'), now, 0 \n" +
+				"TASK Echo LOG FORMAT(anInt, 'd') + ',''' + aString + ''',' + FORMAT(aDateTime, 'yyyy-MM-dd HH:mm:ss') + ',' + FORMAT(aBit, 'd') END TASK \n" +
 				"END TASK \n" +
 				"TASK Changed AFTER LOG FORMAT(bumpee, 'd') END TASK \n" +
 				"";
@@ -86,9 +87,10 @@ public class ForDataTaskTest extends TaskTest {
 
 		record = recordIterator.next();
 		String[] parts = record.message.split(",");
-		assertEquals(3, parts.length);
+		assertEquals(4, parts.length);
 		assertEquals("21", parts[0]);
 		assertEquals("'nonsense'", parts[1]);
+		assertEquals("0", parts[3]);
 
 		assertFalse(recordIterator.hasNext());
 

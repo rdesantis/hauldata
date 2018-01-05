@@ -38,9 +38,9 @@ public class VariablesFromStrings {
 		if (arg == null) {
 			variable.setValueObject(null);
 		}
-		else if (variable.getType() == VariableType.INTEGER) {
+		else if (variable.getType() == VariableType.INTEGER || variable.getType() == VariableType.BIT) {
 			try {
-				variable.setValueObject(Integer.valueOf(arg));
+				variable.setValueChecked(Integer.valueOf(arg));
 			}
 			catch (NumberFormatException ex) {
 				throw new RuntimeException("Invalid integer format: " + arg);

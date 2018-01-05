@@ -64,7 +64,7 @@ public class ValuesSource implements Source {
 
 		ExpressionBase[] rowValues = rowIterator.next();
 		for (int i = 0; i < rowValues.length; ++i) {
-			rowEvaluatedValues[i] = rowValues[i].getEvaluationObject();
+			rowEvaluatedValues[i] = DataStore.toSQL(rowValues[i].getEvaluationObject(), rowValues[i].getType());
 		}
 
 		return true;

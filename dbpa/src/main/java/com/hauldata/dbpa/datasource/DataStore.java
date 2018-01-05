@@ -19,12 +19,14 @@ package com.hauldata.dbpa.datasource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 
 import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.process.Context;
+import com.hauldata.dbpa.variable.VariableType;
 
 public abstract class DataStore {
 
@@ -34,9 +36,15 @@ public abstract class DataStore {
 	 * Return a value retrieved from ExpressionBase.getEvaluationObject() converted if necessary
 	 * to an object type acceptable to PreparedStatement.setObject(Object) on all database systems.
 	 */
-	public static Object toSQL(Object value) {
-		if (value instanceof LocalDateTime) {
-			return Date.from(((LocalDateTime)value).atZone(ZoneId.systemDefault()).toInstant());
+	public static Object toSQL(Object value, VariableType type) {
+		if (value == null) {
+			return null;
+		}
+		else if (type == VariableType.BIT) {
+			return (Boolean)((Integer)value == 0 ? false : true);
+		}
+		else if (type == VariableType.DATETIME) {
+			return Timestamp.from(((LocalDateTime)value).atZone(ZoneId.systemDefault()).toInstant());
 		}
 		else {
 			return value;
@@ -48,7 +56,10 @@ public abstract class DataStore {
 	 * to an object type acceptable to VariableBase.setValueObject(Object).
 	 */
 	public static Object fromSQL(Object value) {
-		if (value instanceof Date) {
+		if (value instanceof Boolean) {
+			return (Integer)((Boolean)value ? 1 : 0);
+		}
+		else if (value instanceof Date) {
 			return ((Date)value).toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
 		}
 		else {

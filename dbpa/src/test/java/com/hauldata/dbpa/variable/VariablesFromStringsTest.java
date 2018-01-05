@@ -62,19 +62,22 @@ public class VariablesFromStringsTest extends TestCase {
 
 		Variable<String> varchar = new Variable<String>("varchar", VariableType.VARCHAR);
 		Variable<Integer> integer = new Variable<Integer>("integer", VariableType.INTEGER);
+		Variable<Integer> bit = new Variable<Integer>("bit", VariableType.BIT);
 		Variable<LocalDateTime> datetime = new Variable<LocalDateTime>("datetime", VariableType.DATETIME);
 
 		List<VariableBase> variables = new LinkedList<VariableBase>();
 		variables.add(varchar);
 		variables.add(integer);
+		variables.add(bit);
 		variables.add(datetime);
 
-		String[] args = new String[] {"hello", "123", "6/4/2017 12:55 AM"};
+		String[] args = new String[] {"hello", "123", "4567", "6/4/2017 12:55 AM"};
 
 		VariablesFromStrings.set(variables, args);
 
 		assertEquals("hello", varchar.getValue());
 		assertEquals(123, integer.getValue().intValue());
+		assertEquals(1, bit.getValue().intValue());
 		assertEquals(LocalDateTime.of(2017, 6, 4, 0, 55, 0), datetime.getValue());
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -32,16 +32,41 @@ public abstract class VariableType {
 		this.name = name;
 	}
 
+	public boolean isCompatibleWith(VariableType type) {
+		return (type == this);
+	}
+
 	public static final VariableType VARCHAR = new VariableType("VARCHAR") { public Object getValueChecked(Object value) { return (String)value; } };
 	public static final VariableType DATETIME = new VariableType("DATETIME") { public Object getValueChecked(Object value) { return (LocalDateTime)value; } };
-	public static final VariableType BOOLEAN = new VariableType("BOOLEAN")  { public Object getValueChecked(Object value) { return (Boolean)value; } };
-	public static final VariableType INTEGER = new VariableType("INTEGER") {
-		public Object getValueChecked(Object value) {
+	public static final VariableType BOOLEAN = new VariableType("BOOLEAN") { public Object getValueChecked(Object value) { return (Boolean)value; } };
+
+	private static abstract class IntegerType extends VariableType {
+
+		private IntegerType(String name) { super(name); }
+
+		@Override
+		public boolean isCompatibleWith(VariableType type) {
+			return (type == INTEGER) || (type == BIT);
+		}
+
+		protected Integer getInteger(Object value) {
 			return
-					value instanceof Integer ? value :
-					value == null ? null :
+					(value == null) ? null :
+					value instanceof Integer ? (Integer)value :
 					(Integer)((Number)value).intValue();
 		}
+	}
+
+	public static final VariableType INTEGER = new IntegerType("INTEGER") { public Object getValueChecked(Object value) { return getInteger(value); } };
+
+	public static final VariableType BIT = new IntegerType("BIT") {
+		public Object getValueChecked(Object value) {
+			Integer result = getInteger(value);
+			return
+					(result == null) ? null :
+					(result == 0) ? result :
+					(Integer)1;
+			}
 	};
 
 	/**

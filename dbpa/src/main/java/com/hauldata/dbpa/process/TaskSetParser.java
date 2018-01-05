@@ -79,6 +79,7 @@ public abstract class TaskSetParser {
 		TINYINT,
 		INT,
 		INTEGER,
+		BIT,
 		VARCHAR,
 		CHAR,
 		CHARACTER,
@@ -2310,7 +2311,7 @@ public abstract class TaskSetParser {
 			throws InputMismatchException, NoSuchElementException, IOException {
 
 		ExpressionBase expression = null;
-		if (type == VariableType.INTEGER) {
+		if (type == VariableType.INTEGER || type == VariableType.BIT) {
 			expression = parseIntegerExpression();
 		}
 		else if (type == VariableType.VARCHAR) {
@@ -2700,7 +2701,7 @@ public abstract class TaskSetParser {
 			tokenizer.skipDelimiter(",");
 			Expression<String> format = parseStringExpression();
 
-			if (source.getType() == VariableType.INTEGER) {
+			if (source.getType() == VariableType.INTEGER || source.getType() == VariableType.BIT) {
 				return new StringFromInteger((Expression<Integer>)source, format);
 			}
 			else if (source.getType() == VariableType.DATETIME) {
@@ -3191,7 +3192,7 @@ public abstract class TaskSetParser {
 			if (variable == null) {
 				throw new NoSuchElementException("Variable name not declared: " + name);
 			}
-			if (variable.getType() != type) {
+			if (!variable.getType().isCompatibleWith(type)) {
 				throw new InputMismatchException("Variable has wrong type in " + type.getName() + " expression: " + name);
 			}
 

@@ -290,6 +290,9 @@ class DbProcessParser extends TaskSetParser {
 		if (type.equals(KW.TINYINT.name()) || type.equals(KW.INT.name()) || type.equals(KW.INTEGER.name())) {
 			return VariableType.INTEGER;
 		}
+		else if (type.equals(KW.BIT.name())) {
+			return VariableType.BIT;
+		}
 		else if (type.equals(KW.VARCHAR.name()) || type.equals(KW.CHAR.name()) || type.equals(KW.CHARACTER.name())) {
 			// Ignore length qualifier if present
 			if (tokenizer.skipDelimiter("(")) {

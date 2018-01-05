@@ -55,6 +55,7 @@ public class ProcedureDataSource extends DataSource {
 	static {
 		sqlTypes = new HashMap<VariableType, Integer>();
 		sqlTypes.put(VariableType.INTEGER, Types.INTEGER);
+		sqlTypes.put(VariableType.BIT, Types.BIT);
 		sqlTypes.put(VariableType.VARCHAR, Types.VARCHAR);
 		sqlTypes.put(VariableType.DATETIME, Types.TIMESTAMP);
 	}
@@ -117,7 +118,7 @@ public class ProcedureDataSource extends DataSource {
 			}
 
 			if (param.direction == ParamDirection.IN || param.direction == ParamDirection.INOUT) {
-				callable.setObject(paramIndex, toSQL(param.expression.getEvaluationObject()));
+				callable.setObject(paramIndex, toSQL(param.expression.getEvaluationObject(), param.expression.getType()));
 			}
 
 			paramIndex++;

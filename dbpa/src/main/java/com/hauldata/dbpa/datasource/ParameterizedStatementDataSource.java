@@ -19,9 +19,7 @@ package com.hauldata.dbpa.datasource;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.expression.ExpressionBase;
@@ -61,8 +59,6 @@ public class ParameterizedStatementDataSource extends DataSource {
 
 	private void prepareStatement(Context context) throws SQLException {
 
-		List<Object> values = expressions.stream().map(e -> e.getEvaluationObject()).collect(Collectors.toCollection(LinkedList::new));
-
 		conn = context.getConnection(connection);
 
 		stmt = conn.prepareStatement(statement, getResultSetType(), ResultSet.CONCUR_READ_ONLY);
@@ -70,8 +66,8 @@ public class ParameterizedStatementDataSource extends DataSource {
 		PreparedStatement prepared = (PreparedStatement)stmt;
 
 		int parameterIndex = 1;
-		for (Object value : values) {
-			prepared.setObject(parameterIndex++, toSQL(value));
+		for (ExpressionBase expression : expressions) {
+			prepared.setObject(parameterIndex++, toSQL(expression.getEvaluationObject(), expression.getType()));
 		}
 	}
 }

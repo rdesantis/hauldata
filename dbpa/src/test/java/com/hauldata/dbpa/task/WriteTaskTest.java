@@ -29,16 +29,17 @@ public class WriteTaskTest extends TaskTest {
 
 		String processId = "WriteValuesTest";
 		String script =
-				"VARIABLES number INT, word VARCHAR, text VARCHAR END VARIABLES\n" +
+				"VARIABLES number INT, word VARCHAR, text VARCHAR, true BIT, false BIT END VARIABLES\n" +
+				"TASK SetBits SET true = 1, false = 0 END TASK\n" +
 				"TASK WriteCsv \n" +
 				"	WRITE CSV 'valuesTest.csv' NOQUOTES \n" +
 				"	HEADERS 'A string', 'An integer', 'A date' \n" +
 				"	FROM VALUES ('first', 1, DATEFROMPARTS(2017, 3, 5)), ('SECOND Row', 22, DATEFROMPARTS(1999, 12, 31)) \n" +
 				"END TASK\n" +
-				"TASK WriteXlsx \n" +
+				"TASK WriteXlsx AFTER SetBits\n" +
 				"	WRITE XLSX 'valuesTest.xlsx' 'The Sheet' \n" +
-				"	HEADERS 'Stringy', 'Integral Value', 'Important Date' \n" +
-				"	FROM VALUES ('first', 1, DATEFROMPARTS(2017, 3, 5)), ('SECOND Row', 22, DATEFROMPARTS(1999, 12, 31)) \n" +
+				"	HEADERS 'Stringy', 'Integral Value', 'Important Date', 'A Bit' \n" +
+				"	FROM VALUES ('first', 1, DATEFROMPARTS(2017, 3, 5), true), ('SECOND Row', 22, DATEFROMPARTS(1999, 12, 31), false) \n" +
 				"END TASK\n" +
 				"TASK ReadCsv AFTER WriteCsv \n" +
 				"	READ CSV '../../../../target/test/resources/data/valuesTest.csv' \n" +
