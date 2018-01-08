@@ -256,7 +256,7 @@ class OrdinalDayOfMonthSchedule extends RecurringDateSchedule {
 			throw new RuntimeException("Day of month must be between 1 and 28");
 		}
 
-		return startDate.getDayOfMonth() <= ordinal ? startDate : startDate.plusMonths(1).withDayOfMonth(ordinal);
+		return startDate.getDayOfMonth() <= ordinal ? startDate.withDayOfMonth(ordinal) : startDate.plusMonths(1).withDayOfMonth(ordinal);
 	}
 }
 

@@ -27,6 +27,8 @@ import junit.framework.TestCase;
 public class ScheduleTest extends TestCase {
 
 	static LocalTime midnight = LocalTime.MIDNIGHT;
+	static LocalTime fiveTenAm = LocalTime.of(5, 10);
+	static LocalTime eightAm = LocalTime.of(8, 0);
 	static LocalTime nineAm = LocalTime.of(9, 0);
 	static LocalTime tenAm = LocalTime.of(10, 0);
 	static LocalTime tenThirtyAm = LocalTime.of(10, 30);
@@ -56,15 +58,15 @@ public class ScheduleTest extends TestCase {
 
 		TimeSchedule atNoon = TimeSchedule.onetime(noon);
 
-		assertEquals(atNoon.nextFrom(tenAm), noon);
-		assertEquals(atNoon.nextFrom(noon), noon);
+		assertEquals(noon, atNoon.nextFrom(tenAm));
+		assertEquals(noon, atNoon.nextFrom(noon));
 		assertNull(atNoon.nextFrom(twoPm));
 
 		TimeSchedule everyTwoHoursFromNineAm = TimeSchedule.recurring(ChronoUnit.HOURS, 2, nineAm, threeFifteenPm);
 
-		assertEquals(everyTwoHoursFromNineAm.nextFrom(tenAm), LocalTime.of(11, 0));
-		assertEquals(everyTwoHoursFromNineAm.nextFrom(noon), LocalTime.of(13, 0));
-		assertEquals(everyTwoHoursFromNineAm.nextFrom(twoPm), LocalTime.of(15, 0));
+		assertEquals(LocalTime.of(11, 0), everyTwoHoursFromNineAm.nextFrom(tenAm));
+		assertEquals(LocalTime.of(13, 0), everyTwoHoursFromNineAm.nextFrom(noon));
+		assertEquals(LocalTime.of(15, 0), everyTwoHoursFromNineAm.nextFrom(twoPm));
 		assertNull(everyTwoHoursFromNineAm.nextFrom(fourPm));
 	}
 
@@ -72,16 +74,16 @@ public class ScheduleTest extends TestCase {
 
 		DateSchedule onMonday = DateSchedule.onetime(monday1109);
 
-		assertEquals(onMonday.nextFrom(sunday1108), monday1109);
-		assertEquals(onMonday.nextFrom(monday1109), monday1109);
+		assertEquals(monday1109, onMonday.nextFrom(sunday1108));
+		assertEquals(monday1109, onMonday.nextFrom(monday1109));
 		assertNull(onMonday.nextFrom(tuesday1110));
 
 		DateSchedule everyThirdDay = DateSchedule.recurring(ChronoUnit.DAYS, 3, monday1109, sunday1115);
 
-		assertEquals(everyThirdDay.nextFrom(sunday1108), monday1109);
-		assertEquals(everyThirdDay.nextFrom(monday1109), monday1109);
-		assertEquals(everyThirdDay.nextFrom(tuesday1110), LocalDate.of(2015, 11, 12));
-		assertEquals(everyThirdDay.nextFrom(sunday1115), sunday1115);
+		assertEquals(monday1109, everyThirdDay.nextFrom(sunday1108));
+		assertEquals(monday1109, everyThirdDay.nextFrom(monday1109));
+		assertEquals(LocalDate.of(2015, 11, 12), everyThirdDay.nextFrom(tuesday1110));
+		assertEquals(sunday1115, everyThirdDay.nextFrom(sunday1115));
 		assertNull(everyThirdDay.nextFrom(monday1116));
 	}
 
@@ -91,9 +93,9 @@ public class ScheduleTest extends TestCase {
 				DateSchedule.recurring(ChronoUnit.DAYS, 1, monday1109, friday1113),
 				TimeSchedule.recurring(ChronoUnit.HOURS, 2, tenThirtyAm, eightThirtyPm));
 
-		assertEquals(monToFri1030amTo0830pm.nextFrom(LocalDateTime.of(sunday1108, ninePm)), LocalDateTime.of(monday1109, tenThirtyAm));
-		assertEquals(monToFri1030amTo0830pm.nextFrom(LocalDateTime.of(monday1109, noon)), LocalDateTime.of(monday1109, twelveThirtyPm));
-		assertEquals(monToFri1030amTo0830pm.nextFrom(LocalDateTime.of(monday1109, ninePm)), LocalDateTime.of(tuesday1110, tenThirtyAm));
+		assertEquals(LocalDateTime.of(monday1109, tenThirtyAm), monToFri1030amTo0830pm.nextFrom(LocalDateTime.of(sunday1108, ninePm)));
+		assertEquals(LocalDateTime.of(monday1109, twelveThirtyPm), monToFri1030amTo0830pm.nextFrom(LocalDateTime.of(monday1109, noon)));
+		assertEquals(LocalDateTime.of(tuesday1110, tenThirtyAm), monToFri1030amTo0830pm.nextFrom(LocalDateTime.of(monday1109, ninePm)));
 	}
 
 	public void testMulti() {
@@ -110,11 +112,11 @@ public class ScheduleTest extends TestCase {
 		schedules.add(mondaysAtFourPm);
 		schedules.add(fridayEveryTwoHours);
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(sunday1108, ninePm)), LocalDateTime.of(monday1109, fourPm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(monday1109, noon)), LocalDateTime.of(monday1109, fourPm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(monday1109, ninePm)), LocalDateTime.of(friday1113, tenThirtyAm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(friday1113, threeFifteenPm)), LocalDateTime.of(friday1113, fourThirtyPm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(friday1113, ninePm)), LocalDateTime.of(monday1116, fourPm));
+		assertEquals(LocalDateTime.of(monday1109, fourPm), schedules.nextFrom(LocalDateTime.of(sunday1108, ninePm)));
+		assertEquals(LocalDateTime.of(monday1109, fourPm), schedules.nextFrom(LocalDateTime.of(monday1109, noon)));
+		assertEquals(LocalDateTime.of(friday1113, tenThirtyAm), schedules.nextFrom(LocalDateTime.of(monday1109, ninePm)));
+		assertEquals(LocalDateTime.of(friday1113, fourThirtyPm), schedules.nextFrom(LocalDateTime.of(friday1113, threeFifteenPm)));
+		assertEquals(LocalDateTime.of(monday1116, fourPm), schedules.nextFrom(LocalDateTime.of(friday1113, ninePm)));
 		assertNull(schedules.nextFrom(LocalDateTime.of(monday1116, ninePm)));
 	}
 
@@ -133,40 +135,40 @@ public class ScheduleTest extends TestCase {
 
 		schedules = testParse("Every day from '11/9/2015' until '11/13/2015' every hour from '10:30 AM' until '8:30 PM'");
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(sunday1108, ninePm)), LocalDateTime.of(monday1109, tenThirtyAm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(monday1109, noon)), LocalDateTime.of(monday1109, twelveThirtyPm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(monday1109, ninePm)), LocalDateTime.of(tuesday1110, tenThirtyAm));
+		assertEquals(LocalDateTime.of(monday1109, tenThirtyAm), schedules.nextFrom(LocalDateTime.of(sunday1108, ninePm)));
+		assertEquals(LocalDateTime.of(monday1109, twelveThirtyPm), schedules.nextFrom(LocalDateTime.of(monday1109, noon)));
+		assertEquals(LocalDateTime.of(tuesday1110, tenThirtyAm), schedules.nextFrom(LocalDateTime.of(monday1109, ninePm)));
 
 		schedules = testParse("Every Monday from '11/9/2015' until '11/16/2015' at '4:00 PM', '11/13/2015' every 2 hours from '10:30 AM' until '8:30 PM'");
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(sunday1108, ninePm)), LocalDateTime.of(monday1109, fourPm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(monday1109, noon)), LocalDateTime.of(monday1109, fourPm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(monday1109, ninePm)), LocalDateTime.of(friday1113, tenThirtyAm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(friday1113, threeFifteenPm)), LocalDateTime.of(friday1113, fourThirtyPm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(friday1113, ninePm)), LocalDateTime.of(monday1116, fourPm));
+		assertEquals(LocalDateTime.of(monday1109, fourPm), schedules.nextFrom(LocalDateTime.of(sunday1108, ninePm)));
+		assertEquals(LocalDateTime.of(monday1109, fourPm), schedules.nextFrom(LocalDateTime.of(monday1109, noon)));
+		assertEquals(LocalDateTime.of(friday1113, tenThirtyAm), schedules.nextFrom(LocalDateTime.of(monday1109, ninePm)));
+		assertEquals(LocalDateTime.of(friday1113, fourThirtyPm), schedules.nextFrom(LocalDateTime.of(friday1113, threeFifteenPm)));
+		assertEquals(LocalDateTime.of(monday1116, fourPm), schedules.nextFrom(LocalDateTime.of(friday1113, ninePm)));
 		assertNull(schedules.nextFrom(LocalDateTime.of(monday1116, ninePm)));
 
 		LocalDate today = LocalDate.now();
 
 		schedules = testParse("Daily");
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(today, ninePm)), LocalDateTime.of(today.plus(1, ChronoUnit.DAYS), midnight));
+		assertEquals(LocalDateTime.of(today.plus(1, ChronoUnit.DAYS), midnight), schedules.nextFrom(LocalDateTime.of(today, ninePm)));
 
 		schedules = testParse("Weekly from '11/9/2015'");
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(monday1109, noon)), LocalDateTime.of(sunday1115, midnight));
+		assertEquals(LocalDateTime.of(sunday1115, midnight), schedules.nextFrom(LocalDateTime.of(monday1109, noon)));
 
 		schedules = testParse("Monthly from '11/9/2015'");
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(monday1109, threeFifteenPm)), LocalDateTime.of(tuesday1201, midnight));
+		assertEquals(LocalDateTime.of(tuesday1201, midnight), schedules.nextFrom(LocalDateTime.of(monday1109, threeFifteenPm)));
 
 		schedules = testParse("Hourly");
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(today, threeFifteenPm)), LocalDateTime.of(today, fourPm));
+		assertEquals(LocalDateTime.of(today, fourPm), schedules.nextFrom(LocalDateTime.of(today, threeFifteenPm)));
 
 		schedules = testParse("Daily every 10 seconds");
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(today, LocalTime.of(15, 15, 6))), LocalDateTime.of(today, LocalTime.of(15, 15, 10)));
+		assertEquals(LocalDateTime.of(today, LocalTime.of(15, 15, 10)), schedules.nextFrom(LocalDateTime.of(today, LocalTime.of(15, 15, 6))));
 
 		testParse("Today every second from 1 second from now until 5 seconds from now");
 
@@ -182,62 +184,74 @@ public class ScheduleTest extends TestCase {
 
 		schedules = testParse("Weekdays from '10/29/2017' at '10:00 AM'");
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 29), noon)), LocalDateTime.of(LocalDate.of(2017, 10, 30), tenAm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 30), tenAm)), LocalDateTime.of(LocalDate.of(2017, 10, 30), tenAm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 30), noon)), LocalDateTime.of(LocalDate.of(2017, 10, 31), tenAm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 3), noon)), LocalDateTime.of(LocalDate.of(2017, 11, 6), tenAm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2020, 8, 1), tenAm)), LocalDateTime.of(LocalDate.of(2020, 8, 3), tenAm));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 10, 30), tenAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 29), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 10, 30), tenAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 30), tenAm)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 10, 31), tenAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 30), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 11, 6), tenAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 3), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2020, 8, 3), tenAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2020, 8, 1), tenAm)));
 
 		schedules = testParse("Every Tuesday, Thursday from '12/29/2014' at '10:00 AM'");
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2014, 12, 29), noon)), LocalDateTime.of(LocalDate.of(2014, 12, 30), tenAm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2014, 12, 30), tenAm)), LocalDateTime.of(LocalDate.of(2014, 12, 30), tenAm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2014, 12, 30), noon)), LocalDateTime.of(LocalDate.of(2015, 1, 1), tenAm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2015, 1, 1), noon)), LocalDateTime.of(LocalDate.of(2015, 1, 6), tenAm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2020, 8, 1), tenAm)), LocalDateTime.of(LocalDate.of(2020, 8, 4), tenAm));
+		assertEquals(LocalDateTime.of(LocalDate.of(2014, 12, 30), tenAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2014, 12, 29), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2014, 12, 30), tenAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2014, 12, 30), tenAm)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2015, 1, 1), tenAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2014, 12, 30), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2015, 1, 6), tenAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2015, 1, 1), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2020, 8, 4), tenAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2020, 8, 1), tenAm)));
 
 		schedules = testParse("Monthly on last day from '10/27/2017'");
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 27), noon)), LocalDateTime.of(LocalDate.of(2017, 10, 31), midnight));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 1), midnight)), LocalDateTime.of(LocalDate.of(2017, 11, 30), midnight));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 10, 31), midnight), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 27), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 11, 30), midnight), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 1), midnight)));
 
 		schedules = testParse("Every 2 months on last day from '2/29/2016' at '12:00 PM'");
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2016, 2, 29), noon)), LocalDateTime.of(LocalDate.of(2016, 2, 29), noon));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2016, 3, 28), noon)), LocalDateTime.of(LocalDate.of(2016, 4, 30), noon));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2016, 4, 29), noon)), LocalDateTime.of(LocalDate.of(2016, 4, 30), noon));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2016, 4, 30), noon)), LocalDateTime.of(LocalDate.of(2016, 4, 30), noon));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 2, 27), noon)), LocalDateTime.of(LocalDate.of(2017, 2, 28), noon));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 2, 28), noon)), LocalDateTime.of(LocalDate.of(2017, 2, 28), noon));
+		assertEquals(LocalDateTime.of(LocalDate.of(2016, 2, 29), noon), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2016, 2, 29), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2016, 4, 30), noon), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2016, 3, 28), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2016, 4, 30), noon), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2016, 4, 29), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2016, 4, 30), noon), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2016, 4, 30), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 2, 28), noon), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 2, 27), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 2, 28), noon), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 2, 28), noon)));
 
 		schedules = testParse("Monthly on third Thursday from '10/18/2017'");
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 17), noon)), LocalDateTime.of(LocalDate.of(2017, 10, 19), midnight));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 19), noon)), LocalDateTime.of(LocalDate.of(2017, 11, 16), midnight));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 10, 19), midnight), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 17), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 11, 16), midnight), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 19), noon)));
 
 		schedules = testParse("Monthly on third Thursday from '10/20/2017'");
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 17), noon)), LocalDateTime.of(LocalDate.of(2017, 11, 16), midnight));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 17), noon)), LocalDateTime.of(LocalDate.of(2017, 12, 21), midnight));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 11, 16), midnight), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 10, 17), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 12, 21), midnight), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 17), noon)));
 
 		schedules = testParse("Every 2 weeks on Friday from '11/10/2017' at '5:30 PM'");
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 10), fourPm)), LocalDateTime.of(LocalDate.of(2017, 11, 10), fiveThirtyPm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 10), ninePm)), LocalDateTime.of(LocalDate.of(2017, 11, 24), fiveThirtyPm));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 24), ninePm)), LocalDateTime.of(LocalDate.of(2017, 12, 8), fiveThirtyPm));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 11, 10), fiveThirtyPm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 10), fourPm)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 11, 24), fiveThirtyPm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 10), ninePm)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 12, 8), fiveThirtyPm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 11, 24), ninePm)));
 
 		// Memorial Day
 
 		schedules = testParse("Every 12 months on last Monday from '5/1/2017' at '12:00 AM'");
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 1, 1), noon)), LocalDateTime.of(LocalDate.of(2017, 5, 29), midnight));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 5, 29), midnight)), LocalDateTime.of(LocalDate.of(2017, 5, 29), midnight));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2018, 5, 1), noon)), LocalDateTime.of(LocalDate.of(2018, 5, 28), midnight));
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 5, 29), noon)), LocalDateTime.of(LocalDate.of(2018, 5, 28), midnight));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 5, 29), midnight), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 1, 1), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 5, 29), midnight), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 5, 29), midnight)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2018, 5, 28), midnight), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2018, 5, 1), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2018, 5, 28), midnight), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 5, 29), noon)));
 
 		schedules = testParse("Every 12 months on last Monday from '5/29/2017' at '12:00 PM'");
 
-		assertEquals(schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 5, 28), midnight)), LocalDateTime.of(LocalDate.of(2017, 5, 29), noon));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 5, 29), noon), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 5, 28), midnight)));
+
+		schedules = testParse("EVERY MONDAY from '12/14/2017' AT '08:00 AM'");
+
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 12, 25), eightAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 12, 18), LocalTime.of(8, 0, 0, 1000000))));
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 12, 25), eightAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 12, 24), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2018, 1, 1), eightAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 12, 25), noon)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2018, 1, 8), eightAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2018, 1, 1), noon)));
+
+		schedules = testParse("EVERY MONTH ON DAY 5 FROM '12/1/2017' AT '05:10 AM'");
+
+		assertEquals(LocalDateTime.of(LocalDate.of(2017, 12, 5), fiveTenAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 12, 1), fiveTenAm)));
+		assertEquals(LocalDateTime.of(LocalDate.of(2018, 1, 5), fiveTenAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 12, 6), noon)));
 	}
 
 	public void testSleep() {
