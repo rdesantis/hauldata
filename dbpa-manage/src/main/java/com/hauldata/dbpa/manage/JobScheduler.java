@@ -162,16 +162,14 @@ public class JobScheduler {
 	 * <p>
 	 * If the schedule expired but was not explicitly stopped, it is restarted on the assumption that
 	 * after the revision it may now run.
-	 * If the schedule was neither running nor expired, it is started on the assumption that a previous
-	 * attempted revision stopped the schedule but the revision failed, and after this new revision
-	 * it may now run.
 	 * @param id identifies the schedule that was revised
 	 */
 	public void revise(int id, String name, String schedule) {
 
 		try {
-			stop(id);
-			start(id, name, schedule);
+			if (stop(id)) {
+				start(id, name, schedule);
+			}
 		}
 		catch (InterruptedException ex) {
 			// A new interrupt came in while waiting for the old schedule to terminate.
