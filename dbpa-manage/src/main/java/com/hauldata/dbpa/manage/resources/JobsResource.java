@@ -46,6 +46,7 @@ import javax.ws.rs.core.MediaType;
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobExecutor;
 import com.hauldata.dbpa.manage.JobManager;
+import com.hauldata.dbpa.manage.JobManagerException;
 import com.hauldata.dbpa.manage.sql.ArgumentSql;
 import com.hauldata.dbpa.manage.sql.CommonSql;
 import com.hauldata.dbpa.manage.sql.JobScheduleSql;
@@ -108,7 +109,7 @@ public class JobsResource {
 			if (id != -1) {
 				// Job exists.  Delete the job schedules and arguments.
 
-				CommonSql.execute(conn, jobScheduleSql.delete, id);
+				deleteSchedules(conn, jobScheduleSql, id);
 				CommonSql.execute(conn, argumentSql.delete, id);
 
 				// Update existing job.
@@ -386,7 +387,7 @@ public class JobsResource {
 
 			// Delete the existing schedules and insert the new schedules.
 
-			CommonSql.execute(conn, jobScheduleSql.delete, id);
+			deleteSchedules(conn, jobScheduleSql, id);
 
 			if (scheduleIds != null) {
 
@@ -467,13 +468,18 @@ public class JobsResource {
 
 			CommonSql.execute(conn, jobSql.updateField, JobSql.enabledColumn, enabled ? 1 : 0, id);
 
-			// Start the schedules if job is enabled.
+			// Start the schedules if job is enabled; stop unused schedules if job is disabled.
 
-			if (!wasEnabled && enabled) {
+			if (enabled != wasEnabled) {
 
 				List<Integer> scheduleIds = getScheduleIds(conn, jobScheduleSql, id);
 
-				manager.getScheduler().start(scheduleIds);
+				if (enabled) {
+					manager.getScheduler().start(scheduleIds);
+				}
+				else {
+					stopUnusedSchedules(conn, jobScheduleSql, scheduleIds);
+				}
 			}
 		}
 		finally {
@@ -512,7 +518,7 @@ public class JobsResource {
 		return new SimpleEntry<Integer, Boolean>(id, enabled);
 	}
 
-	private List<Integer> getScheduleIds(Connection conn, JobScheduleSql jobScheduleSql, int id) throws SQLException, NameNotFoundException {
+	private List<Integer> getScheduleIds(Connection conn, JobScheduleSql jobScheduleSql, int id) throws SQLException {
 
 		List<Integer> ids = new LinkedList<Integer>();
 
@@ -760,12 +766,80 @@ public class JobsResource {
 
 			int jobId = CommonSql.getId(conn, jobSql.selectId, name, "Job");
 
-			CommonSql.execute(conn, jobScheduleSql.delete, jobId);
+			deleteSchedules(conn, jobScheduleSql, jobId);
 			CommonSql.execute(conn, argumentSql.delete, jobId);
 			CommonSql.execute(conn, jobSql.delete, jobId);
 		}
 		finally {
 			if (conn != null) context.releaseConnection(null);
+		}
+	}
+
+	/**
+	 * Delete the schedules for a job.  Stop each schedule that no longer has any enabled jobs on it.
+	 * <p>
+	 * WARNING: This is not thread safe.  If an enabled job is added as the only job on a schedule
+	 * that is deleted from this job while this method is executing, the schedule may be stopped
+	 * and the new job will not run on schedule.
+	 *
+	 * @param jobId is the job ID
+	 * @throws SQLException
+	 */
+	private void deleteSchedules(Connection conn, JobScheduleSql jobScheduleSql, int jobId) throws SQLException {
+
+		List<Integer> scheduleIds = getScheduleIds(conn, jobScheduleSql, jobId);
+
+		CommonSql.execute(conn, jobScheduleSql.delete, jobId);
+
+		stopUnusedSchedules(conn, jobScheduleSql, scheduleIds);
+	}
+
+	/**
+	 * Stop each of a list of schedules that has no enabled jobs on it.
+	 * <p>
+	 * WARNING: This is not thread safe.  See deleteSchedules().
+	 *
+	 * @param scheduleIds is the list of schedule ID
+	 * @throws SQLException
+	 */
+	private void stopUnusedSchedules(Connection conn, JobScheduleSql jobScheduleSql, List<Integer> scheduleIds) throws SQLException {
+		for (int scheduleId : scheduleIds) {
+			stopUnusedSchedule(conn, jobScheduleSql, scheduleId);
+		}
+	}
+
+	/**
+	 * Stop a schedule if it has no enabled jobs on it.
+	 * <p>
+	 * WARNING: This is not thread safe.  See deleteSchedules().
+	 *
+	 * @param scheduleId is the schedule ID
+	 * @throws SQLException
+	 */
+	private void stopUnusedSchedule(Connection conn, JobScheduleSql jobScheduleSql, int scheduleId) throws SQLException {
+
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+
+		try {
+			stmt = conn.prepareStatement(jobScheduleSql.selectCountEnabledJobsByScheduleId);
+
+			stmt.setInt(1, scheduleId);
+
+			rs = stmt.executeQuery();
+
+			rs.next();
+
+			if (rs.getInt(1) == 0) {
+				JobManager.getInstance().getScheduler().stop(scheduleId);
+			}
+		}
+		catch (InterruptedException e) {
+			throw new JobManagerException.SchedulerNotAvailable();
+		}
+		finally {
+			try { if (rs != null) rs.close(); } catch (Exception exx) {}
+			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 		}
 	}
 

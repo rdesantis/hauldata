@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -39,6 +39,10 @@ public interface Schedules {
 	@PUT
 	@Path("{name}")
 	public int put(@PathParam("name") String name, String body);
+
+	@PUT
+	@Path("{name}/body")
+	public void putBody(@PathParam("name") String name, String body);
 
 	@GET
 	@Path("{name}")

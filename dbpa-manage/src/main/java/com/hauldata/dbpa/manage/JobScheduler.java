@@ -195,7 +195,7 @@ public class JobScheduler {
 	 * or stopAllSchedules(), false otherwise.  Will return true if the schedule expired but was not explicitly stopped.
 	 * @throws InterruptedException if this thread is interrupted while waiting for the schedule to stop
 	 */
-	private boolean stop(int id) throws InterruptedException {
+	public boolean stop(int id) throws InterruptedException {
 
 		LOGGER.info("Stopping schedule ID {}", id);
 
@@ -305,23 +305,6 @@ public class JobScheduler {
 			if (conn != null) context.releaseConnection(null);
 		}
 	}
-
-	/**
-	 * Drop the schedules for the indicated job if necessary
-	 * <p>
-	 * For the running schedules of the indicated job, if it is the only job
-	 * associated with those schedules, stop them.  If any other job(s) hold any
-	 * of the schedule(s), allow those schedules to continue running. 
-	 * @param jobId identifies the job whose schedules are to be dropped
-	 */
-//	public void dropJobSchedules(int jobId) {
-		// DON'T IMPLEMENT THIS.
-		// It's too much work, too resource intensive at runtime and gives very little benefit.
-		// The only down side is that if the last job is removed from a schedule, the
-		// schedule will continue to run, but when it wakes it won't start any jobs.  Who cares?
-		// Could detect the "no enabled jobs upon wake" and drop the schedule at that time,
-		// but that is vulnerable to race condition.  So just don't bother.
-//	}
 
 	/**
 	 * Run the jobs on the indicated schedule

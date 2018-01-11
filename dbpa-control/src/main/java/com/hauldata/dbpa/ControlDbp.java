@@ -244,6 +244,7 @@ public class ControlDbp {
 		listCommands.put(KW.RUNNING.name(), new ListRunningCommand());
 
 		createCommands.put(KW.SCHEDULE.name(), new CreateScheduleCommand());
+		updateCommands.put(KW.SCHEDULE.name(), new UpdateScheduleCommand());
 		putCommands.put(KW.SCHEDULE.name(), new PutFileCommand(scheduleType));
 		getCommands.put(KW.SCHEDULE.name(), new GetFileCommand(scheduleType));
 		deleteCommands.put(KW.SCHEDULE.name(), new DeleteObjectCommand(scheduleType));
@@ -562,7 +563,23 @@ public class ControlDbp {
 		}
 	}
 
-	static class CreateScheduleCommand implements TransitiveCommand {
+	static class CreateScheduleCommand extends WriteScheduleCommand {
+
+		@Override
+		public void put(String name, String body) {
+			schedules.put(name, body);
+		}
+	}
+
+	static class UpdateScheduleCommand extends WriteScheduleCommand {
+
+		@Override
+		public void put(String name, String body) {
+			schedules.putBody(name, body);
+		}
+	}
+
+	static abstract class WriteScheduleCommand implements TransitiveCommand {
 
 		@Override
 		public boolean supportsPlural() { return false; }
@@ -580,10 +597,12 @@ public class ControlDbp {
 
 			// Execute.
 
-			schedules.put(name, body);
+			put(name, body);
 
 			return false;
 		}
+
+		public abstract void put(String name, String body);
 	}
 
 	static class ValidateScheduleCommand extends StandardDisplayCommand {

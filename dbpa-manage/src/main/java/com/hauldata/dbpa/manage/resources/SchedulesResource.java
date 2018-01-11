@@ -69,6 +69,33 @@ public class SchedulesResource {
 	@Timed
 	public int put(@PathParam("name") String name, String schedule) throws SQLException {
 
+		try {
+			return put(name, schedule, false);
+		}
+		catch (NameNotFoundException ex) {
+			// This exception can't happen.
+			throw new RuntimeException("Internal error in SchedulesResource.put(String,String): " + ex.toString());
+		}
+	}
+
+	/**
+	 * Update the definition of a schedule in the database.
+	 *
+	 * @param name is the schedule name.
+	 * @param body is the schedule to store.
+	 * @throws NameNotFoundException if the schedule does not exist
+	 * @throws SQLException if the schedule cannot be updated for any reason
+	 */
+	@PUT
+	@Path("{name}/body")
+	@Timed
+	public void putBody(@PathParam("name") String name, String body) throws NameNotFoundException, SQLException {
+
+		put(name, body, true);
+	}
+
+	private int put(String name, String schedule, boolean mustExist) throws NameNotFoundException, SQLException {
+
 		// Validate schedule; throws RuntimeException if not valid.
 
 		ScheduleSet.parse(schedule);
@@ -99,7 +126,7 @@ public class SchedulesResource {
 
 				manager.getScheduler().revise(id, name, schedule);
 			}
-			else {
+			else if (!mustExist) {
 				// Create new schedule.
 
 				stmt = conn.prepareStatement(sql.insert);
@@ -115,6 +142,9 @@ public class SchedulesResource {
 
 					stmt.executeUpdate();
 				}
+			}
+			else {
+				throw new NameNotFoundException(CommonSql.getNotFoundMessageStem("schedule") + name);
 			}
 
 			stmt.close();
