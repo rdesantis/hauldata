@@ -48,7 +48,8 @@ public abstract class TaskTest extends TestCase {
 			String script,
 			String[] args,
 			Map<String, String> nestedScripts,
-			ContextAction setup) throws Exception {
+			ContextAction setup,
+			boolean exceptionOnTaskFailed) throws Exception {
 
 		final String testPropsClass = "com.hauldata.dbpa.DbProcessTestProperties";
 		DbProcessTestPropertiesBase testProps = null;
@@ -87,19 +88,33 @@ public abstract class TaskTest extends TestCase {
 			args = new String[0];
 		}
 
+		DbProcess process = null;
 		try {
-			DbProcess process = DbProcess.parse(new StringReader(script));
+			process = DbProcess.parse(new StringReader(script));
 			process.run(args, context);
 		}
 		catch (Exception ex) {
 			System.err.println(ex.getMessage());
-			throw ex;
+			if ((process == null) || exceptionOnTaskFailed) {
+				throw ex;
+			}
 		}
 		finally {
 			context.close();
 		}
 
 		return analyzer;
+	}
+
+	protected Analyzer runScript(
+			String processId,
+			Level logLevel,
+			boolean logToConsole,
+			String script,
+			String[] args,
+			Map<String, String> nestedScripts,
+			ContextAction setup) throws Exception {
+		return runScript(processId, logLevel, logToConsole, script, args, nestedScripts, setup, true);
 	}
 
 	protected void assertBadSyntax(String script, String expectedMessage) {

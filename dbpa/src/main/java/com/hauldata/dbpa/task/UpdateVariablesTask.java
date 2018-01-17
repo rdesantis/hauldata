@@ -49,14 +49,14 @@ public abstract class UpdateVariablesTask extends Task {
 			}
 		}
 
-		if (!hasAnyRows && checkForSingleRow) {
+		if (hasAnyRows && !hasRightNumberOfColumns) {
+			throw new RuntimeException("Database query returned different number of columns than variables to update");
+		}
+		else if (!hasAnyRows && checkForSingleRow) {
 			throw new RuntimeException("Database query returned no rows");
 		}
 		else if (!hasSingleRow && checkForSingleRow) {
 			throw new RuntimeException("Database query returned more than one row");
-		}
-		else if (hasAnyRows && !hasRightNumberOfColumns) {
-			throw new RuntimeException("Database query returned different number of columns than variables to update");
 		}
 
 		return hasAnyRows;
