@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -18,7 +18,9 @@ package com.hauldata.util.schedule;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedList;
 import java.util.List;
@@ -71,14 +73,27 @@ public class ScheduleSet implements ScheduleBase {
 		return soonestNext;
 	}
 
+	@Override
+	public ZonedDateTime nextFrom(ZonedDateTime earliest) {
+
+		ZonedDateTime soonestNext = null;
+		for (Schedule schedule : schedules) {
+			ZonedDateTime next = schedule.nextFrom(earliest);
+			if ((next != null) && ((soonestNext == null) || next.isBefore(soonestNext))) {
+				soonestNext = next;
+			}
+		}
+		return soonestNext;
+	}
+
 	/**
 	 * @return the number of milliseconds until the next scheduled event
 	 * or a negative number if no more events are scheduled.
 	 */
 	public long untilNext() {
 
-		LocalDateTime now = LocalDateTime.now();
-		LocalDateTime wakeTime = nextFrom(now);
+		ZonedDateTime now = ZonedDateTime.now();
+		ZonedDateTime wakeTime = nextFrom(now);
 		if (wakeTime == null) {
 			return -1;
 		}
@@ -97,7 +112,7 @@ public class ScheduleSet implements ScheduleBase {
 	 */
 	public boolean sleepUntilNext() throws InterruptedException {
 
-		LocalDateTime wakeTime = nextFrom(LocalDateTime.now());
+		ZonedDateTime wakeTime = nextFrom(ZonedDateTime.now());
 		if (wakeTime == null) {
 			return false;
 		}
@@ -106,9 +121,10 @@ public class ScheduleSet implements ScheduleBase {
 		// time advances past the wake time to guarantee the same schedule
 		// does not run twice.
 
-		while (!LocalDateTime.now().isAfter(wakeTime)) {
+		Instant wakeInstant = wakeTime.toInstant();
+		while (!Instant.now().isAfter(wakeInstant)) {
 
-			long millis = LocalDateTime.now().until(wakeTime, ChronoUnit.MILLIS);
+			long millis = Instant.now().until(wakeInstant, ChronoUnit.MILLIS);
 			if (0 < millis) {
 				Thread.sleep(millis);
 			}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -17,16 +17,34 @@
 package com.hauldata.util.schedule;
 
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 public interface ScheduleBase {
 
 	/**
 	 * Return the datetime of the next scheduled event on or after
 	 * the indicated datetime.
-	 * 
-	 * @param earliest is the earliest date time allowed for the next event
-	 * @return the date time of the next event or null if no more events are
+	 * <p>
+	 * Because the mapping from a LocalTime value to an Instant may be
+	 * ambiguous on a day when Daylight Saving Time starts or ends,
+	 * this method cannot be used to reliably determine the elapsed time
+	 * until the next scheduled event will occur.  Use the method
+	 * nextFrom(ZonedDateTime) if the method result is to be used for
+	 * that purpose.
+	 *
+	 * @param earliest is the earliest datetime allowed for the next event
+	 * @return the datetime of the next event or null if no more events are
 	 * scheduled on or after the datetime
 	 */
 	public LocalDateTime nextFrom(LocalDateTime earliest);
+
+	/**
+	 * Return the datetime of the next scheduled event on or after
+	 * the indicated datetime.
+	 *
+	 * @param earliest is the earliest datetime allowed for the next event
+	 * @return the datetime of the next event or null if no more events are
+	 * scheduled on or after the datetime
+	 */
+	public ZonedDateTime nextFrom(ZonedDateTime earliest);
 }

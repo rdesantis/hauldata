@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package com.hauldata.util.schedule;
 
 import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 
 /**
@@ -26,7 +27,7 @@ public abstract class TimeSchedule {
 
 	/**
 	 * Instantiate a schedule for an event that occurs once a day
-	 * 
+	 *
 	 * @param time is the time of the event
 	 * @return the schedule
 	 */
@@ -36,7 +37,7 @@ public abstract class TimeSchedule {
 
 	/**
 	 * Instantiate a schedule for an event that recurs multiple times per day
-	 * 
+	 *
 	 * @param unit is the time unit of the recurrence, e.g., hour, minute, second
 	 * @param frequency is the number of time units from one event to the next
 	 * @param startTime is the time of the first event
@@ -54,12 +55,30 @@ public abstract class TimeSchedule {
 	/**
 	 * Return the time of the next scheduled event on or after
 	 * the indicated time.
-	 * 
+	 * <p>
+	 * Because the mapping from a LocalTime value to an Instant may be
+	 * ambiguous on a day when Daylight Saving Time starts or ends,
+	 * this method cannot be used to reliably determine the elapsed time
+	 * until the next scheduled event will occur.  Use the method
+	 * nextFrom(ZonedDateTime) if the method result is to be used for
+	 * that purpose.
+	 *
 	 * @param earliestTime is the earliest time allowed for the next event
 	 * @return the time of the next event or null if no more events are
 	 * scheduled in the day
 	 */
 	public abstract LocalTime nextFrom(LocalTime earliestTime);
+
+	/**
+	 * Return the datetime of the next scheduled event on or after
+	 * the indicated datetime but on the same day.
+	 *
+	 * @param earliestDatetime is the earliest datetime allowed for the next event
+	 * @return the datetime of the next event or null if no more events are
+	 * scheduled in the day.  If the return value is not null, it will always
+	 * be on the same date as earliestDateTime.
+	 */
+	public abstract ZonedDateTime nextFrom(ZonedDateTime earliestDatetime);
 }
 
 class OnetimeTimeSchedule extends TimeSchedule {
@@ -75,10 +94,16 @@ class OnetimeTimeSchedule extends TimeSchedule {
 	public LocalTime nextFrom(LocalTime earliestTime) {
 		return !earliestTime.isAfter(time) ? time : null;
 	}
+
+	@Override
+	public ZonedDateTime nextFrom(ZonedDateTime earliestDatetime) {
+		ZonedDateTime datetime = ZonedDateTime.of(earliestDatetime.toLocalDate(), time, earliestDatetime.getZone());
+		return !earliestDatetime.isAfter(datetime) ? datetime : null;
+	}
 }
 
 class RecurringTimeSchedule extends TimeSchedule {
-	
+
 	ChronoUnit unit;
 	int frequency;
 	LocalTime startTime;
@@ -123,6 +148,38 @@ class RecurringTimeSchedule extends TimeSchedule {
 		result = result.plus(frequency, unit);
 
 		if (result.isAfter(endTime)) {
+			return null;
+		}
+
+		return result;
+	}
+
+	@Override
+	public ZonedDateTime nextFrom(ZonedDateTime earliestDatetime) {
+
+		ZonedDateTime startDatetime = ZonedDateTime.of(earliestDatetime.toLocalDate(), this.startTime, earliestDatetime.getZone());
+		ZonedDateTime endDatetime = ZonedDateTime.of(earliestDatetime.toLocalDate(), this.endTime, earliestDatetime.getZone());
+
+		if (!earliestDatetime.isAfter(startDatetime)) {
+			return startDatetime;
+		}
+
+		if (earliestDatetime.isAfter(endDatetime)) {
+			return null;
+		}
+
+		int unitsUntil = (int)startDatetime.until(earliestDatetime, unit);
+		int cyclesUntil = unitsUntil / frequency;
+
+		ZonedDateTime result = startDatetime.plus(cyclesUntil * frequency, unit);
+
+		if (!earliestDatetime.isAfter(result)) {
+			return result;
+		}
+
+		result = result.plus(frequency, unit);
+
+		if (result.isAfter(endDatetime)) {
 			return null;
 		}
 

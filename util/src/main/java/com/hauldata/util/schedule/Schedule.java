@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
@@ -62,6 +63,25 @@ public class Schedule implements ScheduleBase {
 		}
 
 		return LocalDateTime.of(resultDate, resultTime);
+	}
+
+	@Override
+	public ZonedDateTime nextFrom(ZonedDateTime earliest) {
+
+		LocalDate earliestDate = earliest.toLocalDate();
+		ZonedDateTime resultTime = timeSchedule.nextFrom(earliest);
+
+		LocalDate earlietResultDate = (resultTime != null) ? earliestDate : earliestDate.plusDays(1);
+
+		LocalDate resultDate = dateSchedule.nextFrom(earlietResultDate);
+		if (resultDate == null) {
+			return null;
+		}
+		else if (!resultDate.equals(earliestDate)) {
+			resultTime = timeSchedule.nextFrom(ZonedDateTime.of(resultDate, LocalTime.MIN, earliest.getZone()));
+		}
+
+		return resultTime;
 	}
 
 	/**

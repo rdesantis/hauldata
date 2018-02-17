@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2017, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ package com.hauldata.util.schedule;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 
 import junit.framework.AssertionFailedError;
@@ -50,6 +52,11 @@ public class ScheduleTest extends TestCase {
 	static LocalDate monday1116 = LocalDate.of(2015, 11, 16);
 	static LocalDate tuesday1201 = LocalDate.of(2015, 12, 01);
 
+	static ZoneId et = ZoneId.of("America/New_York");
+
+	static LocalDate dstBegins = LocalDate.of(2018, 3, 11);
+	static LocalDate dstEnds = LocalDate.of(2018, 11, 4);
+
     public ScheduleTest(String name) {
         super(name);
     }
@@ -68,6 +75,37 @@ public class ScheduleTest extends TestCase {
 		assertEquals(LocalTime.of(13, 0), everyTwoHoursFromNineAm.nextFrom(noon));
 		assertEquals(LocalTime.of(15, 0), everyTwoHoursFromNineAm.nextFrom(twoPm));
 		assertNull(everyTwoHoursFromNineAm.nextFrom(fourPm));
+	}
+
+	public void testZonedTime() {
+
+		ZonedDateTime tenAm1108 = ZonedDateTime.of(sunday1108, tenAm, et);
+		ZonedDateTime noon1108 = ZonedDateTime.of(sunday1108, noon, et);
+		ZonedDateTime twoPm1108 = ZonedDateTime.of(sunday1108, twoPm, et);
+		ZonedDateTime fourPm1108 = ZonedDateTime.of(sunday1108, fourPm, et);
+
+		TimeSchedule atNoon = TimeSchedule.onetime(noon);
+
+		assertEquals(noon1108, atNoon.nextFrom(tenAm1108));
+		assertEquals(noon1108, atNoon.nextFrom(noon1108));
+		assertNull(atNoon.nextFrom(twoPm1108));
+
+		TimeSchedule everyTwoHoursFromNineAm = TimeSchedule.recurring(ChronoUnit.HOURS, 2, nineAm, threeFifteenPm);
+
+		assertEquals(ZonedDateTime.of(sunday1108, LocalTime.of(11, 0), et), everyTwoHoursFromNineAm.nextFrom(tenAm1108));
+		assertEquals(ZonedDateTime.of(sunday1108, LocalTime.of(13, 0), et), everyTwoHoursFromNineAm.nextFrom(noon1108));
+		assertEquals(ZonedDateTime.of(sunday1108, LocalTime.of(15, 0), et), everyTwoHoursFromNineAm.nextFrom(twoPm1108));
+		assertNull(everyTwoHoursFromNineAm.nextFrom(fourPm1108));
+
+		TimeSchedule everyFiveMinutes = TimeSchedule.recurring(ChronoUnit.MINUTES, 5, midnight, ninePm);
+
+		assertEquals(ZonedDateTime.of(sunday1108, LocalTime.of(2, 0), et), everyFiveMinutes.nextFrom(ZonedDateTime.of(sunday1108, LocalTime.of(1, 56), et)));
+
+		assertEquals(ZonedDateTime.of(dstBegins, LocalTime.of(1, 0), et), everyFiveMinutes.nextFrom(ZonedDateTime.of(dstBegins, LocalTime.of(0, 56), et)));
+		assertEquals(ZonedDateTime.of(dstBegins, LocalTime.of(1, 55), et), everyFiveMinutes.nextFrom(ZonedDateTime.of(dstBegins, LocalTime.of(1, 51), et)));
+		assertEquals(ZonedDateTime.of(dstBegins, LocalTime.of(3, 0), et), everyFiveMinutes.nextFrom(ZonedDateTime.of(dstBegins, LocalTime.of(1, 56), et)));
+
+		assertEquals(ZonedDateTime.of(dstBegins, LocalTime.of(3, 0), et), everyFiveMinutes.nextFrom(ZonedDateTime.of(dstBegins, LocalTime.of(2, 0), et)));
 	}
 
 	public void testDate() {
@@ -96,6 +134,33 @@ public class ScheduleTest extends TestCase {
 		assertEquals(LocalDateTime.of(monday1109, tenThirtyAm), monToFri1030amTo0830pm.nextFrom(LocalDateTime.of(sunday1108, ninePm)));
 		assertEquals(LocalDateTime.of(monday1109, twelveThirtyPm), monToFri1030amTo0830pm.nextFrom(LocalDateTime.of(monday1109, noon)));
 		assertEquals(LocalDateTime.of(tuesday1110, tenThirtyAm), monToFri1030amTo0830pm.nextFrom(LocalDateTime.of(monday1109, ninePm)));
+	}
+
+	public void testZonedDateTime() {
+
+		Schedule monToFri1030amTo0830pm = new Schedule(
+				DateSchedule.recurring(ChronoUnit.DAYS, 1, monday1109, friday1113),
+				TimeSchedule.recurring(ChronoUnit.HOURS, 2, tenThirtyAm, eightThirtyPm));
+
+		assertEquals(ZonedDateTime.of(monday1109, tenThirtyAm, et), monToFri1030amTo0830pm.nextFrom(ZonedDateTime.of(sunday1108, ninePm, et)));
+		assertEquals(ZonedDateTime.of(monday1109, twelveThirtyPm, et), monToFri1030amTo0830pm.nextFrom(ZonedDateTime.of(monday1109, noon, et)));
+		assertEquals(ZonedDateTime.of(tuesday1110, tenThirtyAm, et), monToFri1030amTo0830pm.nextFrom(ZonedDateTime.of(monday1109, ninePm, et)));
+
+		Schedule dailyNoon = new Schedule(
+				DateSchedule.recurring(ChronoUnit.DAYS, 1, monday1109, null),
+				TimeSchedule.onetime(noon));
+
+		long dstBeginsMillis = 23 * 60 * 60 * 1000L;
+		long normalMillis = 24 * 60 * 60 * 1000L;
+		long dstEndsMillis = 25 * 60 * 60 * 1000L;
+
+		ZonedDateTime dayBeforeDstBeginsAfterNoon = ZonedDateTime.of(dstBegins.minusDays(1), noon.plus(1, ChronoUnit.MILLIS), et);
+		ZonedDateTime dayDstBeginsAfterNoon = ZonedDateTime.of(dstBegins, noon.plus(1, ChronoUnit.MILLIS), et);
+		ZonedDateTime dayBeforeDstEndsAfterNoon = ZonedDateTime.of(dstEnds.minusDays(1), noon.plus(1, ChronoUnit.MILLIS), et);
+
+		assertEquals(dstBeginsMillis - 1, dayBeforeDstBeginsAfterNoon.until(dailyNoon.nextFrom(dayBeforeDstBeginsAfterNoon), ChronoUnit.MILLIS));
+		assertEquals(normalMillis - 1, dayDstBeginsAfterNoon.until(dailyNoon.nextFrom(dayDstBeginsAfterNoon), ChronoUnit.MILLIS));
+		assertEquals(dstEndsMillis - 1, dayBeforeDstEndsAfterNoon.until(dailyNoon.nextFrom(dayBeforeDstEndsAfterNoon), ChronoUnit.MILLIS));
 	}
 
 	public void testMulti() {
