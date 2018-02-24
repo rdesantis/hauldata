@@ -235,20 +235,28 @@ public class XlsxTargetSheet extends XlsxSheet {
 		}
 		else if (object instanceof Short || object instanceof Integer) {
 			cell.setCellValue(((Number)object).doubleValue());
-			cell.setCellStyle(getOwner().getCellStyle(XlsxCellStyle.integer));
+			cell.setCellStyle(getOwner().getCellStyle(XlsxCellStyle.INTEGER));
 		}
 		else if (object instanceof Long || object instanceof BigInteger) {
 			cell.setCellValue(object.toString());
 		}
 		else if (object instanceof BigDecimal && ((BigDecimal)object).scale() == 2) {
 			cell.setCellValue(((Number)object).doubleValue());
-			cell.setCellStyle(getOwner().getCellStyle(XlsxCellStyle.money));
+			cell.setCellStyle(getOwner().getCellStyle(XlsxCellStyle.MONEY));
 		}
 		else if (object instanceof Number) {
 			cell.setCellValue(((Number)object).doubleValue());
 		}
 		else if (object instanceof String) {
-			cell.setCellValue((String)object);
+
+			object = BigDollars.parse((String)object);
+			if (object instanceof BigDollars) {
+				cell.setCellValue(((BigDollars)object).getValue().doubleValue());
+				cell.setCellStyle(getOwner().getCellStyle(XlsxCellStyle.COMMA));
+			}
+			else {
+				cell.setCellValue((String)object);
+			}
 		}
 		else if (object instanceof Boolean) {
 			cell.setCellValue((Boolean)object);
@@ -273,10 +281,10 @@ public class XlsxTargetSheet extends XlsxSheet {
 
 			CellStyle style = null;
 			if (time.equals(LocalTime.MIDNIGHT)) {
-				style = getOwner().getCellStyle(XlsxCellStyle.date);
+				style = getOwner().getCellStyle(XlsxCellStyle.DATE);
 			}
 			else {
-				style = getOwner().getCellStyle(XlsxCellStyle.datetime);
+				style = getOwner().getCellStyle(XlsxCellStyle.DATETIME);
 			}
 			cell.setCellStyle(style);
 		}
@@ -352,6 +360,37 @@ public class XlsxTargetSheet extends XlsxSheet {
 	@Override public void load() {}
 	@Override public Object readColumn(int columnIndex) { return null; }
 	@Override public boolean hasRow() { return false; }
+}
+
+class BigDollars {
+
+	private final BigDecimal value;
+
+	/**
+	 * @param value is a value to parse.
+	 * @return a BigDollars object if the value is in the format of a number
+	 * with comma-separated thousands and two decimal places.  Otherwise,
+	 * returns the original value.
+	 */
+	static Object parse(String value) {
+
+		final Pattern pattern = Pattern.compile("\\A(-?\\d{1,3})(,\\d{3})+\\.\\d{2}\\z");
+
+		Matcher matcher = pattern.matcher(value);
+		if (matcher.find()) {
+			return new BigDollars(new BigDecimal(value.replace(",", "")));
+		}
+
+		return value;
+	}
+
+	private BigDollars(BigDecimal value) {
+		this.value = value;
+	}
+
+	public BigDecimal getValue() {
+		return value;
+	}
 }
 
 class StylesWithFormatting {

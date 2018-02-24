@@ -37,13 +37,14 @@ public class XlsxTargetBook extends XlsxBook {
 	Map<FontStyles, XSSFFont> fontsUsed;
 	Map<Integer, XSSFColor> colorsUsed;
 
-	public enum XlsxCellStyle { date, datetime, integer, money };
+	public enum XlsxCellStyle { DATE, DATETIME, INTEGER, MONEY, COMMA };
 
 	private CellStyle[] cellStyles;
 	private final String dateFormatString = "mm/dd/yyyy";
 	private final String datetimeFormatString = "mm/dd/yyyy hh:mm:ss AM/PM";
 	private final String integerFormatString = "0";
 	private final String moneyFormatString = "0.00";
+	private final String commaFormatString = "#,##0.00";
 
 	public XlsxTargetBook(Owner owner, Path path) {
 		super(owner, path);
@@ -73,10 +74,11 @@ public class XlsxTargetBook extends XlsxBook {
 		book = new SXSSFWorkbook();
 
 		cellStyles = new CellStyle[XlsxCellStyle.values().length];
-		createCellStyle(XlsxCellStyle.date, dateFormatString);
-		createCellStyle(XlsxCellStyle.datetime, datetimeFormatString);
-		createCellStyle(XlsxCellStyle.integer, integerFormatString);
-		createCellStyle(XlsxCellStyle.money, moneyFormatString);
+		createCellStyle(XlsxCellStyle.DATE, dateFormatString);
+		createCellStyle(XlsxCellStyle.DATETIME, datetimeFormatString);
+		createCellStyle(XlsxCellStyle.INTEGER, integerFormatString);
+		createCellStyle(XlsxCellStyle.MONEY, moneyFormatString);
+		createCellStyle(XlsxCellStyle.COMMA, commaFormatString);
 	}
 
 	private void createCellStyle(XlsxCellStyle style, String formatString) {

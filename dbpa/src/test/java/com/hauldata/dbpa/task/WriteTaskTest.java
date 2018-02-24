@@ -179,12 +179,18 @@ public class WriteTaskTest extends TaskTest {
 				"		('<tr style=\"background-color: Fuchsia\">', DATEADD(DAY, 0, '12/9/2017 1:23')), \n" +
 				"		('<tr style=\"background-color: Fuchsia\">', 'Fuschsia'), \n" +
 				"		('<tr style=\"background-color: #FF00FF\">', '#FF00FF'), \n" +
-				"		('<tr style=\"background-color: #E6E6FA\">', 'Lavender = #E6E6FA'), \n" +
+				"		('<tr style=\"background-color: #E6E6FA\"><td style=\"background-color: green\">', 'Lavender = #E6E6FA'), \n" +
 				"		('<tr style=\"background-color: HotPink \">', 'HotPink '), \n" +
 				"		('<tr style=\"background-color: #FF69B4\">', '#FF69B4'), \n" +
 				"		(NULL, NULL), \n" +
 				"		('normal', 123), \n" +
 				"		('The answer is', '<td style=\"border-top:thin solid;border-bottom:double\">42'), \n" +
+				"		('normal', '1,23,456'), \n" +
+				"		('normal', '1,234'), \n" +
+				"		('normal', '1,234.5'), \n" +
+				"		('normal', '1,234.567'), \n" +
+				"		('normal', '1,234.56'), \n" +
+				"		('The answer is', '<td style=\"border-top:thin solid;border-bottom:double\">56,789,012.34'), \n" +
 				"		('normal', 456) \n" +
 				"	END TASK \n" +
 				"	TASK AFTER \n" +
