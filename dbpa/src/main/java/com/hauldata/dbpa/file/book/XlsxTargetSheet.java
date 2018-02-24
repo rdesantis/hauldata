@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -25,11 +25,13 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
@@ -47,6 +49,8 @@ import org.apache.poi.xssf.usermodel.XSSFFont;
 
 import com.hauldata.dbpa.file.PageOptions;
 import com.hauldata.dbpa.file.TargetHeaders;
+import com.hauldata.dbpa.file.book.BorderStyles.BorderEdge;
+import com.hauldata.dbpa.file.book.BorderStyles.BorderWidth;
 import com.hauldata.dbpa.file.book.XlsxTargetBook.XlsxCellStyle;
 import com.hauldata.dbpa.file.html.HtmlOptions;
 
@@ -56,6 +60,7 @@ public class XlsxTargetSheet extends XlsxSheet {
 	private int rowIndex;
 	private ArrayList<Object> rowValues;
 	private int columnCount;
+	private ArrayList<Styles> previousRowCellStyles;
 
 	private ResolvedSheetStyles sheetStyles;
 
@@ -66,6 +71,7 @@ public class XlsxTargetSheet extends XlsxSheet {
 		rowIndex = 0;
 		rowValues = new ArrayList<Object>();
 		columnCount = 0;
+		previousRowCellStyles = null;
 	}
 
 	public static class TargetOptions extends HtmlOptions {
@@ -140,7 +146,7 @@ public class XlsxTargetSheet extends XlsxSheet {
 
 		if (columnIndex == 1) {
 			if (0 < rowIndex) {
-				writeRow(rowValues, rowIndex, getRowPosition(rowIndex));
+				previousRowCellStyles = writeRow(rowValues, rowIndex, getRowPosition(rowIndex), previousRowCellStyles);
 			}
 			rowIndex++;
 		}
@@ -167,7 +173,9 @@ public class XlsxTargetSheet extends XlsxSheet {
 				RowPosition.MIDDLE;
 	}
 
-	private void writeRow(ArrayList<Object> rowValues, int rowIndex, RowPosition rowPosition) {
+	private ArrayList<Styles> writeRow(ArrayList<Object> rowValues, int rowIndex, RowPosition rowPosition, ArrayList<Styles> previousRowCellStyles) {
+
+		ArrayList<Styles> rowCellStyles = new ArrayList<Styles>();
 
 		Styles rowStyles = null;
 		if (getTargetOptions().isStyled()) {
@@ -177,10 +185,16 @@ public class XlsxTargetSheet extends XlsxSheet {
 			rowStyles = valueStyles.styles;
 		}
 
+		Styles leftStyles = null;
+
 		Row row = sheet.createRow(rowIndex - 1);
 
 		int columnIndex = 0;
-		for (Object object : rowValues) {
+		while (columnIndex < columnCount) {
+
+			Styles aboveStyles = (previousRowCellStyles != null) ? previousRowCellStyles.get(columnIndex) : null;
+
+			Object object = rowValues.get(columnIndex);
 
 			Styles cellStyles = null;
 			if (getTargetOptions().isStyled()) {
@@ -196,9 +210,15 @@ public class XlsxTargetSheet extends XlsxSheet {
 			setCellValue(cell, object);
 
 			if (!sheetStyles.areDefault() || (rowStyles != null) || (cellStyles != null)) {
-				setCellStyle(cell, sheetStyles, rowStyles, cellStyles, rowPosition, getColumnPosition(columnIndex));
+				leftStyles = setCellStyle(cell, cellStyles, rowStyles, sheetStyles, rowPosition, getColumnPosition(columnIndex), leftStyles, aboveStyles);
 			}
+			else {
+				leftStyles = null;
+			}
+			rowCellStyles.add(leftStyles);
 		}
+
+		return rowCellStyles;
 	}
 
 	private ColumnPosition getColumnPosition(int columnIndex) {
@@ -265,17 +285,19 @@ public class XlsxTargetSheet extends XlsxSheet {
 		}
 	}
 
-	private void setCellStyle(
+	private Styles setCellStyle(
 			Cell cell,
-			ResolvedSheetStyles sheetStyles,
-			Styles rowStyles,
 			Styles cellStyles,
+			Styles rowStyles,
+			ResolvedSheetStyles sheetStyles,
 			RowPosition rowPosition,
-			ColumnPosition columnPosition) {
+			ColumnPosition columnPosition,
+			Styles leftStyles,
+			Styles aboveStyles) {
 
 		CellStyle originalStyle = cell.getCellStyle();
 
-		Styles styles = sheetStyles.resolve(rowStyles, cellStyles, rowPosition, columnPosition);
+		Styles styles = sheetStyles.resolve(cellStyles, rowStyles, rowPosition, columnPosition, leftStyles, aboveStyles);
 
 		short formatIndex = originalStyle.getIndex();
 
@@ -286,6 +308,8 @@ public class XlsxTargetSheet extends XlsxSheet {
 		if (finalStyle != originalStyle) {
 			cell.setCellStyle(finalStyle);
 		}
+
+		return styles;
 	}
 
 	private XlsxTargetBook getOwner() {
@@ -296,7 +320,7 @@ public class XlsxTargetSheet extends XlsxSheet {
 	public void flush() throws IOException {
 
 		if (0 < rowIndex) {
-			writeRow(rowValues, rowIndex, RowPosition.BOTTOM);
+			writeRow(rowValues, rowIndex, RowPosition.BOTTOM, previousRowCellStyles);
 		}
 
 		try {
@@ -378,30 +402,30 @@ class StylesWithFormatting {
 		cellStyle = (XSSFCellStyle)book.createCellStyle();
 		cellStyle.cloneStyleFrom(book.getCellStyleAt(formatIndex));
 
-		if (styles.bottomBorderStyle != null) {
-			cellStyle.setBorderBottom(resolveBorderStyle(styles.bottomBorderStyle, styles.bottomBorderWidth));
+		if (styles.bottomBorder.style != null) {
+			cellStyle.setBorderBottom(resolveBorderStyle(styles.bottomBorder));
 		}
-		if (styles.leftBorderStyle != null) {
-			cellStyle.setBorderLeft(resolveBorderStyle(styles.leftBorderStyle, styles.leftBorderWidth));
+		if (styles.leftBorder.style != null) {
+			cellStyle.setBorderLeft(resolveBorderStyle(styles.leftBorder));
 		}
-		if (styles.rightBorderStyle != null) {
-			cellStyle.setBorderRight(resolveBorderStyle(styles.rightBorderStyle, styles.rightBorderWidth));
+		if (styles.rightBorder.style != null) {
+			cellStyle.setBorderRight(resolveBorderStyle(styles.rightBorder));
 		}
-		if (styles.topBorderStyle != null) {
-			cellStyle.setBorderTop(resolveBorderStyle(styles.topBorderStyle, styles.topBorderWidth));
+		if (styles.topBorder.style != null) {
+			cellStyle.setBorderTop(resolveBorderStyle(styles.topBorder));
 		}
 
-		if (styles.bottomBorderColor != null) {
-			cellStyle.setBottomBorderColor(getColor(styles.bottomBorderColor, book, colorsUsed));
+		if (styles.bottomBorder.color != null) {
+			cellStyle.setBottomBorderColor(getColor(styles.bottomBorder.color, book, colorsUsed));
 		}
-		if (styles.leftBorderColor != null) {
-			cellStyle.setLeftBorderColor(getColor(styles.leftBorderColor, book, colorsUsed));
+		if (styles.leftBorder.color != null) {
+			cellStyle.setLeftBorderColor(getColor(styles.leftBorder.color, book, colorsUsed));
 		}
-		if (styles.rightBorderColor != null) {
-			cellStyle.setRightBorderColor(getColor(styles.rightBorderColor, book, colorsUsed));
+		if (styles.rightBorder.color != null) {
+			cellStyle.setRightBorderColor(getColor(styles.rightBorder.color, book, colorsUsed));
 		}
-		if (styles.topBorderColor != null) {
-			cellStyle.setTopBorderColor(getColor(styles.topBorderColor, book, colorsUsed));
+		if (styles.topBorder.color != null) {
+			cellStyle.setTopBorderColor(getColor(styles.topBorder.color, book, colorsUsed));
 		}
 
 		if (styles.backgroundColor != null) {
@@ -422,19 +446,38 @@ class StylesWithFormatting {
 		return cellStyle;
 	}
 
-	private static BorderStyle resolveBorderStyle(BorderStyle borderStyle, BorderStyle borderWidth) {
+	private static BorderStyle resolveBorderStyle(BorderStyles border) {
 
-		if (borderWidth == BorderStyle.NONE) {
+		BorderWidth borderWidth = (border.width != null) ? border.width : BorderWidth.MEDIUM;
+		BorderEdge borderStyle = (border.style != null) ? border.style : BorderEdge.NONE;
+
+		if (borderWidth == BorderWidth.ZERO) {
 			return BorderStyle.NONE;
 		}
 
 		switch (borderStyle) {
-		case MEDIUM:
-			return (borderWidth != null) ? borderWidth : borderStyle;
-		case MEDIUM_DASHED:
-			return (borderWidth == BorderStyle.THIN) ? BorderStyle.DASHED : BorderStyle.MEDIUM_DASHED;
+		case NONE:
+		case HIDDEN:
+			return BorderStyle.NONE;
 		default:
-			return borderStyle;
+		case SOLID:
+			switch (borderWidth) {
+			case THIN: return BorderStyle.THIN;
+			default:
+			case MEDIUM: return BorderStyle.MEDIUM;
+			case THICK: return BorderStyle.THICK;
+			}
+		case DOUBLE:
+			return BorderStyle.DOUBLE;
+		case DASHED:
+			switch (borderWidth) {
+			case THIN: return BorderStyle.DASHED;
+			default:
+			case MEDIUM:
+			case THICK: return BorderStyle.MEDIUM_DASHED;
+			}
+		case DOTTED:
+			return BorderStyle.DOTTED;
 		}
 	}
 
@@ -622,30 +665,44 @@ class ResolvedSheetStyles extends SheetStyles {
 		rowStyles[RowPosition.MIDDLE.ordinal()] = new RowStyles();
 		rowStyles[RowPosition.BOTTOM.ordinal()] = new RowStyles();
 
+		RowStyles previousRowStyles = null;
+
 		for (RowPosition rowPosition : RowPosition.values()) {
+
+			RowStyles thisRowStyles = getStyles(rowPosition);
+			Styles leftStyles = null;
+
 			for (ColumnPosition columnPosition : ColumnPosition.values()) {
 
-				Styles positionStyles = super.resolve(null, null, rowPosition, columnPosition);
-				getStyles(rowPosition).setStyles(columnPosition, positionStyles);
+				Styles aboveStyles = (previousRowStyles != null) ? previousRowStyles.getStyles(columnPosition) : null;
+
+				Styles positionStyles = super.resolve(null, null, rowPosition, columnPosition, leftStyles, aboveStyles);
+				thisRowStyles.setStyles(columnPosition, positionStyles);
 
 				if (!positionStyles.areDefault()) {
 					areDefault = false;
 				}
+
+				leftStyles = positionStyles;
 			}
+
+			previousRowStyles = thisRowStyles;
 		}
 	}
 
 	public Styles resolve(
-			Styles rowStyles,
 			Styles cellStyles,
+			Styles rowStyles,
 			RowPosition rowPosition,
-			ColumnPosition columnPosition) {
+			ColumnPosition columnPosition,
+			Styles leftStyles,
+			Styles aboveStyles) {
 
-		if ((rowStyles == null) && (cellStyles == null)) {
+		if ((cellStyles == null) && (rowStyles == null) && (leftStyles == null) && (aboveStyles == null)) {
 			return getStyles(rowPosition).getStyles(columnPosition);
 		}
 		else {
-			return super.resolve(rowStyles, cellStyles, rowPosition, columnPosition);
+			return super.resolve(cellStyles, rowStyles, rowPosition, columnPosition, leftStyles, aboveStyles);
 		}
 	}
 }
@@ -668,32 +725,33 @@ class SheetStyles {
 	}
 
 	public Styles resolve(
-			Styles rowStyles,
 			Styles cellStyles,
+			Styles rowStyles,
 			RowPosition rowPosition,
-			ColumnPosition columnPosition) {
+			ColumnPosition columnPosition,
+			Styles leftStyles,
+			Styles aboveStyles) {
 
 		Styles result = new Styles();
-
-		// In styling shared borders between cells, keep in mind that styles are determined left to right across cells and
-		// top to bottom across rows.  Therefore, a shared border style may already be determined, in which case it should
-		// not be overridden except by cell-specific styling and sometimes row-specific styling.
 
 		// Top borders
 
 		switch (rowPosition) {
 		case HEADER: {
-			resolveTopBorder(result, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
+			resolveTopBorder(result, null, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
+			break;
+		}
+		case NEXT: {
+			resolveTopBorder(result, aboveStyles, cellStyles, bodyCellStyles, rowStyles, bodyStyles);
 			break;
 		}
 		case TOP: {
-			resolveTopBorder(result, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
+			resolveTopBorder(result, null, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
 			break;
 		}
-		case NEXT:
 		case MIDDLE:
 		case BOTTOM: {
-			resolveTopBorder(result, cellStyles, rowStyles);
+			resolveTopBorder(result, aboveStyles, cellStyles, bodyCellStyles, rowStyles);
 			break;
 		}
 		}
@@ -705,12 +763,12 @@ class SheetStyles {
 			switch (columnPosition) {
 			case SINGLE:
 			case LEFT:{
-				resolveLeftBorder(result, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
+				resolveLeftBorder(result, null, cellStyles, headCellStyles, rowStyles, headStyles, tableStyles);
 				break;
 			}
 			case MIDDLE:
 			case RIGHT: {
-				resolveLeftBorder(result, cellStyles);
+				resolveLeftBorder(result, leftStyles, cellStyles, headCellStyles);
 				break;
 			}
 			}
@@ -738,12 +796,12 @@ class SheetStyles {
 			switch (columnPosition) {
 			case SINGLE:
 			case LEFT:{
-				resolveLeftBorder(result, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
+				resolveLeftBorder(result, null, cellStyles, bodyCellStyles, rowStyles, bodyStyles, tableStyles);
 				break;
 			}
 			case MIDDLE:
 			case RIGHT: {
-				resolveLeftBorder(result, cellStyles);
+				resolveLeftBorder(result, leftStyles, cellStyles, bodyCellStyles);
 				break;
 			}
 			}
@@ -770,17 +828,13 @@ class SheetStyles {
 
 		switch (rowPosition) {
 		case HEADER: {
-			Styles[] bottomStyles = new Styles[] { cellStyles, headCellStyles, rowStyles, headStyles };
-			Styles[] topStyles = new Styles[] { bodyCellStyles, bodyStyles };
-			resolveBottomBorder(result, bottomStyles, topStyles);
+			resolveBottomBorder(result, cellStyles, headCellStyles, rowStyles, headStyles);
 			break;
 		}
 		case NEXT:
 		case TOP:
 		case MIDDLE: {
-			Styles[] bottomStyles = new Styles[] { cellStyles, bodyCellStyles, rowStyles };
-			Styles[] topStyles = new Styles[] { bodyCellStyles };
-			resolveBottomBorder(result, bottomStyles, topStyles);
+			resolveBottomBorder(result, cellStyles, bodyCellStyles, rowStyles);
 			break;
 		}
 		case BOTTOM: {
@@ -792,45 +846,123 @@ class SheetStyles {
 		return result;
 	}
 
-	private void resolveTopBorder(Styles result, Styles... stylesArray) {
-		result.topBorderWidth = resolve(Styles.topBorderWidthGetter, stylesArray);
-		result.topBorderStyle = resolve(Styles.topBorderStyleGetter, stylesArray);
-		result.topBorderColor = resolve(Styles.topBorderColorGetter, stylesArray);
+	// Regarding shared borders between cells, in the CSS model border properties (width, style, color)
+	// are not inherited and in the collapsing border model they are not resolved property by property.
+	// Instead each shared border takes on all the properties of one of the competing borders.
+	// See http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution.
+	// "The rule of thumb is that at each edge the most "eye catching" border style is chosen."
+
+	// Also, while border properties are not inherited, the first two elements of each stylesArray
+	// are always essentially an inline style followed by a style defined in a <style> element,
+	// so we must resolve between those two and we can do that property by property.
+
+	private void resolveTopBorder(Styles result, Styles aboveStyles, Styles... stylesArray) {
+
+		ArrayList<BorderStyles> competingStyles = new ArrayList<BorderStyles>();
+
+		if (aboveStyles != null) {
+				competingStyles.add(aboveStyles.bottomBorder);
+		}
+
+		competingStyles.add(new BorderStyles(
+				resolve(Styles.topBorderWidthGetter, stylesArray[0], stylesArray[1]),
+				resolve(Styles.topBorderStyleGetter, stylesArray[0], stylesArray[1]),
+				resolve(Styles.topBorderColorGetter, stylesArray[0], stylesArray[1])
+				));
+
+		for (int i = 2; i < stylesArray.length; ++i) {
+			if (stylesArray[i] != null) {
+				competingStyles.add(stylesArray[i].topBorder);
+			}
+		}
+
+		BorderStyles mostEyeCatchingStyles = BorderStyles.mostEyeCatching(competingStyles);
+
+		result.topBorder = mostEyeCatchingStyles;
 	}
 
-	private void resolveLeftBorder(Styles result, Styles... stylesArray) {
-		result.leftBorderWidth = resolve(Styles.leftBorderWidthGetter, stylesArray);
-		result.leftBorderStyle = resolve(Styles.leftBorderStyleGetter, stylesArray);
-		result.leftBorderColor = resolve(Styles.leftBorderColorGetter, stylesArray);
+	private void resolveLeftBorder(Styles result, Styles leftStyles, Styles... stylesArray) {
+
+		ArrayList<BorderStyles> competingStyles = new ArrayList<BorderStyles>();
+
+		if (leftStyles != null) {
+			competingStyles.add(leftStyles.rightBorder);
+		}
+
+		competingStyles.add(new BorderStyles(
+				resolve(Styles.leftBorderWidthGetter, stylesArray[0], stylesArray[1]),
+				resolve(Styles.leftBorderStyleGetter, stylesArray[0], stylesArray[1]),
+				resolve(Styles.leftBorderColorGetter, stylesArray[0], stylesArray[1])
+				));
+
+		for (int i = 2; i < stylesArray.length; ++i) {
+			if (stylesArray[i] != null) {
+				competingStyles.add(stylesArray[i].leftBorder);
+			}
+		}
+
+		BorderStyles mostEyeCatchingStyles = BorderStyles.mostEyeCatching(competingStyles);
+
+		result.leftBorder = mostEyeCatchingStyles;
 	}
 
 	private void resolveRightBorder(Styles result, Styles... stylesArray) {
-		result.rightBorderWidth = resolve(Styles.rightBorderWidthGetter, stylesArray);
-		result.rightBorderStyle = resolve(Styles.rightBorderStyleGetter, stylesArray);
-		result.rightBorderColor = resolve(Styles.rightBorderColorGetter, stylesArray);
+
+		ArrayList<BorderStyles> competingStyles = new ArrayList<BorderStyles>();
+
+		competingStyles.add(new BorderStyles(
+				resolve(Styles.rightBorderWidthGetter, stylesArray[0], stylesArray[1]),
+				resolve(Styles.rightBorderStyleGetter, stylesArray[0], stylesArray[1]),
+				resolve(Styles.rightBorderColorGetter, stylesArray[0], stylesArray[1])
+				));
+
+		for (int i = 2; i < stylesArray.length; ++i) {
+			if (stylesArray[i] != null) {
+				competingStyles.add(stylesArray[i].rightBorder);
+			}
+		}
+
+		BorderStyles mostEyeCatchingStyles = BorderStyles.mostEyeCatching(competingStyles);
+
+		result.rightBorder = mostEyeCatchingStyles;
 	}
 
 	private void resolveBottomBorder(Styles result, Styles... stylesArray) {
-		result.bottomBorderWidth = resolve(Styles.bottomBorderWidthGetter, stylesArray);
-		result.bottomBorderStyle = resolve(Styles.bottomBorderStyleGetter, stylesArray);
-		result.bottomBorderColor = resolve(Styles.bottomBorderColorGetter, stylesArray);
-	}
 
-	private void resolveBottomBorder(Styles result, Styles[] bottomStylesArray, Styles[] topStylesArray) {
-		result.bottomBorderWidth = resolve(resolve(Styles.bottomBorderWidthGetter, bottomStylesArray), Styles.topBorderWidthGetter, topStylesArray);
-		result.bottomBorderStyle = resolve(resolve(Styles.bottomBorderStyleGetter, bottomStylesArray), Styles.topBorderStyleGetter, topStylesArray);
-		result.bottomBorderColor = resolve(resolve(Styles.bottomBorderColorGetter, bottomStylesArray), Styles.topBorderColorGetter, topStylesArray);
+		ArrayList<BorderStyles> competingStyles = new ArrayList<BorderStyles>();
+
+		competingStyles.add(new BorderStyles(
+				resolve(Styles.bottomBorderWidthGetter, stylesArray[0], stylesArray[1]),
+				resolve(Styles.bottomBorderStyleGetter, stylesArray[0], stylesArray[1]),
+				resolve(Styles.bottomBorderColorGetter, stylesArray[0], stylesArray[1])
+				));
+
+		for (int i = 2; i < stylesArray.length; ++i) {
+			if (stylesArray[i] != null) {
+				competingStyles.add(stylesArray[i].bottomBorder);
+			}
+		}
+
+		BorderStyles mostEyeCatchingStyles = BorderStyles.mostEyeCatching(competingStyles);
+
+		result.bottomBorder = mostEyeCatchingStyles;
 	}
 
 	private void resolveNonBorders(Styles result, Styles... stylesArray) {
+
 		result.backgroundColor = resolve(Styles.backgroundColorGetter, stylesArray);
 		result.textAlign = resolve(Styles.textAlignGetter, stylesArray);
 
 		result.font.color = resolve(FontStyles.colorGetter, stylesArray);
 		result.font.fontStyle = resolve(FontStyles.fontStyleGetter, stylesArray);
 		result.font.fontWeight = resolve(FontStyles.fontWeightGetter, stylesArray);
-		result.font.textDecorationLine = resolve(FontStyles.textDecorationLineGetter, stylesArray);
-		result.font.textDecorationStyle = resolve(FontStyles.textDecorationStyleGetter, stylesArray);
+
+		// In the CSS model, text_decoration-line and text-decoration-style are not inherited.
+		// However, the first two arguments to this function are always essentially an inline style
+		// followed by a style defined in a <style> element, so we must resolve between those two.
+
+		result.font.textDecorationLine = resolve(FontStyles.textDecorationLineGetter, stylesArray[0], stylesArray[1]);
+		result.font.textDecorationStyle = resolve(FontStyles.textDecorationStyleGetter, stylesArray[0], stylesArray[1]);
 	}
 
 	@SafeVarargs
@@ -844,10 +976,6 @@ class SheetStyles {
 			}
 		}
 		return null;
-	}
-
-	private static <Type> Type resolve(Type firstStyle, AnyStyles.StylesGetter<Type> getter, Styles... stylesArray) {
-		return (firstStyle != null) ? firstStyle : resolve(getter, stylesArray);
 	}
 }
 
@@ -882,6 +1010,192 @@ abstract class AnyStyles {
 	@FunctionalInterface
 	public static interface StylesGetter<Type> {
 		Type get(Styles styles);
+	}
+}
+
+class BorderStyles extends AnyStyles {
+
+	public BorderWidth width = null;
+	public BorderEdge style = null;
+	public Integer color = null;
+
+	public BorderStyles() {}
+
+	public BorderStyles(
+			BorderWidth width,
+			BorderEdge style,
+			Integer color
+			) {
+		this.width = width;
+		this.style = style;
+		this.color = color;
+	}
+
+	@Override
+	public int hashCode() {
+		return
+				// 30 bits total
+				((width != null) ? width.ordinal() : BorderWidth.values().length) ^
+				((style != null) ? style.ordinal() : BorderEdge.values().length) << 2 ^
+				((color != null) ? color.intValue() : 0x1000000) << 6;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+
+		if (!(obj instanceof BorderStyles)) { return false; }
+
+		BorderStyles other = (BorderStyles)obj;
+		return
+				areSame(width, other.width) &&
+				areSame(style, other.style) &&
+				areSame(color, other.color);
+	}
+
+	public boolean areDefault() {
+		return
+				width == null &&
+				style == null &&
+				color == null;
+	}
+
+	public enum BorderWidth { ZERO, MEDIUM, THIN, THICK };
+
+	public static boolean isBorderWidth(String borderProperty) {
+		return getBorderWidth(borderProperty) != null;
+	}
+
+	public static BorderWidth getBorderWidth(String borderProperty) {
+		switch (borderProperty) {
+		case "thin": return BorderWidth.THIN;
+		case "medium": return BorderWidth.MEDIUM;
+		case "thick": return BorderWidth.THICK;
+		default: {
+			final Pattern pattern = Pattern.compile("\\A(\\d{1,4})px\\z");
+
+			Matcher matcher = pattern.matcher(borderProperty);
+			if (matcher.find()) {
+				int px = Integer.valueOf(matcher.group(1));
+				if (px == 0) {
+					return BorderWidth.ZERO;
+				}
+				else if (px == 1 || px == 2) {
+					return BorderWidth.THIN;
+				}
+				else if (px == 3 || px == 4) {
+					return BorderWidth.MEDIUM;
+				}
+				else {
+					return BorderWidth.THICK;
+				}
+			}
+			return null;
+		}
+		}
+	}
+
+	public enum BorderEdge { NONE, HIDDEN, DOTTED, DASHED, SOLID, DOUBLE, GROOVE, RIDGE, INSET, OUTSET };
+
+	public static boolean isBorderStyle(String borderProperty) {
+		return getBorderStyle(borderProperty) != null;
+	}
+
+	public static BorderEdge getBorderStyle(String borderProperty) {
+		switch (borderProperty) {
+		case "none": return BorderEdge.NONE;
+		case "hidden": return BorderEdge.HIDDEN;
+		case "dotted": return BorderEdge.DOTTED;
+		case "dashed": return BorderEdge.DASHED;
+		case "solid": return BorderEdge.SOLID;
+		case "double": return BorderEdge.DOUBLE;
+		case "groove": return BorderEdge.GROOVE;
+		case "ridge": return BorderEdge.RIDGE;
+		case "inset": return BorderEdge.INSET;
+		case "outset": return BorderEdge.OUTSET;
+		default: return null;
+		}
+	}
+
+	static private Map<BorderWidth, Integer> widthPriority;
+	static {
+		widthPriority = new HashMap<BorderWidth, Integer>();
+		widthPriority.put(BorderWidth.THICK, 0);
+		widthPriority.put(BorderWidth.MEDIUM, 1);
+		widthPriority.put(null, 1);							// Default width = medium
+		widthPriority.put(BorderWidth.THIN, 2);
+		widthPriority.put(BorderWidth.ZERO, 3);
+
+		widthScale = widthPriority.values().stream().max(Integer::compare).get() + 1;
+	}
+	static private int widthScale;
+
+	private static int widthRank(BorderStyles styles) {
+		return ((styles.style == null) || (styles.style == BorderEdge.NONE)) ? widthScale : widthPriority.get(styles.width);
+	}
+
+	static private Map<BorderEdge, Integer> stylePriority;
+	static {
+		stylePriority = new HashMap<BorderEdge, Integer>();
+		stylePriority.put(BorderEdge.HIDDEN, 0);
+		stylePriority.put(BorderEdge.DOUBLE, 1);
+		stylePriority.put(BorderEdge.SOLID, 2);
+		stylePriority.put(BorderEdge.DASHED, 3);
+		stylePriority.put(BorderEdge.DOTTED, 4);
+		stylePriority.put(BorderEdge.RIDGE, 5);
+		stylePriority.put(BorderEdge.OUTSET, 6);
+		stylePriority.put(BorderEdge.GROOVE, 7);
+		stylePriority.put(BorderEdge.INSET, 8);
+		stylePriority.put(BorderEdge.NONE, 9);
+		stylePriority.put(null, 9);							// Default style = none
+
+		styleScale = stylePriority.values().stream().max(Integer::compare).get() + 1;
+	}
+	static private int styleScale;
+
+	private static int styleRank(BorderStyles styles) { return stylePriority.get(styles.style); }
+
+	/**
+	 * Return the relative ranking of a border styling.  A lower rank takes precedence over a higher rank.
+	 *
+	 * @param styles is the border styling.
+	 * @param order is the precedence of this styling over others, all other styling considerations being equal.
+	 * @param length is the total number of stylings that will be ranked.
+	 * @return
+	 */
+	static private int rank(BorderStyles styles, int order, int length) {
+		/*
+		 * From http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution:
+		 *
+		 * 1. Borders with the 'border-style' of 'hidden' take precedence over all other conflicting borders.
+		 *    Any border with this value suppresses all borders at this location.
+		 *
+		 * 2. Borders with a style of 'none' have the lowest priority. Only if the border properties of all the elements
+		 *    meeting at this edge are 'none' will the border be omitted (but note that 'none' is the default value for the border style.)
+		 *
+		 * 3. If none of the styles are 'hidden' and at least one of them is not 'none', then narrow borders are discarded in favor of wider ones.
+		 *
+		 *    If several have the same 'border-width' then styles are preferred in this order:
+		 *    'double', 'solid', 'dashed', 'dotted', 'ridge', 'outset', 'groove', and the lowest: 'inset'.
+		 *
+		 * 4. If border styles differ only in color, then a style set on a cell wins over one on a row, which wins over a row group,
+		 *    column, column group and, lastly, table. When two elements of the same type conflict, then the one further to the left
+		 *    (if the table's 'direction' is 'ltr'; right, if it is 'rtl') and further to the top wins.
+		 */
+
+		if (styles.style == BorderEdge.HIDDEN) {
+			return order;
+		}
+
+		return (widthRank(styles) * styleScale + styleRank(styles)) * length + order;
+	}
+
+	static public BorderStyles mostEyeCatching(ArrayList<BorderStyles> stylesList)  {
+
+		Comparator<Integer> stylesComparator = Comparator.comparing(i -> rank(stylesList.get(i), i, stylesList.size()));
+
+		int indexOfMostEyeCatching = IntStream.range(0, stylesList.size()).boxed().min(stylesComparator).get();
+
+		return stylesList.get(indexOfMostEyeCatching);
 	}
 }
 
@@ -993,40 +1307,30 @@ class FontStyles extends AnyStyles {
 
 class Styles extends AnyStyles {
 
-	public BorderStyle bottomBorderWidth = null;
-	public BorderStyle leftBorderWidth = null;
-	public BorderStyle rightBorderWidth = null;
-	public BorderStyle topBorderWidth = null;
-
-	public BorderStyle bottomBorderStyle = null;
-	public BorderStyle leftBorderStyle = null;
-	public BorderStyle rightBorderStyle = null;
-	public BorderStyle topBorderStyle = null;
-
-	public Integer bottomBorderColor = null;
-	public Integer leftBorderColor = null;
-	public Integer rightBorderColor = null;
-	public Integer topBorderColor = null;
+	public BorderStyles bottomBorder = new BorderStyles();
+	public BorderStyles leftBorder = new BorderStyles();
+	public BorderStyles rightBorder = new BorderStyles();
+	public BorderStyles topBorder = new BorderStyles();
 
 	public Integer backgroundColor = null;
 	public HorizontalAlignment textAlign = null;
 
 	public FontStyles font = new FontStyles();
 
-	public static final StylesGetter<BorderStyle> bottomBorderWidthGetter = new StylesGetter<BorderStyle>() {public BorderStyle get(Styles styles) {return styles.bottomBorderWidth;}};
-	public static final StylesGetter<BorderStyle> leftBorderWidthGetter = new StylesGetter<BorderStyle>() {public BorderStyle get(Styles styles) {return styles.leftBorderWidth;}};
-	public static final StylesGetter<BorderStyle> rightBorderWidthGetter = new StylesGetter<BorderStyle>() {public BorderStyle get(Styles styles) {return styles.rightBorderWidth;}};
-	public static final StylesGetter<BorderStyle> topBorderWidthGetter = new StylesGetter<BorderStyle>() {public BorderStyle get(Styles styles) {return styles.topBorderWidth;}};
+	public static final StylesGetter<BorderWidth> bottomBorderWidthGetter = new StylesGetter<BorderWidth>() {public BorderWidth get(Styles styles) {return styles.bottomBorder.width;}};
+	public static final StylesGetter<BorderWidth> leftBorderWidthGetter = new StylesGetter<BorderWidth>() {public BorderWidth get(Styles styles) {return styles.leftBorder.width;}};
+	public static final StylesGetter<BorderWidth> rightBorderWidthGetter = new StylesGetter<BorderWidth>() {public BorderWidth get(Styles styles) {return styles.rightBorder.width;}};
+	public static final StylesGetter<BorderWidth> topBorderWidthGetter = new StylesGetter<BorderWidth>() {public BorderWidth get(Styles styles) {return styles.topBorder.width;}};
 
-	public static final StylesGetter<BorderStyle> bottomBorderStyleGetter = new StylesGetter<BorderStyle>() {public BorderStyle get(Styles styles) {return styles.bottomBorderStyle;}};
-	public static final StylesGetter<BorderStyle> leftBorderStyleGetter = new StylesGetter<BorderStyle>() {public BorderStyle get(Styles styles) {return styles.leftBorderStyle;}};
-	public static final StylesGetter<BorderStyle> rightBorderStyleGetter = new StylesGetter<BorderStyle>() {public BorderStyle get(Styles styles) {return styles.rightBorderStyle;}};
-	public static final StylesGetter<BorderStyle> topBorderStyleGetter = new StylesGetter<BorderStyle>() {public BorderStyle get(Styles styles) {return styles.topBorderStyle;}};
+	public static final StylesGetter<BorderEdge> bottomBorderStyleGetter = new StylesGetter<BorderEdge>() {public BorderEdge get(Styles styles) {return styles.bottomBorder.style;}};
+	public static final StylesGetter<BorderEdge> leftBorderStyleGetter = new StylesGetter<BorderEdge>() {public BorderEdge get(Styles styles) {return styles.leftBorder.style;}};
+	public static final StylesGetter<BorderEdge> rightBorderStyleGetter = new StylesGetter<BorderEdge>() {public BorderEdge get(Styles styles) {return styles.rightBorder.style;}};
+	public static final StylesGetter<BorderEdge> topBorderStyleGetter = new StylesGetter<BorderEdge>() {public BorderEdge get(Styles styles) {return styles.topBorder.style;}};
 
-	public static final StylesGetter<Integer> bottomBorderColorGetter = new StylesGetter<Integer>() {public Integer get(Styles styles) {return styles.bottomBorderColor;}};
-	public static final StylesGetter<Integer> leftBorderColorGetter = new StylesGetter<Integer>() {public Integer get(Styles styles) {return styles.leftBorderColor;}};
-	public static final StylesGetter<Integer> rightBorderColorGetter = new StylesGetter<Integer>() {public Integer get(Styles styles) {return styles.rightBorderColor;}};
-	public static final StylesGetter<Integer> topBorderColorGetter = new StylesGetter<Integer>() {public Integer get(Styles styles) {return styles.topBorderColor;}};
+	public static final StylesGetter<Integer> bottomBorderColorGetter = new StylesGetter<Integer>() {public Integer get(Styles styles) {return styles.bottomBorder.color;}};
+	public static final StylesGetter<Integer> leftBorderColorGetter = new StylesGetter<Integer>() {public Integer get(Styles styles) {return styles.leftBorder.color;}};
+	public static final StylesGetter<Integer> rightBorderColorGetter = new StylesGetter<Integer>() {public Integer get(Styles styles) {return styles.rightBorder.color;}};
+	public static final StylesGetter<Integer> topBorderColorGetter = new StylesGetter<Integer>() {public Integer get(Styles styles) {return styles.topBorder.color;}};
 
 	public static final StylesGetter<Integer> backgroundColorGetter = new StylesGetter<Integer>() {public Integer get(Styles styles) {return styles.backgroundColor;}};
 	public static final StylesGetter<HorizontalAlignment> textAlignGetter = new StylesGetter<HorizontalAlignment>() {public HorizontalAlignment get(Styles styles) {return styles.textAlign;}};
@@ -1034,20 +1338,20 @@ class Styles extends AnyStyles {
 	@Override
 	public int hashCode() {
 		return
-				((bottomBorderWidth != null) ? bottomBorderWidth.ordinal() : BorderStyle.values().length) ^
-				((leftBorderWidth != null) ? leftBorderWidth.ordinal() : BorderStyle.values().length) << 4 ^
-				((rightBorderWidth != null) ? rightBorderWidth.ordinal() : BorderStyle.values().length) << 8 ^
-				((topBorderWidth != null) ? topBorderWidth.ordinal() : BorderStyle.values().length) << 12 ^
+				((bottomBorder.width != null) ? bottomBorder.width.ordinal() : BorderWidth.values().length) ^
+				((leftBorder.width != null) ? leftBorder.width.ordinal() : BorderWidth.values().length) << 2 ^
+				((rightBorder.width != null) ? rightBorder.width.ordinal() : BorderWidth.values().length) << 4 ^
+				((topBorder.width != null) ? topBorder.width.ordinal() : BorderWidth.values().length) << 6 ^
 
-				((bottomBorderStyle != null) ? bottomBorderStyle.ordinal() : BorderStyle.values().length) << 16 ^
-				((leftBorderStyle != null) ? leftBorderStyle.ordinal() : BorderStyle.values().length) << 20 ^
-				((rightBorderStyle != null) ? rightBorderStyle.ordinal() : BorderStyle.values().length) << 24 ^
-				((topBorderStyle != null) ? topBorderStyle.ordinal() : BorderStyle.values().length) << 28 ^
+				((bottomBorder.style != null) ? bottomBorder.style.ordinal() : BorderEdge.values().length) << 8 ^
+				((leftBorder.style != null) ? leftBorder.style.ordinal() : BorderEdge.values().length) << 12 ^
+				((rightBorder.style != null) ? rightBorder.style.ordinal() : BorderEdge.values().length) << 16 ^
+				((topBorder.style != null) ? topBorder.style.ordinal() : BorderEdge.values().length) << 20 ^
 
-				((bottomBorderColor != null) ? bottomBorderColor.intValue() : 0x1000000) ^
-				((leftBorderColor != null) ? leftBorderColor.intValue() : 0x1000000) << 1 ^
-				((rightBorderColor != null) ? rightBorderColor.intValue() : 0x1000000) << 2 ^
-				((topBorderColor != null) ? topBorderColor.intValue() : 0x1000000) << 3 ^
+				((bottomBorder.color != null) ? bottomBorder.color.intValue() : 0x1000000) ^
+				((leftBorder.color != null) ? leftBorder.color.intValue() : 0x1000000) << 1 ^
+				((rightBorder.color != null) ? rightBorder.color.intValue() : 0x1000000) << 2 ^
+				((topBorder.color != null) ? topBorder.color.intValue() : 0x1000000) << 3 ^
 
 				((backgroundColor != null) ? backgroundColor.intValue() : 0x1000000) << 5 ^
 				((textAlign != null) ? textAlign.ordinal() : HorizontalAlignment.values().length) << 28 ^
@@ -1062,20 +1366,10 @@ class Styles extends AnyStyles {
 
 		Styles other = (Styles)obj;
 		return
-				areSame(bottomBorderWidth, other.bottomBorderWidth) &&
-				areSame(leftBorderWidth, other.leftBorderWidth) &&
-				areSame(rightBorderWidth, other.rightBorderWidth) &&
-				areSame(topBorderWidth, other.topBorderWidth) &&
-
-				areSame(bottomBorderStyle, other.bottomBorderStyle) &&
-				areSame(leftBorderStyle, other.leftBorderStyle) &&
-				areSame(rightBorderStyle, other.rightBorderStyle) &&
-				areSame(topBorderStyle, other.topBorderStyle) &&
-
-				areSame(bottomBorderColor, other.bottomBorderColor) &&
-				areSame(leftBorderColor, other.leftBorderColor) &&
-				areSame(rightBorderColor, other.rightBorderColor) &&
-				areSame(topBorderColor, other.topBorderColor) &&
+				bottomBorder.equals(other.bottomBorder) &&
+				leftBorder.equals(other.leftBorder) &&
+				rightBorder.equals(other.rightBorder) &&
+				topBorder.equals(other.topBorder) &&
 
 				areSame(backgroundColor, other.backgroundColor) &&
 				areSame(textAlign, other.textAlign) &&
@@ -1085,20 +1379,10 @@ class Styles extends AnyStyles {
 
 	public boolean areDefault() {
 		return
-				bottomBorderWidth == null &&
-				leftBorderWidth == null &&
-				rightBorderWidth == null &&
-				topBorderWidth == null &&
-
-				bottomBorderStyle == null &&
-				leftBorderStyle == null &&
-				rightBorderStyle == null &&
-				topBorderStyle == null &&
-
-				bottomBorderColor == null &&
-				leftBorderColor == null &&
-				rightBorderColor == null &&
-				topBorderColor == null &&
+				bottomBorder.areDefault() &&
+				leftBorder.areDefault() &&
+				rightBorder.areDefault() &&
+				topBorder.areDefault() &&
 
 				backgroundColor == null &&
 				textAlign == null &&
@@ -1131,135 +1415,135 @@ class Styles extends AnyStyles {
 					else if (keyword.equals("border")) {
 						String[] borderProperties = value.split(" +");
 						for (String borderProperty : borderProperties) {
-							if (isBorderWidth(borderProperty)) {
-								result.bottomBorderWidth = getBorderWidth(borderProperty);
-								result.leftBorderWidth = getBorderWidth(borderProperty);
-								result.rightBorderWidth = getBorderWidth(borderProperty);
-								result.topBorderWidth = getBorderWidth(borderProperty);
+							if (BorderStyles.isBorderWidth(borderProperty)) {
+								result.bottomBorder.width = BorderStyles.getBorderWidth(borderProperty);
+								result.leftBorder.width = BorderStyles.getBorderWidth(borderProperty);
+								result.rightBorder.width = BorderStyles.getBorderWidth(borderProperty);
+								result.topBorder.width = BorderStyles.getBorderWidth(borderProperty);
 							}
-							else if (isBorderStyle(borderProperty)) {
-								result.bottomBorderStyle = getBorderStyle(borderProperty);
-								result.leftBorderStyle = getBorderStyle(borderProperty);
-								result.rightBorderStyle = getBorderStyle(borderProperty);
-								result.topBorderStyle = getBorderStyle(borderProperty);
+							else if (BorderStyles.isBorderStyle(borderProperty)) {
+								result.bottomBorder.style = BorderStyles.getBorderStyle(borderProperty);
+								result.leftBorder.style = BorderStyles.getBorderStyle(borderProperty);
+								result.rightBorder.style = BorderStyles.getBorderStyle(borderProperty);
+								result.topBorder.style = BorderStyles.getBorderStyle(borderProperty);
 							}
 							else if (isColor(borderProperty)) {
-								result.bottomBorderColor = getColor(borderProperty);
-								result.leftBorderColor = getColor(borderProperty);
-								result.rightBorderColor = getColor(borderProperty);
-								result.topBorderColor = getColor(borderProperty);
+								result.bottomBorder.color = getColor(borderProperty);
+								result.leftBorder.color = getColor(borderProperty);
+								result.rightBorder.color = getColor(borderProperty);
+								result.topBorder.color = getColor(borderProperty);
 							}
 						}
 					}
 					else if (keyword.equals("border-bottom")) {
 						String[] borderBottomProperties = value.split(" +");
 						for (String borderProperty : borderBottomProperties) {
-							if (isBorderWidth(borderProperty)) {
-								result.bottomBorderWidth = getBorderWidth(borderProperty);
+							if (BorderStyles.isBorderWidth(borderProperty)) {
+								result.bottomBorder.width = BorderStyles.getBorderWidth(borderProperty);
 							}
-							else if (isBorderStyle(borderProperty)) {
-								result.bottomBorderStyle = getBorderStyle(borderProperty);
+							else if (BorderStyles.isBorderStyle(borderProperty)) {
+								result.bottomBorder.style = BorderStyles.getBorderStyle(borderProperty);
 							}
 							else if (isColor(borderProperty)) {
-								result.bottomBorderColor = getColor(borderProperty);
+								result.bottomBorder.color = getColor(borderProperty);
 							}
 						}
 					}
 					else if (keyword.equals("border-bottom-color")) {
-						result.bottomBorderColor = getColor(value);
+						result.bottomBorder.color = getColor(value);
 					}
 					else if (keyword.equals("border-bottom-style")) {
-						result.bottomBorderStyle = getBorderStyle(value);
+						result.bottomBorder.style = BorderStyles.getBorderStyle(value);
 					}
 					else if (keyword.equals("border-bottom-width")) {
-						result.bottomBorderWidth = getBorderWidth(value);
+						result.bottomBorder.width = BorderStyles.getBorderWidth(value);
 					}
 					else if (keyword.equals("border-color")) {
-						result.bottomBorderColor = getColor(value);
-						result.leftBorderColor = getColor(value);
-						result.rightBorderColor = getColor(value);
-						result.topBorderColor = getColor(value);
+						result.bottomBorder.color = getColor(value);
+						result.leftBorder.color = getColor(value);
+						result.rightBorder.color = getColor(value);
+						result.topBorder.color = getColor(value);
 					}
 					else if (keyword.equals("border-left")) {
 						String[] borderLeftProperties = value.split(" +");
 						for (String borderProperty : borderLeftProperties) {
-							if (isBorderWidth(borderProperty)) {
-								result.leftBorderWidth = getBorderWidth(borderProperty);
+							if (BorderStyles.isBorderWidth(borderProperty)) {
+								result.leftBorder.width = BorderStyles.getBorderWidth(borderProperty);
 							}
-							else if (isBorderStyle(borderProperty)) {
-								result.leftBorderStyle = getBorderStyle(borderProperty);
+							else if (BorderStyles.isBorderStyle(borderProperty)) {
+								result.leftBorder.style = BorderStyles.getBorderStyle(borderProperty);
 							}
 							else if (isColor(borderProperty)) {
-								result.leftBorderColor = getColor(borderProperty);
+								result.leftBorder.color = getColor(borderProperty);
 							}
 						}
 					}
 					else if (keyword.equals("border-left-color")) {
-						result.leftBorderColor = getColor(value);
+						result.leftBorder.color = getColor(value);
 					}
 					else if (keyword.equals("border-left-style")) {
-						result.leftBorderStyle = getBorderStyle(value);
+						result.leftBorder.style = BorderStyles.getBorderStyle(value);
 					}
 					else if (keyword.equals("border-left-width")) {
-						result.leftBorderWidth = getBorderWidth(value);
+						result.leftBorder.width = BorderStyles.getBorderWidth(value);
 					}
 					else if (keyword.equals("border-right")) {
 						String[] borderRightProperties = value.split(" +");
 						for (String borderProperty : borderRightProperties) {
-							if (isBorderWidth(borderProperty)) {
-								result.rightBorderWidth = getBorderWidth(borderProperty);
+							if (BorderStyles.isBorderWidth(borderProperty)) {
+								result.rightBorder.width = BorderStyles.getBorderWidth(borderProperty);
 							}
-							else if (isBorderStyle(borderProperty)) {
-								result.rightBorderStyle = getBorderStyle(borderProperty);
+							else if (BorderStyles.isBorderStyle(borderProperty)) {
+								result.rightBorder.style = BorderStyles.getBorderStyle(borderProperty);
 							}
 							else if (isColor(borderProperty)) {
-								result.rightBorderColor = getColor(borderProperty);
+								result.rightBorder.color = getColor(borderProperty);
 							}
 						}
 					}
 					else if (keyword.equals("border-right-color")) {
-						result.rightBorderColor = getColor(value);
+						result.rightBorder.color = getColor(value);
 					}
 					else if (keyword.equals("border-right-style")) {
-						result.rightBorderStyle = getBorderStyle(value);
+						result.rightBorder.style = BorderStyles.getBorderStyle(value);
 					}
 					else if (keyword.equals("border-right-width")) {
-						result.rightBorderWidth = getBorderWidth(value);
+						result.rightBorder.width = BorderStyles.getBorderWidth(value);
 					}
 					else if (keyword.equals("border-style")) {
-						result.bottomBorderStyle = getBorderStyle(value);
-						result.leftBorderStyle = getBorderStyle(value);
-						result.rightBorderStyle = getBorderStyle(value);
-						result.topBorderStyle = getBorderStyle(value);
+						result.bottomBorder.style = BorderStyles.getBorderStyle(value);
+						result.leftBorder.style = BorderStyles.getBorderStyle(value);
+						result.rightBorder.style = BorderStyles.getBorderStyle(value);
+						result.topBorder.style = BorderStyles.getBorderStyle(value);
 					}
 					else if (keyword.equals("border-top")) {
 						String[] borderTopProperties = value.split(" ");
 						for (String borderProperty : borderTopProperties) {
-							if (isBorderWidth(borderProperty)) {
-								result.topBorderWidth = getBorderWidth(borderProperty);
+							if (BorderStyles.isBorderWidth(borderProperty)) {
+								result.topBorder.width = BorderStyles.getBorderWidth(borderProperty);
 							}
-							else if (isBorderStyle(borderProperty)) {
-								result.topBorderStyle = getBorderStyle(borderProperty);
+							else if (BorderStyles.isBorderStyle(borderProperty)) {
+								result.topBorder.style = BorderStyles.getBorderStyle(borderProperty);
 							}
 							else if (isColor(borderProperty)) {
-								result.topBorderColor = getColor(borderProperty);
+								result.topBorder.color = getColor(borderProperty);
 							}
 						}
 					}
 					else if (keyword.equals("border-top-color")) {
-						result.topBorderColor = getColor(value);
+						result.topBorder.color = getColor(value);
 					}
 					else if (keyword.equals("border-top-style")) {
-						result.topBorderStyle = getBorderStyle(value);
+						result.topBorder.style = BorderStyles.getBorderStyle(value);
 					}
 					else if (keyword.equals("border-top-width")) {
-						result.topBorderWidth = getBorderWidth(value);
+						result.topBorder.width = BorderStyles.getBorderWidth(value);
 					}
 					else if (keyword.equals("border-width")) {
-						result.bottomBorderWidth = getBorderWidth(value);
-						result.leftBorderWidth = getBorderWidth(value);
-						result.rightBorderWidth = getBorderWidth(value);
-						result.topBorderWidth = getBorderWidth(value);
+						result.bottomBorder.width = BorderStyles.getBorderWidth(value);
+						result.leftBorder.width = BorderStyles.getBorderWidth(value);
+						result.rightBorder.width = BorderStyles.getBorderWidth(value);
+						result.topBorder.width = BorderStyles.getBorderWidth(value);
 					}
 					else if (keyword.equals("color")) {
 						result.font.color = getColor(value);
@@ -1480,55 +1764,6 @@ class Styles extends AnyStyles {
 
 	private static void putCssColor(String name, Integer rgb) {
 		cssColor.put(name.toLowerCase(), rgb);
-	}
-
-	private static boolean isBorderStyle(String borderProperty) {
-		return getBorderStyle(borderProperty) != null;
-	}
-
-	private static BorderStyle getBorderStyle(String borderProperty) {
-		switch (borderProperty) {
-		case "none": return BorderStyle.NONE;
-		case "hidden": return BorderStyle.NONE;
-		case "dotted": return BorderStyle.DOTTED;
-		case "dashed": return BorderStyle.MEDIUM_DASHED;
-		case "solid": return BorderStyle.MEDIUM;
-		case "double": return BorderStyle.DOUBLE;
-		default: return null;
-		}
-	}
-
-	public static boolean isBorderWidth(String borderProperty) {
-		return getBorderWidth(borderProperty) != null;
-	}
-
-	public static BorderStyle getBorderWidth(String borderProperty) {
-		switch (borderProperty) {
-		case "thin": return BorderStyle.THIN;
-		case "medium": return BorderStyle.MEDIUM;
-		case "thick": return BorderStyle.THICK;
-		default: {
-			final Pattern pattern = Pattern.compile("\\A(\\d{1,4})px\\z");
-
-			Matcher matcher = pattern.matcher(borderProperty);
-			if (matcher.find()) {
-				int px = Integer.valueOf(matcher.group(1));
-				if (px == 0) {
-					return BorderStyle.NONE;
-				}
-				else if (px == 1 || px == 2) {
-					return BorderStyle.THIN;
-				}
-				else if (px == 3 || px == 4) {
-					return BorderStyle.MEDIUM;
-				}
-				else {
-					return BorderStyle.THICK;
-				}
-			}
-			return null;
-		}
-		}
 	}
 
 	public static HorizontalAlignment getTextAlign(String textProperty) {

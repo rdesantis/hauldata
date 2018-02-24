@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Ronald DeSantis
+ * Copyright (c) 2017, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -70,6 +70,41 @@ public class WriteTaskTest extends TaskTest {
 				"TASK WriteStyledXls \n" +
 				"	DO \n" +
 				"	TASK \n" +
+				"		WRITE XLSX 'styledTest.xlsx' 'Borders' STYLED \n" +
+				"		TABLE STYLE 'border-collapse:collapse' \n" +
+				"		NO HEADERS FROM VALUES \n" +
+				"		(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL), \n" +
+				"		(NULL, '<td style=\"border: thin double\">thin double', NULL, '<td style=\"border: medium double\">medium double', NULL, '<td style=\"border: thick double\">thick double', NULL, NULL), \n" +
+				"		(NULL, NULL, '<td style=\"border: thin solid\">thin solid', NULL, '<td style=\"border: medium solid\">medium solid', NULL, '<td style=\"border: thick solid\">thick solid', NULL), \n" +
+				"		(NULL, '<td style=\"border: thin dashed\">thin dashed', NULL, '<td style=\"border: medium dashed\">medium dashed', NULL, '<td style=\"border: thick dashed\">thick dashed', NULL, NULL), \n" +
+				"		(NULL, NULL, '<td style=\"border: thin dotted\">thin dotted', NULL, '<td style=\"border: medium dotted\">medium dotted', NULL, '<td style=\"border: thick dotted\">thick dotted', NULL), \n" +
+				"		(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL), \n" +
+				"		(NULL, '<td style=\"border:double\">double','<td style=\"border:solid\">solid', \n" +
+				"		 '<td style=\"border:dashed\">dashed','<td style=\"border:dotted\">dotted','<td style=\"border:hidden\">hidden',NULL,NULL), \n" +
+				"		(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL), \n" +
+				"		(NULL, '<td style=\"border:hidden\">hidden','<td style=\"border:dotted\">dotted', \n" +
+				"		 '<td style=\"border:dashed\">dashed','<td style=\"border:solid\">solid','<td style=\"border:double\">double',NULL,NULL), \n" +
+				"		(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL), \n" +
+				"		('<td style=\"border: hidden\">hidden','<td style=\"border:double\">double','<td style=\"border:hidden\">hidden','<td style=\"border:solid\">solid', \n" +
+				"		 '<td style=\"border: hidden\">hidden','<td style=\"border:dashed\">dashed','<td style=\"border:hidden\">hidden', '<td style=\"border:dotted\">dotted'), \n" +
+				"		(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL), \n" +
+				"		(NULL, '<td style=\"border: double\">double', NULL, '<td style=\"border: double\">double', NULL, '<td style=\"border: hidden\">hidden', NULL, NULL), \n" +
+				"		(NULL, '<td style=\"border: solid\">solid', NULL, '<td style=\"border: hidden\">hidden', NULL, '<td style=\"border: dotted\">dotted', NULL, NULL), \n" +
+				"		(NULL, '<td style=\"border: dashed\">dashed', NULL, '<td style=\"border: solid\">solid', NULL, '<td style=\"border: dashed\">dashed', NULL, NULL), \n" +
+				"		(NULL, '<td style=\"border: dotted\">dotted', NULL, '<td style=\"border: hidden\">hidden', NULL, '<td style=\"border: solid\">solid', NULL, NULL), \n" +
+				"		(NULL, '<td style=\"border: hidden\">hidden', NULL, '<td style=\"border: dashed\">dashed', NULL, '<td style=\"border: double\">double', NULL, NULL), \n" +
+				"		(NULL, NULL, NULL, '<td style=\"border: hidden\">hidden', NULL, '<td style=\"border: hidden\">hidden', NULL, NULL), \n" +
+				"		(NULL, NULL, NULL, '<td style=\"border: dotted\">dotted', NULL, NULL, NULL, NULL), \n" +
+				"		(NULL, NULL, NULL, '<td style=\"border: hidden\">hidden', NULL, NULL, NULL, NULL), \n" +
+				"		(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL), \n" +
+				"		(NULL, '<td style=\"border:thin solid\">thin', '<td style=\"border:medium solid\">medium', '<td style=\"border:thick solid\">thick', \n" +
+				"		 NULL,'<td style=\"border:thin solid\">thin', NULL, '<td style=\"border:thick solid\">thick'), \n" +
+				"		(NULL, NULL, NULL, NULL, \n" +
+				"		 NULL, '<td style=\"border:medium solid\">medium', NULL, '<td style=\"border:medium solid\">medium'), \n" +
+				"		(NULL, '<td style=\"border:thick solid\">thick','<td style=\"border:medium solid\">medium','<td style=\"border:thin solid\">thin', \n" +
+				"		 NULL,'<td style=\"border:thick solid\">thick',NULL,'<td style=\"border:thin solid\">thin') \n" +
+				"	END TASK \n" +
+				"	TASK AFTER \n" +
 				"		WRITE XLSX 'styledTest.xlsx' 'Mixed' STYLED \n" +
 				"		TABLE STYLE 'border-collapse:collapse;border:solid red' \n" +
 				"		HEAD STYLE 'background-color:LightBlue;font-weight:bold' BODY STYLE 'border:solid blue' CELL STYLE 'border: thin solid red' \n" +
@@ -146,7 +181,11 @@ public class WriteTaskTest extends TaskTest {
 				"		('<tr style=\"background-color: #FF00FF\">', '#FF00FF'), \n" +
 				"		('<tr style=\"background-color: #E6E6FA\">', 'Lavender = #E6E6FA'), \n" +
 				"		('<tr style=\"background-color: HotPink \">', 'HotPink '), \n" +
-				"		('<tr style=\"background-color: #FF69B4\">', '#FF69B4') \n" +
+				"		('<tr style=\"background-color: #FF69B4\">', '#FF69B4'), \n" +
+				"		(NULL, NULL), \n" +
+				"		('normal', 123), \n" +
+				"		('The answer is', '<td style=\"border-top:thin solid;border-bottom:double\">42'), \n" +
+				"		('normal', 456) \n" +
 				"	END TASK \n" +
 				"	TASK AFTER \n" +
 				"		WRITE XLSX 'styledTest.xlsx' 'Aligned' STYLED \n" +
@@ -158,6 +197,26 @@ public class WriteTaskTest extends TaskTest {
 				"		('<td style=\"text-align:left\">left', 'default', '<td style=\"text-align:right\">right') \n" +
 				"	END TASK \n" +
 				"END TASK\n" +
+				"";
+
+		Level logLevel = Level.error;
+		boolean logToConsole = true;
+
+		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
+	}
+
+	public void testDebug() throws Exception {
+
+		String processId = "debug";
+		String script =
+				"	TASK \n" +
+				"		WRITE XLSX 'debugStyled.xlsx' 'Body' STYLED \n" +
+				"		TABLE STYLE 'border-collapse:collapse' \n" +
+				"		BODY STYLE 'border:dashed orange' \n" +
+				"		HEADERS 'First', '<th style=\"border : thick solid AquaMarine\">Second' FROM VALUES \n" +
+				"		('cell A1', 'cell B1'), \n" +
+				"		('cell A2', 'cell B2') \n" +
+				"	END TASK \n" +
 				"";
 
 		Level logLevel = Level.error;
