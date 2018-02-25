@@ -215,14 +215,19 @@ public class WriteTaskTest extends TaskTest {
 
 		String processId = "debug";
 		String script =
-				"	TASK \n" +
-				"		WRITE XLSX 'debugStyled.xlsx' 'Body' STYLED \n" +
-				"		TABLE STYLE 'border-collapse:collapse' \n" +
-				"		BODY STYLE 'border:dashed orange' \n" +
-				"		HEADERS 'First', '<th style=\"border : thick solid AquaMarine\">Second' FROM VALUES \n" +
-				"		('cell A1', 'cell B1'), \n" +
-				"		('cell A2', 'cell B2') \n" +
-				"	END TASK \n" +
+				"TASK \n" +
+				"	WRITE XLSX 'debugStyled.xlsx' 'Body' STYLED \n" +
+				"	TABLE STYLE 'border-collapse:collapse;border:solid red' \n" +
+				"	HEAD STYLE 'background-color:LightBlue;font-weight:bold' BODY STYLE 'border:solid blue' CELL STYLE 'border: thin solid red' \n" +
+				"	HEADERS 'First', '<th style=\"color:red;border :  thick AquaMarine \">Second' FROM VALUES \n" +
+				"	('<td style=\"font-style:italic;border-bottom: medium dashed purple;text-decoration:line-through\">cell A1', 'cell B1'), \n" +
+				"	('<tr style=\"background-color:LemonChiffon\">cell A2', '<td style=\"border:double\">cell B2') \n" +
+				"END TASK \n" +
+				"TASK AFTER \n" +
+				"	APPEND XLSX 'debugStyled.xlsx' 'Body' FROM VALUES \n" +
+				"	('cell A3', '<td style=\"font-weight:bold;color:red;border:thick solid blue\">cell B3'), \n" +
+				"	('<tr style=\"background-color:Green\">cell A4', '<td style=\"border-bottom:double\">cell B4') \n" +
+				"END TASK \n" +
 				"";
 
 		Level logLevel = Level.error;

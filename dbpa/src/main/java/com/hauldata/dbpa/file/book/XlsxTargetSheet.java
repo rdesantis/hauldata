@@ -328,7 +328,16 @@ public class XlsxTargetSheet extends XlsxSheet {
 	public void flush() throws IOException {
 
 		if (0 < rowIndex) {
+			// Write the bottom row but prepare for the possibility that this sheet may be appended.
+			// If it is, the bottom row needs to be re-written without styling for RowPosition.BOTTOM.
+			// But note that writeRow() will alter the contents of rowValues when inline styling is
+			// used. So make a deep copy of rowValues, the restore it.
+
+			ArrayList<Object> originalRowValues = new ArrayList<Object>(rowValues);
+
 			writeRow(rowValues, rowIndex, RowPosition.BOTTOM, previousRowCellStyles);
+
+			rowValues = originalRowValues;
 		}
 
 		try {
