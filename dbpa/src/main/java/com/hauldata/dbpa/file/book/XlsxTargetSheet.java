@@ -303,21 +303,67 @@ public class XlsxTargetSheet extends XlsxSheet {
 			Styles leftStyles,
 			Styles aboveStyles) {
 
-		CellStyle originalStyle = cell.getCellStyle();
-
 		Styles styles = sheetStyles.resolve(cellStyles, rowStyles, rowPosition, columnPosition, leftStyles, aboveStyles);
 
-		short formatIndex = originalStyle.getIndex();
+		adjustAdjacentCellStyle(cell, styles, rowPosition, columnPosition, leftStyles, aboveStyles);
 
-		StylesWithFormatting stylesWithFormatting = new StylesWithFormatting(styles, formatIndex);
+		CellStyle originalStyle = cell.getCellStyle();
 
-		CellStyle finalStyle = stylesWithFormatting.getCellStyle(getOwner().getBook(), getOwner().stylesUsed, getOwner().fontsUsed, getOwner().colorsUsed);
+		CellStyle finalStyle = composeCellStyle(cell, styles);
 
 		if (finalStyle != originalStyle) {
 			cell.setCellStyle(finalStyle);
 		}
 
 		return styles;
+	}
+
+	private void adjustAdjacentCellStyle(
+			Cell cell,
+			Styles styles,
+			RowPosition rowPosition,
+			ColumnPosition columnPosition,
+			Styles leftStyles,
+			Styles aboveStyles) {
+
+		if (styles == null) {
+			return;
+		}
+
+		if (
+				(leftStyles != null) &&
+				(columnPosition != ColumnPosition.LEFT) && (columnPosition != ColumnPosition.SINGLE) &&
+				!leftStyles.rightBorder.equals(styles.leftBorder)) {
+
+			leftStyles.rightBorder = styles.leftBorder;
+
+			Cell leftCell = cell.getRow().getCell(cell.getColumnIndex() - 1);
+
+			leftCell.setCellStyle(composeCellStyle(leftCell, leftStyles));
+		}
+
+		if (
+				(aboveStyles != null) &&
+				(rowPosition != RowPosition.HEADER) && (rowPosition != RowPosition.TOP) &&
+				!aboveStyles.bottomBorder.equals(styles.topBorder)) {
+
+			aboveStyles.bottomBorder = styles.topBorder;
+
+			Cell aboveCell = sheet.getRow(cell.getRowIndex() - 1).getCell(cell.getColumnIndex());
+
+			aboveCell.setCellStyle(composeCellStyle(aboveCell, aboveStyles));
+		}
+	}
+
+	private CellStyle composeCellStyle(Cell cell, Styles styles) {
+
+		CellStyle originalStyle = cell.getCellStyle();
+
+		short formatIndex = originalStyle.getIndex();
+
+		StylesWithFormatting stylesWithFormatting = new StylesWithFormatting(styles, formatIndex);
+
+		return stylesWithFormatting.getCellStyle(getOwner().getBook(), getOwner().stylesUsed, getOwner().fontsUsed, getOwner().colorsUsed);
 	}
 
 	private XlsxTargetBook getOwner() {
@@ -909,7 +955,7 @@ class SheetStyles {
 		ArrayList<BorderStyles> competingStyles = new ArrayList<BorderStyles>();
 
 		if (aboveStyles != null) {
-				competingStyles.add(aboveStyles.bottomBorder);
+			competingStyles.add(aboveStyles.bottomBorder);
 		}
 
 		competingStyles.add(new BorderStyles(

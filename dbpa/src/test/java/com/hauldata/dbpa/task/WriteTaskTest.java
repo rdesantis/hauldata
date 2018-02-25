@@ -226,7 +226,7 @@ public class WriteTaskTest extends TaskTest {
 				"TASK AFTER \n" +
 				"	APPEND XLSX 'debugStyled.xlsx' 'Body' FROM VALUES \n" +
 				"	('cell A3', '<td style=\"font-weight:bold;color:red;border:thick solid blue\">cell B3'), \n" +
-				"	('<tr style=\"background-color:Green\">cell A4', '<td style=\"border-bottom:double\">cell B4') \n" +
+				"	('<tr style=\"background-color:Green\">cell A4', '<td style=\"border-bottom:medium double\">cell B4') \n" +
 				"END TASK \n" +
 				"";
 
