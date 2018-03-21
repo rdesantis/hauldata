@@ -26,7 +26,8 @@ public class RunSql extends CommonSql {
 			"( id INTEGER, jobId INTEGER, jobName VARCHAR(255), status TINYINT, startTime DATETIME, endTime DATETIME, message VARCHAR(255), PRIMARY KEY (id) )";
 	public final static String insert_ = "INSERT INTO %1$s" + tableName + " (id, jobId, jobName, status, message) VALUES (?,?,?,?,?)";
 	public final static String selectLastId_ = "SELECT MAX(id) FROM %1$s" + tableName;
-	public final static String update_ = "UPDATE %1$s" + tableName + " SET status = ?, startTime = ?, endTime = ?, message = ? WHERE id = ?";
+	public final static String updateById_ = "UPDATE %1$s" + tableName + " SET status = ?, startTime = ?, endTime = ?, message = ? WHERE id = ?";
+	public final static String updateByStatus_ = "UPDATE %1$s" + tableName + " SET status = ?, endTime = ?, message = ? WHERE status = ?";
 	public final static String selectAllColumns_ = "SELECT id, jobId, jobName, status, startTime, endTime, message FROM %1$s" + tableName;
 
 	public final static String select_ = "SELECT id, run.jobName, status, startTime, endTime, message FROM %1$s" + tableName + " AS run";
@@ -44,7 +45,8 @@ public class RunSql extends CommonSql {
 	public String createTable;
 	public String insert;
 	public String selectLastId;
-	public String update;
+	public String updateById;
+	public String updateByStatus;
 	public String selectAllColumns;
 
 	public String select;

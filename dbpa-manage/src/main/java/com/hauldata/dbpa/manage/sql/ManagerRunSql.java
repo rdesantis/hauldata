@@ -26,6 +26,7 @@ public class ManagerRunSql extends CommonSql {
 	public final static String selectLastSequence_ = "SELECT MAX(sequence) FROM %1$s" + tableName;
 	public final static String updateStart_ = "UPDATE %1$s" + tableName + " SET startTime = ? WHERE sequence = ? AND startTime IS NULL";
 	public final static String updateEnd_ = "UPDATE %1$s" + tableName + " SET endTime = ? WHERE sequence = ?";
+	public final static String updateEndIfStartedNotEnded_ = updateEnd_ + " AND startTime IS NOT NULL AND endTime IS NULL";
 
 	public final static String selectAllColumns_ = "SELECT sequence, startTime, endTime FROM %1$s" + tableName;
 	public final static String dropTable_ = "DROP TABLE %1$s" + tableName;
@@ -39,6 +40,7 @@ public class ManagerRunSql extends CommonSql {
 	public String selectLastSequence;
 	public String updateStart;
 	public String updateEnd;
+	public String updateEndIfStartedNotEnded;
 
 	public String selectAllColumns;
 	public String dropTable;

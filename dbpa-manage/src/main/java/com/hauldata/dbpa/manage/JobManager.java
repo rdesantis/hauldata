@@ -247,6 +247,7 @@ public class JobManager {
 			// Reserve the database schema to prevent other JobManager instances from using it.
 
 			Connection conn = null;
+
 			try {
 				conn = context.getConnection(null);
 
@@ -273,6 +274,76 @@ public class JobManager {
 
 			scheduler = new JobScheduler();
 			scheduler.startAll();
+		}
+	}
+
+	/**
+	 * Reset the manager's persistent state from a previous crash.
+	 * <p>
+	 * TODO: Take argument boolean hard, which distinguishes a hard reset from a soft reset.
+	 * Hard versus soft requires the manager to write a unique server identifier to the
+	 * ManagerRun table when it updates startTime to reserve the database schema.
+	 * Hard reset would reset the ManagerRun table regardless of which server reserved
+	 * the schema, e.g., when starting a server on a new host after a crash on a different host.
+	 * Soft reset would only reset the ManagerRun table if it was reserved by the
+	 * server attempting the reset.
+	 * <p>
+	 * Each host that runs ManageDbp should include a soft reset in the host startup
+	 * to clean up after a previous crash on the same host.  The soft reset prevents
+	 * erroneous reset by an old host after a new instance of ManageDbp has been
+	 * stood up on a new host.
+	 * <p>
+	 * The implementation here is a hard reset.
+	 *
+	 * @throws SQLException if an error occurs resetting the database schema
+	 */
+	public void reset() throws SQLException {
+
+		synchronized (this) {
+
+			if (manager == null) {
+				throw new JobManagerException.NotAvailable();
+			}
+			else if (isStarted()) {
+				throw new JobManagerException.AlreadyStarted();
+			}
+
+			Connection conn = null;
+			PreparedStatement stmt = null;
+
+			try {
+				conn = context.getConnection(null);
+
+				// If the database schema is reserved, free it.
+
+				int lastSequence = CommonSql.getNextId(conn, manager.getManagerRunSql().selectLastSequence) - 1;
+				int updateCount = CommonSql.executeUpdateNow(conn, manager.getManagerRunSql().updateEndIfStartedNotEnded, lastSequence);
+
+				if (updateCount == 1) {
+
+					// Prepare data schema for next use.
+
+					CommonSql.execute(conn, manager.getManagerRunSql().insertSequence, lastSequence + 1);
+
+					// Because the last manager instance crashed, job runs may remain persisted in "in progress" status.
+					// Move those runs to a terminal status.
+
+					stmt = conn.prepareStatement(runSql.updateByStatus);
+
+					stmt.setInt(1, JobStatus.controllerShutdown.getId());
+					setTimestamp(stmt, 2, LocalDateTime.now());
+					setMessage(stmt, 3, managerProgramName + " abnormal termination");
+
+					stmt.setInt(4, JobStatus.runInProgress.getId());
+
+					stmt.executeUpdate();
+				}
+			}
+			finally {
+				try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
+
+				if (conn != null) context.releaseConnection(null);
+			}
 		}
 	}
 
@@ -470,7 +541,7 @@ public class JobManager {
 		try {
 			conn = context.getConnection(null);
 
-			stmt = conn.prepareStatement(runSql.update);
+			stmt = conn.prepareStatement(runSql.updateById);
 
 			JobState state = run.getState();
 			stmt.setInt(1, state.getStatus().getId());

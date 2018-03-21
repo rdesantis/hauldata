@@ -18,9 +18,12 @@ package com.hauldata.dbpa;
 
 import io.dropwizard.Application;
 import io.dropwizard.Configuration;
+import io.dropwizard.cli.Command;
 import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import net.sourceforge.argparse4j.inf.Namespace;
+import net.sourceforge.argparse4j.inf.Subparser;
 
 import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.exceptions.DefaultExceptionMapper;
@@ -58,6 +61,8 @@ public class ManageDbp extends Application<Configuration> {
 
 		// Eventually may subclass Configuration as ServiceConfiguration and receive that here
 		// to control startup behavior.
+
+		bootstrap.addCommand(new ResetCommand());
     }
 
 	@Override
@@ -135,5 +140,34 @@ class ManagedJobManager implements Managed {
 		if (manager.isStarted()) {
 			manager.shutdown();
 		}
+	}
+}
+
+class ResetCommand extends Command {
+
+	protected ResetCommand() {
+		super("reset", "Resets Job Manager database schema from 'in use' to 'available'");
+	}
+
+	@Override
+	public void configure(Subparser arg0) {
+		// This command has no options to be parsed.
+	}
+
+	@Override
+	public void run(Bootstrap<?> arg0, Namespace arg1) {
+
+		try {
+			JobManager manager = JobManager.getInstance();
+			manager.reset();
+		}
+		catch (Exception ex) {
+			System.out.println(ex.toString());
+		}
+
+		// Dropwizard does not terminate the application when the commands have finished executing.
+		// Kill it.
+
+		System.exit(0);
 	}
 }
