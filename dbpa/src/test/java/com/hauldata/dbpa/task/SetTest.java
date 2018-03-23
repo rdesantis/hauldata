@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -47,7 +47,9 @@ public class SetTest extends TaskTest {
 					"s9 VARCHAR, \n" +
 					"s10 VARCHAR, \n" +
 					"s11 VARCHAR, \n" +
-					"d1 DATETIME \n" +
+					"d1 DATETIME, \n" +
+					"b1 BIT, \n" +
+					"b2 BIT \n" +
 				"END VARIABLES \n" +
 				"TASK SET \n" +
 					"i1 = CHARINDEX('678', '12345678901234567890'), \n" +
@@ -65,7 +67,9 @@ public class SetTest extends TaskTest {
 					"s10 = UPPER('xyz'), \n" +
 					"s11 = CHOOSE(1 + 2, 'a', 'b', 'c' + 'd', 'e'), \n" +
 					"d1 = CASE WHEN 0 = 1 THEN GETDATE() WHEN 1 = 1 THEN '12/25/2016' END, \n" +
-					"i4 = CASE 'x' + 'y' WHEN 'ab' THEN 1 WHEN 'xy' THEN 22 ELSE 333 END \n" +
+					"i4 = CASE 'x' + 'y' WHEN 'ab' THEN 1 WHEN 'xy' THEN 22 ELSE 333 END, \n" +
+					"b1 = ISNULL(b1, 0), \n" +
+					"b2 = IIF(b1 = 1, 0, 99) \n" +
 				"END TASK \n" +
 				"TASK Show AFTER DO \n" +
 					"TASK LOG FORMAT(i1, 'd') END TASK \n" +
@@ -84,6 +88,7 @@ public class SetTest extends TaskTest {
 					"TASK AFTER LOG s11 END TASK \n" +
 					"TASK AFTER LOG FORMAT(d1, 'MM/dd/yyyy') END TASK \n" +
 					"TASK AFTER LOG FORMAT(i4, 'd') END TASK \n" +
+					"TASK AFTER LOG FORMAT(b2, 'd') END TASK \n" +
 				"END TASK \n" +
 				"";
 
@@ -127,6 +132,8 @@ public class SetTest extends TaskTest {
 		assertEquals("12/25/2016", record.message);
 		record = recordIterator.next();
 		assertEquals("22", record.message);
+		record = recordIterator.next();
+		assertEquals("1", record.message);
 
 		assertFalse(recordIterator.hasNext());
 	}

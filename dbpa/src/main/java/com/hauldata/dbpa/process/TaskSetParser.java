@@ -2461,7 +2461,7 @@ public abstract class TaskSetParser {
 				throw new InputMismatchException("Comparison operator not found where expected");
 			}
 		}
-		else if (left.getType() == VariableType.INTEGER) {
+		else if ((left.getType() == VariableType.INTEGER) || (left.getType() == VariableType.BIT)) {
 			Expression<Integer> rightInteger = parseIntegerExpression();
 			return new BooleanFromIntegers((Expression<Integer>)left, rightInteger, comparison);
 		}
