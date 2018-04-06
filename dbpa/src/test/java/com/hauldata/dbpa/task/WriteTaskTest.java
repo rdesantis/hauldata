@@ -17,6 +17,7 @@
 package com.hauldata.dbpa.task;
 
 import com.hauldata.dbpa.DbProcessTestTables;
+import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.Logger.Level;
 
 public class WriteTaskTest extends TaskTest {
@@ -234,5 +235,59 @@ public class WriteTaskTest extends TaskTest {
 		boolean logToConsole = true;
 
 		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
+	}
+
+	public void testNullFileName() throws Exception {
+
+		String processId = "WriteNullFileName";
+		String script =
+				"TASK WriteCsv \n" +
+				"	WRITE CSV NULL NOQUOTES \n" +
+				"	FROM VALUES ('first', 1), ('SECOND Row', 22) \n" +
+				"END TASK\n" +
+				"";
+
+		Level logLevel = Level.error;
+		boolean logToConsole = true;
+
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null, false);
+
+		Analyzer.RecordIterator iterator = analyzer.recordIterator(processId, "WRITECSV");
+		Analyzer.Record record;
+
+		record = iterator.next();
+		assertEquals("File path expression evaluates to NULL", record.message);
+
+		record = iterator.next();
+		assertEquals(Task.failMessage, record.message);
+
+		assertFalse(iterator.hasNext());
+	}
+
+	public void testNullSheetName() throws Exception {
+
+		String processId = "WriteNullFileName";
+		String script =
+				"TASK WriteXlsx \n" +
+				"	WRITE XLSX 'dontcreate.xlsx' NULL STYLED \n" +
+				"	FROM VALUES ('first', 1), ('SECOND Row', 22) \n" +
+				"END TASK \n" +
+				"";
+
+		Level logLevel = Level.error;
+		boolean logToConsole = true;
+
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null, false);
+
+		Analyzer.RecordIterator iterator = analyzer.recordIterator(processId, "WRITEXLSX");
+		Analyzer.Record record;
+
+		record = iterator.next();
+		assertEquals("Sheet name expression evaluates to NULL", record.message);
+
+		record = iterator.next();
+		assertEquals(Task.failMessage, record.message);
+
+		assertFalse(iterator.hasNext());
 	}
 }

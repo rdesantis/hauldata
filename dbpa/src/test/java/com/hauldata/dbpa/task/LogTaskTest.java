@@ -16,9 +16,13 @@
 
 package com.hauldata.dbpa.task;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
 
+import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.Logger.Level;
 
 public class LogTaskTest extends LogTaskTestBase {
@@ -55,5 +59,69 @@ public class LogTaskTest extends LogTaskTestBase {
 		String script = "TASK LOG 'Next week is ' + FORMAT(DATEADD(WEEK, 1, GETDATE()), 'M/d/yyyy') END TASK";
 
 		assertBadSyntax(script, "At line 1: Unrecognized date part name for DATEADD");
+	}
+
+	public void testLogQualifers() throws Exception {
+
+		String processId = "QualifierTest";
+		String script =
+				"VARIABLES \n" +
+					"first VARCHAR, second VARCHAR, third VARCHAR \n" +
+				"END VARIABLES \n" +
+				"TASK Assign SET \n" +
+					"first = 'one', \n" +
+					"second = 'two', \n" +
+					"third = 'three' \n" +
+				"END TASK \n" +
+				"TASK log1 OF first AFTER LOG 'uno' END TASK \n" +
+				"TASK log2 OF second AFTER log1 LOG 'due' END TASK \n" +
+				"TASK OF first + '_' + second AFTER log2 LOG 'uno_due' END TASK \n" +
+				"TASK Nester OF third AFTER PROCESS 'Inner' WITH third END TASK \n" +
+				"";
+
+		String nestedScriptName = "Inner";
+		String nestedScript =
+				"PARAMETERS parm VARCHAR END PARAMETERS\n" +
+				"TASK nest1 OF 'this' LOG 'tre' END TASK \n" +
+				"";
+
+		Map<String, String> nestedScripts = new HashMap<String, String>();
+		nestedScripts.put(nestedScriptName, nestedScript);
+
+		Level logLevel = Level.info;
+		boolean logToConsole = true;
+
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, nestedScripts, null);
+
+		Analyzer.RecordIterator recordIterator = analyzer.recordIterator(processId, Pattern.compile("LOG\\d+.*"));
+		Analyzer.Record record;
+
+		record = recordIterator.next();
+		assertEquals("LOG1:one", record.taskId);
+		assertEquals("uno", record.message);
+
+		record = recordIterator.next();
+		assertEquals("LOG2:two", record.taskId);
+		assertEquals("due", record.message);
+
+		assertFalse(recordIterator.hasNext());
+
+		recordIterator = analyzer.recordIterator(processId, Pattern.compile("\\d+.*"));
+
+		record = recordIterator.next();
+		assertEquals("4:one_two", record.taskId);
+		assertEquals("uno_due", record.message);
+
+		assertFalse(recordIterator.hasNext());
+
+		String nestedProcessId = processId + "[NESTER:three]." + nestedScriptName;
+
+		recordIterator = analyzer.recordIterator(nestedProcessId, Pattern.compile("NEST\\d+.*"));
+
+		record = recordIterator.next();
+		assertEquals("NEST1:this", record.taskId);
+		assertEquals("tre", record.message);
+
+		assertFalse(recordIterator.hasNext());
 	}
 }

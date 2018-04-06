@@ -56,9 +56,9 @@ public class AsyncProcessTask extends ProcessTask {
 			evaluatedArguments.add(new StringConstant(argumentValue != null ? argumentValue.toString() : null));
 		}
 		
-		String asyncTaskName = getPath() + ".async";
+		String asyncTaskName = getName() + "-async";
 		Map<Task, Task.Result> noPredecessors = new HashMap<Task, Task.Result>();
-		SyncProcessTask processTask = new SyncProcessTask(new Prologue(asyncTaskName, noPredecessors, null, null, null), evaluatedName, evaluatedArguments);
+		SyncProcessTask processTask = new SyncProcessTask(new Prologue(asyncTaskName, null, noPredecessors, null, null, null), evaluatedName, evaluatedArguments);
 
 		for (Task waitTask : asyncSuccessors) {
 			waitTask.putRemainingPredecessor(processTask, Result.completed);

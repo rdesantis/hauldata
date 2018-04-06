@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ public interface Logger {
 
 	Logger nestTask(String nestedTaskId);
 
-	Logger nestProcess(String nestedProcessId);
+	Logger nestProcess(String taskId, String nestedProcessId);
 
 	void close();
 }

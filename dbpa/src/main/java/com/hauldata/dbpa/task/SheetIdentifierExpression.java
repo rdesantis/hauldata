@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -34,6 +34,14 @@ public class SheetIdentifierExpression extends PhysicalPageIdentifierExpression 
 
 	@Override
 	public PageIdentifier evaluate(Context context, boolean writeNotRead) {
-		return new SheetIdentifier(handler, context.getDataPath(filePath.evaluate(), writeNotRead), sheetName.evaluate());
+		return new SheetIdentifier(handler, context.getDataPath(getEvaluatedFilePath(), writeNotRead), getEvaluatedSheetName());
+	}
+
+	private String getEvaluatedSheetName() {
+		String evaluatedSheetName = sheetName.evaluate();
+		if (evaluatedSheetName == null) {
+			throw new RuntimeException("Sheet name expression evaluates to NULL");
+		}
+		return evaluatedSheetName;
 	}
 }

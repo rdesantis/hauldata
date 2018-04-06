@@ -171,6 +171,7 @@ public abstract class TaskSetParser {
 
 		CONNECTION,
 		NAME,
+		OF,
 		FROM,
 		IN,
 		INOUT,
@@ -287,6 +288,7 @@ public abstract class TaskSetParser {
 		reservedTaskNames = Stream.of(new KW[]
 				{
 						KW.NAME,
+						KW.OF,
 						KW.END,
 						KW.TASK,
 
@@ -531,10 +533,10 @@ public abstract class TaskSetParser {
 		while (tokenizer.hasNextWordIgnoreCase(KW.TASK.name())) {
 
 			Task task = parseTask(tasks, previousTask);
-			if (task.getName() == null) {
-				task.setNameFromIndex(taskIndex);
+			if (task.getTaskName() == null) {
+				task.setTaskNameFromIndex(taskIndex);
 			}
-			tasks.put(task.getName(), task);
+			tasks.put(task.getTaskName(), task);
 
 			++taskIndex;
 			previousTask = task;
@@ -601,6 +603,11 @@ public abstract class TaskSetParser {
 
 		// Parse the common clauses that can introduce any task.
 
+		Expression<String> qualifier = null;
+		if (tokenizer.skipWordIgnoreCase(KW.OF.name())) {
+			qualifier = parseStringExpression();
+		}
+
 		Map<Task, Task.Result> predecessors = new HashMap<Task, Task.Result>();
 		Expression.Combination combination = null;
 
@@ -623,7 +630,7 @@ public abstract class TaskSetParser {
 
 		prepareTaskReference();
 
-		Task task = parser.parse(new Task.Prologue(name, predecessors, combination, condition, getParentTask()));
+		Task task = parser.parse(new Task.Prologue(name, qualifier, predecessors, combination, condition, getParentTask()));
 
 		resolveTaskReference(task);
 

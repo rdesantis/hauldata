@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ public class NullLogger implements Logger {
 	public Logger nestTask(String nestedTaskId) { return this; }
 
 	@Override
-	public Logger nestProcess(String nestedProcessId) { return this; }
+	public Logger nestProcess(String taskId, String nestedProcessId) { return this; }
 
 	@Override
 	public void close() {}

@@ -33,9 +33,11 @@ public class RequestTaskTest extends TaskTest {
 
 		String processId = "GetTest";
 		String script =
-				"VARIABLES nothing VARCHAR END VARIABLES\n" +
+				"VARIABLES url VARCHAR, nothing VARCHAR END VARIABLES\n" +
+				"TASK SET url = 'http://localhost:8080/api/' END TASK \n" +
 				"TASK GetSchedule \n" +
-				"	REQUEST 'http://localhost:8080/schedules/{name}' " +
+				"	AFTER \n" +
+				"	REQUEST url + 'schedules/{name}' " +
 				"	GET 'what', 'name' FROM VALUES ('schedule definition', 'EVERY10SECONDS') \n" +
 				"	RESPONSE VALUE 'definition' \n" +
 				"	STATUS 'status' \n" +
@@ -43,7 +45,7 @@ public class RequestTaskTest extends TaskTest {
 				"END TASK\n" +
 				"TASK GetScheduleNames \n" +
 				"	AFTER \n" +
-				"	REQUEST 'http://localhost:8080/schedules/-/names' " +
+				"	REQUEST url + 'schedules/-/names' " +
 				"	GET 'what' FROM VALUES ('schedule name list') \n" +
 				"	RESPONSE LIST 'name' \n" +
 				"	STATUS 'status' \n" +
@@ -51,7 +53,7 @@ public class RequestTaskTest extends TaskTest {
 				"END TASK\n" +
 				"TASK GetJobInfo \n" +
 				"	AFTER \n" +
-				"	REQUEST 'http://localhost:8080/jobs/{name}' " +
+				"	REQUEST url + 'jobs/{name}' " +
 				"	HEADER nothing NULL 'ignore this' \n" +
 				"	GET 'name', 'random', 'whatever' \n" +
 				"	FROM SQL SELECT * FROM test.reqsource END SQL \n" +
@@ -62,7 +64,7 @@ public class RequestTaskTest extends TaskTest {
 				"END TASK\n" +
 				"TASK GetJobInfoWithMessage \n" +
 				"	AFTER \n" +
-				"	REQUEST 'http://localhost:8080/jobs/{name}' " +
+				"	REQUEST url + 'jobs/{name}' " +
 				"	GET 'name', 'whatever' \n" +
 				"	FROM SQL SELECT name, stuff FROM test.reqsource END SQL \n" +
 				"	KEEP 'name' \n" +
@@ -72,7 +74,7 @@ public class RequestTaskTest extends TaskTest {
 				"END TASK\n" +
 				"TASK GetScheduleValidationFromValues \n" +
 				"	AFTER \n" +
-				"	REQUEST 'http://localhost:8080/schedules/-/validations/{name}' " +
+				"	REQUEST url + 'schedules/-/validations/{name}' " +
 				"	GET 'arbitrary', 'name'  FROM VALUES ('random text', 'invalid') \n" +
 				"	KEEP 'name' \n" +
 				"	RESPONSE 'validationMessage' \n" +
@@ -117,7 +119,7 @@ public class RequestTaskTest extends TaskTest {
 				"TASK AFTER NonUnique FAILS GO END TASK \n" +
 				"TASK GetJobRuns \n" +
 				"	AFTER \n" +
-				"	REQUEST 'http://localhost:8080/jobs/-/runs?latest=true' " +
+				"	REQUEST url + 'jobs/-/runs?latest=true' " +
 				"	GET 'first' \n" +
 				"	FROM SQL SELECT 'job list' END SQL \n" +
 				"	KEEP 'first' \n" +
@@ -127,7 +129,7 @@ public class RequestTaskTest extends TaskTest {
 				"END TASK\n" +
 				"TASK GetJobRunsNonList \n" +
 				"	AFTER \n" +
-				"	REQUEST 'http://localhost:8080/jobs/-/runs?latest=true' " +
+				"	REQUEST url + 'jobs/-/runs?latest=true' " +
 				"	GET 'first' \n" +
 				"	FROM SQL SELECT 'job list' END SQL \n" +
 				"	KEEP 'first' \n" +

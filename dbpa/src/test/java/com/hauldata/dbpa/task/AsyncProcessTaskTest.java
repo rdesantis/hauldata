@@ -65,9 +65,9 @@ public class AsyncProcessTaskTest extends TaskTest {
 
 	private void testAsyncProcessLaunch(String taskId) throws Exception {
 
-		String taskId_async = taskId + ".async";
+		String taskId_async = taskId + "-async";
 
-		Analyzer.RecordIterator iterator = analyzer.recordIterator(processId, Pattern.compile(taskId + "(\\.async)?"));
+		Analyzer.RecordIterator iterator = analyzer.recordIterator(processId, Pattern.compile(taskId + "(\\-async)?"));
 		Analyzer.Record record;
 
 		record = iterator.next();
@@ -97,9 +97,9 @@ public class AsyncProcessTaskTest extends TaskTest {
 		assertFalse(iterator.hasNext());
 	}
 
-	private void testAsyncProcessRun(String nestedProcessId, String taskId, String message, String pauseTaskId) throws Exception {
+	private void testAsyncProcessRun(String parentTaskId, String nestedProcessId, String taskId, String message, String pauseTaskId) throws Exception {
 
-		String qualifiedProcessId = processId + "." + nestedProcessId;
+		String qualifiedProcessId = processId + "[" + parentTaskId + "-async]." + nestedProcessId;
 
 		Analyzer.RecordIterator iterator = analyzer.recordIterator(qualifiedProcessId);
 		Analyzer.Record record;
@@ -137,8 +137,8 @@ public class AsyncProcessTaskTest extends TaskTest {
 	}
 
 	public void testAsyncProcessRun() throws Exception {
-		testAsyncProcessRun("NESTED_PROCESS1", "NESTED_TASK1", "ethel", "PAUSE1");
-		testAsyncProcessRun("NESTED_PROCESS2", "NESTED_TASK2", "123", "PAUSE2");
+		testAsyncProcessRun("TEST1", "NESTED_PROCESS1", "NESTED_TASK1", "ethel", "PAUSE1");
+		testAsyncProcessRun("TEST2", "NESTED_PROCESS2", "NESTED_TASK2", "123", "PAUSE2");
 	}
 
 	public void testAsyncProcessSyntax() {

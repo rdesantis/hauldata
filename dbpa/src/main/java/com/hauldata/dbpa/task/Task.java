@@ -35,6 +35,7 @@ public abstract class Task {
 	public enum Result { waiting, running, success, failure, completed, terminated, orphaned };
 
 	private String name;
+	private Expression<String> qualifier;
 	private Map<Task, Result> predecessors;
 	private Expression.Combination combination;
 	private Expression<Boolean> condition;
@@ -54,6 +55,7 @@ public abstract class Task {
 	 */
 	public static class Prologue {
 		public String name;
+		public Expression<String> qualifier;
 		public Map<Task, Task.Result> predecessors;
 		public Expression.Combination combination;
 		public Expression<Boolean> condition;
@@ -61,11 +63,13 @@ public abstract class Task {
 
 		public Prologue(
 				String name,
+				Expression<String> qualifier,
 				Map<Task, Result> predecessors,
 				Expression.Combination combination,
 				Expression<Boolean> condition,
 				Task parent) {
 			this.name = name;
+			this.qualifier = qualifier;
 			this.predecessors = predecessors;
 			this.combination = combination;
 			this.condition = condition;
@@ -82,6 +86,7 @@ public abstract class Task {
 	 */
 	protected Task(Prologue prologue) {
 		this.name = prologue.name;
+		this.qualifier = prologue.qualifier;
 		this.predecessors = prologue.predecessors;
 		this.combination = prologue.combination;
 		this.condition = prologue.condition;
@@ -94,29 +99,31 @@ public abstract class Task {
 
 	// Getters and setters.
 
-	public String getName() {
+	/**
+	 * @return the unadorned task name
+	 */
+	public String getTaskName() {
 		return name;
 	}
 
-	public String getPath() {
-		StringBuilder path = new StringBuilder();
-		path.append(getName());
+	public void setTaskNameFromIndex(int taskIndex) {
+		name = String.valueOf(taskIndex);
+	}
 
-		Task node = this;
-		while ((node = node.getParent()) != null) {
-			path.insert(0, ".");
-			path.insert(0, node.getName());
+	/**
+	 * @return the adorned task name including the evaluated qualifier
+	 */
+	public String getName() {
+		String qualifiedName = name;
+		if (qualifier != null) {
+			String evaluatedQualifier = qualifier.evaluate();
+			qualifiedName = name + ":" + ((evaluatedQualifier != null) ? evaluatedQualifier : "");
 		}
-
-		return path.toString();
+		return qualifiedName;
 	}
 
 	public Task getParent() {
 		return parent;
-	}
-
-	public void setNameFromIndex(int taskIndex) {
-		this.name = String.valueOf(taskIndex);
 	}
 
 	// Predecessors
@@ -164,7 +171,10 @@ public abstract class Task {
 	 */
 	public void run(Context context) {
 
+		String name = this.name;
 		try {
+			name = getName();
+
 			if (condition == null || condition.evaluate()) {
 
 				boolean isLogTask = this instanceof LoggingTask;

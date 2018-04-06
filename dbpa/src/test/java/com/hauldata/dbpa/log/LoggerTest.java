@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ public class LoggerTest extends TestCase {
 
 		nestedTaskLogger.message("firstNestedTask", "fifthMessage");
 
-		Logger nestedProcessLogger = logger.nestProcess("nestedProcess");
+		Logger nestedProcessLogger = logger.nestProcess("parentTask", "nestedProcess");
 
 		nestedProcessLogger.message("secondNestedTask", "sixthMessage");
 
@@ -116,7 +116,7 @@ public class LoggerTest extends TestCase {
 		if (level.compareTo(Level.message) <= 0) {
 			previousRecord = record;
 			record = recordIterator.next();
-			assertEquals("testProcess.nestedProcess", record.processId);
+			assertEquals("testProcess[parentTask].nestedProcess", record.processId);
 			assertEquals("secondNestedTask", record.taskId);
 			assertTrue(previousRecord == null || !record.datetime.isBefore(previousRecord.datetime));
 			assertEquals(3, record.level);

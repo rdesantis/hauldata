@@ -160,8 +160,8 @@ public class Context {
 	 * Construct a context to use by a child process of this process.
 	 * @return the child process context.
 	 */
-	public Context makeChildContext(String childName) {
-		return new ChildContext(this, childName);
+	public Context makeChildContext(String parentTaskId, String childName) {
+		return new ChildContext(this, parentTaskId, childName);
 	}
 
 	/**

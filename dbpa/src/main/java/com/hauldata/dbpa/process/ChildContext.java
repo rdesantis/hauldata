@@ -18,11 +18,11 @@ package com.hauldata.dbpa.process;
 
 public class ChildContext extends Context {
 
-	public ChildContext(Context parent, String childName) {
+	public ChildContext(Context parent, String parentTaskId, String childName) {
 
 		super(parent);
 
-		logger = parent.logger.nestProcess(childName);
+		logger = parent.logger.nestProcess(parentTaskId, childName);
 
 		rootExecutor = executor;
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016 - 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ public abstract class LoggerBase implements Logger {
 
 		if (level.compareTo(minLevel) >= 0) {
 			String resolvedProcessId = (processId == null) ? "" : processId;
-			String resolvedTaskId = (taskPrefix == null) ? taskId : taskPrefix + "." + taskId;
+			String resolvedTaskId = resolveTaskId(taskId);
 
 			if (message.contains("\"")) {
 				message = message.replace("\"", "\"\"");
@@ -80,15 +80,21 @@ public abstract class LoggerBase implements Logger {
 	@Override
 	public Logger nestTask(String nestedTaskId) {
 
-		String resolvedTaskId = (taskPrefix == null) ? nestedTaskId : taskPrefix + "." + nestedTaskId;
-		return new NestedLogger(processId, resolvedTaskId, appenders);
+		return new NestedLogger(processId, resolveTaskId(nestedTaskId), appenders);
 	}
 
 	@Override
-	public Logger nestProcess(String nestedProcessId) {
+	public Logger nestProcess(String parentTaskId, String nestedProcessId) {
 
-		String resolvedProcessId = (processId == null) ? nestedProcessId : processId + "." + nestedProcessId;
+		String resolvedProcessId =
+				((processId != null) ? processId : "") +
+				"[" + resolveTaskId(parentTaskId) + "]" +
+				"." + nestedProcessId;
 		return new NestedLogger(resolvedProcessId, null, appenders);
+	}
+
+	private String resolveTaskId(String taskId) {
+		return (taskPrefix != null) ? taskPrefix + "." + taskId : taskId;
 	}
 
 	protected void closeAppenders() {

@@ -59,7 +59,7 @@ public class SyncProcessTaskTest extends TaskTest {
 
 		// Analyze log of nested process
 
-		String nestedProcessId = "SyncProcessTest.NESTED_PROCESS";
+		String nestedProcessId = "SyncProcessTest[TEST].NESTED_PROCESS";
 
 		previousRecord = record;
 		record = recordIterator.next();

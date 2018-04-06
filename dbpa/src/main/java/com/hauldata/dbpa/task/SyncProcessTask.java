@@ -49,7 +49,7 @@ public class SyncProcessTask extends ProcessTask {
 			args[i++] = (argumentValue != null) ? argumentValue.toString() : null;
 		}
 		
-		Context childContext = context.makeChildContext(processName);
+		Context childContext = context.makeChildContext(getName(), processName);
 		try {
 			DbProcess process = context.loader.load(processName);
 			process.run(args, childContext);

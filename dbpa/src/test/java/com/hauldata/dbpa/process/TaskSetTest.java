@@ -167,7 +167,7 @@ public class TaskSetTest extends TaskTest {
 
 		assertFalse(recordIterator.hasNext());
 
-		String nestedProcessId = processId + "." + nestedScriptName;
+		String nestedProcessId = processId + "[NESTER]." + nestedScriptName;
 
 		recordIterator = analyzer.recordIterator(nestedProcessId, Pattern.compile("NEST\\d+$"));
 
@@ -302,12 +302,19 @@ public class TaskSetTest extends TaskTest {
 		script = "TASK NAME READ LOG 'succeed' END TASK \n";
 		assertGoodSyntax(script);
 
+		script = "TASK fred OF 'a' + 'b' GO 'd' + 'e' END TASK \n";
+		assertGoodSyntax(script);
+
+		script = "TASK fred OF 1 + 2 GO 'd' + 'e' END TASK \n";
+		assertBadSyntax(script, null);
+
 		assertReservedTaskName("PREVIOUS");
 		assertReservedTaskName("SUCCEEDS");
 		assertReservedTaskName("FAILS");
 		assertReservedTaskName("COMPLETES");
 		assertReservedTaskName("IF");
 		assertReservedTaskName("NAME");
+		assertReservedTaskName("OF");
 		assertReservedTaskName("AFTER");
 		assertReservedTaskName("END");
 		assertReservedTaskName("TASK");

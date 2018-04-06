@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Ronald DeSantis
+ * Copyright (c) 2017, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -27,5 +27,13 @@ public abstract class PhysicalPageIdentifierExpression implements PageIdentifier
 	protected PhysicalPageIdentifierExpression(FileHandler handler, Expression<String> filePath) {
 		this.handler = handler;
 		this.filePath = filePath;
+	}
+
+	protected String getEvaluatedFilePath() {
+		String evaluatedFilePath = filePath.evaluate();
+		if (evaluatedFilePath == null) {
+			throw new RuntimeException("File path expression evaluates to NULL");
+		}
+		return evaluatedFilePath;
 	}
 }

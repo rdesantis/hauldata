@@ -94,10 +94,10 @@ public class ContextProperties {
 	}
 
 	public Context createContext(String processId) {
-		return createContext(processId, null);
+		return createContext(processId, null, null);
 	}
 
-	public Context createContext(String processId, Context parentContext) {
+	public Context createContext(String processId, Context parentContext, String parentTaskId) {
 
 		Context context = null;
 
@@ -108,7 +108,7 @@ public class ContextProperties {
 
 			context = new Context(connectionProps, sessionProps, ftpProps, pathProps, loader);
 
-			context.logger = (parentContext == null) ? setupLog(processId, context) : parentContext.logger.nestProcess(processId);
+			context.logger = (parentContext == null) ? setupLog(processId, context) : parentContext.logger.nestProcess(parentTaskId, processId);
 		}
 		catch (Exception ex) {
 			try { if (context != null) context.close(); }
