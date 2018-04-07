@@ -17,7 +17,9 @@
 package com.hauldata.dbpa.log;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 public abstract class LoggerBase implements Logger {
 
@@ -75,6 +77,21 @@ public abstract class LoggerBase implements Logger {
 	@Override
 	public void message(String taskId, String message) {
 		write(Level.message, taskId, message);
+	}
+
+	@Override
+	public void error(String taskId, Exception exception) {
+
+		String message = exception.getMessage();
+		if (message == null) {
+			message = exception.getClass().getName();
+
+			Optional<StackTraceElement> element = Arrays.stream(exception.getStackTrace()).filter(e -> e.getClassName().startsWith("com.hauldata.dbpa")).findFirst();
+			if (element.isPresent()) {
+				message += " at " + element.get().toString();
+			}
+		}
+		error(taskId, message);
 	}
 
 	@Override

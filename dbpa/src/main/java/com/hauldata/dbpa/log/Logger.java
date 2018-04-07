@@ -27,6 +27,8 @@ public interface Logger {
 	void error(String taskId, String message);
 	void message(String taskId, String message);
 
+	void error(String taskId, Exception exception);
+
 	Logger nestTask(String nestedTaskId);
 
 	Logger nestProcess(String taskId, String nestedProcessId);

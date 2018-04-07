@@ -201,9 +201,7 @@ public abstract class Task {
 			setAbnormalResult(ex, Result.terminated);
 		}
 		catch (Exception ex) {
-			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
-
-			context.logger.error(name, message);
+			context.logger.error(name, ex);
 			context.logger.error(name, failMessage);
 
 			setAbnormalResult(ex, Result.failure);

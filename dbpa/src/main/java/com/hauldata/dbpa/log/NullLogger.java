@@ -38,6 +38,9 @@ public class NullLogger implements Logger {
 	public void message(String taskId, String message) {}
 
 	@Override
+	public void error(String taskId, Exception exception) {}
+
+	@Override
 	public Logger nestTask(String nestedTaskId) { return this; }
 
 	@Override
