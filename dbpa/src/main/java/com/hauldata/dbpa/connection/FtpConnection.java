@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -67,6 +67,17 @@ public class FtpConnection extends Connection {
 
 				remote = manager.resolveFile(remoteFileURI, options);
 			}
+		}
+
+		public void moveRemoteToRemote(String fromFileName, String toFileName) throws FileSystemException {
+
+			String fromFileURI = getRemoteFileURI(fromFileName);
+			FileObject from = manager.resolveFile(fromFileURI, options);
+
+			String toFileURI = getRemoteFileURI(toFileName);
+			FileObject to = manager.resolveFile(toFileURI, options);
+
+			from.moveTo(to);
 		}
 
 		public void close() {

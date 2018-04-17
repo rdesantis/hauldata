@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016 - 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -128,6 +128,7 @@ public abstract class TaskSetParser {
 		UNZIP,
 		PUT,
 		GET,
+		MOVE,
 		EMAIL,
 		DELETE,
 		RENAME,
@@ -425,6 +426,7 @@ public abstract class TaskSetParser {
 		taskParsers.put(KW.UNZIP.name(), new UnzipTaskParser());
 		taskParsers.put(KW.PUT.name(), new PutTaskParser());
 		taskParsers.put(KW.GET.name(), new GetTaskParser());
+		taskParsers.put(KW.MOVE.name(), new MoveTaskParser());
 		taskParsers.put(KW.EMAIL.name(), new EmailTaskParser());
 		taskParsers.put(KW.DELETE.name(), new DeleteTaskParser());
 		taskParsers.put(KW.RENAME.name(), new RenameTaskParser());
@@ -1088,6 +1090,26 @@ public abstract class TaskSetParser {
 				FtpConnection connection,
 				List<Expression<String>> fromNames,
 				Expression<String> toName);
+	}
+
+	class MoveTaskParser implements TaskParser {
+
+		public Task parse(Task.Prologue prologue) throws IOException {
+
+			boolean isBinary = tokenizer.skipWordIgnoreCase(KW.BINARY.name());
+			if (!isBinary) {
+				tokenizer.skipWordIgnoreCase(KW.ASCII.name());
+			}
+
+			tokenizer.skipWordIgnoreCase(KW.FROM.name());
+			FtpConnection connection = parseFtpConnection();
+			Expression<String> fromName = parseStringExpression();
+
+			tokenizer.skipWordIgnoreCase(KW.TO.name());
+			Expression<String> toName = parseStringExpression();
+
+			return new MoveTask(prologue, isBinary, connection, fromName, toName);
+		}
 	}
 
 	class EmailTaskParser implements TaskParser {
