@@ -22,6 +22,7 @@ public class JobManagerException {
 	public static final String alreadyUnavailableMessage = "Job Manager is already unavailable";
 	public static final String schedulerNotAvailableMessage = "Job Scheduler is not available";
 	public static final String alreadyStartedMessage = "Job Manager is already started";
+	public static final String alreadyRunningMessage = "Job is already running";
 	public static final String schemaInUseMessage = "Job Manager database scheme is already in use";
 	public static final String mustStartupBeforeJobRunMessage = "Must startup Job Manager before running jobs";
 	public static final String notStartedNoJobRunningMessage = "Job Manager is not started; no jobs are running";
@@ -68,6 +69,7 @@ public class JobManagerException {
 	public static class AlreadyStarted extends ConflictException {
 		private static final long serialVersionUID = 1L;
 		public AlreadyStarted() { super(alreadyStartedMessage); }
+		public AlreadyStarted(String message) { super(message); }
 	}
 
 	public static class SchemaInUse extends AvailabilityException {

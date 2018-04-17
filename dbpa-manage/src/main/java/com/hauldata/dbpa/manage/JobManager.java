@@ -432,6 +432,7 @@ public class JobManager {
 
 	/**
 	 * Start a job by name.
+	 * Do not start a new instance of a job if a previous instance is still running.
 	 *
 	 * @return the run object.  Use the getRunId() member to retrieve the unique run ID.
 	 * @throws JobManagerException.NotStarted
@@ -443,6 +444,11 @@ public class JobManager {
 
 		if (!isStarted()) {
 			throw new JobManagerException.NotStarted(JobManagerException.mustStartupBeforeJobRunMessage);
+		}
+
+		boolean isJobRunning = executor.getRunning().stream().anyMatch(r -> r.getJobName().equals(jobName));
+		if (isJobRunning) {
+			throw new JobManagerException.AlreadyStarted(JobManagerException.alreadyRunningMessage);
 		}
 
 		LOGGER.info("Running job: {}", jobName);
