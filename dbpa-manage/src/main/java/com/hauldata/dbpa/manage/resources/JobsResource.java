@@ -170,7 +170,7 @@ public class JobsResource {
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 	}
 
@@ -303,7 +303,7 @@ public class JobsResource {
 			CommonSql.execute(conn, jobSql.updateField, columnName, value, id);
 		}
 		finally {
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 	}
 
@@ -341,7 +341,7 @@ public class JobsResource {
 			}
 		}
 		finally {
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 	}
 
@@ -401,7 +401,7 @@ public class JobsResource {
 			}
 		}
 		finally {
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 	}
 
@@ -483,7 +483,7 @@ public class JobsResource {
 			}
 		}
 		finally {
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 	}
 
@@ -599,7 +599,7 @@ public class JobsResource {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 
 		return jobs;
@@ -735,7 +735,7 @@ public class JobsResource {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 
 		return names;
@@ -771,7 +771,7 @@ public class JobsResource {
 			CommonSql.execute(conn, jobSql.delete, jobId);
 		}
 		finally {
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 	}
 
@@ -910,7 +910,7 @@ public class JobsResource {
 			try { if (rs != null) rs.close(); } catch (Exception ex) {}
 			try { if (stmt != null) stmt.close(); } catch (Exception ex) {}
 
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 
 		return runs;

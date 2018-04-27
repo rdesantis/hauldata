@@ -16,11 +16,11 @@
 
 package com.hauldata.dbpa.process;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
@@ -69,7 +69,9 @@ public class TaskExecutor {
 		if (ecs == null) {
 			es = Executors.newCachedThreadPool();
 			ecs = new ExecutorCompletionService<Task>(es);
-			submissions = new HashMap<Task, Future<Task>>();
+			// Tasks may be submitted by separate threads at process runtime.
+			// Therefore a concurrent map must be used.
+			submissions = new ConcurrentHashMap<Task, Future<Task>>();
 		}
 		return ecs;
 	}

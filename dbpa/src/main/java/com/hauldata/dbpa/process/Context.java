@@ -188,8 +188,8 @@ public class Context {
 	 * Indicate that a JDBC connection acquired with getConnection()
 	 * is no longer needed by the acquirer.
 	 */
-	public void releaseConnection(DatabaseConnection connection) {
-		(connection != null ? connection : resources.dbconn).release();
+	public void releaseConnection(DatabaseConnection connection, java.sql.Connection conn) {
+		(connection != null ? connection : resources.dbconn).release(conn);
 	}
 
 	/**

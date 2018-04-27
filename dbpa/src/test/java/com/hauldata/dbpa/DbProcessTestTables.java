@@ -46,7 +46,7 @@ public class DbProcessTestTables {
 			throw new RuntimeException(ex.getLocalizedMessage());
 		}
 		finally {
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 
 		isAssured = true;

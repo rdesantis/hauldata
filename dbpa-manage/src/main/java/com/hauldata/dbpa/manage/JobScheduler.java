@@ -125,7 +125,7 @@ public class JobScheduler {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 	}
 
@@ -300,7 +300,7 @@ public class JobScheduler {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 	}
 
@@ -349,7 +349,7 @@ public class JobScheduler {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 	}
 }

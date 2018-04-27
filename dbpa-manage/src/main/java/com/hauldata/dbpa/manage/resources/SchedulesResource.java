@@ -155,7 +155,7 @@ public class SchedulesResource {
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 	}
 
@@ -207,7 +207,7 @@ public class SchedulesResource {
 			try { if (rs != null) rs.close(); } catch (Exception exx) {}
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 
 		return schedules;
@@ -298,7 +298,7 @@ public class SchedulesResource {
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 	}
 
@@ -393,7 +393,7 @@ public class SchedulesResource {
 			}
 		}
 		finally {
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 
 		return names;

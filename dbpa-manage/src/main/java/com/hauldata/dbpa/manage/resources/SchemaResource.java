@@ -77,7 +77,7 @@ public class SchemaResource {
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception ex) {}
 
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 	}
 
@@ -113,7 +113,7 @@ public class SchemaResource {
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception ex) {}
 
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 	}
 
@@ -171,7 +171,7 @@ public class SchemaResource {
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception ex) {}
 
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 
 		return allTablesExistAsRequired;

@@ -80,7 +80,7 @@ public class TableAppender extends AppenderBase {
 		catch (SQLException ex) {
 
 			if (conn != null) {
-				context.releaseConnection(null);
+				context.releaseConnection(null, conn);
 				conn = null;
 			}
 
@@ -102,7 +102,7 @@ public class TableAppender extends AppenderBase {
 			Connection currentConn = context.getConnection(null);
 			if ((currentConn != conn) && (currentConn != null)) {
 
-				context.releaseConnection(null);
+				context.releaseConnection(null, conn);
 
 				close();
 
@@ -118,7 +118,7 @@ public class TableAppender extends AppenderBase {
 	 * for proper task sleep / wake connection management.
 	 */
 	private void releasePreparedStatement() {
-		context.releaseConnection(null);
+		context.releaseConnection(null, conn);
 	}
 
 	@Override

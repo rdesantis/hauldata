@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -19,23 +19,21 @@ package com.hauldata.dbpa.connection;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Properties;
 
 public class DatabaseConnection extends com.hauldata.dbpa.connection.Connection {
 
-	private Connection conn = null;
+	private int activeConnectionCount = 0;
+	private List<Connection> idleConnections = new LinkedList<Connection>();
 
-	private int connCount = 0;
-	private LocalDateTime connLastUsed = null;
-	
 	@Override
 	public void setProperties(Properties properties) {
 
-		// Close the connection so on next usage, connection is re-established with new properties.
+		// Close the idle connections so on next usage, connections are re-established with new properties.
 
-		if (connCount > 0) {
+		if (activeConnectionCount > 0) {
 			throw new RuntimeException("Cannot change connection while it is in use.");
 		}
 
@@ -53,23 +51,12 @@ public class DatabaseConnection extends com.hauldata.dbpa.connection.Connection 
 	 */
 	public Connection get() {
 
-		boolean longIdle;
-		synchronized (this) {
-			longIdle =
-					(conn != null) &&
-					(connCount == 0) &&
-					(connLastUsed != null) &&
-					(connLastUsed.until(LocalDateTime.now(), ChronoUnit.MILLIS) > longSleepMillis);
-		}
-
-		if (longIdle) {
-			wakeFromSleep(true);
-		}
+		Connection conn = null;
 
 		synchronized (this) {
 
-			if (conn != null) {
-				++connCount;
+			if (idleConnections.size() > 0) {
+				conn = assureValid(idleConnections.remove(0));
 			}
 			else if (getProperties() != null) {
 
@@ -85,16 +72,33 @@ public class DatabaseConnection extends com.hauldata.dbpa.connection.Connection 
 				try {
 					Class.forName(driver);
 					conn = DriverManager.getConnection(url, getProperties());
-					connCount = 1;
 				}
 				catch (Exception ex) {
 					throw new RuntimeException("Database connection failed: " + ex.toString(), ex);
 				}
 			}
-			
+
 			if (conn != null) {
-				connLastUsed = LocalDateTime.now();
+				++activeConnectionCount;
 			}
+		}
+
+		return conn;
+	}
+
+	/**
+	 * Test connection for validity.  If not valid, close it.
+	 *
+	 * @param conn is the connection to test
+	 * @return conn if valid, otherwise null
+	 */
+	private Connection assureValid(Connection conn) {
+
+		boolean isValid = false;
+		try { isValid = conn.isValid(0); } catch (Exception ex) {}
+		if (!isValid) {
+			try { conn.close(); } catch (Exception ex) {}
+			conn = null;
 		}
 		return conn;
 	}
@@ -103,19 +107,24 @@ public class DatabaseConnection extends com.hauldata.dbpa.connection.Connection 
 	 * Indicate that a JDBC connection acquired with getConnection()
 	 * is no longer needed by the acquirer.
 	 */
-	public void release() {
+	public void release(Connection conn) {
 
 		synchronized (this) {
-			connLastUsed = LocalDateTime.now();
-			--connCount;
+			idleConnections.add(conn);
+			--activeConnectionCount;
 		}
 	}
 
+	/**
+	 * Close all idle JDBC connections.  It is assumed there are no active connections.
+	 * @throws SQLException
+	 */
 	public void assureClosed() throws SQLException {
-		if (conn != null) {
+
+		for (Connection conn: idleConnections) {
 			conn.close();
-			conn = null;
 		}
+		idleConnections.clear();
 	}
 
 	// Sleep functions.  These are intended to release the database connection
@@ -142,12 +151,12 @@ public class DatabaseConnection extends com.hauldata.dbpa.connection.Connection 
 	 */
 	public boolean prepareToSleep(long millis) {
 
-		if ((conn == null) || (millis < longSleepMillis)) {
+		if ((activeConnectionCount == 0) || (millis < longSleepMillis)) {
 			return false;
 		}
 
 		synchronized (this) {
-			if (connCount == 0) {
+			if (activeConnectionCount == 0) {
 				try { assureClosed(); } catch (Exception ex) {}
 			}
 		}
@@ -163,24 +172,10 @@ public class DatabaseConnection extends com.hauldata.dbpa.connection.Connection 
 	 */
 	public void wakeFromSleep(boolean longSleep) {
 
-		// If the task went into a long sleep, the database connection may have been
-		// closed at sleep time but may have been re-opened during the sleep if another
-		// task became active.  Even for a short sleep, it is assumed that an
-		// indefinite number of short sleeps may occur over an extended period
-		// of time and that the database connection may become invalid during that time.
-		// Therefore, the connection is tested for validity.  If found to be invalid,
-		// it is closed so that a new connection will be created by the next call to
-		// getConnection().
-		
-		synchronized (this) {
-			if ((conn != null) && (connCount == 0)) {
-				boolean isValid = false;
-				try { isValid = conn.isValid(0); } catch (Exception ex) {}
-				if (!isValid) {
-					try { conn.close(); } catch (Exception ex) {}
-					conn = null;
-				}
-			}
-		}
+		// Before a long sleep, all idle database connections are closed.
+		// But even for a short sleep, it is assumed that a database connections may become
+		// invalid during that time.  However, get() always checks that an idle connection
+		// is valid before using it, discards it, and creates another if necessary, so
+		// no action is needed here.
 	}
 }

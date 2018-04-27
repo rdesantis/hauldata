@@ -94,7 +94,7 @@ public abstract class DataStore {
 	public void close(Context context) {
 
 		if (stmt != null) try { stmt.close(); } catch (Exception ex) {}
-		if (conn != null) context.releaseConnection(connection);
+		if (conn != null) context.releaseConnection(connection, conn);
 
 		stmt = null;
 		conn = null;

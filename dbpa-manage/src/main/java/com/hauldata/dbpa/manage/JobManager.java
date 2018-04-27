@@ -259,7 +259,7 @@ public class JobManager {
 				}
 			}
 			finally {
-				if (conn != null) context.releaseConnection(null);
+				if (conn != null) context.releaseConnection(null, conn);
 			}
 
 			// Instantiate a JobExecutor and create a job monitor thread
@@ -342,7 +342,7 @@ public class JobManager {
 			finally {
 				try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-				if (conn != null) context.releaseConnection(null);
+				if (conn != null) context.releaseConnection(null, conn);
 			}
 		}
 	}
@@ -525,7 +525,7 @@ public class JobManager {
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 
 		return run;
@@ -562,7 +562,7 @@ public class JobManager {
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 	}
 
@@ -711,7 +711,7 @@ public class JobManager {
 			// Do nothing.
 		}
 		finally {
-			if (conn != null) context.releaseConnection(null);
+			if (conn != null) context.releaseConnection(null, conn);
 		}
 	}
 
