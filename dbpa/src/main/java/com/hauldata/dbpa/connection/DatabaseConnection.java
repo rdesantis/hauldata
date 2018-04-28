@@ -58,7 +58,8 @@ public class DatabaseConnection extends com.hauldata.dbpa.connection.Connection 
 			if (idleConnections.size() > 0) {
 				conn = assureValid(idleConnections.remove(0));
 			}
-			else if (getProperties() != null) {
+
+			if ((conn == null) && (getProperties() != null)) {
 
 				setLongSleepSeconds("longSleepSeconds");
 
