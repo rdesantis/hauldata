@@ -78,6 +78,7 @@ public abstract class TaskSet {
 			// While any tasks are waiting on predecessors, process tasks as they complete.
 
 			boolean anyTerminalTaskFailed = false;
+			boolean anyTerminalTaskStopped = false;
 
 			while (!waiting.isEmpty()) {
 				Task task = executor.getCompleted();
@@ -114,9 +115,14 @@ public abstract class TaskSet {
 					}
 				}
 
-				if (isTerminalTask && (task.getResult() == Result.failure)) {
-					anyTerminalTaskFailed = true;
-					failedTask = task;
+				if (isTerminalTask) {
+					if (task.getResult() == Result.failure) {
+						anyTerminalTaskFailed = true;
+						failedTask = task;
+					}
+					else if (task.getResult() == Result.stopped) {
+						anyTerminalTaskStopped = true;
+					}
 				}
 			}
 
@@ -129,10 +135,16 @@ public abstract class TaskSet {
 					anyTerminalTaskFailed = true;
 					failedTask = task;
 				}
+				else if (task.getResult() == Result.stopped) {
+					anyTerminalTaskStopped = true;
+				}
 			}
 
 			if (anyTerminalTaskFailed) {
 				throw new RuntimeException(failedMessage);
+			}
+			else if (anyTerminalTaskStopped) {
+				throw new Task.StoppedException();
 			}
 		}
 		catch (InterruptedException iex) {

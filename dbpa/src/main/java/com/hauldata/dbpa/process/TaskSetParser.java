@@ -136,6 +136,7 @@ public abstract class TaskSetParser {
 		MAKE,
 		LOG,
 		GO,
+		STOP,
 		FAIL,
 		PROCESS,
 		DO,
@@ -434,6 +435,7 @@ public abstract class TaskSetParser {
 		taskParsers.put(KW.MAKE.name(), new MakeDirectoryTaskParser());
 		taskParsers.put(KW.LOG.name(), new LogTaskParser());
 		taskParsers.put(KW.GO.name(), new GoTaskParser());
+		taskParsers.put(KW.STOP.name(), new StopTaskParser());
 		taskParsers.put(KW.FAIL.name(), new FailTaskParser());
 		taskParsers.put(KW.PROCESS.name(), new ProcessTaskParser());
 		taskParsers.put(KW.DO.name(), new DoTaskParser());
@@ -1236,19 +1238,28 @@ public abstract class TaskSetParser {
 		}
 	}
 
-	class GoTaskParser implements TaskParser {
-
-		public Task parse(Task.Prologue prologue) throws IOException {
-
-			Expression<String> message = null;
-			if (!atEndOfTask()) {
-				message = parseStringExpression();
-			}
+	class GoTaskParser extends OptionalMessageTaskParser {
+		@Override
+		protected Task newTask(Task.Prologue prologue, Expression<String> message) {
 			return new GoTask(prologue, message);
 		}
 	}
 
-	class FailTaskParser implements TaskParser {
+	class StopTaskParser extends OptionalMessageTaskParser {
+		@Override
+		protected Task newTask(Task.Prologue prologue, Expression<String> message) {
+			return new StopTask(prologue, message);
+		}
+	}
+
+	class FailTaskParser extends OptionalMessageTaskParser {
+		@Override
+		protected Task newTask(Task.Prologue prologue, Expression<String> message) {
+			return new FailTask(prologue, message);
+		}
+	}
+
+	abstract class OptionalMessageTaskParser implements TaskParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
@@ -1256,8 +1267,10 @@ public abstract class TaskSetParser {
 			if (!atEndOfTask()) {
 				message = parseStringExpression();
 			}
-			return new FailTask(prologue, message);
+			return newTask(prologue, message);
 		}
+
+		protected abstract Task newTask(Task.Prologue prologue, Expression<String> message);
 	}
 
 	class ProcessTaskParser implements TaskParser {

@@ -31,8 +31,9 @@ public abstract class Task {
 	public static final String skipMessage = "Skipping task";
 	public static final String terminateMessage = "Task terminated";
 	public static final String failMessage = "Task failed";
+	public static final String stopMessage = "Task thread stopped";
 
-	public enum Result { waiting, running, success, failure, completed, terminated, orphaned };
+	public enum Result { waiting, running, success, failure, completed, terminated, orphaned, stopped };
 
 	private String name;
 	private Expression<String> qualifier;
@@ -79,6 +80,10 @@ public abstract class Task {
 
 	public static class Reference {
 		public Task task;
+	}
+
+	public static class StoppedException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
 	}
 
 	/**
@@ -200,6 +205,11 @@ public abstract class Task {
 
 			setAbnormalResult(ex, Result.terminated);
 		}
+		catch (StoppedException ex) {
+			context.logger.warn(name, stopMessage);
+
+			result = Result.stopped;
+		}
 		catch (Exception ex) {
 			context.logger.error(name, ex);
 			context.logger.error(name, failMessage);
@@ -287,7 +297,7 @@ public abstract class Task {
 		remainingPredecessors.remove(task);
 
 		boolean canRun = false;
-		if ((task.getResult() == requiredResult) || ((requiredResult == Result.completed) && (task.getResult() != Result.orphaned))) {
+		if ((task.getResult() == requiredResult) || ((requiredResult == Result.completed) && task.completedNormally())) {
 			// This predecessor completed in the status required by this successor.
 
 			if (remainingPredecessors.isEmpty() || (combination == Expression.Combination.or)) {
@@ -297,7 +307,7 @@ public abstract class Task {
 		else {
 			// This predecessor did not complete in the status required by this successor.
 
-			if (remainingPredecessors.isEmpty() || (combination == Expression.Combination.and)) {
+			if (remainingPredecessors.isEmpty() || (combination == Expression.Combination.and) || !task.completedNormally()) {
 				// The successor can never run; it is orphaned.  Its successors may be too.
 
 				result = Result.orphaned;
@@ -310,5 +320,12 @@ public abstract class Task {
 		}
 
 		return canRun;
+	}
+
+	/**
+	 * @return true if the task ended with status success or failure, false otherwise
+	 */
+	public boolean completedNormally() {
+		return (result == Result.success) || (result == Result.failure);
 	}
 }

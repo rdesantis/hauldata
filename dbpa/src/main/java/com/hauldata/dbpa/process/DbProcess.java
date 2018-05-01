@@ -50,6 +50,7 @@ public class DbProcess extends TaskSet {
 	public static final String startMessage = "Starting process";
 	public static final String completeMessage = "Process completed";
 	public static final String terminateMessage = "Process terminated";
+	public static final String stopMessage = "Process stopped";
 	public static final String failMessageStem = "Process failed: ";
 	public static final String elapsedMessageStem = "Elapsed time: ";
 
@@ -144,6 +145,9 @@ public class DbProcess extends TaskSet {
 			context.logger.error(processTaskId, terminateMessage);
 
 			throw new RuntimeException(terminateMessage);
+		}
+		catch (Task.StoppedException ex) {
+			context.logger.info(processTaskId, stopMessage);
 		}
 		catch (Exception ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
