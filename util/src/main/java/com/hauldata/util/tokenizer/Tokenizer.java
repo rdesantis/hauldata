@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -32,30 +32,17 @@ public class Tokenizer extends BaseTokenizer {
 	public Tokenizer(Reader reader) {
 		super(reader);
 
-		charType[(int)'\t'] = CharType.whitespace;
-		charType[(int)' '] = CharType.whitespace;
+		setCharType(CharType.whitespace, '\t');
+		setCharType(CharType.whitespace, ' ');
 
-		int i;
-		for (i = 33; i <= 47; ++i) {
-			charType[i] = CharType.delimiter;
-		}
-		for (i = 58; i <= 64; ++i) {
-			charType[i] = CharType.delimiter;
-		}
-		for (i = (int)'A'; i <= (int)'Z'; ++i) {
-			charType[i] = CharType.alphabetic;
-		}
-		for (i = 91; i <= 96; ++i) {
-			charType[i] = CharType.delimiter;
-		}
-		for (i = (int)'a'; i <= (int)'z'; ++i) {
-			charType[i] = CharType.alphabetic;
-		}
-		for (i = 123; i <= 126; ++i) {
-			charType[i] = CharType.delimiter;
-		}
+		setCharType(CharType.delimiter, 33, 47);
+		setCharType(CharType.delimiter, 58, 64);
+		setCharType(CharType.alphabetic, (int)'A', (int)'Z');
+		setCharType(CharType.delimiter, 91, 96);
+		setCharType(CharType.alphabetic, (int)'a', (int)'z');
+		setCharType(CharType.delimiter, 123, 126);
 
-		charType[(int)'\''] = CharType.quote;
+		setCharType(CharType.quote, '\'');
 
 		eolIsSignificant(false);
 		splitQuoteIsAllowed(false);
@@ -70,10 +57,7 @@ public class Tokenizer extends BaseTokenizer {
      * @see		java.io.StreamTokenizer#wordChars(int, int)
 	 */
 	public Tokenizer wordChars(int low, int hi) {
-		for (int i = low; i <= hi; ++i) {
-			charType[i] = CharType.alphabetic;
-		}
-		return this;
+		return (Tokenizer)setCharType(CharType.alphabetic, low, hi);
 	}
 
     /**

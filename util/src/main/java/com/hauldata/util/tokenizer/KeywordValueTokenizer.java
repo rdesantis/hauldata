@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -31,16 +31,16 @@ public class KeywordValueTokenizer extends Tokenizer {
 	public KeywordValueTokenizer(Reader reader) {
 		super(reader);
 
-		charType[(int)'\''] = CharType.unknown;
-		charType[(int)'"'] = CharType.quote;
-		charType[(int)'_'] = CharType.alphabetic;
+		setCharType(CharType.unknown, '\'');
+		setCharType(CharType.quote, '"');
+		setCharType(CharType.alphabetic, '_');
 
 		CharType[] recognizedArray = new CharType[] { CharType.alphabetic, CharType.whitespace, CharType.quote };
 		Set<CharType> recognizedSet = Arrays.stream(recognizedArray).collect(Collectors.toSet());
 
 		for (int i = 0; i <= maxSupportedCharCode; ++i) {
-			if (!recognizedSet.contains(charType[i])) {
-				charType[i] = CharType.unknown;
+			if (!recognizedSet.contains(getCharType((char)i))) {
+				setCharType(CharType.unknown, (char)i);
 			}
 		}
 	}

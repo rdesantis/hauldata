@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -27,9 +27,9 @@ public class DsvTokenizer extends BaseTokenizer {
 	public DsvTokenizer(Reader reader, char delimiter, boolean isNumericRecognized) {
 		super(reader, isNumericRecognized);
 
-		charType[(int)'"'] = CharType.quote;
-		charType[(int)delimiter] = CharType.delimiter;
-		
+		setCharType(CharType.quote, '"');
+		setCharType(CharType.delimiter, delimiter);
+
 		eolIsSignificant(true);
 		splitQuoteIsAllowed(true);
 		negativeIsRespected(true);

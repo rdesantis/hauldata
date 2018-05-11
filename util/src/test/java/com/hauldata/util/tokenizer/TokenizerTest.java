@@ -89,7 +89,7 @@ public class TokenizerTest extends TestCase {
 	}
 
 	static final String text =
-			"This is 2 'tests' (combined; sort of, into 1.1)! 'NOT REALLY!' -- not really \r\n" +
+			"This is 2 'tests' (combined; sort of, into 1.1)! 'IT''S NOT REALLY!' -- not really \r\n" +
 			"Line 222222222222 9223372036854775808 2E22";
 
 	private static void testTokenizerLine1(Tokenizer tokenizer) throws IOException {
@@ -108,7 +108,7 @@ public class TokenizerTest extends TestCase {
 		assertNextNumeric(tokenizer, BigDecimal.class, new BigDecimal("1.1"));
 		assertNextDelimiter(tokenizer, ")");
 		assertNextDelimiter(tokenizer, "!");
-		assertNextQuoted(tokenizer, '\'', "NOT REALLY!");
+		assertNextQuoted(tokenizer, '\'', "IT'S NOT REALLY!");
 	}
 	
 	private static void testTokenizerLine2(Tokenizer tokenizer) throws IOException {

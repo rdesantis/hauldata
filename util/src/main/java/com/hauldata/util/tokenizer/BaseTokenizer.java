@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -27,8 +27,8 @@ public abstract class BaseTokenizer {
 
 	private Reader reader;
 
-	enum CharType { unknown, whitespace, alphabetic, numeric, quote, delimiter, endOfLine };
-	
+	public enum CharType { unknown, whitespace, alphabetic, numeric, quote, delimiter, endOfLine };
+
 	final static char cr = '\r';
 	final static char lf = '\n';
 
@@ -37,12 +37,15 @@ public abstract class BaseTokenizer {
 	private final static char exponential = 'E';
 
 	final static int maxSupportedCharCode = 255;
-	protected CharType[] charType = new CharType[maxSupportedCharCode + 1];
+	private CharType[] charType = new CharType[maxSupportedCharCode + 1];
+
+	public enum EscapeType { doubleQuote, json };
 
 	private boolean eolIsSignificant;
 	private boolean splitQuoteIsAllowed;
 	private boolean negativeIsRespected;
-	
+	private EscapeType escapeType;
+
 	private int lookaheadChar;
 	private Token lookaheadToken;
 	private Token lookbackToken;
@@ -52,21 +55,19 @@ public abstract class BaseTokenizer {
 
 		this.reader = reader;
 
-		int i;
-		for (i = 0; i <= maxSupportedCharCode; ++i) {
-			charType[i] = CharType.unknown;
-		}
+		setCharType(CharType.unknown, 0, maxSupportedCharCode);
+
 		if (isNumericRecognized) {
-			for (i = (int)'0'; i <= (int)'9'; ++i) {
-				charType[i] = CharType.numeric;
-			}
+			setCharType(CharType.numeric, (int)'0', (int)'9');
 		}
+
 		charType[(int)cr] = CharType.endOfLine;
 		charType[(int)lf] = CharType.endOfLine;
 
 		eolIsSignificant = true;
 		splitQuoteIsAllowed = true;
 		negativeIsRespected = false;
+		escapeType = EscapeType.doubleQuote;
 
 		lineNumber = 1;
 
@@ -77,6 +78,32 @@ public abstract class BaseTokenizer {
 
 	protected BaseTokenizer(Reader reader) {
 		this(reader, true);
+	}
+
+	/**
+     * Sets the type of a range of characters.
+     *
+     * @return	this tokenizer
+	 */
+	public BaseTokenizer setCharType(CharType charType, int low, int hi) {
+		for (int i = low; i <= hi; ++i) {
+			this.charType[i] = charType;
+		}
+		return this;
+	}
+
+	/**
+     * Sets the type of a single character.
+     *
+     * @return	this tokenizer
+	 */
+	public BaseTokenizer setCharType(CharType charType, char ch) {
+		this.charType[(int)ch] = charType;
+		return this;
+	}
+
+	protected CharType getCharType(char ch) {
+		return charType[(int)ch];
 	}
 
     /**
@@ -100,7 +127,7 @@ public abstract class BaseTokenizer {
 		return this;
     }
 
-    /**
+	/**
      * Determines whether or not quoted strings may be split across lines.
      * If the flag argument is true, this tokenizer allows an opening quote
      * to appear on one line and the closing quote to appear on a subsequent
@@ -150,7 +177,25 @@ public abstract class BaseTokenizer {
 		return this;
     }
 
-    /**
+	/**
+	 * Determines how to escape special characters within quoted string.
+	 * <p>
+	 * @param type	<code>EscapeType.doubleQuote</code> indicates that
+	 *				the quote character is escaped by preceding it with
+	 *				another quote character;
+	 *
+	 *				<code>EscapeType.json</code> indicates that backslash
+	 *				is the escape character and JSON escape sequences are
+	 *				recognized; see https://www.json.org/
+	 *
+     * @return	this tokenizer
+	 */
+	public BaseTokenizer escape(EscapeType type) {
+		escapeType = type;
+		return this;
+	}
+
+	/**
      * Returns true if this tokenizer has another token in its input.
      * This method may block while waiting for input to scan.
      * The tokenizer does not advance past any input.
@@ -168,7 +213,7 @@ public abstract class BaseTokenizer {
      * current line.  This must only be used in conjunction with
      * <code>eolIsSignificant(true)</code>; otherwise, results are
      * unpredictable.
-     * 
+     *
      * This method may block while waiting for input to scan.
      * The tokenizer does not advance past any input.
      *
@@ -200,10 +245,10 @@ public abstract class BaseTokenizer {
      * and returns its value as an object or null if no tokens remain.
      * The following object types may be returned:
      * <ul>
-     * <li><code>Numeric<Integer></code> - the token consists of all numeric digits within the range of Integer 
-     * <li><code>Numeric<Long></code> - the token consists of all numeric digits beyond the range of Integer but within the range of Long 
-     * <li><code>Numeric<BigInteger></code> - the token consists of all numeric digits beyond the range of Long
-     * <li><code>Numeric<BigDecimal></code> - the token consists of numeric digits with one leading or embedded decimal point 
+     * <li><code>Numeric&lt;Integer&gt;</code> - the token consists of all numeric digits within the range of Integer
+     * <li><code>Numeric&lt;Long&gt;</code> - the token consists of all numeric digits beyond the range of Integer but within the range of Long
+     * <li><code>Numeric&lt;BigInteger&gt;</code> - the token consists of all numeric digits beyond the range of Long
+     * <li><code>Numeric&lt;BigDecimal&gt;</code> - the token consists of numeric digits with one leading or embedded decimal point
      * <li><code>Word</code> - the token is an identifier consisting of word characters starting with an alphabetic character
      * <li><code>Quoted</code> - the token is quoted text
      * <li><code>Delimiter</code> - the token is a non-whitespace delimiter
@@ -293,7 +338,7 @@ public abstract class BaseTokenizer {
 	/**
 	 * Closes the tokenizer and releases any system resources associated with it
 	 * including the underlying Reader.
-	 * 
+	 *
 	 * @throws IOException
 	 */
 	public void close() throws IOException {
@@ -301,7 +346,7 @@ public abstract class BaseTokenizer {
 	}
 
 	// Physical token scanning
-	
+
 	protected Token peekToken() throws IOException, InputMismatchException {
 		if (lookaheadToken == null) {
 			lookaheadToken = getToken();
@@ -379,12 +424,12 @@ public abstract class BaseTokenizer {
 			int intChar = nextChar();
 
 			int digit = intChar - (int)'0';
-			
+
 			if ((value > maxDiv10) || ((value == maxDiv10) && (digit >= maxMod10))) {
 				pushChar(intChar);
 				return parseLong(leadingWhitespace, image, value, negate);
 			}
-			
+
 			image.append((char)intChar);
 
 			value = value * 10 + digit;
@@ -420,12 +465,12 @@ public abstract class BaseTokenizer {
 			int intChar = nextChar();
 
 			int digit = intChar - (int)'0';
-			
+
 			if ((value > maxDiv10) || ((value == maxDiv10) && (digit >= maxMod10))) {
 				pushChar(intChar);
 				return parseBigInteger(leadingWhitespace, image, value, negate);
 			}
-			
+
 			image.append((char)intChar);
 
 			value = value * 10 + digit;
@@ -458,7 +503,7 @@ public abstract class BaseTokenizer {
 			int intChar = nextChar();
 
 			int digit = intChar - (int)'0';
-			
+
 			image.append((char)intChar);
 
 			value = value.multiply(BigInteger.TEN).add(BigInteger.valueOf(digit));
@@ -499,7 +544,7 @@ public abstract class BaseTokenizer {
 			int intChar = nextChar();
 
 			int digit = intChar - (int)'0';
-			
+
 			image.append((char)intChar);
 
 			value = value.add(BigDecimal.valueOf(digit, decimalPlaces));
@@ -550,9 +595,9 @@ public abstract class BaseTokenizer {
 			image.append((char)intChar);
 
 			int digit = intChar - (int)'0';
-			
+
 			exponent = exponent * 10 + digit;
-			
+
 			if (exponent > Double.MAX_EXPONENT) {
 				return parseUnknown(leadingWhitespace, image);
 			}
@@ -576,32 +621,42 @@ public abstract class BaseTokenizer {
 	}
 
 	private Token parseQuoted(boolean leadingWhitespace, char quote) throws IOException {
-		
+
 		StringBuilder image = new StringBuilder();
-		
+
 		boolean isQuoteClosed = false;
 
 		int intChar;
 		while (peekChar() != eofChar) {
 			intChar = nextChar();
-			
+
 			if ((char)intChar == quote) {
-				if ((char)peekChar() != quote) {
-					isQuoteClosed = true;
-					break;
-				}
-				else {
-					// Quote escaped by another quote.
+				if ((escapeType == EscapeType.doubleQuote) && ((char)peekChar() == quote)) {
 					nextChar();
 					image.append(quote);
 				}
+				else {
+					isQuoteClosed = true;
+					break;
+				}
 			}
-			else if (!splitQuoteIsAllowed && (charTypeOf(intChar) == CharType.endOfLine)) {
-				pushChar(intChar);
-				break;
+			else if ((escapeType == EscapeType.json) && ((char)intChar == '\\')) {
+				intChar = nextJsonEscapeChar();
+				if (intChar == noChar) {
+					break;
+				}
+				else {
+					image.append((char)intChar);
+				}
 			}
 			else {
-				image.append((char)intChar);
+				if (!splitQuoteIsAllowed && (charTypeOf(intChar) == CharType.endOfLine)) {
+					pushChar(intChar);
+					break;
+				}
+				else {
+					image.append((char)intChar);
+				}
 			}
 		}
 
@@ -634,13 +689,47 @@ public abstract class BaseTokenizer {
 		return new Unknown(leadingWhitespace, image.toString());
 	}
 
+	// JSON escape scanning
+
+	private int nextJsonEscapeChar() throws IOException {
+		int intChar = nextChar();
+
+		switch (intChar) {
+		case 'b': return '\b';
+		case 'f': return '\f';
+		case 'n': return '\n';
+		case 'r': return '\r';
+		case 't': return '\t';
+		case 'u': return nextJsonHexEscape();
+		default: return intChar;
+		}
+	}
+
+	private int nextJsonHexEscape() throws IOException {
+
+		StringBuilder hex = new StringBuilder();
+		for (int i = 0; i < 4; ++i) {
+			int intChar = nextChar();
+			if (intChar < 0) {
+				return noChar;
+			}
+			char ch = (char)intChar;
+			if (Character.digit(ch, 16) == -1) {
+				return noChar;
+			}
+			hex.append(ch);
+		}
+		int intChar = Integer.parseInt(hex.toString(), 16);
+		return (0 <= intChar) ? intChar : noChar;
+	}
+
 	// Logical character scanning
-	
+
 	protected boolean hasNextTerminatingChar() throws IOException {
 		CharType type = charTypeOf(peekChar());
 		return (type == CharType.delimiter) || (type == CharType.whitespace) || (type == CharType.endOfLine);
 	}
-	
+
 	protected boolean hasNextNumericChar() throws IOException {
 		CharType type = charTypeOf(peekChar());
 		return (type == CharType.numeric);
