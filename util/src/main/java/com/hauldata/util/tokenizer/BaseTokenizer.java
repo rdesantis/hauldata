@@ -375,7 +375,7 @@ public abstract class BaseTokenizer {
 				return parseDecimal(token.hasLeadingWhitespace(), new StringBuilder(String.valueOf(minusSign)), BigDecimal.ZERO, true);
 			}
 		}
-		else if ((char)intChar == decimalPoint) {
+		else if (((char)intChar == decimalPoint) && hasNextNumericChar()) {
 			pushChar(intChar);
 			return parseDecimal(token.hasLeadingWhitespace(), new StringBuilder(), BigDecimal.ZERO, false);
 		}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Ronald DeSantis
+ * Copyright (c) 2017, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,20 +16,24 @@
 
 package com.hauldata.dbpa.task;
 
+import java.util.List;
+
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 
-import com.hauldata.dbpa.datasource.DataTarget;
-import com.hauldata.dbpa.datasource.Source;
+import com.hauldata.dbpa.expression.Expression;
 
 public class RequestPostTask extends RequestWithBodyTask {
 
 	public RequestPostTask(
 			Prologue prologue,
-			Source source,
-			Parameters parameters,
-			DataTarget target) {
-		super(prologue, source, parameters, target);
+			Expression<String> url,
+			List<Header> headers,
+			Expression<String> requestTemplate,
+			List<SourceWithAliases> sourcesWithAliases,
+			Expression<String> responseTemplate,
+			List<TargetWithKeepers> targetsWithIdentifiers) {
+		super(prologue, url, headers, requestTemplate, sourcesWithAliases, responseTemplate, targetsWithIdentifiers);
 	}
 
 	@Override
