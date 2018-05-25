@@ -46,10 +46,14 @@ public abstract class RequestWithBodyTask extends RequestTask {
 	}
 
 	@Override
+	protected RequestTaskEvaluatedParameters makeParameters() {
+		return new RequestWithBodyTaskEvaluatedParameters(url, headers, requestTemplate, sourcesWithAliases, responseTemplate, targetsWithKeepers);
+	}
+
+	@Override
 	protected JsonRequestTemplate prepareRequestTemplate(
 			RequestTaskEvaluatedParameters parameters,
 			List<List<String>> sourceColumnNames) throws InputMismatchException, IOException {
-
 		return (new JsonRequestTemplateParser(((RequestWithBodyTaskEvaluatedParameters)parameters).requestTemplate, sourceColumnNames)).parse();
 	}
 }
@@ -102,7 +106,7 @@ class JsonRequestTemplateParser {
 					throw new RuntimeException("Unexpected token in request template");
 				}
 
-				if (sourceColumnNames.size() == 0) {
+				if (sourceColumnNames.isEmpty() || sourceColumnNames.get(0).isEmpty()) {
 					template = new JsonStaticTextTemplate(requestBody);
 				}
 				else {
@@ -242,7 +246,7 @@ class JsonRequestTemplateParser {
 					do {
 						section.addLiteral(",");
 
-						if (parseKeyValue(potentialDynamicElement, false).isValueDynamic) {
+						if (parseKeyValue(section, false).isValueDynamic) {
 							containsDynamic = true;
 						}
 					} while (tokenizer.skipDelimiter(","));
@@ -265,6 +269,8 @@ class JsonRequestTemplateParser {
 		boolean isKeyDynamic = parseKey(section, allowName);
 
 		tokenizer.nextDelimiter(":");
+
+		section.addLiteral(":");
 
 		boolean isValueDynamic = parseElement(section);
 
@@ -333,8 +339,8 @@ class JsonRequestTemplateParser {
 		section.addLiteral(potentialDynamicElement.literals.get(0));
 
 		int i = 0;
-		while (i < section.elements.size()) {
-			section.addElement(section.elements.get(i));
+		while (i < potentialDynamicElement.elements.size()) {
+			section.addElement(potentialDynamicElement.elements.get(i));
 			section.addLiteral(potentialDynamicElement.literals.get(++i));
 		}
 	}
@@ -382,10 +388,6 @@ class JsonRequestTemplateParser {
 		DynamicElementColumnInspector inspector = new DynamicElementColumnInspector();
 		dynamicElement.visitIdentifiers(inspector);
 
-		if (!inspector.referencedSource_0_ && !sourceColumnNames.get(0).isEmpty()) {
-			throw new RuntimeException("A dynamic structure in the JSON request must reference at least one FROM column");
-		}
-
 		if (inspector.sourceIndex == -1) {
 			throw new RuntimeException("A dynamic structure in the JSON request must reference at least one JOIN column");
 		}
@@ -401,12 +403,11 @@ class JsonRequestTemplateParser {
 	}
 
 	private static class DynamicElementColumnInspector implements JsonTemplateElement.IdentifierVisitor {
-		public boolean referencedSource_0_ = false;
 		public int sourceIndex = -1;
 
 		public void visit(JsonTemplateIdentifier identifier) {
 			if (identifier.sourceIndex == 0) {
-				referencedSource_0_ = true;
+				throw new RuntimeException("A dynamic structure in the JSON request must not reference a FROM column");
 			}
 			else if (sourceIndex == -1) {
 				sourceIndex = identifier.sourceIndex;
@@ -473,7 +474,7 @@ class JsonDynamicTextTemplate extends JsonMultiRowRequestTemplate {
 
 	@Override
 	public String composeRequest(RequestTaskEvaluatedParameters parameters) throws SQLException {
-		return parameters.getSource(0).getObject(columnIndex).toString();
+		return parameters.getSource(0).getObject(columnIndex + 1).toString();
 	}
 }
 
@@ -584,24 +585,36 @@ abstract class JsonTemplateDynamicElement implements JsonTemplateElement {
 
 	protected abstract void renderElement(List<RequestTaskEvaluatedParameters.SourceWithAliases> sourcesWithAliases, StringBuffer image) throws SQLException, InterruptedException;
 
-	private boolean isFirst = true;
-	private boolean hasNext = false;
+	enum Position { START, AT_MATCH, AT_MISMATCH, END };
+	Position position = Position.START;
 
 	private boolean next(
 			RequestTaskEvaluatedParameters.SourceWithAliases fromSource,
 			RequestTaskEvaluatedParameters.SourceWithAliases joinSource) throws SQLException, InterruptedException {
 
-		if (isFirst) {
-			hasNext = joinSource.source.next();
-			isFirst = false;
+		switch (position) {
+		case START:
+		case AT_MATCH:
+			if (!joinSource.source.next()) {
+				position = Position.END;
+				return false;
+			}
+			else {
+				position = Position.AT_MISMATCH;
+			}
+			// Note intentional fall-through!
+		default:
+		case AT_MISMATCH:
+			if (areJoined(fromSource, joinSource)) {
+				position = Position.AT_MATCH;
+				return true;
+			}
+			else {
+				return false;
+			}
+		case END:
+			return false;
 		}
-
-		boolean nextIsJoined = false;
-		while (hasNext && !(nextIsJoined = areJoined(fromSource, joinSource))) {
-			hasNext = joinSource.source.next();
-		}
-
-		return nextIsJoined;
 	}
 
 	/**
@@ -693,6 +706,37 @@ class JsonTemplateIdentifier implements JsonTemplateElement {
 
 	@Override
 	public void render(List<RequestTaskEvaluatedParameters.SourceWithAliases> sourcesWithAliases, StringBuffer image) throws SQLException {
-		image.append(sourcesWithAliases.get(sourceIndex).source.getObject(columnIndex).toString());
+		Object value = sourcesWithAliases.get(sourceIndex).source.getObject(columnIndex + 1);
+		image.append(JsonRenderer.render(value));
+	}
+}
+
+class JsonRenderer {
+
+	public static String render(Object value) {
+		String rendering;
+		if (value == null) {
+			rendering = "null";
+		}
+		if (value instanceof Number || value instanceof Boolean) {
+			rendering = value.toString();
+		}
+		else {
+			rendering = "\"" + escape(value.toString()) + "\"";
+		}
+		return rendering;
+	}
+
+	public static String escape(String raw) {
+		String escaped = raw;
+		escaped = escaped.replace("\\", "\\\\");
+		escaped = escaped.replace("\"", "\\\"");
+		escaped = escaped.replace("\b", "\\b");
+		escaped = escaped.replace("\f", "\\f");
+		escaped = escaped.replace("\n", "\\n");
+		escaped = escaped.replace("\r", "\\r");
+		escaped = escaped.replace("\t", "\\t");
+		// TODO: escape other non-printing characters using uXXXX notation
+		return escaped;
 	}
 }
