@@ -176,4 +176,54 @@ public class RequestTaskTest extends TaskTest {
 
 		runScript(processId, logLevel, logToConsole, script, null, null, null);
 	}
+
+	public void testPut() throws Exception {
+
+		String processId = "PutTest";
+		String script =
+				"VARIABLES url VARCHAR, true BIT END VARIABLES \n" +
+				"TASK SET url = 'http://localhost:8080/', true = 1 END TASK \n" +
+				"TASK PutScript AFTER \n" +
+				"	REQUEST url + 'scripts/ScriptViaPut' \n" +
+				"	PUT '\"' + \n" +
+				"'		PARAMETERS msg VARCHAR, num INTEGER END PARAMETERS\r\n' + \n" +
+				"'		BEGIN TASK LOG ''Message: '' + msg END TASK\"' \n" +
+				"END TASK\n" +
+				"TASK PutSchedule AFTER \n" +
+				"	REQUEST url + 'schedules/EveryNoon' \n" +
+				"	PUT '\"body\"' \n" +
+				"	FROM VALUES ('Daily at ''12:00 PM''') AS 'body'\n" +
+				"END TASK\n" +
+				"TASK PutJob AFTER \n" +
+				"	REQUEST url + 'jobs/{jn}' \n" +
+				"	PUT \n" +
+				"'	{' + \n" +
+				"'		\"scriptName\": sn,' + \n" +
+				"'		\"arguments\": [' + \n" +
+				"'			{' + \n" +
+				"'				\"name\": an,' + \n" +
+				"'				\"value\": av' + \n" +
+				"'			},' + \n" +
+				"'			...' + \n" +
+				"'		],' + \n" +
+				"'		\"scheduleNames\": [' + \n" +
+				"'			scn,' + \n" +
+				"'			...' + \n" +
+				"'		],' + \n" +
+				"'		\"enabled\": e' + \n" +
+				"'	}' \n" +
+				"	FROM VALUES ('JobViaPut', 'ScriptViaPut', true) AS 'jn', 'sn', 'e' \n" +
+				"	JOIN VALUES ('JobViaPut', 'message', '\"hello\", \\there'), ('JobViaPut', 'number', 42) AS 'jn', 'an', 'av' \n" +
+				"	JOIN SQL SELECT 0,0 FROM test.reqsource WHERE 0=1 END SQL AS 'jn', 'scn' \n" +
+				"	RESPONSE '\"id\"' \n" +
+				"	KEEP 'jn', 'id', 'status', 'message' \n" +
+				"	INTO SQL INSERT INTO test.restarget (name, id, status, stuff) VALUES (?,?,?,?) END SQL \n" +
+				"END TASK\n" +
+				"";
+
+		Level logLevel = Level.info;
+		boolean logToConsole = true;
+
+		runScript(processId, logLevel, logToConsole, script, null, null, null);
+	}
 }

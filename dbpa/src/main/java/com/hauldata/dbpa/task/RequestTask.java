@@ -264,7 +264,7 @@ public abstract class RequestTask extends Task {
 
 	private void validateInto(ArrayList<List<String>> targetColumnNames) {
 
-		if ((targetColumnNames == null) || (targetColumnNames.size() <= 1) || (targetColumnNames.get(0) == null) || (targetColumnNames.get(0).size() == 0)) {
+		if ((targetColumnNames == null) || (targetColumnNames.size() <= 1) || (targetColumnNames.get(0) == null) || (targetColumnNames.get(0).isEmpty())) {
 			return;
 		}
 
@@ -504,15 +504,19 @@ class RequestTaskEvaluatedParameters {
 		}
 
 		this.sourcesWithAliases = new ArrayList<SourceWithAliases>();
-		for (RequestTask.SourceWithAliases sourceWithAliases : sourcesWithAliases) {
-			this.sourcesWithAliases.add(new SourceWithAliases(sourceWithAliases));
+		if (sourcesWithAliases != null) {
+			for (RequestTask.SourceWithAliases sourceWithAliases : sourcesWithAliases) {
+				this.sourcesWithAliases.add(new SourceWithAliases(sourceWithAliases));
+			}
 		}
 
-		this.responseTemplate = responseTemplate.evaluate();
+		this.responseTemplate = (responseTemplate != null) ? responseTemplate.evaluate() : null;
 
 		this.targetsWithKeepers = new ArrayList<TargetWithKeepers>();
-		for (RequestTask.TargetWithKeepers targetWithKeepers : targetsWithKeepers) {
-			this.targetsWithKeepers.add(new TargetWithKeepers(targetWithKeepers));
+		if (targetsWithKeepers != null) {
+			for (RequestTask.TargetWithKeepers targetWithKeepers : targetsWithKeepers) {
+				this.targetsWithKeepers.add(new TargetWithKeepers(targetWithKeepers));
+			}
 		}
 	}
 
