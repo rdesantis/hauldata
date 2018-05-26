@@ -157,7 +157,7 @@ class JsonRequestTemplateParser {
 		section.addLiteral("[");
 
 		JsonTemplateSection potentialDynamicElement = new JsonTemplateSection();
-		boolean containsDynamic = parseElement(potentialDynamicElement);
+		boolean containsDynamic = !tokenizer.hasNextDelimiter("]") && parseElement(potentialDynamicElement);
 
 		boolean isDynamic = false;
 		boolean hasMoreElements = false;
@@ -211,7 +211,7 @@ class JsonRequestTemplateParser {
 		section.addLiteral("{");
 
 		JsonTemplateSection potentialDynamicElement = new JsonTemplateSection();
-		DynamicStatus dynamicStatus = parseKeyValue(potentialDynamicElement, true);
+		DynamicStatus dynamicStatus = !tokenizer.hasNextDelimiter("}") ? parseKeyValue(potentialDynamicElement, true) : new DynamicStatus(false, false);
 		boolean containsDynamic = dynamicStatus.isValueDynamic;
 
 		boolean isDynamic = false;
@@ -728,15 +728,35 @@ class JsonRenderer {
 	}
 
 	public static String escape(String raw) {
-		String escaped = raw;
-		escaped = escaped.replace("\\", "\\\\");
-		escaped = escaped.replace("\"", "\\\"");
-		escaped = escaped.replace("\b", "\\b");
-		escaped = escaped.replace("\f", "\\f");
-		escaped = escaped.replace("\n", "\\n");
-		escaped = escaped.replace("\r", "\\r");
-		escaped = escaped.replace("\t", "\\t");
-		// TODO: escape other non-printing characters using uXXXX notation
-		return escaped;
+
+		StringBuffer result = new StringBuffer();
+
+		for (int i = 0; i < raw.length(); ++i) {
+
+			char ch = raw.charAt(i);
+			String escaped;
+
+			switch (ch) {
+			case '\\': escaped = "\\\\"; break;
+			case '\"': escaped = "\\\""; break;
+			case '\b': escaped = "\\b"; break;
+			case '\f': escaped = "\\f"; break;
+			case '\n': escaped = "\\n"; break;
+			case '\r': escaped = "\\r"; break;
+			case '\t': escaped = "\\t"; break;
+			default:
+				if (Character.isDefined(ch)) {
+					escaped = String.valueOf(ch);
+				}
+				else {
+					String hex = "000" + Integer.toUnsignedString(raw.codePointAt(i), 16);
+					escaped = "\\u" + hex.substring(hex.length() - 4, hex.length());
+				}
+			}
+
+			result.append(escaped);
+		}
+
+		return result.toString();
 	}
 }

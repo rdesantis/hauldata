@@ -21,8 +21,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -332,6 +334,8 @@ public abstract class RequestTask extends Task {
 		try {
 			client = HttpClients.createDefault();
 
+			HttpResponseStatus finalStatus = HttpResponseStatus.OK;
+
 			while (requestTemplate.next(parameters)) {
 
 				String url = composeUrl(parameters.url, parameters.getSource(0), parameters.getColumnNames(0));
@@ -342,10 +346,18 @@ public abstract class RequestTask extends Task {
 
 				response = client.execute(request);
 
-				responseInterpreter.interpret(parameters.getSource(0), response, parameters.getTargets());
+				HttpResponseStatus responseStatus = responseInterpreter.interpret(parameters.getSource(0), response, parameters.getTargets());
 
 				response.close();
 				response = null;
+
+				if (!responseStatus.getIsSuccessful()) {
+					finalStatus = responseStatus;
+				}
+			}
+
+			if (!finalStatus.getIsSuccessful()) {
+				throw new RuntimeException("Request failed with status code " + String.valueOf(finalStatus.getStatus()) + ": " + finalStatus.getNonNullMessage());
 			}
 		}
 		finally {
@@ -354,20 +366,61 @@ public abstract class RequestTask extends Task {
 		}
 	}
 
-	private String composeUrl(String urlTemplate, Source source, List<String> sourceColumnNames) throws SQLException {
+	private String composeUrl(String urlTemplate, Source source, List<String> sourceColumnNames)
+			throws SQLException, InputMismatchException, NoSuchElementException, IOException, UnsupportedEncodingException {
 
-		for (int columnIndex = 0; columnIndex < sourceColumnNames.size(); ++columnIndex) {
+		// URL characters may need encoding.  It is the user's responsibility to encode any characters appearing
+		// in the template itself  We are responsible for encoding substitutions into the template.
+		// URLEncoder.encode() encodes query string parameters in a URL.  In concept, the path portion of a URL
+		// encodes differently in that slashes in the path are not encoded.  However, we will be substituting
+		// parameters into the path and we do not want slashes within a parameter to be interpreted as path
+		// delimiters; therefore we encode path parameters the same as query parameters.
+		// Furthermore, it is possible for the user to substitute the entire URL, not just parameters within it,
+		// in which case we must leave all encoding as the user's responsibility.  We resolve this as follows.
+		// If the template contains ":", we will encode all substitutions.
+		// If the template does not contain ":", we will not encode any substitutions.
 
-			String columnName = sourceColumnNames.get(columnIndex);
-			Object replacement = source.getObject(columnIndex + 1);
-			if (replacement == null) {
-				replacement = "";
+		Encoder encoder = urlTemplate.contains(":") ? (raw -> URLEncoder.encode(raw, "UTF-8")) : (raw -> raw);
+
+		Tokenizer tokenizer = new Tokenizer(new StringReader(urlTemplate));
+
+		StringBuilder result = new StringBuilder();
+
+		while (tokenizer.hasNext()) {
+
+			String segment;
+			if (tokenizer.skipDelimiter("{")) {
+
+				if (!tokenizer.hasNextWord()) {
+					throw new RuntimeException("Unrecognized token in the URL template: " + tokenizer.nextToken().getImage());
+				}
+
+				String name = tokenizer.nextWord();
+
+				if (!tokenizer.skipDelimiter("}")) {
+					throw new RuntimeException("Expecting \"}\" in the URL template, found: " + tokenizer.nextToken().getImage());
+				}
+
+				int columnIndex = sourceColumnNames.indexOf(name);
+				if (columnIndex == -1) {
+					throw new RuntimeException("A name in braces in the URL template must be a FROM name: " + name);
+				}
+
+				Object replacement = source.getObject(columnIndex + 1);
+				segment = encoder.encode(replacement.toString());
 			}
-
-			urlTemplate = urlTemplate.replace("{" + columnName + "}", replacement.toString());
+			else {
+				segment = tokenizer.nextToken().getImage();
+			}
+			result.append(segment);
 		}
 
-		return urlTemplate;
+		return result.toString();
+	}
+
+	@FunctionalInterface
+	static interface Encoder {
+		String encode(String raw) throws UnsupportedEncodingException;
 	}
 
 	private HttpRequestBase buildRequest(
@@ -562,6 +615,8 @@ class HttpResponseStatus {
 		return "STATUS or MESSAGE";
 	}
 
+	public static HttpResponseStatus OK = new HttpResponseStatus();
+
 	public static KeepValueGetter getKeepValueGetter(String name) {
 		if (name.equalsIgnoreCase("STATUS")) {
 			return KeepValueGetter.STATUS;
@@ -574,13 +629,16 @@ class HttpResponseStatus {
 		}
 	}
 
-	private int status = 0;
+	private int status = 200;
 	private String message = null;
 	private boolean successful = true;
 
 	int getStatus() { return status; }
 	String getMessage() { return message; }
+	String getNonNullMessage() { return (message != null) ? message : ""; }
 	boolean getIsSuccessful() { return successful; }
+
+	private HttpResponseStatus() {}
 
 	public HttpResponseStatus(HttpResponse response) throws IllegalStateException, IOException {
 
@@ -1153,7 +1211,7 @@ class ResponseInterpreter {
 	public ArrayList<ArrayList<KeepValueGetter>> keepValueGetters;
 
 	public static final ResponseInterpreter NULL = new ResponseInterpreter() {
-		public void interpret(Source fromSource, CloseableHttpResponse response, ArrayList<DataTarget> targets) {} };
+		public HttpResponseStatus interpret(Source fromSource, CloseableHttpResponse response, ArrayList<DataTarget> targets) { return HttpResponseStatus.OK; } };
 
 	private ResponseInterpreter() {}
 
@@ -1163,8 +1221,9 @@ class ResponseInterpreter {
 		this.keepValueGetters = keepValueGetters;
 	}
 
-	public void interpret(Source fromSource, CloseableHttpResponse response, ArrayList<DataTarget> targets) throws IllegalStateException, IOException, SQLException, InterruptedException {
-		(new ResponseReader(fromSource, root, isResponseText, keepValueGetters, response, targets)).read();
+	public HttpResponseStatus interpret(Source fromSource, CloseableHttpResponse response, ArrayList<DataTarget> targets)
+			throws IllegalStateException, IOException, SQLException, InterruptedException {
+		return (new ResponseReader(fromSource, root, isResponseText, keepValueGetters, response, targets)).read();
 	}
 }
 
@@ -1214,7 +1273,7 @@ class ResponseReader {
 		return new ArrayList[keepValueGetters.size()];
 	}
 
-	public void read() throws IllegalStateException, IOException, SQLException, InterruptedException {
+	public HttpResponseStatus read() throws IllegalStateException, IOException, SQLException, InterruptedException {
 
 		responseStatus = new HttpResponseStatus(response);
 
@@ -1228,6 +1287,8 @@ class ResponseReader {
 		}
 
 		setValues();
+
+		return responseStatus;
 	}
 
 	private void parseValues() throws IllegalStateException, IOException {

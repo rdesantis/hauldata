@@ -20,6 +20,8 @@ import com.hauldata.dbpa.log.Logger.Level;
 
 public class RequestTaskTest extends TaskTest {
 
+	private final String url = "http://localhost:8080";
+
 	public RequestTaskTest(String name) {
 		super(name);
 	}
@@ -29,7 +31,7 @@ public class RequestTaskTest extends TaskTest {
 		String processId = "GetTest";
 		String script =
 				"VARIABLES url VARCHAR, nothing VARCHAR END VARIABLES\n" +
-				"TASK SET url = 'http://localhost:8080/' END TASK \n" +
+				"TASK SET url = '" + url + "/' END TASK \n" +
 				"TASK GetSchedule AFTER \n" +
 				"	REQUEST url + 'schedules/{name}' \n" +
 				"	GET \n" +
@@ -55,7 +57,7 @@ public class RequestTaskTest extends TaskTest {
 				"	KEEP 'random', 'name', 'sn', 'pn', 'e', 'status' \n" +
 				"	INTO SQL INSERT INTO test.restarget (stuff, name, scriptName, propName, enabled, status) VALUES (?,?,?,?,?,?) \n" +
 				"END TASK\n" +
-				"TASK GetJobInfoWithMessage AFTER \n" +
+				"TASK GetJobInfoWithMessage AFTER COMPLETES \n" +
 				"	REQUEST url + 'jobs/{name}' \n" +
 				"	GET \n" +
 				"	FROM SQL SELECT name, stuff AS whatever FROM test.reqsource END SQL \n" +
@@ -63,10 +65,10 @@ public class RequestTaskTest extends TaskTest {
 				"	KEEP 'name', 'sn', 'pn', 'e', 'status', 'message' \n" +
 				"	INTO SQL INSERT INTO test.restarget (name, scriptName, propName, enabled, status, stuff) VALUES (?,?,?,?,?,?) \n" +
 				"END TASK\n" +
-				"TASK GetScheduleValidationFromValues AFTER \n" +
+				"TASK GetScheduleValidationFromValues AFTER COMPLETES \n" +
 				"	REQUEST url + 'schedules/-/validations/{name}' \n" +
 				"	GET \n" +
-				"	FROM VALUES ('random text', 'invalid') AS 'arbitrary', 'name' \n" +
+				"	FROM VALUES ('random text', 'lastMonday') AS 'arbitrary', 'name' \n" +
 				"	RESPONSE '{\"validationMessage\":vm}' \n" +
 				"	KEEP 'name', 'vm', 'status' \n" +
 				"	INTO SQL INSERT INTO test.restarget (name, stuff, status) VALUES (?,?,?) \n" +
@@ -117,7 +119,7 @@ public class RequestTaskTest extends TaskTest {
 				"	JOIN SQL INSERT INTO test.resjoin (string1, string4) VALUES (?,?) END SQL \n" +
 				"END TASK\n" +
 
-				"TASK NonUnique AFTER \n" +
+				"TASK NonUnique AFTER COMPLETES \n" +
 				"	REQUEST 'url' GET \n" +
 				"	FROM SQL garbage END SQL AS 'fred', 'ethel', 'lucy', 'ricky', 'ethel' \n" +
 				"	RESPONSE '{}' \n" +
@@ -182,17 +184,32 @@ public class RequestTaskTest extends TaskTest {
 		String processId = "PutTest";
 		String script =
 				"VARIABLES url VARCHAR, true BIT END VARIABLES \n" +
-				"TASK SET url = 'http://localhost:8080/', true = 1 END TASK \n" +
+				"TASK SET url = '" + url + "/', true = 1 END TASK \n" +
 				"TASK PutScript AFTER \n" +
 				"	REQUEST url + 'scripts/ScriptViaPut' \n" +
 				"	PUT '\"' + \n" +
 				"'		PARAMETERS msg VARCHAR, num INTEGER END PARAMETERS\r\n' + \n" +
 				"'		BEGIN TASK LOG ''Message: '' + msg END TASK\"' \n" +
 				"END TASK\n" +
+				"TASK PutNestedScript AFTER \n" +
+				"	REQUEST url + 'scripts/{name}' \n" +
+				"	PUT '\"body\"' \n" +
+				"	FROM VALUES \n" +
+				"	('nested/thing', 'BEGIN TASK LOG ''nested thing'' END TASK') \n" +
+				"	AS 'name', 'body' \n" +
+				"END TASK\n" +
 				"TASK PutSchedule AFTER \n" +
 				"	REQUEST url + 'schedules/EveryNoon' \n" +
 				"	PUT '\"body\"' \n" +
 				"	FROM VALUES ('Daily at ''12:00 PM''') AS 'body'\n" +
+				"END TASK\n" +
+				"TASK PutScheduleList AFTER \n" +
+				"	REQUEST url + 'schedules/{name}' \n" +
+				"	PUT '\"body\"' \n" +
+				"	FROM VALUES \n" +
+				"	('MondayMorning', 'Every Monday at ''8:00 AM'''), \n" +
+				"	('TuesdayAfternoon', 'Every Tuesday at ''2:00 PM'''), \n" +
+				"	('WednesdayEvening', 'Every Wednesday at ''8:00 PM''') AS 'name', 'body'\n" +
 				"END TASK\n" +
 				"TASK PutJob AFTER \n" +
 				"	REQUEST url + 'jobs/{jn}' \n" +
@@ -218,6 +235,27 @@ public class RequestTaskTest extends TaskTest {
 				"	RESPONSE '\"id\"' \n" +
 				"	KEEP 'jn', 'id', 'status', 'message' \n" +
 				"	INTO SQL INSERT INTO test.restarget (name, id, status, stuff) VALUES (?,?,?,?) END SQL \n" +
+				"END TASK\n" +
+				"";
+
+		Level logLevel = Level.info;
+		boolean logToConsole = true;
+
+		runScript(processId, logLevel, logToConsole, script, null, null, null);
+	}
+
+	public void testPost() throws Exception {
+
+		String processId = "PostTest";
+		String script =
+				"VARIABLES url VARCHAR END VARIABLES \n" +
+				"TASK SET url = '" + url + "/' END TASK \n" +
+				"TASK StartJob AFTER \n" +
+				"	REQUEST url + 'jobs/-/running/sleep5' \n" +
+				"	POST '[]' \n" +
+				"	RESPONSE '\"runId\"' \n" +
+				"	KEEP 'runId', 'message' \n" +
+				"	INTO SQL INSERT INTO test.restarget (name, stuff, id, propName) VALUES ('sleep5','job run',?,?) \n" +
 				"END TASK\n" +
 				"";
 
