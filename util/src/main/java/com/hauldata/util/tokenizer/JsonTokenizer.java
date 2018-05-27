@@ -27,5 +27,6 @@ public class JsonTokenizer extends Tokenizer {
 		setCharType(CharType.quote, '"');
 
 		escape(EscapeType.json);
+		negativeIsRespected(true);
 	}
 }
