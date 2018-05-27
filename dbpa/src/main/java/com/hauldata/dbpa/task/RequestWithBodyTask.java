@@ -504,7 +504,7 @@ class JsonStructureTemplate extends JsonMultiRowRequestTemplate {
 	@Override
 	public String composeRequest(RequestTaskEvaluatedParameters parameters) throws SQLException, InterruptedException {
 
-		StringBuffer image = new StringBuffer();
+		StringBuilder image = new StringBuilder();
 		definition.render(parameters.sourcesWithAliases, image);
 		return image.toString();
 	}
@@ -518,7 +518,7 @@ interface JsonTemplateElement {
 		void visit(JsonTemplateIdentifier identifier);
 	}
 
-	void render(List<RequestTaskEvaluatedParameters.SourceWithAliases> sourcesWithAliases, StringBuffer image) throws SQLException, InterruptedException;
+	void render(List<RequestTaskEvaluatedParameters.SourceWithAliases> sourcesWithAliases, StringBuilder image) throws SQLException, InterruptedException;
 }
 
 class JsonTemplateSection implements JsonTemplateElement {
@@ -554,7 +554,7 @@ class JsonTemplateSection implements JsonTemplateElement {
 	}
 
 	@Override
-	public void render(List<RequestTaskEvaluatedParameters.SourceWithAliases> sourcesWithAliases, StringBuffer image) throws SQLException, InterruptedException {
+	public void render(List<RequestTaskEvaluatedParameters.SourceWithAliases> sourcesWithAliases, StringBuilder image) throws SQLException, InterruptedException {
 
 		int i = 0;
 		for (; i < elements.size(); ++i) {
@@ -569,7 +569,7 @@ abstract class JsonTemplateDynamicElement implements JsonTemplateElement {
 	public int sourceIndex = -1;
 
 	@Override
-	public void render(List<RequestTaskEvaluatedParameters.SourceWithAliases> sourcesWithAliases, StringBuffer image) throws SQLException, InterruptedException {
+	public void render(List<RequestTaskEvaluatedParameters.SourceWithAliases> sourcesWithAliases, StringBuilder image) throws SQLException, InterruptedException {
 
 		boolean isHead = true;
 		while (next(sourcesWithAliases.get(0), sourcesWithAliases.get(sourceIndex))) {
@@ -583,7 +583,7 @@ abstract class JsonTemplateDynamicElement implements JsonTemplateElement {
 		}
 	}
 
-	protected abstract void renderElement(List<RequestTaskEvaluatedParameters.SourceWithAliases> sourcesWithAliases, StringBuffer image) throws SQLException, InterruptedException;
+	protected abstract void renderElement(List<RequestTaskEvaluatedParameters.SourceWithAliases> sourcesWithAliases, StringBuilder image) throws SQLException, InterruptedException;
 
 	enum Position { START, AT_MATCH, AT_MISMATCH, END };
 	Position position = Position.START;
@@ -658,7 +658,7 @@ class JsonTemplateDynamicArrayElement extends JsonTemplateDynamicElement {
 	@Override
 	protected void renderElement(
 			List<RequestTaskEvaluatedParameters.SourceWithAliases> sourcesWithAliases,
-			StringBuffer image) throws SQLException, InterruptedException {
+			StringBuilder image) throws SQLException, InterruptedException {
 
 		element.render(sourcesWithAliases, image);
 	}
@@ -682,7 +682,7 @@ class JsonTemplateDynamicObjectElement extends JsonTemplateDynamicElement {
 	@Override
 	protected void renderElement(
 			List<RequestTaskEvaluatedParameters.SourceWithAliases> sourcesWithAliases,
-			StringBuffer image) throws SQLException, InterruptedException {
+			StringBuilder image) throws SQLException, InterruptedException {
 
 		fieldName.render(sourcesWithAliases, image);
 		image.append(":");
@@ -705,7 +705,7 @@ class JsonTemplateIdentifier implements JsonTemplateElement {
 	}
 
 	@Override
-	public void render(List<RequestTaskEvaluatedParameters.SourceWithAliases> sourcesWithAliases, StringBuffer image) throws SQLException {
+	public void render(List<RequestTaskEvaluatedParameters.SourceWithAliases> sourcesWithAliases, StringBuilder image) throws SQLException {
 		Object value = sourcesWithAliases.get(sourceIndex).source.getObject(columnIndex + 1);
 		image.append(JsonRenderer.render(value));
 	}
@@ -729,7 +729,7 @@ class JsonRenderer {
 
 	public static String escape(String raw) {
 
-		StringBuffer result = new StringBuffer();
+		StringBuilder result = new StringBuilder();
 
 		for (int i = 0; i < raw.length(); ++i) {
 

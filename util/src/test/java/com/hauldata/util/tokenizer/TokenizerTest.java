@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.InputMismatchException;
 import java.util.NoSuchElementException;
 
 import junit.framework.TestCase;
@@ -249,5 +250,36 @@ public class TokenizerTest extends TestCase {
 
 		tokenizer.reset(mark);
 		return result;
+	}
+
+	public void testMessaging() {
+
+		assertException("At line 1 expecting delimiter, found fred", "fred", t -> t.nextDelimiter(), "", true);
+		assertException("At line 1 expecting \"!\", found *", "*", t -> t.nextDelimiter("!"), "", true);
+		assertException("Parsing error: expecting \"!\", reached end of input", "", t -> t.nextDelimiter("!"), "Parsing error: ", false);
+		assertException("Parsing error: At line 1 expecting integer, found ethel", "  ethel  ", t -> t.nextInt(), "Parsing error: ", true);
+		assertException("Arbitrarily expecting quoted text, found 123", " 123 456 ", t -> t.nextQuoted(), "Arbitrarily ", false);
+		assertException("expecting identifier, found +", "+", t -> t.nextWord(), "", false);
+	}
+
+	private void assertException(String expectedMessage, String source, Tokenization t, String exceptionMessagePrefix, boolean showExceptionLineNumber) {
+
+		Tokenizer tokenizer = new Tokenizer(new StringReader(source));
+		tokenizer.exceptionMessaging(exceptionMessagePrefix, showExceptionLineNumber);
+
+		boolean threw = false;
+		try {
+			t.nextWhatever(tokenizer);
+		}
+		catch (Exception ex) {
+			threw = true;
+			assertEquals(expectedMessage, ex.getMessage());
+		}
+		assertTrue(threw);
+	}
+
+	@FunctionalInterface
+	interface Tokenization {
+		void nextWhatever(Tokenizer tokenizer) throws InputMismatchException, NoSuchElementException, IOException;
 	}
 }

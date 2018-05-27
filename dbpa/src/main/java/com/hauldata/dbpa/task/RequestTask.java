@@ -142,16 +142,7 @@ public abstract class RequestTask extends Task {
 			executeRequests(parameters, requestTemplate, responseInterpreter, context);
 		}
 		finally {
-			for (RequestTaskEvaluatedParameters.SourceWithAliases sourceWithAliases : parameters.sourcesWithAliases) {
-				if (sourceWithAliases != null && sourceWithAliases.source != null) {
-					sourceWithAliases.source.close(context);
-				}
-			}
-			for (RequestTaskEvaluatedParameters.TargetWithKeepers targetWithKeepers : parameters.targetsWithKeepers) {
-				if (targetWithKeepers != null && targetWithKeepers.target != null) {
-					targetWithKeepers.target.close(context);
-				}
-			}
+			parameters.close(context);
 		}
 	}
 
@@ -296,8 +287,8 @@ public abstract class RequestTask extends Task {
 				}
 				if (!hasFromColumn) {
 					throw new RuntimeException(fromNotInto ?
-							"Each column name in a JOIN clause must include at least one column name in the FROM clause" :
-							"Each KEEP name in a JOIN clause must include at least one KEEP name in the INTO clause");
+							"The column names in a JOIN clause must include at least one column name in the FROM clause" :
+							"The KEEP names in a JOIN clause must include at least one KEEP name in the INTO clause");
 				}
 			}
 
@@ -307,8 +298,8 @@ public abstract class RequestTask extends Task {
 							!HttpResponseStatus.contains(sourceLabel) && columnNames.get(leftJoinIndex).contains(sourceLabel) &&
 							(!hasFrom || (hasFrom && !columnNames.get(0).contains(sourceLabel)))) {
 						throw new RuntimeException(fromNotInto ?
-								"A column name in a JOIN clause cannot include a column name in another JOIN clause" :
-								"A KEEP name in a JOIN clause cannot include a KEEP name in another JOIN clause");
+								"The column names in a JOIN clause cannot include a column name in another JOIN clause" :
+								"The KEEP names in a JOIN clause cannot include a KEEP name in another JOIN clause");
 					}
 				}
 			}
@@ -383,6 +374,8 @@ public abstract class RequestTask extends Task {
 		Encoder encoder = urlTemplate.contains(":") ? (raw -> URLEncoder.encode(raw, "UTF-8")) : (raw -> raw);
 
 		Tokenizer tokenizer = new Tokenizer(new StringReader(urlTemplate));
+		String exceptionPrefix = "URL template error: ";
+		tokenizer.exceptionMessaging(exceptionPrefix, false);
 
 		StringBuilder result = new StringBuilder();
 
@@ -391,19 +384,13 @@ public abstract class RequestTask extends Task {
 			String segment;
 			if (tokenizer.skipDelimiter("{")) {
 
-				if (!tokenizer.hasNextWord()) {
-					throw new RuntimeException("Unrecognized token in the URL template: " + tokenizer.nextToken().getImage());
-				}
-
 				String name = tokenizer.nextWord();
 
-				if (!tokenizer.skipDelimiter("}")) {
-					throw new RuntimeException("Expecting \"}\" in the URL template, found: " + tokenizer.nextToken().getImage());
-				}
+				tokenizer.nextDelimiter("}");
 
 				int columnIndex = sourceColumnNames.indexOf(name);
 				if (columnIndex == -1) {
-					throw new RuntimeException("A name in braces in the URL template must be a FROM name: " + name);
+					throw new RuntimeException(exceptionPrefix + "A name in braces must be a FROM name: " + name);
 				}
 
 				Object replacement = source.getObject(columnIndex + 1);
@@ -584,6 +571,21 @@ class RequestTaskEvaluatedParameters {
 	public ArrayList<DataTarget> getTargets() {
 		return targetsWithKeepers.stream().map(t -> t.target).collect(Collectors.toCollection(ArrayList::new));
 	}
+
+	public void close(Context context) {
+
+		for (SourceWithAliases sourceWithAliases : this.sourcesWithAliases) {
+			if (sourceWithAliases != null && sourceWithAliases.source != null) {
+				sourceWithAliases.source.close(context);
+			}
+		}
+
+		for (RequestTaskEvaluatedParameters.TargetWithKeepers targetWithKeepers : this.targetsWithKeepers) {
+			if (targetWithKeepers != null && targetWithKeepers.target != null) {
+				targetWithKeepers.target.close(context);
+			}
+		}
+	}
 }
 
 /**
@@ -715,6 +717,7 @@ class ResponseInterpreterBuider {
 	private ArrayList<List<String>> targetColumnNames;
 
 	private JsonTokenizer tokenizer = null;
+	private final String exceptionPrefix = "Response template error: ";
 
 	private Set<JsonValueNode> intoValueReferences = new HashSet<JsonValueNode>();
 	private ArrayList<JoinReference> joinReferences = new ArrayList<JoinReference>();
@@ -742,6 +745,7 @@ class ResponseInterpreterBuider {
 		}
 
 		tokenizer = new JsonTokenizer(new StringReader(responseTemplate));
+		tokenizer.exceptionMessaging(exceptionPrefix, false);
 		tokenizer.useDelimiter("...");
 
 		JsonResponseTemplateNode root = null;
@@ -759,7 +763,7 @@ class ResponseInterpreterBuider {
 				root = parseObject(intoValueReferences).node;
 			}
 			else {
-				throw new RuntimeException("Request string is not valid JSON");
+				throw new RuntimeException(exceptionPrefix + "not a valid JSON template");
 			}
 		}
 		finally {
@@ -809,7 +813,7 @@ class ResponseInterpreterBuider {
 		joinReferences.add(0, null);
 
 		if (joinReferences.size() != targetColumnNames.size()) {
-			throw new RuntimeException("The JSON response template must contain exactly one dynamic structure for each JOIN clause");
+			throw new RuntimeException(exceptionPrefix + "Must include exactly one dynamic structure for each JOIN clause");
 		}
 	}
 
@@ -837,7 +841,7 @@ class ResponseInterpreterBuider {
 			return new KeepResponseValueGetter(columnIndex);
 		}
 
-		throw new RuntimeException("Unrecognized KEEP name: " + name);
+		throw new RuntimeException(exceptionPrefix + "Unrecognized KEEP name: " + name);
 	}
 
 	/**
@@ -849,13 +853,15 @@ class ResponseInterpreterBuider {
 		try {
 			String responseBody = tokenizer.nextQuoted().getBody();
 			if (tokenizer.hasNext()) {
-				throw new RuntimeException("Unexpected token in response template");
+				throw new RuntimeException(exceptionPrefix + "Unexpected token: " + tokenizer.nextToken().getImage());
 			}
 
 			innerTokenizer = new Tokenizer(new StringReader(responseBody));
+			innerTokenizer.exceptionMessaging(exceptionPrefix, false);
+
 			String name = innerTokenizer.nextWord();
 			if (innerTokenizer.hasNext()) {
-				throw new RuntimeException("Unexpected token in quoted response template");
+				throw new RuntimeException(exceptionPrefix + "Unexpected token in quoted response template: " + tokenizer.nextToken().getImage());
 			}
 
 			return addNameNode(name, intoValueReferences);
@@ -888,7 +894,7 @@ class ResponseInterpreterBuider {
 		if ((hasMoreElements = tokenizer.skipDelimiter(","))) {
 			if ((isDynamic = tokenizer.hasNextDelimiter("..."))) {
 				if (containsDynamic) {
-					throw new RuntimeException("Dynamic structures cannot be nested in the JSON response template");
+					throw new RuntimeException(exceptionPrefix + "Dynamic structures cannot be nested");
 				}
 				else {
 					result = addDynamicArray(value.node, potentialJoinValueReferences);
@@ -953,10 +959,10 @@ class ResponseInterpreterBuider {
 		if ((hasMoreElements = tokenizer.skipDelimiter(","))) {
 			if ((isDynamic = tokenizer.hasNextDelimiter("..."))) {
 				if (containsDynamic) {
-					throw new RuntimeException("Dynamic structures cannot be nested in the JSON response template");
+					throw new RuntimeException(exceptionPrefix + "Dynamic structures cannot be nested");
 				}
 				else if (!isKeyDynamic) {
-					throw new RuntimeException("A dynamic object in the JSON response template must start with a KEEP name from a JOIN clause");
+					throw new RuntimeException(exceptionPrefix + "A dynamic object must start with a KEEP name from a JOIN clause");
 				}
 				else {
 					result = addDynamicObject(makeDynamicKey(keyToken, potentialJoinValueReferences), value.node, potentialJoinValueReferences);
@@ -970,7 +976,7 @@ class ResponseInterpreterBuider {
 
 		if (!isDynamic) {
 			if (isKeyDynamic) {
-				throw new RuntimeException("An object in the JSON response template that starts with a KEEP name from a JOIN clause must be a dynamic object");
+				throw new RuntimeException(exceptionPrefix + "An object that starts with a KEEP name from a JOIN clause must be a dynamic object");
 			}
 			else {
 				merge(valueReferences, potentialJoinValueReferences);
@@ -1007,7 +1013,7 @@ class ResponseInterpreterBuider {
 	private boolean hasDynamicKey(JsonTokenizer tokenizer) throws IOException {
 		boolean hasWord = tokenizer.hasNextWord();
 		if (!hasWord && !tokenizer.hasNextQuoted()) {
-			throw new RuntimeException("Invalid key for an object in the JSON response template: " + tokenizer.nextToken().getImage());
+			throw new RuntimeException(exceptionPrefix + "Invalid key for an object field: " + tokenizer.nextToken().getImage());
 		}
 		return hasWord;
 	}
@@ -1037,7 +1043,7 @@ class ResponseInterpreterBuider {
 		else if (!valueGetters.isEmpty() && (getTargetIndex(valueGetters) != getTargetIndex(potentialJoinValueReferences))) {
 			JsonValueNode valueGetter = potentialJoinValueReferences.iterator().next();
 			String name = targetColumnNames.get(valueGetter.targetIndex).get(valueGetter.columnIndex);
-			throw new RuntimeException("A KEEP name in the JSON response template must appear in the same same dynamic or non-dynamic element as its peers: " + name);
+			throw new RuntimeException(exceptionPrefix + "A KEEP name must appear in the same same dynamic or non-dynamic element as its peers: " + name);
 		}
 		else {
 			valueGetters.addAll(potentialJoinValueReferences);
@@ -1101,10 +1107,10 @@ class ResponseInterpreterBuider {
 		int targetIndex = getTargetIndex(valueReferences);
 
 		if (targetIndex == -1) {
-			throw new RuntimeException("A dynamic structure must reference at least one KEEP name from a JOIN clause");
+			throw new RuntimeException(exceptionPrefix + "A dynamic structure must reference at least one KEEP name from a JOIN clause");
 		}
 		else if (targetIndex == 0) {
-			throw new RuntimeException("A KEEP name from the INTO clause cannot appear in a dynamic object");
+			throw new RuntimeException(exceptionPrefix + "A KEEP name from the INTO clause cannot appear in a dynamic object");
 		}
 
 		return targetIndex;
@@ -1125,12 +1131,12 @@ class ResponseInterpreterBuider {
 		}
 
 		if (columnIndex == -1) {
-			throw new RuntimeException("An unquoted field name in the JSON response template must be a KEEP name: " + name);
+			throw new RuntimeException(exceptionPrefix + "An unquoted field name must be a KEEP name: " + name);
 		}
 
 		int targetIndexSoFar = getTargetIndex(valueReferences);
 		if ((targetIndexSoFar != -1) && (targetIndex != targetIndexSoFar)) {
-			throw new RuntimeException("A KEEP name in the JSON response template must appear in the same dynamic or non-dynamic element as its peers: " + name);
+			throw new RuntimeException(exceptionPrefix + "A KEEP name must appear in the same dynamic or non-dynamic element as its peers: " + name);
 		}
 
 		JsonValueNode node = new JsonValueNode(targetIndex, columnIndex);
@@ -1138,7 +1144,7 @@ class ResponseInterpreterBuider {
 		boolean isAdded = valueReferences.add(node);
 
 		if (!isAdded) {
-			throw new RuntimeException("A KEEP name cannot appear in the JSON response template more than once: " + name);
+			throw new RuntimeException(exceptionPrefix + "A KEEP name cannot appear more than once: " + name);
 		}
 
 		return node;
@@ -1243,6 +1249,7 @@ class ResponseReader {
 	private ArrayList<Object[]>[] joinValues;
 
 	private JsonTokenizer tokenizer = null;
+	private final String exceptionPrefix = "Response error: ";
 
 	public ResponseReader(
 			Source fromSource,
@@ -1316,14 +1323,14 @@ class ResponseReader {
 			parseObject(node, values);
 		}
 		else {
-			throw new RuntimeException("The response is not valid JSON");
+			throw new RuntimeException(exceptionPrefix + "The response is not valid JSON");
 		}
 	}
 
 	private void parseArray(JsonResponseTemplateNode node, Object[] values) throws InputMismatchException, NoSuchElementException, IOException {
 
 		if (!node.isArray()) {
-			throw new RuntimeException("The response JSON contains an array where not expected");
+			throw new RuntimeException(exceptionPrefix + "The response contains an array where not expected");
 		}
 
 		tokenizer.nextDelimiter("[");
@@ -1365,7 +1372,7 @@ class ResponseReader {
 	private void parseObject(JsonResponseTemplateNode node, Object[] values) throws InputMismatchException, NoSuchElementException, IOException {
 
 		if (!node.isObject()) {
-			throw new RuntimeException("The response JSON contains an object where not expected");
+			throw new RuntimeException(exceptionPrefix + "The response contains an object where not expected");
 		}
 
 		tokenizer.nextDelimiter("{");
@@ -1428,7 +1435,7 @@ class ResponseReader {
 	private void parseValue(JsonResponseTemplateNode node, Object[] values) throws InputMismatchException, NoSuchElementException, IOException {
 
 		if (!node.isValue()) {
-			throw new RuntimeException("The response JSON contains a value where not expected");
+			throw new RuntimeException(exceptionPrefix + "Unexpected token: " + tokenizer.nextToken().getImage());
 		}
 
 		Object value;
@@ -1447,7 +1454,7 @@ class ResponseReader {
 				value = null;
 			}
 			else {
-				throw new RuntimeException("Unrecognized word in the response JSON: " + word);
+				throw new RuntimeException(exceptionPrefix + "Invalid value word: " + word);
 			}
 		}
 		else {
@@ -1456,7 +1463,7 @@ class ResponseReader {
 				value = token.getValue();
 			}
 			else {
-				throw new RuntimeException("Unrecognized token in the response JSON: " + token.getImage());
+				throw new RuntimeException("Unrecognized value token: " + token.getImage());
 			}
 		}
 

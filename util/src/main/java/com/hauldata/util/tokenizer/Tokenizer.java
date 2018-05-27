@@ -29,6 +29,9 @@ public class Tokenizer extends BaseTokenizer {
 	private List<String> compoundDelimiters;
 	private String endLineCommentDelimiter;
 
+	private String exceptionMessagePrefix;
+	private boolean showExceptionLineNumber;
+
 	public Tokenizer(Reader reader) {
 		super(reader);
 
@@ -47,9 +50,12 @@ public class Tokenizer extends BaseTokenizer {
 		eolIsSignificant(false);
 		splitQuoteIsAllowed(false);
 		negativeIsRespected(false);
-		
+
 		compoundDelimiters = new LinkedList<String>();
 		endLineCommentDelimiter = null;
+
+		exceptionMessagePrefix = "";
+		showExceptionLineNumber = true;
 	}
 
 	/**
@@ -86,8 +92,9 @@ public class Tokenizer extends BaseTokenizer {
 	/**
 	 * Allow end line comments introduced by a delimiter, which may be a multi-character
 	 * delimiter.
-	 * @param delimiter
-	 * @return
+	 *
+	 * @param	delimiter is the delimiter
+     * @return	this tokenizer
 	 */
 	public Tokenizer useEndLineCommentDelimiter(String delimiter) {
 		if (delimiter.length() > 1) {
@@ -97,7 +104,21 @@ public class Tokenizer extends BaseTokenizer {
 		return this;
 	}
 
-    /**
+	/**
+	 * Controls how exception message are formatted.
+	 *
+	 * @param exceptionMessagePrefix is a string to be prefixed to each exception message
+	 * @param showExceptionLineNumber if true includes the line number where the exception occurred
+	 * in the exception message
+	 * @return
+	 */
+	public Tokenizer exceptionMessaging(String exceptionMessagePrefix, boolean showExceptionLineNumber) {
+		this.exceptionMessagePrefix = exceptionMessagePrefix;
+		this.showExceptionLineNumber = showExceptionLineNumber;
+		return this;
+	}
+
+	/**
      * Returns true if the next token in this tokenizer's input is a valid
      * identifier consisting of word characters.  The tokenizer does not
      * advance past any input.
@@ -115,7 +136,7 @@ public class Tokenizer extends BaseTokenizer {
      * Returns true if the next token in this tokenizer's input is a valid
      * identifier that matches the argument word ignoring case.
      * The tokenizer does not advance past any input.
-     * 
+     *
      * @return	true if and only if this tokenizer's next token is a valid
      *			identifier matching the argument word
      * @throws	IOException if passed by the underlying
@@ -205,7 +226,7 @@ public class Tokenizer extends BaseTokenizer {
      *			<code>java.io.Reader</code> object of this tokenizer.
      */
 	public Quoted nextQuoted() throws IOException, InputMismatchException, NoSuchElementException {
-		Object token = nextToken();
+		Token token = nextToken();
 		if (!(token instanceof Quoted)) {
 			throwInputMismatchOrNoSuchElementException(token, "quoted text");
 		}
@@ -227,7 +248,7 @@ public class Tokenizer extends BaseTokenizer {
      * @see		Tokenizer#useDelimiter(String)
      */
 	public Delimiter nextDelimiter() throws IOException, InputMismatchException, NoSuchElementException {
-		Object token = nextToken();
+		Token token = nextToken();
 		if (!(token instanceof Delimiter)) {
 			throwInputMismatchOrNoSuchElementException(token, "delimiter");
 		}
@@ -252,8 +273,8 @@ public class Tokenizer extends BaseTokenizer {
      * @see		Tokenizer#useDelimiter(String)
      */
 	public void nextDelimiter(String delimiter) throws IOException, InputMismatchException, NoSuchElementException {
-		Delimiter found = nextDelimiter();
-		if (!found.toString().equals(delimiter)) {
+		Token found = nextToken();
+		if (!(found instanceof Delimiter) || !found.toString().equals(delimiter)) {
 			throwInputMismatchOrNoSuchElementException(found, "\"" + delimiter + "\"");
 		}
 	}
@@ -306,13 +327,20 @@ public class Tokenizer extends BaseTokenizer {
 		return skip;
 	}
 
-	private void throwInputMismatchOrNoSuchElementException(Object token, String expecting)
+	private void throwInputMismatchOrNoSuchElementException(Token token, String expecting)
 			throws InputMismatchException, NoSuchElementException {
-		String message = "At line " + lineno() + " expecting " + expecting; 
-		if (token == null)
+		String message =
+				exceptionMessagePrefix +
+				(showExceptionLineNumber ? "At line " + Integer.toString(lineno()) + " " : "") +
+				"expecting " + expecting;
+		if (token == null) {
+			message = message + ", reached end of input";
 			throw new NoSuchElementException(message);
-		else
+		}
+		else {
+			message = message + ", found " + token.getImage();
 			throw new InputMismatchException(message);
+		}
 	}
 
 	// Base class overrides - implementation details
@@ -327,7 +355,7 @@ public class Tokenizer extends BaseTokenizer {
 				leadingWhitespace = true;
 				nextChar();
 			}
-			
+
 			moreWhitespace = false;
 
 			if ((endLineCommentDelimiter != null) && (charTypeOf(peekChar()) == CharType.delimiter)) {
@@ -337,14 +365,14 @@ public class Tokenizer extends BaseTokenizer {
 				if (delimiter.toString() != endLineCommentDelimiter) {
 					return delimiter;
 				}
-				
+
 				int commentLineNumber = lineno();
 				while ((moreWhitespace = (peekChar() != eofChar)) && (lineno() == commentLineNumber)) {
 					nextChar();
 				}
 			}
 		} while (moreWhitespace);
-		
+
 		return Unknown.withWhitespace(leadingWhitespace);
 	}
 
@@ -372,11 +400,11 @@ public class Tokenizer extends BaseTokenizer {
 
 		String imageSoFar = String.valueOf(leader);
 		List<String> potentialMatches = new LinkedList<String>(compoundDelimiters);
-		
+
 		do {
 			int intChar = nextChar();
 			String image = imageSoFar + String.valueOf((char)intChar);
-			
+
 			for (ListIterator<String> delimiterIterator = potentialMatches.listIterator(); delimiterIterator.hasNext(); ) {
 				String delimiter = delimiterIterator.next();
 
@@ -392,13 +420,13 @@ public class Tokenizer extends BaseTokenizer {
 				pushChar(intChar);
 				return new Delimiter(leadingWhitespace, imageSoFar);
 			}
-			
+
 			imageSoFar = image;
 		} while (true);
 	}
 
 	// Logical character scanning
-	
+
 	private boolean hasNextWordChar() throws IOException {
 		CharType type = charTypeOf(peekChar());
 		return (type == CharType.alphabetic) || (type == CharType.numeric);
