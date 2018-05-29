@@ -26,6 +26,8 @@ public class JsonTokenizer extends Tokenizer {
 		setCharType(CharType.delimiter, '\'');
 		setCharType(CharType.quote, '"');
 
+		wordChars('_', '_');
+
 		escape(EscapeType.json);
 		negativeIsRespected(true);
 	}

@@ -223,7 +223,7 @@ class JsonRequestTemplateParser {
 					throw new RuntimeException("Dynamic structures cannot be nested in the JSON request template");
 				}
 				else if (!dynamicStatus.isKeyDynamic) {
-					throw new RuntimeException("A dynamic object in the JSON request template must start with a KEEP name from a JOIN clause");
+					throw new RuntimeException("A dynamic object in the JSON request template must start with a column name from a JOIN clause");
 				}
 				else {
 					section.addElement(makeDynamicObjectElement(potentialDynamicElement));
@@ -237,7 +237,7 @@ class JsonRequestTemplateParser {
 
 		if (!isDynamic) {
 			if (dynamicStatus.isKeyDynamic) {
-				throw new RuntimeException("An object in the JSON request template that starts with a KEEP name from a JOIN clause must be a dynamic object");
+				throw new RuntimeException("An object in the JSON request template that starts with a column name from a JOIN clause must be a dynamic object");
 			}
 			else {
 				merge(section, potentialDynamicElement);
@@ -346,7 +346,7 @@ class JsonRequestTemplateParser {
 	}
 
 	/**
-	 * @throws RuntimeException if the word is not a KEEP name
+	 * @throws RuntimeException if the word is not a column name
 	 */
 	private JsonTemplateIdentifier makeIdentifier(String word) {
 
@@ -358,7 +358,7 @@ class JsonRequestTemplateParser {
 			}
 		}
 		if (columnIndex == -1) {
-			throw new RuntimeException("An unquoted field name in the JSON request template must be a KEEP name: " + word);
+			throw new RuntimeException("An unquoted field name in the JSON request template must be a column name: " + word);
 		}
 
 		return new JsonTemplateIdentifier(sourceIndex, columnIndex);
@@ -718,7 +718,7 @@ class JsonRenderer {
 		if (value == null) {
 			rendering = "null";
 		}
-		if (value instanceof Number || value instanceof Boolean) {
+		else if (value instanceof Number || value instanceof Boolean) {
 			rendering = value.toString();
 		}
 		else {
