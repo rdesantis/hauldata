@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package com.hauldata.dbpa;
 
 import io.dropwizard.Application;
-import io.dropwizard.Configuration;
 import io.dropwizard.cli.Command;
 import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Bootstrap;
@@ -25,6 +24,8 @@ import io.dropwizard.setup.Environment;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 
+import com.hauldata.dbpa.dropwizard.CorsConfigurator;
+import com.hauldata.dbpa.dropwizard.ManageDbpConfiguration;
 import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.exceptions.DefaultExceptionMapper;
 import com.hauldata.dbpa.manage.exceptions.FileNotFoundExceptionMapper;
@@ -43,7 +44,7 @@ import com.hauldata.dbpa.manage.resources.SchemaResource;
 import com.hauldata.dbpa.manage.resources.ScriptsResource;
 import com.hauldata.dbpa.manage.resources.ServiceResource;
 
-public class ManageDbp extends Application<Configuration> {
+public class ManageDbp extends Application<ManageDbpConfiguration> {
 
 	public static void main(String[] args) throws Exception {
 		new ManageDbp().run(args);
@@ -55,29 +56,22 @@ public class ManageDbp extends Application<Configuration> {
     }
 
     @Override
-    public void initialize(Bootstrap<Configuration> bootstrap) {
+    public void initialize(Bootstrap<ManageDbpConfiguration> bootstrap) {
 
 		JobManager.instantiate(false);
-
-		// Eventually may subclass Configuration as ServiceConfiguration and receive that here
-		// to control startup behavior.
 
 		bootstrap.addCommand(new ResetCommand());
     }
 
 	@Override
-	public void run(Configuration configuration, Environment environment) {
+	public void run(ManageDbpConfiguration configuration, Environment environment) {
 
-		// Eventually may subclass Configuration as ServiceConfiguration and use members
-		// as parameters when instantiating resources.
+		// Cross-origin resource sharing (CORS)
 
-		final ServiceResource service = new ServiceResource();
-		final ManagerResource manager = new ManagerResource();
-		final SchemaResource schema = new SchemaResource();
-		final ScriptsResource scripts = new ScriptsResource();
-		final PropertiesFilesResource propFiles = new PropertiesFilesResource();
-		final SchedulesResource schedules = new SchedulesResource();
-		final JobsResource jobs = new JobsResource();
+		CorsConfigurator corsConfigurator = configuration.getCorsConfigurator();
+		if (corsConfigurator.getEnabled()) {
+			corsConfigurator.enableCors(environment);
+		}
 
 		// Health checks
 
@@ -95,6 +89,14 @@ public class ManageDbp extends Application<Configuration> {
 		environment.jersey().register(new RuntimeExceptionMapper());
 
 		// Resources
+
+		final ServiceResource service = new ServiceResource();
+		final ManagerResource manager = new ManagerResource();
+		final SchemaResource schema = new SchemaResource();
+		final ScriptsResource scripts = new ScriptsResource();
+		final PropertiesFilesResource propFiles = new PropertiesFilesResource();
+		final SchedulesResource schedules = new SchedulesResource();
+		final JobsResource jobs = new JobsResource();
 
 		environment.jersey().register(service);
 		environment.jersey().register(manager);
