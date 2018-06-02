@@ -16,6 +16,7 @@
 
 package com.hauldata.dbpa.task;
 
+import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.Logger.Level;
 
 public class RequestTaskTest extends TaskTest {
@@ -263,5 +264,41 @@ public class RequestTaskTest extends TaskTest {
 		boolean logToConsole = true;
 
 		runScript(processId, logLevel, logToConsole, script, null, null, null);
+	}
+
+
+	public void testBadTemplate() throws Exception {
+		assertBadTemplate("TASK REQUEST 'url' PUT '\"a\" 77' END TASK", "Request template error: Unexpected token: 77");
+		assertBadTemplate("TASK REQUEST 'url' PUT 'x' END TASK", "Request template error: not a valid JSON template");
+		assertBadTemplate("TASK REQUEST 'url' PUT '[{c:d,...},...]' FROM VALUES (1,2) AS 'a','b' JOIN VALUES (3,4,5) AS 'a','c','d' END TASK", "Request template error: Dynamic structures cannot be nested");
+		assertBadTemplate("TASK REQUEST 'url' PUT '{c:[d,...],...}' FROM VALUES (1,2) AS 'a','b' JOIN VALUES (3,4,5) AS 'a','c','d' END TASK", "Request template error: Dynamic structures cannot be nested");
+		assertBadTemplate("TASK REQUEST 'url' PUT '{\"a\":[c,d],...}' FROM VALUES (1,2) AS 'a','b' JOIN VALUES (3,4,5) AS 'a','c','d' END TASK", "Request template error: A dynamic object must start with a column name from a JOIN clause");
+		assertBadTemplate("TASK REQUEST 'url' PUT '{c:[d,1]}' FROM VALUES (1,2) AS 'a','b' JOIN VALUES (3,4,5) AS 'a','c','d' END TASK", "Request template error: An object that starts with a column name from a JOIN clause must be a dynamic object");
+		assertBadTemplate("TASK REQUEST 'url' PUT '{\"a\":a,b:c}' FROM VALUES (1,2,3) AS 'a','b','c' END TASK", "Request template error: An unquoted field name can only be used in the first field of a dynamic object: b");
+		assertBadTemplate("TASK REQUEST 'url' PUT '{\"a\":a,47:c}' FROM VALUES (1,2,3) AS 'a','b','c' END TASK", "Request template error: Unexpected token where a field name is expected: 47");
+		assertBadTemplate("TASK REQUEST 'url' PUT '{fred:c}' FROM VALUES (1,2,3) AS 'a','b','c' END TASK", "Request template error: An unquoted field name must be a column name: fred");
+		assertBadTemplate("TASK REQUEST 'url' PUT '{\"a\":a,\"x\":[d,...],\"y\":[d,...]}' FROM VALUES (1,2) AS 'a','b' JOIN VALUES (1,4) AS 'a','d' JOIN VALUES (1,6) AS 'a','f' END TASK", "Request template error: Two dynamic structures cannot reference columns from the same JOIN");
+		assertBadTemplate("TASK REQUEST 'url' PUT '[a,...]' FROM VALUES (1) AS 'a' END TASK", "Request template error: A dynamic structure must not reference a FROM column");
+		assertBadTemplate("TASK REQUEST 'url' PUT '{\"a\":a,\"x\":{d:f,...},\"y\":{d:f,...}}' FROM VALUES (1,2) AS 'a','b' JOIN VALUES (1,4) AS 'a','d' JOIN VALUES (1,6) AS 'a','f' END TASK", "Request template error: A dynamic structure cannot reference more than one JOIN column");
+		assertBadTemplate("TASK REQUEST 'url' PUT '\"b\"' FROM VALUES (1) AS 'a' END TASK", "Request template error: Column name not found: b");
+		assertBadTemplate("TASK REQUEST 'url' PUT '{\"a\":a,\"c\":[c,...]}' FROM VALUES (1,2) AS 'a','b' JOIN VALUES (3,4) AS 'a','c' JOIN VALUES (5,6) AS 'a','f' END TASK", "There must be exactly one dynamic structure in the JSON request for each JOIN");
+
+		assertBadTemplate("TASK REQUEST 'url' PUT 'garbage' FROM VALUES (1,2) AS 'a','b' JOIN VALUES (3,4) AS 'c','d' JOIN VALUES (5,6) AS 'e','f' END TASK", "The column names in a JOIN clause must include at least one column name in the FROM clause");
+	}
+
+	private void assertBadTemplate(String script, String expectedMessage) throws Exception {
+
+		String processId = "BadTemplateTest";
+
+		Level logLevel = Level.error;
+		boolean logToConsole = true;
+
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null, false);
+		Analyzer.RecordIterator recordIterator = analyzer.recordIterator();
+
+		Analyzer.Record record;
+
+		record = recordIterator.next();
+		assertEquals(expectedMessage, record.message);
 	}
 }

@@ -84,6 +84,7 @@ class JsonRequestTemplateParser {
 	private List<List<String>> sourceColumnNames;
 
 	private JsonTokenizer tokenizer = null;
+	public final static String exceptionPrefix = "Request template error: ";
 	private ArrayList<JsonTemplateDynamicElement> dynamicElements = null;
 
 	public JsonRequestTemplateParser(String requestTemplate, List<List<String>> sourceColumnNames) {
@@ -94,6 +95,7 @@ class JsonRequestTemplateParser {
 	public JsonRequestTemplate parse() throws InputMismatchException, IOException {
 
 		tokenizer = new JsonTokenizer(new StringReader(requestTemplate));
+		tokenizer.exceptionMessaging(exceptionPrefix, false);
 		tokenizer.useDelimiter("...");
 
 		JsonRequestTemplate template = null;
@@ -103,7 +105,7 @@ class JsonRequestTemplateParser {
 
 				String requestBody = tokenizer.nextQuoted().getBody();
 				if (tokenizer.hasNext()) {
-					throw new RuntimeException("Unexpected token in request template");
+					throw new RuntimeException(exceptionPrefix + "Unexpected token: " + tokenizer.nextToken().getImage());
 				}
 
 				if (sourceColumnNames.isEmpty() || sourceColumnNames.get(0).isEmpty()) {
@@ -138,7 +140,7 @@ class JsonRequestTemplateParser {
 			parseObject(section);
 		}
 		else {
-			throw new RuntimeException("Request string is not valid JSON");
+			throw new RuntimeException(exceptionPrefix + "not a valid JSON template");
 		}
 
 		return section;
@@ -165,7 +167,7 @@ class JsonRequestTemplateParser {
 		if ((hasMoreElements = tokenizer.skipDelimiter(","))) {
 			if ((isDynamic = tokenizer.hasNextDelimiter("..."))) {
 				if (containsDynamic) {
-					throw new RuntimeException("Dynamic structures cannot be nested in the JSON request template");
+					throw new RuntimeException(exceptionPrefix + "Dynamic structures cannot be nested");
 				}
 				else {
 					section.addElement(makeDynamicArrayElement(potentialDynamicElement));
@@ -220,10 +222,10 @@ class JsonRequestTemplateParser {
 		if ((hasMoreElements = tokenizer.skipDelimiter(","))) {
 			if ((isDynamic = tokenizer.hasNextDelimiter("..."))) {
 				if (containsDynamic) {
-					throw new RuntimeException("Dynamic structures cannot be nested in the JSON request template");
+					throw new RuntimeException(exceptionPrefix + "Dynamic structures cannot be nested");
 				}
 				else if (!dynamicStatus.isKeyDynamic) {
-					throw new RuntimeException("A dynamic object in the JSON request template must start with a column name from a JOIN clause");
+					throw new RuntimeException(exceptionPrefix + "A dynamic object must start with a column name from a JOIN clause");
 				}
 				else {
 					section.addElement(makeDynamicObjectElement(potentialDynamicElement));
@@ -237,7 +239,7 @@ class JsonRequestTemplateParser {
 
 		if (!isDynamic) {
 			if (dynamicStatus.isKeyDynamic) {
-				throw new RuntimeException("An object in the JSON request template that starts with a column name from a JOIN clause must be a dynamic object");
+				throw new RuntimeException(exceptionPrefix + "An object that starts with a column name from a JOIN clause must be a dynamic object");
 			}
 			else {
 				merge(section, potentialDynamicElement);
@@ -295,7 +297,7 @@ class JsonRequestTemplateParser {
 			String name = tokenizer.nextWord();
 
 			if (!allowName) {
-				throw new RuntimeException("An unquoted field name in the JSON request template can only be used in the first field of a dynamic object: " + name);
+				throw new RuntimeException(exceptionPrefix + "An unquoted field name can only be used in the first field of a dynamic object: " + name);
 			}
 
 			section.addElement(makeIdentifier(name));
@@ -303,7 +305,7 @@ class JsonRequestTemplateParser {
 			return true;
 		}
 		else {
-			throw new RuntimeException("Unexpected token in the JSON request template where a field name is expected: " + tokenizer.nextToken().getImage());
+			throw new RuntimeException(exceptionPrefix + "Unexpected token where a field name is expected: " + tokenizer.nextToken().getImage());
 		}
 	}
 
@@ -358,7 +360,7 @@ class JsonRequestTemplateParser {
 			}
 		}
 		if (columnIndex == -1) {
-			throw new RuntimeException("An unquoted field name in the JSON request template must be a column name: " + word);
+			throw new RuntimeException(exceptionPrefix + "An unquoted field name must be a column name: " + word);
 		}
 
 		return new JsonTemplateIdentifier(sourceIndex, columnIndex);
@@ -389,12 +391,12 @@ class JsonRequestTemplateParser {
 		dynamicElement.visitIdentifiers(inspector);
 
 		if (inspector.sourceIndex == -1) {
-			throw new RuntimeException("A dynamic structure in the JSON request must reference at least one JOIN column");
+			throw new RuntimeException(exceptionPrefix + "A dynamic structure must reference at least one JOIN column");
 		}
 
 		for (JsonTemplateDynamicElement previousDynamicElement : dynamicElements) {
 			if (inspector.sourceIndex == previousDynamicElement.sourceIndex) {
-				throw new RuntimeException("Two dynamic structures in the JSON request cannot reference columns from the same JOIN");
+				throw new RuntimeException(exceptionPrefix + "Two dynamic structures cannot reference columns from the same JOIN");
 			}
 		}
 
@@ -407,13 +409,13 @@ class JsonRequestTemplateParser {
 
 		public void visit(JsonTemplateIdentifier identifier) {
 			if (identifier.sourceIndex == 0) {
-				throw new RuntimeException("A dynamic structure in the JSON request must not reference a FROM column");
+				throw new RuntimeException(exceptionPrefix + "A dynamic structure must not reference a FROM column");
 			}
 			else if (sourceIndex == -1) {
 				sourceIndex = identifier.sourceIndex;
 			}
 			else if (sourceIndex != identifier.sourceIndex) {
-				throw new RuntimeException("A dynamic structure in the JSON request cannot reference more than one JOIN column");
+				throw new RuntimeException(exceptionPrefix + "A dynamic structure cannot reference more than one JOIN column");
 			}
 		}
 	}
@@ -468,7 +470,7 @@ class JsonDynamicTextTemplate extends JsonMultiRowRequestTemplate {
 
 		columnIndex = sourceColumnNames.get(0).indexOf(name.trim());
 		if (columnIndex == -1) {
-			throw new RuntimeException("Request column name not found: " + name);
+			throw new RuntimeException(JsonRequestTemplateParser.exceptionPrefix + "Column name not found: " + name);
 		}
 	}
 
