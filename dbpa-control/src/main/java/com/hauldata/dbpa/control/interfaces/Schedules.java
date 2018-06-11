@@ -63,6 +63,10 @@ public interface Schedules {
 	@Path("-/validations/{name}")
 	public ScheduleValidation validate(@PathParam("name") String name);
 
+	@PUT
+	@Path("validate")
+	public ScheduleValidation validateBody(String body);
+
 	@GET
 	@Path("-/running")
 	public List<String> getRunning();

@@ -362,6 +362,32 @@ public class SchedulesResource {
 		return new ScheduleValidation(valid, validationMessage);
 	}
 
+	/**
+	 * Validate text for schedule syntax.  No schedule is saved or retrieved.
+	 *
+	 * @return the validation results.  Fields are:
+	 *
+	 *	isValid returns true if the text is a valid schedule syntactically, otherwise false;
+	 *	validationMessage returns an error message if the validation failed, or null if it succeeded.
+	 */
+	@PUT
+	@Path("validate")
+	@Timed
+	public ScheduleValidation validateBody(String body) throws SQLException, NameNotFoundException, IllegalArgumentException {
+
+		boolean valid = false;
+		String validationMessage = null;
+
+		try {
+			ScheduleSet.parse(body);
+			valid = true;
+		}
+		catch (RuntimeException ex) {
+			validationMessage = ex.getMessage();
+		}
+
+		return new ScheduleValidation(valid, validationMessage);
+	}
 
 	/**
 	 * Return a list of the running schedules.
