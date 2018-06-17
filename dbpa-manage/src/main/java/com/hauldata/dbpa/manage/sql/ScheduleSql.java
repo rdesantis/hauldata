@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2018 Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ public class ScheduleSql extends CommonSql {
 	public final static String selectIds_ = "SELECT id FROM %1$s" + tableName + " WHERE name IN (%%1$s)";
 	public final static String select_ = "SELECT name, schedule FROM %1$s" + tableName + " WHERE name LIKE ? ORDER BY name";
 	public final static String selectId_ = "SELECT id FROM %1$s" + tableName + " WHERE name = ?";
-	public final static String update_ = "UPDATE %1$s" + tableName + " SET schedule = ? WHERE id = ?";
+	public final static String update_ = "UPDATE %1$s" + tableName + " SET %%1$s = ? WHERE id = ?";
 	public final static String delete_ = "DELETE FROM %1$s" + tableName + " WHERE id = ?";
 	public final static String selectAllColumns_ = "SELECT id, name, schedule FROM %1$s" + tableName;
 	public final static String selectAllColumnsByIds_ = selectAllColumns_ + " WHERE id IN (%%1$s)";

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016 - 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -115,12 +115,7 @@ public class SchedulesResource {
 			if (id != -1) {
 				// Update existing schedule
 
-				stmt = conn.prepareStatement(sql.update);
-
-				stmt.setString(1, schedule);
-				stmt.setInt(2, id);
-
-				stmt.executeUpdate();
+				CommonSql.execute(conn, sql.update, "schedule", schedule, id);
 
 				// Let the job scheduler know that the schedule has been revised.
 
@@ -147,14 +142,42 @@ public class SchedulesResource {
 				throw new NameNotFoundException(CommonSql.getNotFoundMessageStem("schedule") + name);
 			}
 
-			stmt.close();
-			stmt = null;
-
 			return id;
 		}
 		finally {
 			try { if (stmt != null) stmt.close(); } catch (Exception exx) {}
 
+			if (conn != null) context.releaseConnection(null, conn);
+		}
+	}
+
+	/**
+	 * Rename a schedule
+	 * @param name is the original name
+	 * @param newName is the new name
+	 */
+	@PUT
+	@Path("{name}/rename")
+	public void rename(@PathParam("name") String name, String newName)  throws NameNotFoundException, SQLException {
+
+		JobManager manager = JobManager.getInstance();
+		Context context = manager.getContext();
+		ScheduleSql sql = manager.getScheduleSql();
+
+		Connection conn = null;
+
+		try {
+			conn = context.getConnection(null);
+
+			int id = CommonSql.getId(conn, sql.selectId, name);
+
+			if (id == -1) {
+				throw new NameNotFoundException(CommonSql.getNotFoundMessageStem("schedule") + name);
+			}
+
+			CommonSql.execute(conn, sql.update, "name", newName, id);
+		}
+		finally {
 			if (conn != null) context.releaseConnection(null, conn);
 		}
 	}
