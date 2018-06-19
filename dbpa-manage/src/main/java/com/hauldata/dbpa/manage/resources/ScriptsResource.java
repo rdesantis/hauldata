@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -18,9 +18,12 @@ package com.hauldata.dbpa.manage.resources;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import javax.naming.NamingException;
 import javax.ws.rs.Consumes;
@@ -97,7 +100,7 @@ public class ScriptsResource {
 	 * @throws Exception if validation otherwise fails fatally not due to invalid syntax
  	 */
 	@GET
-	@Path("-/validations/{name}")
+	@Path("{name}/validation")
 	@Timed
 	public ScriptValidation validate(@PathParam("name") String name) throws IOException {
 
@@ -132,5 +135,56 @@ public class ScriptsResource {
 			}
 		}
 		return scriptParameters;
+	}
+
+	/**
+	 * Validate text for script syntax.  No script is saved or retrieved.
+	 *
+	 * @return the validation results.
+	 * @throws IOException
+	 */
+	@PUT
+	@Path("validate")
+	@Timed
+	public ScriptValidation validateBody(String body) throws IOException {
+
+		DbProcess process = null;
+		String validationMessage = null;
+		List<VariableBase> parameters = null;
+
+		try {
+			process = DbProcess.parse(new StringReader(body));
+			parameters = process.getParameters();
+		}
+		catch (RuntimeException | NamingException ex) {
+			validationMessage = ex.getMessage();
+		}
+
+		return new ScriptValidation(process != null, validationMessage, toScriptParameters(parameters));
+	}
+
+	/**
+	 * Retrieve the validations for a set of script(s)
+	 * whose names match an optional wildcard pattern
+	 *
+	 * @param likeName is the name wildcard pattern or null to get all script validations
+	 * @return a map of script names to script validations
+	 * or an empty map if no script with a matching name is found
+	 * @throws IOException
+	 */
+	@GET
+	@Path("-/validations")
+	@Timed
+	public Map<String, ScriptValidation> validateAll(@QueryParam("like") String likeName) throws IOException {
+
+		Map<String, ScriptValidation> result = new TreeMap<String, ScriptValidation>();
+
+		List<String> names = files.getNames(likeName);
+		for (String name : names) {
+			ScriptValidation validation = validate(name);
+			result.put(name, validation);
+		}
+
+		return result;
 	}
 }

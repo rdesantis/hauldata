@@ -394,7 +394,7 @@ public class SchedulesResource {
 	 *	validationMessage returns an error message if the validation failed, or null if it succeeded.
 	 */
 	@PUT
-	@Path("validate")
+	@Path("-/validate")
 	@Timed
 	public ScheduleValidation validateBody(String body) throws SQLException, NameNotFoundException, IllegalArgumentException {
 

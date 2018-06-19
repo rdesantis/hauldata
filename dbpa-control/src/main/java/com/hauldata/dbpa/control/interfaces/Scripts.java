@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package com.hauldata.dbpa.control.interfaces;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -52,6 +53,14 @@ public interface Scripts {
 	public List<String> getNames(@QueryParam("like") String likeName);
 
 	@GET
-	@Path("-/validations/{name}")
+	@Path("{name}/validation")
 	public ScriptValidation validate(@PathParam("name") String name);
+
+	@PUT
+	@Path("-/validate")
+	public ScriptValidation validateBody(String body);
+
+	@GET
+	@Path("-/validations")
+	public Map<String, ScriptValidation> validateAll(@QueryParam("like") String likeName);
 }

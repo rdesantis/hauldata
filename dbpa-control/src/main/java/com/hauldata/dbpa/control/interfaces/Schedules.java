@@ -68,7 +68,7 @@ public interface Schedules {
 	public ScheduleValidation validate(@PathParam("name") String name);
 
 	@PUT
-	@Path("validate")
+	@Path("-/validate")
 	public ScheduleValidation validateBody(String body);
 
 	@GET
