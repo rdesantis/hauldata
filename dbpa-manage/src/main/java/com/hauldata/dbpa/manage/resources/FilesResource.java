@@ -29,6 +29,7 @@ import java.io.Writer;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
+import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
@@ -141,7 +142,10 @@ public class FilesResource {
 	 * Retrieve a list of names of all files available in the respective directory
 	 * that match an optional name wildcard pattern
 	 *
-	 * @param likeName is the wildcard pattern or null to match all names
+	 * @param likeName is the wildcard pattern or null to match all names.  It may include
+	 * a leading relative path to find files in nested directories.  If so, names are returned
+	 * with the path prefixed.  It is not an error if the path does not exist.
+	 *
 	 * @return the list of files if any exists;
 	 * or an empty list if no files exist
 	 * @throws IOException
@@ -154,21 +158,29 @@ public class FilesResource {
 
 		final int fileExtLength = fileExt.length();
 
+		String[] parentAndFileName = com.hauldata.dbpa.process.Files.getParentAndFileName(likeName);
+		Path fullParentPath = parentPath.resolve(parentAndFileName[0]);
+		String coreLikeName = parentAndFileName[1];
+		String resultNamePrefix = parentAndFileName[0].equals(".") ? "" : parentAndFileName[0] + "/";
+
 		List<String> fileNames = new LinkedList<String>();
 
 		DirectoryStream<java.nio.file.Path> filePaths = null;
 		try {
-			filePaths = Files.newDirectoryStream(parentPath, likeName + fileExt);
+			filePaths = Files.newDirectoryStream(fullParentPath, coreLikeName + fileExt);
 
 			for (java.nio.file.Path filePath : filePaths) {
 				if (Files.isRegularFile(filePath)) {
 
 					String fileName = filePath.getFileName().toString();
-					String name = fileName.substring(0, fileName.length() - fileExtLength);
+					String name = resultNamePrefix + fileName.substring(0, fileName.length() - fileExtLength);
 
 					fileNames.add(name);
 				}
 			}
+		}
+		catch (NotDirectoryException | NoSuchFileException ex) {
+			// Not an error; just return empty result
 		}
 		finally {
 			try { filePaths.close(); } catch (Exception ex) {}
