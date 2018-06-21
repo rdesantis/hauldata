@@ -72,6 +72,13 @@ public class ScriptsResource {
 		return files.get(name);
 	}
 
+	@PUT
+	@Path("{name}/rename")
+	@Timed
+	public void rename(@PathParam("name") String name, String newName) throws IOException {
+		files.rename(name, newName);
+	}
+
 	@DELETE
 	@Path("{name}")
 	@Timed

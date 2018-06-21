@@ -123,6 +123,18 @@ public class FilesResource {
 		return bodyBuilder.toString();
 	}
 
+
+	/**
+	 * Rename a file.
+	 * @param name is the current name of the file
+	 * @param newName is the new name of the file
+	 * @throws NoSuchFileException if the file is not found
+	 * @throws IOException for any other file system error
+	 */
+	public void rename(String name, String newName) throws IOException {
+		Files.move(getFilePath(name), getFilePath(newName));
+	}
+
 	/**
 	 * Delete a file.
 	 * @param name is the name of the file

@@ -44,6 +44,10 @@ public interface Scripts {
 	@Path("{name}")
 	public String get(@PathParam("name") String name);
 
+	@PUT
+	@Path("{name}/rename")
+	public void rename(@PathParam("name") String name, String newName);
+
 	@DELETE
 	@Path("{name}")
 	public void delete(@PathParam("name") String name);
