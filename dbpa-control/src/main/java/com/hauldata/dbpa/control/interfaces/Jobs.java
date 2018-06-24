@@ -17,6 +17,7 @@
 package com.hauldata.dbpa.control.interfaces;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -45,6 +46,9 @@ public interface Jobs {
 	@GET
 	@Path("{name}")
 	public Job get(@PathParam("name") String name);
+
+	@GET
+	public Map<String, Job> getJobs(@QueryParam("like") String likeName);
 
 	@DELETE
 	@Path("{name}")

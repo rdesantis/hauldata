@@ -554,7 +554,9 @@ public class JobsResource {
 	 * @throws SQLException
 	 * @throws Exception if an error occurs
 	 */
-	public Map<String, Job> getJobs(String likeName) throws SQLException {
+	@GET
+	@Timed
+	public Map<String, Job> getJobs(@QueryParam("like") String likeName) throws SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
