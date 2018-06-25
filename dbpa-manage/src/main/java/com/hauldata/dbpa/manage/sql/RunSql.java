@@ -33,6 +33,7 @@ public class RunSql extends CommonSql {
 	public final static String select_ = "SELECT id, run.jobName, status, startTime, endTime, message FROM %1$s" + tableName + " AS run";
 	public final static String selectAllLastId_ = "SELECT jobName, MAX(id) AS maxId FROM %1$s" + tableName + " GROUP BY jobName";
 
+	public String orderById = " ORDER BY id %1$s";
 	public String selectLast =	"%1$s INNER JOIN (%2$s) AS mr ON mr.jobName = run.jobName AND run.id = mr.maxId";
 	public String whereJobName = " WHERE run.jobName LIKE ?";
 

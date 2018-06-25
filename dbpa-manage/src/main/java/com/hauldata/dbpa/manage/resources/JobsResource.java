@@ -857,7 +857,7 @@ public class JobsResource {
 	@GET
 	@Path("-/runs")
 	@Timed
-	public List<JobRun> getRuns(@QueryParam("like") String likeName, @QueryParam("latest") Boolean latest) throws SQLException {
+	public List<JobRun> getRuns(@QueryParam("like") String likeName, @QueryParam("latest") Boolean latest, @QueryParam("ascending") Boolean ascending) throws SQLException {
 
 		JobManager manager = JobManager.getInstance();
 		Context context = manager.getContext();
@@ -888,7 +888,7 @@ public class JobsResource {
 				selectRun = String.format(runSql.selectLast, runSql.select, runSql.selectAllLastId);
 			}
 
-			selectRun += runSql.whereJobName;
+			selectRun += runSql.whereJobName + String.format(runSql.orderById, CommonSql.orderBy((ascending == null) || ascending));
 
 			stmt = conn.prepareStatement(selectRun, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
 

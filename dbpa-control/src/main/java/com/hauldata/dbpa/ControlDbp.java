@@ -908,7 +908,7 @@ public class ControlDbp {
 
 		@Override
 		public Collection<?> getObjects(String likeName) {
-			return jobs.getRuns(likeName, latest);
+			return jobs.getRuns(likeName, latest, true);
 		}
 	}
 

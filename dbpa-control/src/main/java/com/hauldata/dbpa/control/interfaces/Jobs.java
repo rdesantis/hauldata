@@ -84,7 +84,7 @@ public interface Jobs {
 
 	@GET
 	@Path("-/runs")
-	public List<JobRun> getRuns(@QueryParam("like") String likeName, @QueryParam("latest") Boolean latest);
+	public List<JobRun> getRuns(@QueryParam("like") String likeName, @QueryParam("latest") Boolean latest, @QueryParam("ascending") Boolean ascending);
 
 	@GET
 	@Path("-/running")

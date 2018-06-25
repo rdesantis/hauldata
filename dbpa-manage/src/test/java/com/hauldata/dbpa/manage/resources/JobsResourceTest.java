@@ -274,7 +274,7 @@ public class JobsResourceTest extends TestCase {
 
 		assertTrue(running.stream().anyMatch(r -> (r.getRunId() == id)));
 
-		List<JobRun> runs = jobsResource.getRuns(sleepJobName, true);
+		List<JobRun> runs = jobsResource.getRuns(sleepJobName, true, true);
 
 		assertEquals(1, runs.size());
 
@@ -284,7 +284,7 @@ public class JobsResourceTest extends TestCase {
 
 		assertTrue(running.stream().noneMatch(r -> (r.getRunId() == id)));
 
-		runs = jobsResource.getRuns(sleepJobName, true);
+		runs = jobsResource.getRuns(sleepJobName, true, true);
 
 		assertEquals(1, runs.size());
 
@@ -321,7 +321,7 @@ public class JobsResourceTest extends TestCase {
 
 		assertTrue(running.stream().noneMatch(r -> (r.getRunId() == id)));
 
-		List<JobRun> runs = jobsResource.getRuns(stopJobName, true);
+		List<JobRun> runs = jobsResource.getRuns(stopJobName, true, true);
 
 		assertEquals(1, runs.size());
 

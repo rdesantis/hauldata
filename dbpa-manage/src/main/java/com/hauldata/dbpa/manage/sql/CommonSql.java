@@ -65,6 +65,13 @@ public class CommonSql {
 	}
 
 	/**
+	 * @return "ASC" is ascending is true, otherwise "DESC"
+	 */
+	public static String orderBy(boolean ascending) {
+		return ascending ? "ASC" : "DESC";
+	}
+
+	/**
 	 * For a query that returns a single integer, this function returns that integer plus 1.
 	 * <p>
 	 * This is intended for generating a new entity ID, in which case it should be called

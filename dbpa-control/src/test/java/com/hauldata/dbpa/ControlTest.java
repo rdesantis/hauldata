@@ -270,7 +270,7 @@ public class ControlTest extends TestCase {
 
 		System.out.println();
 
-		runs = jobs.getRuns("%", true);
+		runs = jobs.getRuns("%", true, true);
 
 		System.out.println("List of latest job runs:");
 		if (runs == null) {
