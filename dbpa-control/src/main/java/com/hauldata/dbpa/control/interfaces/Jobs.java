@@ -50,6 +50,10 @@ public interface Jobs {
 	@GET
 	public Map<String, Job> getJobs(@QueryParam("like") String likeName);
 
+	@PUT
+	@Path("{name}/rename")
+	public void rename(@PathParam("name") String name, String newName);
+
 	@DELETE
 	@Path("{name}")
 	public void delete(@PathParam("name") String name);

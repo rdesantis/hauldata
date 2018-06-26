@@ -743,6 +743,39 @@ public class JobsResource {
 		return names;
 	}
 
+
+	/**
+	 * Rename a job
+	 * @param name is the original name
+	 * @param newName is the new name
+	 */
+	@PUT
+	@Path("{name}/rename")
+	@Timed
+	public void rename(@PathParam("name") String name, String newName)  throws NameNotFoundException, SQLException {
+
+		JobManager manager = JobManager.getInstance();
+		Context context = manager.getContext();
+		JobSql sql = manager.getJobSql();
+
+		Connection conn = null;
+
+		try {
+			conn = context.getConnection(null);
+
+			int id = CommonSql.getId(conn, sql.selectId, name);
+
+			if (id == -1) {
+				throw new NameNotFoundException(CommonSql.getNotFoundMessageStem("job") + name);
+			}
+
+			CommonSql.execute(conn, sql.updateField, "name", newName, id);
+		}
+		finally {
+			if (conn != null) context.releaseConnection(null, conn);
+		}
+	}
+
 	/**
 	 * Delete a job
 	 *
