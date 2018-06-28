@@ -17,12 +17,15 @@
 package com.hauldata.dbpa;
 
 import io.dropwizard.Application;
+import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.cli.Command;
 import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
+
+import org.eclipse.jetty.servlet.ErrorPageErrorHandler;
 
 import com.hauldata.dbpa.dropwizard.CorsConfigurator;
 import com.hauldata.dbpa.dropwizard.ManageDbpConfiguration;
@@ -61,6 +64,10 @@ public class ManageDbp extends Application<ManageDbpConfiguration> {
 		JobManager.instantiate(false);
 
 		bootstrap.addCommand(new ResetCommand());
+
+		// Serve static assets
+
+		bootstrap.addBundle(new AssetsBundle("/assets/", "/", "index.html"));
     }
 
 	@Override
@@ -72,6 +79,12 @@ public class ManageDbp extends Application<ManageDbpConfiguration> {
 		if (corsConfigurator.getEnabled()) {
 			corsConfigurator.enableCors(environment);
 		}
+
+		// Redirect 404 errors to index.html
+
+		ErrorPageErrorHandler errorHandler = new ErrorPageErrorHandler();
+		errorHandler.addErrorPage(404, "/index.html");
+		environment.getApplicationContext().setErrorHandler(errorHandler);
 
 		// Health checks
 
