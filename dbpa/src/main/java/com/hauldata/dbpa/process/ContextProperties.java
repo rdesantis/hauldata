@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016 - 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -76,21 +76,25 @@ public class ContextProperties {
 	}
 
 	public ContextProperties(String contextName, ContextProperties defaults) {
+		this(contextName, defaults, true);
+	}
+
+	public ContextProperties(String contextName, ContextProperties defaults, boolean respectLogDefaults) {
 
 		this.contextName = contextName;
-
-		connectionProps = getProperties("jdbc", defaults.connectionProps);
-		sessionProps = getProperties("mail", defaults.sessionProps);
-		ftpProps = getProperties("ftp", defaults.ftpProps);
-		pathProps = getProperties("path", defaults.pathProps);
-		logProps = getProperties("log", defaults.logProps);
-
 		properties = new HashMap<String, Properties>();
-		properties.put("jdbc", connectionProps);
-		properties.put("mail", sessionProps);
-		properties.put("ftp", ftpProps);
-		properties.put("path", pathProps);
-		properties.put("log", logProps);
+
+		connectionProps = putProperties(properties, "jdbc", defaults.connectionProps);
+		sessionProps = putProperties(properties, "mail", defaults.sessionProps);
+		ftpProps = putProperties(properties, "ftp", defaults.ftpProps);
+		pathProps = putProperties(properties, "path", defaults.pathProps);
+		logProps = putProperties(properties, "log", respectLogDefaults ? defaults.logProps : null);
+	}
+
+	private Properties putProperties(Map<String, Properties> properties, String usage, Properties defaults) {
+		Properties result = getProperties(usage, defaults);
+		properties.put(usage, result);
+		return result;
 	}
 
 	public Context createContext(String processId) {

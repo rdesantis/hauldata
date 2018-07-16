@@ -30,6 +30,7 @@ import javax.naming.NamingException;
 
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.manage.JobManager;
+import com.hauldata.dbpa.manage.statsd.DummyStatsDServer;
 import com.hauldata.dbpa.manage_control.api.Job;
 import com.hauldata.dbpa.manage_control.api.JobRun;
 import com.hauldata.dbpa.manage_control.api.ScriptArgument;
@@ -259,6 +260,11 @@ public class JobsResourceTest extends TestCase {
 
 	public void testRun() throws SQLException, IOException, NamingException {
 
+		final String statsdPrefix = "ManageDbp.";
+		final int statsdPort = 17254;
+
+		DummyStatsDServer statsdServer = new DummyStatsDServer(statsdPort);
+
 		ScriptsResource scriptsResource = new ScriptsResource();
 		scriptsResource.put(sleepJobName, sleepScript);
 		assertTrue(scriptsResource.validate(sleepJobName).isValid());
@@ -267,6 +273,8 @@ public class JobsResourceTest extends TestCase {
 		jobsResource.put(sleepJobName, job);
 
 		int id = jobsResource.run(sleepJobName, null);
+
+		assertTrue(statsdServer.waitForMessageLike(statsdPrefix + JobStatus.runInProgress.name() + ":*", 100L, true));
 
 		try { Thread.sleep(1000L); } catch (InterruptedException e) {}
 
@@ -279,6 +287,8 @@ public class JobsResourceTest extends TestCase {
 		assertEquals(1, runs.size());
 
 		try { Thread.sleep(5000L); } catch (InterruptedException e) {}
+
+		assertTrue(statsdServer.waitForMessageLike(statsdPrefix + JobStatus.runSucceeded.name() + ":*", 100L, true));
 
 		running = jobsResource.getRunning();
 
@@ -296,6 +306,8 @@ public class JobsResourceTest extends TestCase {
 		assertEquals(JobStatus.runSucceeded, state.getStatus());
 		assertTrue(state.getEndTime().isBefore(LocalDateTime.now()));
 		assertTrue(state.getStartTime().until(state.getEndTime(), ChronoUnit.SECONDS) >= 5);
+
+		statsdServer.stop();
 	}
 
 	public void testStopRun() throws SQLException, IOException, NamingException {

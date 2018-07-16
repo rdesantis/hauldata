@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016 - 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -55,6 +55,7 @@ import com.hauldata.dbpa.process.Alert;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.ContextProperties;
 import com.hauldata.dbpa.process.DbProcess;
+import com.timgroup.statsd.StatsDClient;
 
 public class JobManager {
 
@@ -68,6 +69,7 @@ public class JobManager {
 
 	private ContextProperties contextProps;
 	private Context context;
+	private StatsDClient statsd;
 
 	private ManagerRunSql managerRunSql;
 	private JobSql jobSql;
@@ -146,8 +148,14 @@ public class JobManager {
 
 		// Manager context.
 
-		contextProps = new ContextProperties(managerProgramName, jobContextProps);
+		contextProps = new ContextProperties(managerProgramName, jobContextProps, false);
 		context = contextProps.createContext(null);
+
+		JobStatisticsCollector.WithWarning statsdWithWarning = JobStatisticsCollector.create(contextProps.getProperties("log"));
+		statsd = statsdWithWarning.statsd;
+		if (statsdWithWarning.warning != null) {
+			LOGGER.warn("Not collecting statistics: " + statsdWithWarning.warning);
+		}
 
 		String tablePrefix = context.connectionProps.getProperty("managerTablePrefix", "");
 
@@ -360,6 +368,7 @@ public class JobManager {
 					JobRun result = executor.getCompleted();
 					try {
 						updateRun(result);
+						statsd.incrementCounter(result.getState().getStatus().name());
 
 						if (result.getState().getStatus() == JobStatus.runFailed) {
 
@@ -372,6 +381,7 @@ public class JobManager {
 						// Want to keep running even though the run table may not be getting updated.
 
 						logAndAlert("Error recording job completion: {} - {}", result.getJobName(), ex.getMessage(), ex.getClass().getName());
+						statsd.incrementCounter("databaseError");
 					}
 				}
 			}
@@ -407,11 +417,13 @@ public class JobManager {
 		}
 		catch (SQLException sex) {
 			ex = sex; defaultMessage = "Database error during job start";
+			statsd.incrementCounter("databaseError");
 			throw sex;
 		}
 		finally {
 			if (ex != null) {
 				logAndAlert("Failed to start job: {} - {}", name, ex.getMessage(), defaultMessage);
+				statsd.incrementCounter(JobStatus.loadFailed.name());
 			}
 		}
 	}
@@ -427,6 +439,7 @@ public class JobManager {
 		}
 		catch (Exception ex) {
 			LOGGER.error("Cannot send alerts: {}", Optional.ofNullable(ex.getMessage()).orElse(ex.getClass().getName()));
+			statsd.incrementCounter("alertError");
 		}
 	}
 
@@ -452,6 +465,7 @@ public class JobManager {
 		}
 
 		LOGGER.info("Running job: {}", jobName);
+		statsd.incrementCounter(JobStatus.runInProgress.name());
 
 		// Instantiate the process, arguments, and context,
 		// submit the process to the executor,
@@ -708,7 +722,7 @@ public class JobManager {
 			CommonSql.executeUpdateNow(conn, manager.getManagerRunSql().updateEnd, lastSequence);
 		}
 		catch (SQLException sex) {
-			// Do nothing.
+			LOGGER.error("Failed releasing data schema", sex);
 		}
 		finally {
 			if (conn != null) context.releaseConnection(null, conn);
