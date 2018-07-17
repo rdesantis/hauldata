@@ -89,6 +89,8 @@ public class ContextProperties {
 		ftpProps = putProperties(properties, "ftp", defaults.ftpProps);
 		pathProps = putProperties(properties, "path", defaults.pathProps);
 		logProps = putProperties(properties, "log", respectLogDefaults ? defaults.logProps : null);
+
+		putProperties(properties, "statsd", null);
 	}
 
 	private Properties putProperties(Map<String, Properties> properties, String usage, Properties defaults) {

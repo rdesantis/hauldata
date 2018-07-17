@@ -151,7 +151,7 @@ public class JobManager {
 		contextProps = new ContextProperties(managerProgramName, jobContextProps, false);
 		context = contextProps.createContext(null);
 
-		JobStatisticsCollector.WithWarning statsdWithWarning = JobStatisticsCollector.create(contextProps.getProperties("log"));
+		JobStatisticsCollector.WithWarning statsdWithWarning = JobStatisticsCollector.create(contextProps.getProperties("statsd"));
 		statsd = statsdWithWarning.statsd;
 		if (statsdWithWarning.warning != null) {
 			LOGGER.warn("Not collecting statistics: " + statsdWithWarning.warning);

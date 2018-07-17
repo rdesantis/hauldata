@@ -48,15 +48,15 @@ public abstract class JobStatisticsCollector {
 	public static JobStatisticsCollector.WithWarning create(Properties properties) {
 
 		if (properties == null) {
-			return new WithWarning(new NoOpStatsDClient(), "no properties file");
+			return new WithWarning(new NoOpStatsDClient(), "statsd properties file not found");
 		}
 
-		String prefix = properties.getProperty("statsd.prefix");
-		String hostname = properties.getProperty("statsd.hostname");
-		String port = properties.getProperty("statsd.port");
+		String prefix = properties.getProperty("prefix");
+		String hostname = properties.getProperty("hostname");
+		String port = properties.getProperty("port");
 
 		if ((prefix == null) || (hostname == null) || (port == null)) {
-			return new WithWarning(new NoOpStatsDClient(), "statsd.prefix, statsd.hostname, or statsd.port not found in properties file");
+			return new WithWarning(new NoOpStatsDClient(), "prefix, hostname, or port not found in statsd properties file");
 		}
 
 		try {
