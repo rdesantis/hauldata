@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -25,12 +25,18 @@ import com.hauldata.dbpa.process.Context;
 
 public class RenameTask extends RenameOrCopyTask {
 
+	private boolean ifExists;
+	private Expression<String> from;
+	private Expression<String> to;
+
 	public RenameTask(
 			Prologue prologue,
+			boolean ifExists,
 			Expression<String> from,
 			Expression<String> to) {
 
 		super(prologue);
+		this.ifExists = ifExists;
 		this.from = from;
 		this.to = to;
 	}
@@ -47,9 +53,8 @@ public class RenameTask extends RenameOrCopyTask {
 
 	@Override
 	protected void action(Path from, Path to) throws IOException {
-		Files.move(from, to);
+		if (!ifExists || Files.exists(from) ) {
+			Files.move(from, to);
+		}
 	}
-
-	private Expression<String> from;
-	private Expression<String> to;
 }

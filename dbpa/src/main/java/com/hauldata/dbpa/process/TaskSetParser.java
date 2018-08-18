@@ -226,6 +226,7 @@ public abstract class TaskSetParser {
 		RESPONSE,
 		KEEP,
 		PASSWORD,
+		EXISTS,
 
 		// Functions
 
@@ -254,6 +255,7 @@ public abstract class TaskSetParser {
 		LOWER,
 		REPLACE,
 		REPLICATE,
+		REVERSE,
 		RIGHT,
 		RTRIM,
 		SPACE,
@@ -478,6 +480,7 @@ public abstract class TaskSetParser {
 		stringFunctionParsers.put(KW.LOWER.name(), new LowerParser());
 		stringFunctionParsers.put(KW.REPLACE.name(), new ReplaceParser());
 		stringFunctionParsers.put(KW.REPLICATE.name(), new ReplicateParser());
+		stringFunctionParsers.put(KW.REVERSE.name(), new ReverseParser());
 		stringFunctionParsers.put(KW.RIGHT.name(), new RightParser());
 		stringFunctionParsers.put(KW.RTRIM.name(), new RightTrimParser());
 		stringFunctionParsers.put(KW.SPACE.name(), new SpaceParser());
@@ -1188,11 +1191,12 @@ public abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
+			boolean ifExists = parseIfExists();
 			tokenizer.skipWordIgnoreCase(KW.FROM.name());
 			Expression<String> from = parseStringExpression();
 			tokenizer.skipWordIgnoreCase(KW.TO.name());
 			Expression<String> to = parseStringExpression();
-			return new RenameTask(prologue, from, to);
+			return new RenameTask(prologue, ifExists, from, to);
 		}
 	}
 
@@ -2274,6 +2278,18 @@ public abstract class TaskSetParser {
 		return connection;
 	}
 
+	private boolean parseIfExists() throws IOException {
+
+		BacktrackingTokenizerMark mark = tokenizer.mark();
+		if (tokenizer.skipWordIgnoreCase(KW.IF.name()) && tokenizer.skipWordIgnoreCase(KW.EXISTS.name())) {
+			return true;
+		}
+		else {
+			tokenizer.reset(mark);
+			return false;
+		}
+	}
+
 	/**
 	 * @return true if the next token is the name of a file type, otherwise false.
 	 * The tokenizer does not advance past any input.
@@ -2822,6 +2838,16 @@ public abstract class TaskSetParser {
 			Expression<Integer> repeats = parseIntegerExpression();
 
 			return new Replicate(string, repeats);
+		}
+	}
+
+	private class ReverseParser implements FunctionParser<String> {
+
+		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<String> string = parseStringExpression();
+
+			return new Reverse(string);
 		}
 	}
 

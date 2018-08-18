@@ -24,6 +24,7 @@ import com.hauldata.dbpa.expression.strings.LeftTrim;
 import com.hauldata.dbpa.expression.strings.Lower;
 import com.hauldata.dbpa.expression.strings.Replace;
 import com.hauldata.dbpa.expression.strings.Replicate;
+import com.hauldata.dbpa.expression.strings.Reverse;
 import com.hauldata.dbpa.expression.strings.Right;
 import com.hauldata.dbpa.expression.strings.RightTrim;
 import com.hauldata.dbpa.expression.strings.Space;
@@ -214,6 +215,19 @@ public class StringTest extends TestCase {
 		assertNull(replicate.evaluate());
 		replicate = new Replicate(string, nullInteger);
 		assertNull(replicate.evaluate());
+	}
+
+	public void testReverse() {
+
+		final StringConstant forwardString = new StringConstant("This is forward");
+		final StringConstant nullString = new StringConstant(null);
+
+		Reverse reverse;
+
+		reverse = new Reverse(forwardString);
+		assertEquals("drawrof si sihT", reverse.evaluate());
+		reverse = new Reverse(nullString);
+		assertNull(reverse.evaluate());
 	}
 
 	public void testRight() {
