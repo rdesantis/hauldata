@@ -28,11 +28,13 @@ public class RequestGetTask extends RequestTask {
 	public RequestGetTask(
 			Prologue prologue,
 			Expression<String> url,
+			Expression<Integer> connectTimeout,
+			Expression<Integer> socketTimeout,
 			List<Header> headers,
 			List<SourceWithAliases> sourcesWithAliases,
 			Expression<String> responseTemplate,
 			List<TargetWithKeepers> targetsWithIdentifiers) {
-		super(prologue, url, headers, sourcesWithAliases, responseTemplate, targetsWithIdentifiers);
+		super(prologue, url, connectTimeout, socketTimeout, headers, sourcesWithAliases, responseTemplate, targetsWithIdentifiers);
 	}
 
 	@Override

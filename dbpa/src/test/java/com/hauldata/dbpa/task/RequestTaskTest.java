@@ -43,6 +43,7 @@ public class RequestTaskTest extends TaskTest {
 				"END TASK\n" +
 				"TASK GetScheduleNames AFTER \n" +
 				"	REQUEST url + 'schedules/-/names' \n" +
+				"	CONNECT TIMEOUT 5 SOCKET TIMEOUT 60 \n" +
 				"	GET \n" +
 				"	RESPONSE '[name,...]' \n" +
 				"	INTO NOTHING \n" +
@@ -68,6 +69,7 @@ public class RequestTaskTest extends TaskTest {
 				"END TASK\n" +
 				"TASK GetScheduleValidationFromValues AFTER COMPLETES \n" +
 				"	REQUEST url + 'schedules/-/validations/{name}' \n" +
+				"	SOCKET TIMEOUT 10 \n" +
 				"	GET \n" +
 				"	FROM VALUES ('random text', 'lastMonday') AS 'arbitrary', 'name' \n" +
 				"	RESPONSE '{\"validationMessage\":vm}' \n" +

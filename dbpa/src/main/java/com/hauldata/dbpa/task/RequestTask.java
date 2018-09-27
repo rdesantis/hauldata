@@ -45,13 +45,15 @@ import javax.json.JsonString;
 import javax.json.JsonValue;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.client.HttpClientBuilder;
 
 import com.hauldata.dbpa.datasource.DataTarget;
 import com.hauldata.dbpa.datasource.Source;
@@ -70,6 +72,8 @@ public abstract class RequestTask extends Task {
 	public static final ContentType supportedContentType = ContentType.APPLICATION_JSON;
 
 	protected Expression<String> url;
+	protected Expression<Integer> connectTimeout;
+	protected Expression<Integer> socketTimeout;
 	protected List<Header> headers;
 	protected List<SourceWithAliases> sourcesWithAliases;
 	protected Expression<String> responseTemplate;
@@ -114,6 +118,8 @@ public abstract class RequestTask extends Task {
 	protected RequestTask(
 			Prologue prologue,
 			Expression<String> url,
+			Expression<Integer> connectTimeout,
+			Expression<Integer> socketTimeout,
 			List<Header> headers,
 			List<SourceWithAliases> sourcesWithAliases,
 			Expression<String> responseTemplate,
@@ -121,6 +127,8 @@ public abstract class RequestTask extends Task {
 		super(prologue);
 
 		this.url = url;
+		this.connectTimeout = connectTimeout;
+		this.socketTimeout = socketTimeout;
 		this.headers = headers;
 		this.sourcesWithAliases = sourcesWithAliases;
 		this.responseTemplate = responseTemplate;
@@ -150,7 +158,7 @@ public abstract class RequestTask extends Task {
 	 * For override by RequestWithBodyTask.
 	 */
 	protected RequestTaskEvaluatedParameters makeParameters() {
-		return new RequestTaskEvaluatedParameters(url, headers, sourcesWithAliases, responseTemplate, targetsWithKeepers);
+		return new RequestTaskEvaluatedParameters(url, connectTimeout, socketTimeout, headers, sourcesWithAliases, responseTemplate, targetsWithKeepers);
 	}
 
 	/**
@@ -323,7 +331,15 @@ public abstract class RequestTask extends Task {
 		CloseableHttpResponse response = null;
 
 		try {
-			client = HttpClients.createDefault();
+			RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
+			if (parameters.connectTimeout != null) {
+				requestConfigBuilder = requestConfigBuilder.setConnectTimeout(parameters.connectTimeout * 1000);
+			}
+			if (parameters.socketTimeout != null) {
+				requestConfigBuilder = requestConfigBuilder.setSocketTimeout(parameters.socketTimeout * 1000);
+			}
+
+			client = HttpClientBuilder.create().setDefaultRequestConfig(requestConfigBuilder.build()).build();
 
 			HttpResponseStatus finalStatus = HttpResponseStatus.OK;
 
@@ -335,7 +351,7 @@ public abstract class RequestTask extends Task {
 
 				request = buildRequest(url, parameters.headers, requestBody);
 
-				response = client.execute(request);
+				response = execute(client, request);
 
 				HttpResponseStatus responseStatus = responseInterpreter.interpret(parameters.getSource(0), response, parameters.getTargets());
 
@@ -433,6 +449,64 @@ public abstract class RequestTask extends Task {
 		return request;
 	}
 
+	/**
+	 * Execute HTTP request allowing long-running request to be terminated by interrupt
+	 *
+	 * If an InterruptedException occurs while waiting for the request to complete,
+	 * the HTTP client is closed immediately and this function re-throws the InterruptedException.
+	 *
+	 * Note that this function spawns a worker thread to execute the HTTP request.
+	 * It is assumed that closing the HTTP client on interrupt will terminate the HTTP request and thus
+	 * terminate the worker thread.  However, this is not guaranteed.  In the worst case, the worker thread
+	 * may continue running until a timeout is reached on the HTTP client.
+	 */
+	private CloseableHttpResponse execute(CloseableHttpClient client, HttpRequestBase request) throws ClientProtocolException, IOException, InterruptedException {
+
+		HttpRequestExecutor executor = new HttpRequestExecutor(client, request);
+		Thread executorThread = new Thread(executor);
+
+		executorThread.start();
+
+		try {
+			executorThread.join();
+		}
+		catch (InterruptedException iex) {
+			client.close();
+			throw iex;
+		}
+
+		if (executor.cpex != null) { throw executor.cpex; }
+		if (executor.ioex != null) { throw executor.ioex; }
+
+		return executor.response;
+	}
+
+	private static class HttpRequestExecutor implements Runnable {
+		public CloseableHttpClient client;
+		public HttpRequestBase request;
+		public CloseableHttpResponse response = null;
+		public ClientProtocolException cpex = null;
+		public IOException ioex = null;
+
+		public HttpRequestExecutor(CloseableHttpClient client, HttpRequestBase request) {
+			this.client = client;
+			this.request = request;
+		}
+
+		@Override
+		public void run() {
+			try {
+				response = client.execute(request);
+			}
+			catch (ClientProtocolException cpex) {
+				this.cpex = cpex;
+			}
+			catch (IOException ioex) {
+				this.ioex = ioex;
+			}
+		}
+	}
+
 	protected abstract HttpRequestBase makeRequest();
 }
 
@@ -442,6 +516,8 @@ public abstract class RequestTask extends Task {
 class RequestTaskEvaluatedParameters {
 
 	public String url;
+	public Integer connectTimeout;
+	public Integer socketTimeout;
 	public List<Header> headers;
 	public List<SourceWithAliases> sourcesWithAliases;
 	public String responseTemplate;
@@ -523,6 +599,8 @@ class RequestTaskEvaluatedParameters {
 
 	public RequestTaskEvaluatedParameters(
 			Expression<String> url,
+			Expression<Integer> connectTimeout,
+			Expression<Integer> socketTimeout,
 			List<RequestTask.Header> headers,
 			List<RequestTask.SourceWithAliases> sourcesWithAliases,
 			Expression<String> responseTemplate,
@@ -532,6 +610,9 @@ class RequestTaskEvaluatedParameters {
 		if (this.url == null) {
 			throw new RuntimeException("URL evaluates to NULL");
 		}
+
+		this.connectTimeout = (connectTimeout != null) ? connectTimeout.evaluate() : null;
+		this.socketTimeout = (socketTimeout != null) ? socketTimeout.evaluate() : null;
 
 		this.headers = new ArrayList<Header>();
 		if (headers != null) {

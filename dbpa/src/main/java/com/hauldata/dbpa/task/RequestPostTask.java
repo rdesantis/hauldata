@@ -28,12 +28,14 @@ public class RequestPostTask extends RequestWithBodyTask {
 	public RequestPostTask(
 			Prologue prologue,
 			Expression<String> url,
+			Expression<Integer> connectTimeout,
+			Expression<Integer> socketTimeout,
 			List<Header> headers,
 			Expression<String> requestTemplate,
 			List<SourceWithAliases> sourcesWithAliases,
 			Expression<String> responseTemplate,
 			List<TargetWithKeepers> targetsWithIdentifiers) {
-		super(prologue, url, headers, requestTemplate, sourcesWithAliases, responseTemplate, targetsWithIdentifiers);
+		super(prologue, url, connectTimeout, socketTimeout, headers, requestTemplate, sourcesWithAliases, responseTemplate, targetsWithIdentifiers);
 	}
 
 	@Override

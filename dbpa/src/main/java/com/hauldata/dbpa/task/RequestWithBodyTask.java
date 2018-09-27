@@ -35,19 +35,21 @@ public abstract class RequestWithBodyTask extends RequestTask {
 	public RequestWithBodyTask(
 			Prologue prologue,
 			Expression<String> url,
+			Expression<Integer> connectTimeout,
+			Expression<Integer> socketTimeout,
 			List<Header> headers,
 			Expression<String> requestTemplate,
 			List<SourceWithAliases> sourcesWithAliases,
 			Expression<String> responseTemplate,
 			List<TargetWithKeepers> targetsWithKeepers) {
-		super(prologue, url, headers, sourcesWithAliases, responseTemplate, targetsWithKeepers);
+		super(prologue, url, connectTimeout, socketTimeout, headers, sourcesWithAliases, responseTemplate, targetsWithKeepers);
 
 		this.requestTemplate = requestTemplate;
 	}
 
 	@Override
 	protected RequestTaskEvaluatedParameters makeParameters() {
-		return new RequestWithBodyTaskEvaluatedParameters(url, headers, requestTemplate, sourcesWithAliases, responseTemplate, targetsWithKeepers);
+		return new RequestWithBodyTaskEvaluatedParameters(url, connectTimeout, socketTimeout, headers, requestTemplate, sourcesWithAliases, responseTemplate, targetsWithKeepers);
 	}
 
 	@Override
@@ -67,12 +69,14 @@ class RequestWithBodyTaskEvaluatedParameters extends RequestTaskEvaluatedParamet
 
 	public RequestWithBodyTaskEvaluatedParameters(
 			Expression<String> url,
+			Expression<Integer> connectTimeout,
+			Expression<Integer> socketTimeout,
 			List<RequestTask.Header> headers,
 			Expression<String> requestTemplate,
 			List<RequestTask.SourceWithAliases> sourcesWithAliases,
 			Expression<String> responseTemplate,
 			List<RequestTask.TargetWithKeepers> targetsWithKeepers) {
-		super(url, headers, sourcesWithAliases, responseTemplate, targetsWithKeepers);
+		super(url, connectTimeout, socketTimeout, headers, sourcesWithAliases, responseTemplate, targetsWithKeepers);
 
 		this.requestTemplate = requestTemplate.evaluate();
 	}

@@ -218,6 +218,8 @@ public abstract class TaskSetParser {
 		TIME,
 		DEFAULT,
 		SUBSTITUTING,
+		SOCKET,
+		TIMEOUT,
 		HEADER,
 		POST,
 		NOTHING,
@@ -1607,6 +1609,9 @@ public abstract class TaskSetParser {
 
 			Expression<String> url = parseStringExpression();
 
+			Expression<Integer> connectTimeout = parseTimeout(KW.CONNECT.name());
+			Expression<Integer> socketTimeout = parseTimeout(KW.SOCKET.name());
+
 			List<RequestTask.Header> headers = null;
 			if (tokenizer.skipWordIgnoreCase(KW.HEADER.name())) {
 				headers = parseRequestHeaders();
@@ -1620,11 +1625,26 @@ public abstract class TaskSetParser {
 				throw new InputMismatchException("Expecting " + KW.REQUEST.name() + " type, found " + request);
 			}
 
-			return parser.parse(prologue, url, headers);
+			return parser.parse(prologue, url, connectTimeout, socketTimeout, headers);
 		}
 	}
 
-	List<RequestTask.Header> parseRequestHeaders() throws IOException {
+	private Expression<Integer> parseTimeout(String name) throws IOException {
+
+		Expression<Integer> result = null;
+
+		BacktrackingTokenizerMark mark = tokenizer.mark();
+		if (tokenizer.skipWordIgnoreCase(name) && tokenizer.skipWordIgnoreCase(KW.TIMEOUT.name())) {
+			result = parseIntegerExpression();
+		}
+		else {
+			tokenizer.reset(mark);
+		}
+
+		return result;
+	}
+
+	private List<RequestTask.Header> parseRequestHeaders() throws IOException {
 
 		List<RequestTask.Header> result = new LinkedList<RequestTask.Header>();
 		do {
@@ -1643,12 +1663,14 @@ public abstract class TaskSetParser {
 		protected Task newRequestTask(
 				Prologue prologue,
 				Expression<String> url,
+				Expression<Integer> connectTimeout,
+				Expression<Integer> socketTimeout,
 				List<Header> headers,
 				Expression<String> requestTemplate,
 				List<SourceWithAliases> sourcesWithAliases,
 				Expression<String> responseTemplate,
 				List<TargetWithKeepers> targetsWithKeepers) {
-			return new RequestGetTask(prologue, url, headers, sourcesWithAliases, responseTemplate, targetsWithKeepers);
+			return new RequestGetTask(prologue, url, connectTimeout, socketTimeout, headers, sourcesWithAliases, responseTemplate, targetsWithKeepers);
 		}
 	}
 
@@ -1657,12 +1679,14 @@ public abstract class TaskSetParser {
 		protected Task newRequestTask(
 				Prologue prologue,
 				Expression<String> url,
+				Expression<Integer> connectTimeout,
+				Expression<Integer> socketTimeout,
 				List<Header> headers,
 				Expression<String> requestTemplate,
 				List<SourceWithAliases> sourcesWithAliases,
 				Expression<String> responseTemplate,
 				List<TargetWithKeepers> targetsWithKeepers) {
-			return new RequestDeleteTask(prologue, url, headers, sourcesWithAliases, responseTemplate, targetsWithKeepers);
+			return new RequestDeleteTask(prologue, url, connectTimeout, socketTimeout, headers, sourcesWithAliases, responseTemplate, targetsWithKeepers);
 		}
 	}
 
@@ -1671,12 +1695,14 @@ public abstract class TaskSetParser {
 		protected Task newRequestTask(
 				Prologue prologue,
 				Expression<String> url,
+				Expression<Integer> connectTimeout,
+				Expression<Integer> socketTimeout,
 				List<Header> headers,
 				Expression<String> requestTemplate,
 				List<SourceWithAliases> sourcesWithAliases,
 				Expression<String> responseTemplate,
 				List<TargetWithKeepers> targetsWithKeepers) {
-			return new RequestPutTask(prologue, url, headers, requestTemplate, sourcesWithAliases, responseTemplate, targetsWithKeepers);
+			return new RequestPutTask(prologue, url, connectTimeout, socketTimeout, headers, requestTemplate, sourcesWithAliases, responseTemplate, targetsWithKeepers);
 		}
 	}
 
@@ -1685,18 +1711,24 @@ public abstract class TaskSetParser {
 		protected Task newRequestTask(
 				Prologue prologue,
 				Expression<String> url,
+				Expression<Integer> connectTimeout,
+				Expression<Integer> socketTimeout,
 				List<Header> headers,
 				Expression<String> requestTemplate,
 				List<SourceWithAliases> sourcesWithAliases,
 				Expression<String> responseTemplate,
 				List<TargetWithKeepers> targetsWithKeepers) {
-			return new RequestPostTask(prologue, url, headers, requestTemplate, sourcesWithAliases, responseTemplate, targetsWithKeepers);
+			return new RequestPostTask(prologue, url, connectTimeout, socketTimeout, headers, requestTemplate, sourcesWithAliases, responseTemplate, targetsWithKeepers);
 		}
 	}
 
 	abstract class RequestTaskTrailingParser {
 
-		public Task parse(Task.Prologue prologue, Expression<String> url, List<RequestTask.Header> headers) throws IOException {
+		public Task parse(
+				Task.Prologue prologue, Expression<String> url,
+				Expression<Integer> connectTimeout,
+				Expression<Integer> socketTimeout,
+				List<RequestTask.Header> headers) throws IOException {
 
 			Expression<String> requestTemplate = parseRequestString();
 
@@ -1718,7 +1750,7 @@ public abstract class TaskSetParser {
 				parseJoinTargets(targetsWithKeepers);
 			}
 
-			return newRequestTask(prologue, url, headers, requestTemplate, sourcesWithAliases, responseTemplate, targetsWithKeepers);
+			return newRequestTask(prologue, url, connectTimeout, socketTimeout, headers, requestTemplate, sourcesWithAliases, responseTemplate, targetsWithKeepers);
 		}
 
 		protected Expression<String> parseRequestString() throws IOException { return null; }
@@ -1812,6 +1844,8 @@ public abstract class TaskSetParser {
 		protected abstract Task newRequestTask(
 				Prologue prologue,
 				Expression<String> url,
+				Expression<Integer> connectTimeout,
+				Expression<Integer> socketTimeout,
 				List<Header> headers,
 				Expression<String> requestTemplate,
 				List<SourceWithAliases> sourcesWithAliases,
