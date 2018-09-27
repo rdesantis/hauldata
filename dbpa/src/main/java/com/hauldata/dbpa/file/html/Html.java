@@ -114,7 +114,9 @@ public class Html implements PageNode {
 		if (cellNeedsStartTag){
 			startTag(cellTag, cellStyle, false);
 		}
-		content.append(object.toString());
+		if (object != null) {
+			content.append(object.toString());
+		}
 		endTag(cellTag);
 	}
 

@@ -67,6 +67,9 @@ public class WriteTaskTest extends TaskTest {
 				"	TASK AFTER\n" +
 				"		WRITE TXT 'html.txt' NO HEADERS FROM VALUES (text) \n" +
 				"	END TASK \n" +
+				"	TASK AFTER\n" +
+				"		WRITE HTML text HEADERS 'nothing' FROM VALUES (NULL) \n" +
+				"	END TASK \n" +
 				"END TASK\n" +
 				"TASK WriteStyledXls \n" +
 				"	DO \n" +
