@@ -20,7 +20,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +44,7 @@ import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage.sql.CommonSql;
 import com.hauldata.dbpa.manage.sql.JobScheduleSql;
 import com.hauldata.dbpa.manage.sql.ScheduleSql;
+import com.hauldata.dbpa.manage_control.api.ScheduleState;
 import com.hauldata.dbpa.manage_control.api.ScheduleValidation;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.util.schedule.ScheduleSet;
@@ -480,5 +483,60 @@ public class SchedulesResource {
 		}
 
 		return names;
+	}
+
+	/**
+	 * Return the set of running schedules with state details.
+	 * <p>
+	 * @return a list of names of running schedules.
+	 * @throws SQLException
+	 */
+	@GET
+	@Path("-/running-state")
+	@Timed
+	public Map<String, ScheduleState> getRunningStates() throws SQLException {
+
+		JobManager manager = JobManager.getInstance();
+		Context context = manager.getContext();
+		ScheduleSql sql = manager.getScheduleSql();
+		JobScheduleSql jobScheduleSql= manager.getJobScheduleSql();
+
+		Connection conn = null;
+
+		Map<String, ScheduleState> states = new HashMap<String, ScheduleState>();
+
+		try {
+			List<Integer> ids = manager.getScheduler().getRunning();
+
+			if (!ids.isEmpty()) {
+
+				conn = context.getConnection(null);
+
+				List<String> names = getScheduleNames(conn, sql, ids);
+
+				Iterator<Integer> idsIterator = ids.iterator();
+				for (String name : names) {
+					Integer id = idsIterator.next();
+
+					String source = get(name);
+
+					ScheduleSet schedule = ScheduleSet.parse(source);
+
+					LocalDateTime nextJobTime = schedule.nextFrom(LocalDateTime.now());
+
+					List<String> jobNames = getScheduleJobNames(conn, jobScheduleSql, id);
+
+					states.put(name, new ScheduleState(nextJobTime, jobNames));
+				}
+			}
+		} catch (NameNotFoundException | IllegalArgumentException e) {
+			// Should never happen
+			throw new RuntimeException("Internal exception: " + e.toString());
+		}
+		finally {
+			if (conn != null) context.releaseConnection(null, conn);
+		}
+
+		return states;
 	}
 }
