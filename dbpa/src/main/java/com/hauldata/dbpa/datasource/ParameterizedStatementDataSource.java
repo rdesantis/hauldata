@@ -59,7 +59,7 @@ public class ParameterizedStatementDataSource extends DataSource {
 
 	private void prepareStatement(Context context) throws SQLException {
 
-		conn = context.getConnection(connection);
+		getConnection(context);
 
 		stmt = conn.prepareStatement(statement, getResultSetType(), ResultSet.CONCUR_READ_ONLY);
 

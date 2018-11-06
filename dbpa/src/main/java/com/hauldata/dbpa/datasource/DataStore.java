@@ -89,6 +89,17 @@ public abstract class DataStore {
 
 	protected DataStore(DatabaseConnection connection) {
 		this.connection = connection;
+
+		this.conn = null;
+		this.stmt = null;
+	}
+
+	public void getConnection(Context context) {
+
+		conn = context.getConnection(connection);
+		if (conn == null) {
+			throw new RuntimeException("Database connection properties are not defined");
+		}
 	}
 
 	public void close(Context context) {

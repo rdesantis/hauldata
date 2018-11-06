@@ -34,7 +34,7 @@ public abstract class DataTarget extends DataStore {
 
 	protected void prepareStatement(Context context, String sql) throws SQLException {
 
-		conn = context.getConnection(connection);
+		getConnection(context);
 
 		stmt = conn.prepareStatement(sql);
 	}

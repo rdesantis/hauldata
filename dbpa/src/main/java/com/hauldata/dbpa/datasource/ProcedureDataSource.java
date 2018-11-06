@@ -97,7 +97,7 @@ public class ProcedureDataSource extends DataSource {
 
 		String sql = "{" + result + "call " + procName + "(" + paramList + ")}";
 
-		conn = context.getConnection(connection);
+		getConnection(context);
 
 		stmt = conn.prepareCall(sql, getResultSetType(), ResultSet.CONCUR_READ_ONLY);
 

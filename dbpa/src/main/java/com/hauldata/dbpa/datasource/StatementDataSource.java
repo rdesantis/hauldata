@@ -54,7 +54,7 @@ public class StatementDataSource extends DataSource {
 
 	private String evaluateStatement(Context context) throws SQLException {
 
-		conn = context.getConnection(connection);
+		getConnection(context);
 
 		stmt = conn.createStatement(getResultSetType(), ResultSet.CONCUR_READ_ONLY);
 
