@@ -18,6 +18,7 @@ package com.hauldata.dbpa.task;
 
 import java.io.StringReader;
 
+import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.Logger.Level;
 import com.hauldata.dbpa.process.DbProcess;
 
@@ -64,5 +65,30 @@ public class ConnectTaskTest extends TaskTest {
 		boolean logToConsole = true;
 
 		runScript(processId, logLevel, logToConsole, script, null, null, null); 
+	}
+
+	public void testConnectionPropertiesNotSet() throws Exception {
+		
+		String processId = "ConnectNoPropertiesTest";
+		String script =
+				"CONNECTIONS db DATABASE END CONNECTIONS \n" +
+				"TASK BadWrite WRITE CSV 'nothing' FROM db PROCEDURE 'whatever'  END TASK \n" +
+				"";
+
+		Level logLevel = Level.error;
+		boolean logToConsole = true;
+
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null, false);
+
+		Analyzer.RecordIterator iterator = analyzer.recordIterator(processId, "BADWRITE");
+		Analyzer.Record record;
+
+		record = iterator.next();
+		assertEquals("Database connection properties are not defined", record.message);
+
+		record = iterator.next();
+		assertEquals(Task.failMessage, record.message);
+
+		assertFalse(iterator.hasNext());
 	}
 }
