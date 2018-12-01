@@ -17,6 +17,7 @@
 package com.hauldata.dbpa.task;
 
 import java.io.StringReader;
+import java.util.regex.Pattern;
 
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.Logger.Level;
@@ -103,6 +104,93 @@ public class TaskSequenceTest extends TaskTest {
 		record = recordIterator.next();
 		assertEquals(DbProcess.processTaskId, record.taskId);
 		assertTrue(record.message.startsWith(DbProcess.elapsedMessageStem));
+
+		assertFalse(recordIterator.hasNext());
+	}
+
+	public void testSequenceOrTasks() throws Exception {
+
+		String processId = "SequenceOrTest";
+		String script =
+				"TASK One GO END TASK \n" +
+				"TASK Two AFTER GO END TASK \n" +
+				"TASK Three AFTER GO END TASK \n" +
+				"TASK CompleteSuccess AFTER GO END TASK \n" +
+				"TASK TwoFails AFTER Two FAILS GO END TASK \n" +
+				"TASK ThreeFails AFTER Three FAILS GO END TASK \n" +
+				"TASK AllDone AFTER CompleteSuccess OR TwoFails OR ThreeFails GO END TASK \n" +
+				"";
+
+		Level logLevel = Level.info;
+		boolean logToConsole = true;
+
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
+
+		Analyzer.RecordIterator recordIterator;
+		Analyzer.Record record;
+
+		recordIterator = analyzer.recordIterator(processId, Pattern.compile("(ONE)|(TWO)|(THREE)|(COMPLETESUCCESS)|(ALLDONE)"));
+
+		record = recordIterator.next();
+		assertEquals("ONE", record.taskId);
+		assertEquals(GoTask.continuingMessage, record.message);
+		record = recordIterator.next();
+		assertEquals("TWO", record.taskId);
+		assertEquals(GoTask.continuingMessage, record.message);
+		record = recordIterator.next();
+		assertEquals("THREE", record.taskId);
+		assertEquals(GoTask.continuingMessage, record.message);
+		record = recordIterator.next();
+		assertEquals("COMPLETESUCCESS", record.taskId);
+		assertEquals(GoTask.continuingMessage, record.message);
+		record = recordIterator.next();
+		assertEquals("ALLDONE", record.taskId);
+		assertEquals(GoTask.continuingMessage, record.message);
+
+		assertFalse(recordIterator.hasNext());
+	}
+
+	public void testFailSequenceOrTasks() throws Exception {
+
+		String processId = "FailSequenceOrTest";
+		String script =
+				"TASK One GO END TASK \n" +
+				"TASK Two AFTER GO END TASK \n" +
+				"TASK Three AFTER FAIL END TASK \n" +
+				"TASK CompleteSuccess AFTER GO END TASK \n" +
+				"TASK TwoFails AFTER Two FAILS GO END TASK \n" +
+				"TASK ThreeFails AFTER Three FAILS GO END TASK \n" +
+				"TASK AllDone AFTER CompleteSuccess OR TwoFails OR ThreeFails GO END TASK \n" +
+				"";
+
+		Level logLevel = Level.info;
+		boolean logToConsole = true;
+
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
+
+		Analyzer.RecordIterator recordIterator;
+		Analyzer.Record record;
+
+		recordIterator = analyzer.recordIterator(processId, Pattern.compile("(ONE)|(TWO)|(THREE)|(THREEFAILS)|(ALLDONE)"));
+
+		record = recordIterator.next();
+		assertEquals("ONE", record.taskId);
+		assertEquals(GoTask.continuingMessage, record.message);
+		record = recordIterator.next();
+		assertEquals("TWO", record.taskId);
+		assertEquals(GoTask.continuingMessage, record.message);
+		record = recordIterator.next();
+		assertEquals("THREE", record.taskId);
+		assertEquals(FailTask.failingMessage, record.message);
+		record = recordIterator.next();
+		assertEquals("THREE", record.taskId);
+		assertEquals(Task.failMessage, record.message);
+		record = recordIterator.next();
+		assertEquals("THREEFAILS", record.taskId);
+		assertEquals(GoTask.continuingMessage, record.message);
+		record = recordIterator.next();
+		assertEquals("ALLDONE", record.taskId);
+		assertEquals(GoTask.continuingMessage, record.message);
 
 		assertFalse(recordIterator.hasNext());
 	}

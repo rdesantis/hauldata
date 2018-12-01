@@ -307,7 +307,7 @@ public abstract class Task {
 		else {
 			// This predecessor did not complete in the status required by this successor.
 
-			if (remainingPredecessors.isEmpty() || (combination == Expression.Combination.and) || !task.completedNormally()) {
+			if (remainingPredecessors.isEmpty() || (combination == Expression.Combination.and) || task.completedTerminally()) {
 				// The successor can never run; it is orphaned.  Its successors may be too.
 
 				result = Result.orphaned;
@@ -327,5 +327,12 @@ public abstract class Task {
 	 */
 	public boolean completedNormally() {
 		return (result == Result.success) || (result == Result.failure);
+	}
+
+	/**
+	 * @return true if the task ended with a status that forces its successors never to run, false otherwise
+	 */
+	public boolean completedTerminally() {
+		return (result == Result.stopped);
 	}
 }
