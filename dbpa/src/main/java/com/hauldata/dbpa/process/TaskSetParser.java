@@ -1006,7 +1006,7 @@ public abstract class TaskSetParser {
 
 			columns.validate(headers);
 
-			DataTarget target = parseDataTarget(KW.LOAD.name(), KW.INTO.name(), true, headers.exist());
+			DataTarget target = parseDataTarget(KW.READ.name(), KW.INTO.name(), true, headers.exist());
 
 			return new ReadTask(prologue, page, options, headers, columns, target);
 		}
@@ -1017,13 +1017,13 @@ public abstract class TaskSetParser {
 
 			List<FixedFieldExpressions> headers = parseFixedHeaders();
 
-			DataFixedFieldExpressions dataFields = parseFixedDataFields();
+			List<DataFixedFieldExpressions> dataRecords = parseFixedDataRecords();
+
+			DataTarget target = parseDataTarget(KW.READ.name(), KW.INTO.name(), false, false);
 
 			List<FixedFieldExpressions> trailers = parseFixedTrailers();
 
-			DataTarget target = parseDataTarget(KW.LOAD.name(), KW.INTO.name(), false, false);
-
-			return new ReadFixedTask(prologue, page, headers, dataFields, trailers, target);
+			return new ReadFixedTask(prologue, page, headers, dataRecords, target, trailers);
 		}
 
 		private List<FixedFieldExpressions> parseFixedHeaders() throws IOException {
@@ -1035,13 +1035,27 @@ public abstract class TaskSetParser {
 			return headers;
 		}
 
-		private DataFixedFieldExpressions parseFixedDataFields() throws IOException {
+		private List<DataFixedFieldExpressions> parseFixedDataRecords() throws IOException {
 
 			if (!tokenizer.skipWordIgnoreCase(KW.DATA.name())) {
 				throw new InputMismatchException("Expecting " + KW.DATA.name() + ", found " + tokenizer.nextToken().getImage());
 			}
 
+			List<DataFixedFieldExpressions> dataRecords = new LinkedList<DataFixedFieldExpressions>();
+			do {
+				dataRecords.add(parseFixedDataFields());
+			} while (tokenizer.skipWordIgnoreCase(KW.DATA.name()));
+
+			return dataRecords;
+		}
+
+		private DataFixedFieldExpressions parseFixedDataFields() throws IOException {
+
 			DataFixedFieldExpressions fields = new DataFixedFieldExpressions();
+
+			if (tokenizer.skipWordIgnoreCase(KW.IGNORE.name())) {
+				return fields;
+			}
 
 			do {
 				FixedColumns columns = parseFixedColumns();

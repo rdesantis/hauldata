@@ -39,24 +39,24 @@ public class ReadFixedTask extends Task {
 
 	private PageIdentifierExpression page;
 	private List<FixedFieldExpressions> headers;
-	private DataFixedFieldExpressions dataFields;
-	private List<FixedFieldExpressions> trailers;
+	private List<DataFixedFieldExpressions> dataRecords;
 	private DataTarget target;
+	private List<FixedFieldExpressions> trailers;
 
 	public ReadFixedTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
 			List<FixedFieldExpressions> headers,
-			DataFixedFieldExpressions dataFields,
-			List<FixedFieldExpressions> trailers,
-			DataTarget target) {
+			List<DataFixedFieldExpressions> dataRecords,
+			DataTarget target,
+			List<FixedFieldExpressions> trailers) {
 
 		super(prologue);
 		this.page = page;
 		this.headers = headers;
-		this.dataFields = dataFields;
-		this.trailers = trailers;
+		this.dataRecords = dataRecords;
 		this.target = target;
+		this.trailers = trailers;
 	}
 
 	@Override
@@ -64,7 +64,7 @@ public class ReadFixedTask extends Task {
 
 		PageIdentifier page = this.page.evaluate(context, false);
 		List<FixedFields> headers = evaluate(this.headers, true);
-		DataFixedFields dataFields = this.dataFields.evaluate();
+		List<DataFixedFields> dataRecords = evaluate(this.dataRecords);
 		List<FixedFields> trailers = evaluate(this.trailers, false);
 		FirstTrailerFixedFields firstTrailer = trailers.isEmpty() ? null : (FirstTrailerFixedFields)trailers.get(0);
 
@@ -76,7 +76,7 @@ public class ReadFixedTask extends Task {
 
 			read(sourcePage, headers, true);
 
-			read(sourcePage, dataFields, firstTrailer, target, context);
+			read(sourcePage, dataRecords, firstTrailer, target, context);
 
 			read(sourcePage, trailers, false);
 
@@ -110,6 +110,15 @@ public class ReadFixedTask extends Task {
 		return result;
 	}
 
+	private List<DataFixedFields> evaluate(List<DataFixedFieldExpressions> fieldsPerRecord) {
+
+		List<DataFixedFields> result = new LinkedList<DataFixedFields>();
+		for (DataFixedFieldExpressions fields : fieldsPerRecord) {
+			result.add(fields.evaluate());
+		}
+		return result;
+	}
+
 	private void read(
 			TxtFile sourcePage,
 			List<FixedFields> fieldsPerRecord,
@@ -129,10 +138,10 @@ public class ReadFixedTask extends Task {
 
 	private void read(
 			TxtFile sourcePage,
-			DataFixedFields dataFields,
+			List<DataFixedFields> dataRecords,
 			FirstTrailerFixedFields firstTrailer,
 			DataTarget target,
-			Context context) throws IOException {
+			Context context)  throws IOException {
 
 		try {
 			target.prepareStatement(context, null, null);
@@ -143,12 +152,17 @@ public class ReadFixedTask extends Task {
 				if ((firstTrailer != null) && firstTrailer.matches(record)) {
 					break;
 				}
-				dataFields.actOn(record);
-				sourcePage.readColumn(2);
 
 				int targetColumnIndex = 1;
-				for (KeeperFixedField field : dataFields.getKeeperFields()) {
-					target.setObject(targetColumnIndex++, field.getValue());
+				for (DataFixedFields dataFields: dataRecords) {
+
+					record = (String)sourcePage.readColumn(1);
+					dataFields.actOn(record);
+					sourcePage.readColumn(2);
+
+					for (KeeperFixedField field : dataFields.getKeeperFields()) {
+						target.setObject(targetColumnIndex++, field.getValue());
+					}
 				}
 				target.addBatch();
 			}
