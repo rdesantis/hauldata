@@ -27,6 +27,9 @@ import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.file.SourcePage;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.NestedTaskSet;
+import com.hauldata.dbpa.task.expression.ColumnExpressions;
+import com.hauldata.dbpa.task.expression.PageIdentifierExpression;
+import com.hauldata.dbpa.task.expression.SourceHeaderExpressions;
 import com.hauldata.dbpa.variable.VariableBase;
 import com.hauldata.util.tokenizer.EndOfLine;
 

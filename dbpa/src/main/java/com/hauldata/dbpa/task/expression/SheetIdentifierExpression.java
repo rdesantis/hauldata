@@ -14,22 +14,34 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.task;
+package com.hauldata.dbpa.task.expression;
 
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.FileHandler;
-import com.hauldata.dbpa.file.FileIdentifier;
 import com.hauldata.dbpa.file.PageIdentifier;
+import com.hauldata.dbpa.file.book.SheetIdentifier;
 import com.hauldata.dbpa.process.Context;
 
-public class FileIdentifierExpression extends PhysicalPageIdentifierExpression {
+public class SheetIdentifierExpression extends PhysicalPageIdentifierExpression {
 
-	public FileIdentifierExpression(FileHandler handler, Expression<String> filePath) {
+	protected Expression<String> sheetName;
+
+	public SheetIdentifierExpression(FileHandler handler, Expression<String> filePath, Expression<String> sheetName) {
+
 		super(handler, filePath);
+		this.sheetName = sheetName;
 	}
 
 	@Override
 	public PageIdentifier evaluate(Context context, boolean writeNotRead) {
-		return new FileIdentifier(handler, context.getDataPath(getEvaluatedFilePath(), writeNotRead));
+		return new SheetIdentifier(handler, context.getDataPath(getEvaluatedFilePath(), writeNotRead), getEvaluatedSheetName());
+	}
+
+	private String getEvaluatedSheetName() {
+		String evaluatedSheetName = sheetName.evaluate();
+		if (evaluatedSheetName == null) {
+			throw new RuntimeException("Sheet name expression evaluates to NULL");
+		}
+		return evaluatedSheetName;
 	}
 }

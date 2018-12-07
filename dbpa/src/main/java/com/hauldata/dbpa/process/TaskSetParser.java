@@ -55,6 +55,18 @@ import com.hauldata.dbpa.task.RequestTask.Header;
 import com.hauldata.dbpa.task.RequestTask.SourceWithAliases;
 import com.hauldata.dbpa.task.RequestTask.TargetWithKeepers;
 import com.hauldata.dbpa.task.Task.Prologue;
+import com.hauldata.dbpa.task.expression.ColumnExpressions;
+import com.hauldata.dbpa.task.expression.FileIdentifierExpression;
+import com.hauldata.dbpa.task.expression.HtmlPageIdentifierExpression;
+import com.hauldata.dbpa.task.expression.PageIdentifierExpression;
+import com.hauldata.dbpa.task.expression.SheetIdentifierExpression;
+import com.hauldata.dbpa.task.expression.SourceHeaderExpressions;
+import com.hauldata.dbpa.task.expression.TargetHeaderExpressions;
+import com.hauldata.dbpa.task.expression.fixed.DataFixedFieldExpressions;
+import com.hauldata.dbpa.task.expression.fixed.FixedFieldExpressions;
+import com.hauldata.dbpa.task.expression.fixed.KeeperFixedFieldExpression;
+import com.hauldata.dbpa.task.expression.fixed.SetterFixedFieldExpression;
+import com.hauldata.dbpa.task.expression.fixed.ValidatorFixedFieldExpression;
 import com.hauldata.dbpa.variable.*;
 import com.hauldata.util.schedule.ScheduleSet;
 import com.hauldata.util.tokenizer.*;
@@ -188,12 +200,16 @@ public abstract class TaskSetParser {
 		TSV,
 		TXT,
 		XLSX,
+		FIXED,
 		SHEET,
 		WITH,
 		NO,
 		IGNORE,
 		HEADERS,
 		COLUMNS,
+		CONTAIN,
+		DATA,
+		TRAILER,
 		PREFIX,
 		BINARY,
 		ASCII,
@@ -883,7 +899,7 @@ public abstract class TaskSetParser {
 			}
 		}
 
-		public Task parseWriteFileTask(Task.Prologue prologue) throws IOException {
+		private Task parseWriteFileTask(Task.Prologue prologue) throws IOException {
 
 			FileHandler handler = parseFileHandler(true);
 
@@ -899,7 +915,7 @@ public abstract class TaskSetParser {
 		}
 
 		@SuppressWarnings("unchecked")
-		public Task parseWriteHtmlTask(Task.Prologue prologue) throws IOException {
+		private Task parseWriteHtmlTask(Task.Prologue prologue) throws IOException {
 
 			VariableBase variable = parseVariableReference();
 
@@ -968,6 +984,16 @@ public abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
+			if (tokenizer.skipWordIgnoreCase(KW.FIXED.name())) {
+				return parseReadFixed(prologue);
+			}
+			else {
+				return parseReadDelimited(prologue);
+			}
+		}
+
+		public Task parseReadDelimited(Task.Prologue prologue) throws IOException {
+
 			FileHandler handler = parseFileHandler(false);
 
 			PageIdentifierExpression page = parsePageIdentifier(handler);
@@ -983,6 +1009,108 @@ public abstract class TaskSetParser {
 			DataTarget target = parseDataTarget(KW.LOAD.name(), KW.INTO.name(), true, headers.exist());
 
 			return new ReadTask(prologue, page, options, headers, columns, target);
+		}
+
+		private Task parseReadFixed(Task.Prologue prologue) throws IOException {
+
+			PageIdentifierExpression page = parsePageIdentifier(null);
+
+			List<FixedFieldExpressions> headers = parseFixedHeaders();
+
+			DataFixedFieldExpressions dataFields = parseFixedDataFields();
+
+			List<FixedFieldExpressions> trailers = parseFixedTrailers();
+
+			DataTarget target = parseDataTarget(KW.LOAD.name(), KW.INTO.name(), false, false);
+
+			return new ReadFixedTask(prologue, page, headers, dataFields, trailers, target);
+		}
+
+		private List<FixedFieldExpressions> parseFixedHeaders() throws IOException {
+
+			List<FixedFieldExpressions> headers = new LinkedList<FixedFieldExpressions>();
+			while (tokenizer.skipWordIgnoreCase(KW.HEADER.name())) {
+				headers.add(parseFixedFields());
+			}
+			return headers;
+		}
+
+		private DataFixedFieldExpressions parseFixedDataFields() throws IOException {
+
+			if (!tokenizer.skipWordIgnoreCase(KW.DATA.name())) {
+				throw new InputMismatchException("Expecting " + KW.DATA.name() + ", found " + tokenizer.nextToken().getImage());
+			}
+
+			DataFixedFieldExpressions fields = new DataFixedFieldExpressions();
+
+			do {
+				FixedColumns columns = parseFixedColumns();
+				if (tokenizer.skipWordIgnoreCase(KW.CONTAIN.name())) {
+					Expression<String> validator = parseStringExpression();
+					fields.add(new ValidatorFixedFieldExpression(columns.startColumn, columns.endColumn, validator));
+				}
+				else {
+					tokenizer.skipWordIgnoreCase(KW.KEEP.name());
+					fields.add(new KeeperFixedFieldExpression(columns.startColumn, columns.endColumn));
+				}
+			} while (tokenizer.skipDelimiter(","));
+
+			return fields;
+		}
+
+		private List<FixedFieldExpressions> parseFixedTrailers() throws IOException {
+
+			List<FixedFieldExpressions> trailers = new LinkedList<FixedFieldExpressions>();
+			while (tokenizer.skipWordIgnoreCase(KW.TRAILER.name())) {
+				trailers.add(parseFixedFields());
+			}
+			if (!trailers.isEmpty() && !trailers.get(0).canBeFirstTrailer()) {
+				throw new InputMismatchException("The first trailer must include at least one " + KW.CONTAIN.name() + " clause");
+			}
+			return trailers;
+		}
+
+		private FixedFieldExpressions parseFixedFields() throws IOException {
+
+			FixedFieldExpressions fields = new FixedFieldExpressions();
+
+			if (tokenizer.skipWordIgnoreCase(KW.IGNORE.name())) {
+				return fields;
+			}
+
+			do {
+				FixedColumns columns = parseFixedColumns();
+				if (tokenizer.skipWordIgnoreCase(KW.CONTAIN.name())) {
+					Expression<String> validator = parseStringExpression();
+					fields.add(new ValidatorFixedFieldExpression(columns.startColumn, columns.endColumn, validator));
+				}
+				else if (tokenizer.skipWordIgnoreCase(KW.KEEP.name())) {
+					VariableBase variable = parseVariableReference();
+					fields.add(new SetterFixedFieldExpression(columns.startColumn, columns.endColumn, variable));
+				}
+				else {
+					throw new InputMismatchException("Expecting " + KW.CONTAIN.name() + " or " + KW.KEEP.name() + ", found " + tokenizer.nextToken().getImage());
+				}
+			} while (tokenizer.skipDelimiter(","));
+
+			return fields;
+		}
+
+		private FixedColumns parseFixedColumns() throws IOException {
+			tokenizer.skipWordIgnoreCase(KW.COLUMNS.name());
+			Expression<Integer> startColumn = parseIntegerExpression();
+			Expression<Integer> endColumn = parseIntegerExpression();
+			return new FixedColumns(startColumn, endColumn);
+		}
+
+		private class FixedColumns {
+			Expression<Integer> startColumn;
+			Expression<Integer> endColumn;
+
+			public FixedColumns(Expression<Integer> startColumn, Expression<Integer> endColumn) {
+				this.startColumn = startColumn;
+				this.endColumn = endColumn;
+			}
 		}
 	}
 
@@ -2147,7 +2275,7 @@ public abstract class TaskSetParser {
 	private PageIdentifierExpression parsePageIdentifier(FileHandler handler) throws IOException {
 
 		Expression<String> filePath = parseStringExpression();
-		if (!handler.getHasSheets()) {
+		if ((handler == null) || !handler.getHasSheets()) {
 			return new FileIdentifierExpression(handler, filePath);
 		}
 		else {

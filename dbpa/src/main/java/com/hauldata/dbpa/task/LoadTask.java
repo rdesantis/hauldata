@@ -23,6 +23,8 @@ import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.SourcePage;
 import com.hauldata.dbpa.process.Context;
+import com.hauldata.dbpa.task.expression.ColumnExpressions;
+import com.hauldata.dbpa.task.expression.PageIdentifierExpression;
 
 public class LoadTask extends FileTask {
 

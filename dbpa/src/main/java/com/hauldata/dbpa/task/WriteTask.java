@@ -24,6 +24,8 @@ import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.TargetHeaders;
 import com.hauldata.dbpa.file.TargetPage;
 import com.hauldata.dbpa.process.Context;
+import com.hauldata.dbpa.task.expression.PageIdentifierExpression;
+import com.hauldata.dbpa.task.expression.TargetHeaderExpressions;
 
 public class WriteTask extends FileTask {
 

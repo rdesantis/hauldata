@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Ronald DeSantis
+ * Copyright (c) 2016, 2018, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -14,26 +14,22 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.task;
+package com.hauldata.dbpa.task.expression;
 
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.FileHandler;
+import com.hauldata.dbpa.file.FileIdentifier;
+import com.hauldata.dbpa.file.PageIdentifier;
+import com.hauldata.dbpa.process.Context;
 
-public abstract class PhysicalPageIdentifierExpression implements PageIdentifierExpression {
+public class FileIdentifierExpression extends PhysicalPageIdentifierExpression {
 
-	protected FileHandler handler;
-	protected Expression<String> filePath;
-
-	protected PhysicalPageIdentifierExpression(FileHandler handler, Expression<String> filePath) {
-		this.handler = handler;
-		this.filePath = filePath;
+	public FileIdentifierExpression(FileHandler handler, Expression<String> filePath) {
+		super(handler, filePath);
 	}
 
-	protected String getEvaluatedFilePath() {
-		String evaluatedFilePath = filePath.evaluate();
-		if (evaluatedFilePath == null) {
-			throw new RuntimeException("File path expression evaluates to NULL");
-		}
-		return evaluatedFilePath;
+	@Override
+	public PageIdentifier evaluate(Context context, boolean writeNotRead) {
+		return new FileIdentifier(handler, context.getDataPath(getEvaluatedFilePath(), writeNotRead));
 	}
 }

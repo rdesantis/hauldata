@@ -222,4 +222,35 @@ public class ReadTaskTest extends TaskTest {
 
 		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
 	}
+
+	public void testReadFixed() throws Exception {
+
+		String processId = "ReadFixedTest";
+		String script =
+				"VARIABLES run_date DATETIME, reporting_start_date DATE, reporting_end_date DATE, company_name VARCHAR, record_count INTEGER END VARIABLES \n" +
+				"TASK READ FIXED 'fixed test.txt' \n" +
+				"	HEADER COLUMNS 105 132 CONTAIN 'NAUGHTY ANDD NICERONI REPORT', COLUMNS 135 151 CONTAIN 'MC1W9990HD-1-LINE' \n" +
+				"	HEADER COLUMNS 1 13 CONTAIN 'RUN DATE/TIME', COLUMNS 24 40 KEEP run_date, COLUMNS 135 151 CONTAIN 'MC1W9990HD-2-LINE' \n" +
+				"	HEADER 1 15 CONTAIN 'REPORTING DATES', 24 31 KEEP reporting_start_date, 33 40 KEEP reporting_end_date, 135 151 CONTAIN 'MC1W9990HD-3-LINE' \n" +
+				"	HEADER IGNORE \n" +
+				"	HEADER COLUMNS 1 25 KEEP company_name, COLUMNS 135 151 CONTAIN 'MC1W9990HD-5-LINE' \n" +
+//				"	DATA COLUMNS 2 19 KEEP, 21 28 KEEP, 30 37, 39 48, 50 65, 76 100, 102 114, COLUMNS 239 249 CONTAIN 'FF-021-DL-1' \n" +
+				"	DATA COLUMNS 239 249 CONTAIN 'FF-021-DL-1' \n" +
+				"	TRAILER COLUMNS 1 10 KEEP record_count, COLUMNS 239 249 CONTAIN 'FF-999-TR-1' \n" +
+//				"	INTO SQL INSERT INTO NeedRealTableHere VALUES (?,?,?,?,?,?,?) \n" +
+				"	INTO SQL UPDATE test.threecolumns SET a_string = a_string WHERE 1=0 \n" +
+				"END TASK\n" +
+				"TASK AFTER LOG \n" +
+				"	'RUN DATE/TIME = ' + FORMAT(run_date, 'MM/dd/yy HH:mm:ss'), \n" +
+				"	'REPORTING DATES = ' + FORMAT(reporting_start_date, 'MM/dd/yy') + '-' + FORMAT(reporting_end_date, 'MM/dd/yy'), \n" +
+				"	'COMPANY NAME = ' + company_name, \n" +
+				"	'RECORD COUNT = ' + FORMAT(record_count, 'd') \n" +
+				"END TASK\n" +
+				"";
+
+		Level logLevel = Level.error;
+		boolean logToConsole = true;
+
+		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
+	}
 }

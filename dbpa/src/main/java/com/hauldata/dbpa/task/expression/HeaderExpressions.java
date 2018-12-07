@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -14,36 +14,39 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.task;
+package com.hauldata.dbpa.task.expression;
 
 import java.util.ArrayList;
 
 import com.hauldata.dbpa.expression.Expression;
-import com.hauldata.dbpa.file.TargetHeaders;
 
-public class TargetHeaderExpressions extends HeaderExpressions {
+public class HeaderExpressions {
+	protected boolean exist;
+	protected ArrayList<Expression<String>> captions;
 
-	protected boolean fromMetadata;
-
-	public TargetHeaderExpressions(
+	protected HeaderExpressions(
 			boolean exist,
-			boolean fromMetadata,
 			ArrayList<Expression<String>> captions) {
 
-		super(exist, captions);
-
-		this.fromMetadata = fromMetadata;
+		this.exist = exist;
+		this.captions = captions;
 	}
 
-	public TargetHeaderExpressions() {
-		this(false, false, new ArrayList<Expression<String>>());
+	public boolean exist() {
+		return exist;
 	}
 
-	public boolean fromMetadata() {
-		return fromMetadata;
+	public ArrayList<Expression<String>> getCaptions() {
+		return captions;
 	}
 
-	public TargetHeaders evaluate() {
-		return new TargetHeaders(exist, fromMetadata, evaluateCaptions());
+	protected ArrayList<String> evaluateCaptions() {
+
+		ArrayList<String> evaluatedCaptions = new ArrayList<String>();
+		for (Expression<String> caption : captions) {
+			evaluatedCaptions.add(caption.evaluate());
+		}
+		return evaluatedCaptions;
 	}
 }
+

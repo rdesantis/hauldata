@@ -22,6 +22,7 @@ import com.hauldata.dbpa.datasource.Source;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.TargetPage;
 import com.hauldata.dbpa.process.Context;
+import com.hauldata.dbpa.task.expression.PageIdentifierExpression;
 
 public class AppendTask extends FileTask {
 

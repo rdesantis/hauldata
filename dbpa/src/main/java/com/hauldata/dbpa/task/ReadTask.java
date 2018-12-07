@@ -26,6 +26,9 @@ import com.hauldata.dbpa.file.PhysicalPageIdentifier;
 import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.file.SourcePage;
 import com.hauldata.dbpa.process.Context;
+import com.hauldata.dbpa.task.expression.ColumnExpressions;
+import com.hauldata.dbpa.task.expression.PageIdentifierExpression;
+import com.hauldata.dbpa.task.expression.SourceHeaderExpressions;
 
 public class ReadTask extends FileTask {
 

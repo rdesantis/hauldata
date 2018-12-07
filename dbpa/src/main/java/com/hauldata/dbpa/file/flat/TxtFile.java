@@ -97,7 +97,7 @@ public class TxtFile extends TextFile {
 		lookaheadRow = reader.readLine();
 
 		SourceHeaders headers = getSourceHeaders();
-		if (headers.exist()) {
+		if ((headers != null) && headers.exist()) {
 			if (headers.mustValidate()) {
 
 				if (headers.getColumnCount() != 1) {

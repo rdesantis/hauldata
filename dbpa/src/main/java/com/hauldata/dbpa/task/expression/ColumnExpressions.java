@@ -14,7 +14,7 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.task;
+package com.hauldata.dbpa.task.expression;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -29,7 +29,7 @@ import com.hauldata.dbpa.file.Headers;
 public class ColumnExpressions {
 
 	private ArrayList<ExpressionBase> columns;
-	
+
 	public ColumnExpressions(ArrayList<ExpressionBase> columns) {
 		this.columns = columns;
 	}
@@ -75,7 +75,7 @@ public class ColumnExpressions {
 	 */
 	public Columns evaluate(Headers headers) {
 		List<Object> positions = new LinkedList<Object>();
-		
+
 		for (ExpressionBase column : columns) {
 			Object value = column.getEvaluationObject();
 			if (value == null) {

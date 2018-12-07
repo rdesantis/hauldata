@@ -44,6 +44,7 @@ public class DatetimeFromString extends Expression<LocalDateTime> {
 				DateTimeFormatter.ofPattern("yyyy-M-d[ h:m[:s] a]"),
 				DateTimeFormatter.ofPattern("yyyy-M-d[ H:m[:s]]"),
 				DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm[:ss[.SSS]]"),
+				DateTimeFormatter.ofPattern("MM/dd/yy[ HH:mm[:ss]]"),
 				};
 
 		LocalDateTime result = null;

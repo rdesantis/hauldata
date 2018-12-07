@@ -14,7 +14,7 @@
  *	limitations under the License.
  */
 
-package com.hauldata.dbpa.task;
+package com.hauldata.dbpa.task.expression;
 
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.html.HtmlPageIdentifier;
