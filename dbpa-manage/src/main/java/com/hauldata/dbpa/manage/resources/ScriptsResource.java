@@ -29,6 +29,7 @@ import javax.naming.NamingException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -41,6 +42,7 @@ import com.hauldata.dbpa.loader.FileLoader;
 import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage_control.api.ScriptParameter;
 import com.hauldata.dbpa.manage_control.api.ScriptValidation;
+import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.DbProcess;
 import com.hauldata.dbpa.variable.VariableBase;
 
@@ -193,5 +195,37 @@ public class ScriptsResource {
 		}
 
 		return result;
+	}
+
+	/**
+	 * Run a script passing arguments to it.
+	 *
+	 * This method does not return until script execution has completed.
+	 * Unlike job execution, this method does not offer any way to track or manage script execution.
+	 * This method is not intended to be used to invoke long-running scripts.
+	 *
+	 * @param name is the name of the script to run
+	 * @param arguments is an array of arguments passed to the script;
+	 *        the array can be empty but this argument must not be null
+	 * @throws FileNotFoundException if the script does not exist
+	 * @throws IOException if an error occurs retrieving the script
+	 * @throws NamingException if an error occurs parsing the script
+	 * @throws a variety of exceptions that can occur while executing a script
+	 */
+	@POST
+	@Path("-/running/{name}")
+	@Timed
+	public void run(@PathParam("name") String name, String[] arguments) throws Exception {
+
+		JobManager manager = JobManager.getInstance();
+
+		try {
+			Context context = manager.getContext();
+			DbProcess process = context.loader.load(name);
+			process.run(arguments, context);
+		}
+		catch (FileNotFoundException ex) {
+			throw new FileNotFoundException(scriptNotFoundMessageStem + name);
+		}
 	}
 }

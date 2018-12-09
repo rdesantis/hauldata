@@ -196,6 +196,17 @@ public class ScriptsResourceTest extends TestCase {
 		assertFalse(isNonExistentValidated);
 	}
 
+	public void testRun() throws Exception {
+
+		scriptsResource.put(hasParamsName, hasParamsBody);
+
+		String[] arguments = new String[2];
+		arguments[0] = "123";
+		arguments[1] = "whatever";
+
+		scriptsResource.run(hasParamsName,  arguments);
+	}
+
 	private String notFoundMessage(String name) {
 		return ScriptsResource.scriptNotFoundMessageStem + name;
 	}
