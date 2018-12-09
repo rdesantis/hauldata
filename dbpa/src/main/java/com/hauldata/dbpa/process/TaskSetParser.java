@@ -62,7 +62,7 @@ import com.hauldata.dbpa.task.expression.PageIdentifierExpression;
 import com.hauldata.dbpa.task.expression.SheetIdentifierExpression;
 import com.hauldata.dbpa.task.expression.SourceHeaderExpressions;
 import com.hauldata.dbpa.task.expression.TargetHeaderExpressions;
-import com.hauldata.dbpa.task.expression.fixed.DataFixedFieldExpressions;
+import com.hauldata.dbpa.task.expression.fixed.DataFixedFieldExpressionsTarget;
 import com.hauldata.dbpa.task.expression.fixed.FixedFieldExpressions;
 import com.hauldata.dbpa.task.expression.fixed.KeeperFixedFieldExpression;
 import com.hauldata.dbpa.task.expression.fixed.SetterFixedFieldExpression;
@@ -1017,13 +1017,11 @@ public abstract class TaskSetParser {
 
 			List<FixedFieldExpressions> headers = parseFixedHeaders();
 
-			List<DataFixedFieldExpressions> dataRecords = parseFixedDataRecords();
-
-			DataTarget target = parseDataTarget(KW.READ.name(), KW.INTO.name(), false, false);
+			List<DataFixedFieldExpressionsTarget> dataRecordTargets = parseFixedDataRecordTargets();
 
 			List<FixedFieldExpressions> trailers = parseFixedTrailers();
 
-			return new ReadFixedTask(prologue, page, headers, dataRecords, target, trailers);
+			return new ReadFixedTask(prologue, page, headers, dataRecordTargets, trailers);
 		}
 
 		private List<FixedFieldExpressions> parseFixedHeaders() throws IOException {
@@ -1035,41 +1033,53 @@ public abstract class TaskSetParser {
 			return headers;
 		}
 
-		private List<DataFixedFieldExpressions> parseFixedDataRecords() throws IOException {
+		private List<DataFixedFieldExpressionsTarget> parseFixedDataRecordTargets() throws InputMismatchException, IOException {
 
 			if (!tokenizer.skipWordIgnoreCase(KW.DATA.name())) {
 				throw new InputMismatchException("Expecting " + KW.DATA.name() + ", found " + tokenizer.nextToken().getImage());
 			}
 
-			List<DataFixedFieldExpressions> dataRecords = new LinkedList<DataFixedFieldExpressions>();
-			do {
-				dataRecords.add(parseFixedDataFields());
-			} while (tokenizer.skipWordIgnoreCase(KW.DATA.name()));
+			List<DataFixedFieldExpressionsTarget> dataRecordTargets = new LinkedList<DataFixedFieldExpressionsTarget>();
+			if (!tokenizer.skipWordIgnoreCase(KW.IGNORE.name())) {
+				do {
+					DataFixedFieldExpressionsTarget dataFields = parseFixedDataFieldsTarget();
 
-			return dataRecords;
+					dataRecordTargets.add(dataFields);
+				} while (tokenizer.skipWordIgnoreCase(KW.DATA.name()));
+
+				if (1 < dataRecordTargets.size()) {
+					if (!dataRecordTargets.get(0).hasJoin()) {
+						throw new InputMismatchException("When there are multiple " + KW.DATA.name() + " clauses the first must include at least one " + KW.JOIN.name() + " field");
+					}
+					if (!dataRecordTargets.subList(1, dataRecordTargets.size()).stream().allMatch(record -> record.hasValidator())) {
+						throw new InputMismatchException("When there are multiple " + KW.DATA.name() + " clauses each after the first must include at least one " + KW.CONTAIN.name() + " field");
+					}
+				}
+			}
+			return dataRecordTargets;
 		}
 
-		private DataFixedFieldExpressions parseFixedDataFields() throws IOException {
+		private DataFixedFieldExpressionsTarget parseFixedDataFieldsTarget() throws IOException {
 
-			DataFixedFieldExpressions fields = new DataFixedFieldExpressions();
-
-			if (tokenizer.skipWordIgnoreCase(KW.IGNORE.name())) {
-				return fields;
-			}
+			DataFixedFieldExpressionsTarget fieldsTarget = new DataFixedFieldExpressionsTarget();
 
 			do {
 				FixedColumns columns = parseFixedColumns();
 				if (tokenizer.skipWordIgnoreCase(KW.CONTAIN.name())) {
 					Expression<String> validator = parseStringExpression();
-					fields.add(new ValidatorFixedFieldExpression(columns.startColumn, columns.endColumn, validator));
+					fieldsTarget.add(new ValidatorFixedFieldExpression(columns.startColumn, columns.endColumn, validator));
 				}
 				else {
 					tokenizer.skipWordIgnoreCase(KW.KEEP.name());
-					fields.add(new KeeperFixedFieldExpression(columns.startColumn, columns.endColumn));
+					boolean join = tokenizer.skipWordIgnoreCase(KW.JOIN.name());
+					fieldsTarget.add(new KeeperFixedFieldExpression(columns.startColumn, columns.endColumn, join));
 				}
 			} while (tokenizer.skipDelimiter(","));
 
-			return fields;
+			DataTarget target = parseDataTarget(KW.READ.name(), KW.INTO.name(), false, false);
+			fieldsTarget.setTarget(target);
+
+			return fieldsTarget;
 		}
 
 		private List<FixedFieldExpressions> parseFixedTrailers() throws IOException {
@@ -1078,7 +1088,7 @@ public abstract class TaskSetParser {
 			while (tokenizer.skipWordIgnoreCase(KW.TRAILER.name())) {
 				trailers.add(parseFixedFields());
 			}
-			if (!trailers.isEmpty() && !trailers.get(0).canBeFirstTrailer()) {
+			if (!trailers.isEmpty() && !trailers.get(0).hasValidator()) {
 				throw new InputMismatchException("The first trailer must include at least one " + KW.CONTAIN.name() + " clause");
 			}
 			return trailers;

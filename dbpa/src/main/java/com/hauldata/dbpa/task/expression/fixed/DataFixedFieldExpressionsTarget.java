@@ -19,13 +19,15 @@ package com.hauldata.dbpa.task.expression.fixed;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.hauldata.dbpa.file.fixed.DataFixedFields;
+import com.hauldata.dbpa.datasource.DataTarget;
+import com.hauldata.dbpa.file.fixed.DataFixedFieldsTarget;
 
-public class DataFixedFieldExpressions {
+public class DataFixedFieldExpressionsTarget {
 
 	private List<FixedFieldExpression> fields;
+	private DataTarget target;
 
-	public DataFixedFieldExpressions() {
+	public DataFixedFieldExpressionsTarget() {
 		fields = new LinkedList<FixedFieldExpression>();
 	}
 
@@ -33,11 +35,24 @@ public class DataFixedFieldExpressions {
 		fields.add(field);
 	}
 
-	public DataFixedFields evaluate() {
-		DataFixedFields result = new DataFixedFields();
+	public void setTarget(DataTarget target) {
+		this.target = target;
+	}
+
+	public boolean hasJoin() {
+		return fields.stream().anyMatch(field -> field instanceof KeeperFixedFieldExpression && ((KeeperFixedFieldExpression)field).isJoined());
+	}
+
+	public boolean hasValidator() {
+		return fields.stream().anyMatch(field -> field instanceof ValidatorFixedFieldExpression);
+	}
+
+	public DataFixedFieldsTarget evaluate() {
+		DataFixedFieldsTarget result = new DataFixedFieldsTarget();
 		for (FixedFieldExpression field : fields) {
 			result.add(field.evaluate());
 		}
+		result.setTarget(target);
 		return result;
 	}
 }

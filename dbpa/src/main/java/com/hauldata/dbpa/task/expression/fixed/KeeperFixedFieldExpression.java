@@ -22,13 +22,19 @@ import com.hauldata.dbpa.file.fixed.KeeperFixedField;
 
 public class KeeperFixedFieldExpression extends FixedFieldExpression {
 
-	public KeeperFixedFieldExpression(Expression<Integer> startColumn, Expression<Integer> endColumn) {
+	private boolean joined;
+
+	public KeeperFixedFieldExpression(Expression<Integer> startColumn, Expression<Integer> endColumn, boolean joined) {
 		super(startColumn, endColumn);
+		this.joined = joined;
+	}
+
+	public boolean isJoined() {
+		return joined;
 	}
 
 	@Override
 	public FixedField evaluate() {
-		return new KeeperFixedField(evaluateStartColumn(), evaluateEndColumn());
+		return new KeeperFixedField(evaluateStartColumn(), evaluateEndColumn(), joined);
 	}
-
 }

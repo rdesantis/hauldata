@@ -19,7 +19,6 @@ package com.hauldata.dbpa.task.expression.fixed;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.hauldata.dbpa.file.fixed.FirstTrailerFixedFields;
 import com.hauldata.dbpa.file.fixed.FixedFields;
 
 public class FixedFieldExpressions {
@@ -34,20 +33,12 @@ public class FixedFieldExpressions {
 		fields.add(field);
 	}
 
-	public FixedFields evaluate() {
-		FixedFields result = new FixedFields();
-		for (FixedFieldExpression field : fields) {
-			result.add(field.evaluate());
-		}
-		return result;
-	}
-
-	public boolean canBeFirstTrailer() {
+	public boolean hasValidator() {
 		return fields.stream().anyMatch(field -> field instanceof ValidatorFixedFieldExpression);
 	}
 
-	public FirstTrailerFixedFields evaluateFirstTrailer() {
-		FirstTrailerFixedFields result = new FirstTrailerFixedFields();
+	public FixedFields evaluate() {
+		FixedFields result = new FixedFields();
 		for (FixedFieldExpression field : fields) {
 			result.add(field.evaluate());
 		}

@@ -19,23 +19,48 @@ package com.hauldata.dbpa.file.fixed;
 import java.util.LinkedList;
 import java.util.List;
 
-public class DataFixedFields extends FixedFields {
+import com.hauldata.dbpa.datasource.DataTarget;
+
+public class DataFixedFieldsTarget extends FixedFields {
 
 	private List<KeeperFixedField> keeperFields;
+	private List<KeeperFixedField> joinedFields;
+	private DataTarget target;
 
-	public DataFixedFields() {
+	public DataFixedFieldsTarget() {
 		keeperFields = new LinkedList<KeeperFixedField>();
+		joinedFields = new LinkedList<KeeperFixedField>();
 	}
 
 	@Override
 	public void add(FixedField field) {
 		super.add(field);
 		if (field instanceof KeeperFixedField) {
-			keeperFields.add((KeeperFixedField)field);
+			KeeperFixedField keeperField = (KeeperFixedField)field;
+			keeperFields.add(keeperField);
+			if (keeperField.isJoined()) {
+				joinedFields.add(keeperField);
+			}
 		}
+	}
+
+	public void setTarget(DataTarget target) {
+		this.target = target;
+	}
+
+	public DataTarget getTarget() {
+		return target;
 	}
 
 	public List<KeeperFixedField> getKeeperFields() {
 		return keeperFields;
+	}
+
+	public boolean hasJoin() {
+		return !joinedFields.isEmpty();
+	}
+
+	public List<KeeperFixedField> getJoinedFields() {
+		return joinedFields;
 	}
 }

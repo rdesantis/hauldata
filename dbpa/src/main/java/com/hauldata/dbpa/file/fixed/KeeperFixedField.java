@@ -34,8 +34,15 @@ public class KeeperFixedField extends FixedField {
 		}
 	}
 
-	public KeeperFixedField(int startColumn, int endColumn) {
+	private boolean joined;
+
+	public KeeperFixedField(int startColumn, int endColumn, boolean joined) {
 		super(startColumn, endColumn, new Keeper());
+		this.joined = joined;
+	}
+
+	public boolean isJoined() {
+		return joined;
 	}
 
 	public String getValue() {

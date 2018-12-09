@@ -41,6 +41,7 @@ public class DbProcessTestTables {
 				createImportTargetTable(conn);
 				createLotsOfDataTable(conn);
 				createThreeColumnsTable(conn);
+				createJoinedTables(conn);
 			}
 		} catch (SQLException ex) {
 			throw new RuntimeException(ex.getLocalizedMessage());
@@ -153,6 +154,48 @@ public class DbProcessTestTables {
 		sql.append(
 				"CREATE TABLE test.threecolumns " + columns + ";" +
 				"CREATE TABLE test.threecolumns_validate " + columns + ";"
+				);
+
+		execute(conn, sql.toString());
+	}
+
+	private static void createJoinedTables(Connection conn) throws SQLException {
+
+		String transColumns = "(" +
+				"	batch varchar(18)," +
+				"	last_four char(4)," +
+				"	month int," +
+				"	day int," +
+				"	type_id char(2)," +
+				"	code varchar(6)," +
+				"	reference char(12)," +
+				"	description varchar(25)" +
+				")";
+
+		String feeColumns = "(" +
+				"	batch varchar(18)," +
+				"	code varchar(6)," +
+				"	reference char(12)," +
+				"	fee_code int," +
+				"	fee_description varchar(25)," +
+				"	fee_amount1 decimal(19,7)," +
+				"	fee_amount2 decimal(19,7)," +
+				"	fee_amount3 decimal(19,7)" +
+				")";
+
+		String sumColumns = "(" +
+				"	batch varchar(18)," +
+				"	code varchar(6)," +
+				"	reference char(12)," +
+				"	sum_amount1 decimal(19,7)," +
+				"	sum_amount2 decimal(19,7)" +
+				")";
+
+		StringBuilder sql = new StringBuilder();
+		sql.append(
+				"CREATE TABLE test.transaction " + transColumns + ";" +
+				"CREATE TABLE test.fee " + feeColumns + ";" +
+				"CREATE TABLE test.summary " + sumColumns + ";"
 				);
 
 		execute(conn, sql.toString());

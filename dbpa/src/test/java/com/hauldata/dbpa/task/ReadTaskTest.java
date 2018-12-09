@@ -254,7 +254,7 @@ public class ReadTaskTest extends TaskTest {
 		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
 	}
 
-	public void testReadFixedGroup() throws Exception {
+	public void testReadFixedIgnoreData() throws Exception {
 
 		String processId = "ReadFixedGroupTest";
 		String script =
@@ -265,13 +265,65 @@ public class ReadTaskTest extends TaskTest {
 				"	HEADER 1 15 CONTAIN 'REPORTING DATES', 24 31 KEEP reporting_start_date, 33 40 KEEP reporting_end_date, 135 151 CONTAIN 'MC1W9990HD-3-LINE' \n" +
 				"	HEADER IGNORE \n" +
 				"	HEADER COLUMNS 1 25 KEEP company_name, COLUMNS 135 151 CONTAIN 'MC1W9990HD-5-LINE' \n" +
-				"	DATA 2 2 CONTAIN '1', COLUMNS 239 244 CONTAIN 'FF-017' \n" +
 				"	DATA IGNORE \n" +
-				"	DATA 2 2 CONTAIN '3', COLUMNS 239 244 CONTAIN 'FF-017' \n" +
-				"	INTO SQL UPDATE test.threecolumns SET a_string = a_string WHERE 1=0 END SQL \n" +
 				"	TRAILER COLUMNS 1 10 KEEP record_count, COLUMNS 239 244 CONTAIN 'FF-999' \n" +
 				"END TASK\n" +
 				"TASK AFTER LOG \n" +
+				"	'RUN DATE/TIME = ' + FORMAT(run_date, 'MM/dd/yy HH:mm:ss'), \n" +
+				"	'REPORTING DATES = ' + FORMAT(reporting_start_date, 'MM/dd/yy') + '-' + FORMAT(reporting_end_date, 'MM/dd/yy'), \n" +
+				"	'COMPANY NAME = ' + company_name, \n" +
+				"	'RECORD COUNT = ' + FORMAT(record_count, 'd') \n" +
+				"END TASK\n" +
+				"";
+
+		Level logLevel = Level.error;
+		boolean logToConsole = true;
+
+		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
+	}
+
+	public void testReadFixedGroup() throws Exception {
+
+		String processId = "ReadFixedGroupTest";
+		String script =
+				"VARIABLES run_date DATETIME, reporting_start_date DATE, reporting_end_date DATE, company_name VARCHAR, record_count INTEGER END VARIABLES \n" +
+				"TASK TruncateTables RUN SQL DELETE FROM test.transaction; DELETE FROM test.fee; DELETE FROM test.summary END TASK \n" +
+				"TASK ReadFixed AFTER READ FIXED 'fixed group test.txt' \n" +
+				"	HEADER COLUMNS 89 132 CONTAIN 'WHIMSICAL NONSENSE AND POPPYCOCKERATE REPORT', COLUMNS 135 151 CONTAIN 'MC1W9990HD-1-LINE' \n" +
+				"	HEADER COLUMNS 1 13 CONTAIN 'RUN DATE/TIME', COLUMNS 24 40 KEEP run_date, COLUMNS 135 151 CONTAIN 'MC1W9990HD-2-LINE' \n" +
+				"	HEADER 1 15 CONTAIN 'REPORTING DATES', 24 31 KEEP reporting_start_date, 33 40 KEEP reporting_end_date, 135 151 CONTAIN 'MC1W9990HD-3-LINE' \n" +
+				"	HEADER IGNORE \n" +
+				"	HEADER COLUMNS 1 25 KEEP company_name, COLUMNS 135 151 CONTAIN 'MC1W9990HD-5-LINE' \n" +
+				"	DATA \n" +
+				"		COLUMNS   2   2 CONTAIN '1', \n" +
+				"		COLUMNS   4  21 KEEP JOIN,	-- batch \n" +
+				"		COLUMNS  35  39 KEEP,		-- last_four \n" +
+				"		COLUMNS  49  50 KEEP,		-- month \n" +
+				"		COLUMNS  52  53 KEEP,		-- day \n" +
+				"		COLUMNS  58  59 KEEP,		-- type_id \n" +
+				"		COLUMNS  61  66 KEEP JOIN,	-- code \n" +
+				"		COLUMNS  75  86 KEEP JOIN,	-- reference \n" +
+				"		COLUMNS 151 175 KEEP,		-- description \n" +
+				"		COLUMNS 239 244 CONTAIN 'FF-017' \n" +
+				"	INTO SQL INSERT INTO test.transaction VALUES (?,?,?,?,?,?,?,?) END SQL \n" +
+				"	DATA \n" +
+				"		COLUMNS   2   2 CONTAIN '2', \n" +
+				"		COLUMNS   4   6 KEEP,		-- fee_code \n" +
+				"		COLUMNS   8  32 KEEP,		-- fee_description \n" +
+				"		COLUMNS  35  53 KEEP,		-- fee_amount1 \n" +
+				"		COLUMNS  56  74 KEEP,		-- fee_amount2 \n" +
+				"		COLUMNS  77  95 KEEP,		-- fee_amount3 \n" +
+				"		COLUMNS 239 244 CONTAIN 'FF-017' \n" +
+				"	INTO SQL INSERT INTO test.fee VALUES (?,?,?,?,?,?,?,?) END SQL \n" +
+				"	DATA \n" +
+				"		COLUMNS   2   2 CONTAIN '3', \n" +
+				"		COLUMNS   5  23 KEEP,		-- sum_amount1 \n" +
+				"		COLUMNS  26  44 KEEP,		-- sum_amount2 \n" +
+				"		COLUMNS 239 244 CONTAIN 'FF-017' \n" +
+				"	INTO SQL INSERT INTO test.summary VALUES (?,?,?,?,?) END SQL \n" +
+				"	TRAILER COLUMNS 1 10 KEEP record_count, COLUMNS 239 244 CONTAIN 'FF-999' \n" +
+				"END TASK\n" +
+				"TASK LogResults AFTER LOG \n" +
 				"	'RUN DATE/TIME = ' + FORMAT(run_date, 'MM/dd/yy HH:mm:ss'), \n" +
 				"	'REPORTING DATES = ' + FORMAT(reporting_start_date, 'MM/dd/yy') + '-' + FORMAT(reporting_end_date, 'MM/dd/yy'), \n" +
 				"	'COMPANY NAME = ' + company_name, \n" +

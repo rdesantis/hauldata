@@ -19,43 +19,40 @@ package com.hauldata.dbpa.task;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 import com.hauldata.dbpa.datasource.DataTarget;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.PhysicalPageIdentifier;
-import com.hauldata.dbpa.file.fixed.DataFixedFields;
-import com.hauldata.dbpa.file.fixed.FirstTrailerFixedFields;
+import com.hauldata.dbpa.file.fixed.DataFixedFieldsTarget;
 import com.hauldata.dbpa.file.fixed.FixedFields;
 import com.hauldata.dbpa.file.fixed.KeeperFixedField;
 import com.hauldata.dbpa.file.flat.TxtFile;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.task.expression.PageIdentifierExpression;
-import com.hauldata.dbpa.task.expression.fixed.DataFixedFieldExpressions;
+import com.hauldata.dbpa.task.expression.fixed.DataFixedFieldExpressionsTarget;
 import com.hauldata.dbpa.task.expression.fixed.FixedFieldExpressions;
 
 public class ReadFixedTask extends Task {
 
 	private PageIdentifierExpression page;
 	private List<FixedFieldExpressions> headers;
-	private List<DataFixedFieldExpressions> dataRecords;
-	private DataTarget target;
+	private List<DataFixedFieldExpressionsTarget> dataRecordTargets;
 	private List<FixedFieldExpressions> trailers;
 
 	public ReadFixedTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
 			List<FixedFieldExpressions> headers,
-			List<DataFixedFieldExpressions> dataRecords,
-			DataTarget target,
+			List<DataFixedFieldExpressionsTarget> dataRecordTargets,
 			List<FixedFieldExpressions> trailers) {
 
 		super(prologue);
 		this.page = page;
 		this.headers = headers;
-		this.dataRecords = dataRecords;
-		this.target = target;
+		this.dataRecordTargets = dataRecordTargets;
 		this.trailers = trailers;
 	}
 
@@ -64,9 +61,9 @@ public class ReadFixedTask extends Task {
 
 		PageIdentifier page = this.page.evaluate(context, false);
 		List<FixedFields> headers = evaluate(this.headers, true);
-		List<DataFixedFields> dataRecords = evaluate(this.dataRecords);
+		List<DataFixedFieldsTarget> dataRecordTargets = evaluate(this.dataRecordTargets);
 		List<FixedFields> trailers = evaluate(this.trailers, false);
-		FirstTrailerFixedFields firstTrailer = trailers.isEmpty() ? null : (FirstTrailerFixedFields)trailers.get(0);
+		FixedFields firstTrailer = !trailers.isEmpty() ? trailers.get(0) : null;
 
 		Path sourcePath = ((PhysicalPageIdentifier)page).getPath();
 		context.files.assureNotOpen(sourcePath);
@@ -76,7 +73,7 @@ public class ReadFixedTask extends Task {
 
 			read(sourcePage, headers, true);
 
-			read(sourcePage, dataRecords, firstTrailer, target, context);
+			read(sourcePage, dataRecordTargets, firstTrailer, context);
 
 			read(sourcePage, trailers, false);
 
@@ -93,27 +90,19 @@ public class ReadFixedTask extends Task {
 		}
 	}
 
-	private List<FixedFields> evaluate(List<FixedFieldExpressions> fieldsPerRecord, boolean headerNotTrailer) {
-
-		boolean firstTrailer = !headerNotTrailer;
+	private List<FixedFields> evaluate(List<FixedFieldExpressions> fieldsPerRecord, boolean isHeaderNotTrailer) {
 
 		List<FixedFields> result = new LinkedList<FixedFields>();
 		for (FixedFieldExpressions fields : fieldsPerRecord) {
-			if (firstTrailer) {
-				result.add(fields.evaluateFirstTrailer());
-				firstTrailer = false;
-			}
-			else {
-				result.add(fields.evaluate());
-			}
+			result.add(fields.evaluate());
 		}
 		return result;
 	}
 
-	private List<DataFixedFields> evaluate(List<DataFixedFieldExpressions> fieldsPerRecord) {
+	private List<DataFixedFieldsTarget> evaluate(List<DataFixedFieldExpressionsTarget> fieldsPerRecord) {
 
-		List<DataFixedFields> result = new LinkedList<DataFixedFields>();
-		for (DataFixedFieldExpressions fields : fieldsPerRecord) {
+		List<DataFixedFieldsTarget> result = new ArrayList<DataFixedFieldsTarget>();
+		for (DataFixedFieldExpressionsTarget fields : fieldsPerRecord) {
 			result.add(fields.evaluate());
 		}
 		return result;
@@ -138,40 +127,59 @@ public class ReadFixedTask extends Task {
 
 	private void read(
 			TxtFile sourcePage,
-			List<DataFixedFields> dataRecords,
-			FirstTrailerFixedFields firstTrailer,
-			DataTarget target,
+			List<DataFixedFieldsTarget> dataRecordTargets,
+			FixedFields firstTrailer,
 			Context context)  throws IOException {
 
 		try {
-			target.prepareStatement(context, null, null);
+			for (DataFixedFieldsTarget dataRecordTarget : dataRecordTargets) {
+				dataRecordTarget.getTarget().prepareStatement(context, null, null);
+			}
 
+			final int maxLevel = dataRecordTargets.size() - 1;
+			int level = -1;
 			while (sourcePage.hasRow()) {
 
 				String record = (String)sourcePage.readColumn(1);
 				if ((firstTrailer != null) && firstTrailer.matches(record)) {
 					break;
 				}
+				sourcePage.readColumn(2);
 
-				int targetColumnIndex = 1;
-				for (DataFixedFields dataFields: dataRecords) {
+				if (!dataRecordTargets.isEmpty()) {
 
-					record = (String)sourcePage.readColumn(1);
-					dataFields.actOn(record);
-					sourcePage.readColumn(2);
+					while ((level < maxLevel) && !dataRecordTargets.get(++level).hasJoin());
+					while ((0 <= level) && !dataRecordTargets.get(level).matches(record)) {
+						--level;
+					}
+					if (level < 0) {
+						throw new RuntimeException("Record does not match expected data record or first trailer");
+					}
 
-					for (KeeperFixedField field : dataFields.getKeeperFields()) {
+					DataFixedFieldsTarget dataRecordTarget = dataRecordTargets.get(level);
+					dataRecordTarget.actNonMatchersOn(record);
+
+					DataTarget target = dataRecordTarget.getTarget();
+					int targetColumnIndex = 1;
+					for (int lowerLevel = 0; lowerLevel < level; ++lowerLevel) {
+						for (KeeperFixedField field : dataRecordTargets.get(lowerLevel).getJoinedFields()) {
+							target.setObject(targetColumnIndex++, field.getValue());
+						}
+					}
+					for (KeeperFixedField field : dataRecordTarget.getKeeperFields()) {
 						target.setObject(targetColumnIndex++, field.getValue());
 					}
+					target.addBatch();
 				}
-				target.addBatch();
 			}
 
 			if (!sourcePage.hasRow() && (firstTrailer != null)) {
 				throw new RuntimeException("End of file encountered when expecting a trailer record");
 			}
 
-			target.executeBatch();
+			for (DataFixedFieldsTarget dataRecordTarget : dataRecordTargets) {
+				dataRecordTarget.getTarget().executeBatch();
+			}
 		}
 		catch (SQLException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
@@ -181,7 +189,9 @@ public class ReadFixedTask extends Task {
 			throw new RuntimeException("File read terminated due to interruption");
 		}
 		finally {
-			target.close(context);
+			for (DataFixedFieldsTarget dataRecordTarget : dataRecordTargets) {
+				dataRecordTarget.getTarget().close(context);
+			}
 		}
 	}
 }

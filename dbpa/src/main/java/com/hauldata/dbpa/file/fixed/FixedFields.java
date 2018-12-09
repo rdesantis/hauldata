@@ -22,17 +22,37 @@ import java.util.List;
 public class FixedFields {
 
 	private List<FixedField> fields;
+	private List<ValidatorFixedField> validatorFields;
+	private List<FixedField> nonValidatorFields;
 
 	public FixedFields() {
 		fields = new LinkedList<FixedField>();
+		validatorFields = new LinkedList<ValidatorFixedField>();
+		nonValidatorFields = new LinkedList<FixedField>();
 	}
 
 	public void add(FixedField field) {
 		fields.add(field);
+		if (field instanceof ValidatorFixedField) {
+			validatorFields.add((ValidatorFixedField)field);
+		}
+		else {
+			nonValidatorFields.add(field);
+		}
+	}
+
+	public boolean matches(String record) {
+		return validatorFields.isEmpty() || validatorFields.stream().allMatch(field -> field.isExpectedIn(record));
 	}
 
 	public void actOn(String record) {
 		for (FixedField field : fields) {
+			field.actOn(record);
+		}
+	}
+
+	public void actNonMatchersOn(String record) {
+		for (FixedField field : nonValidatorFields) {
 			field.actOn(record);
 		}
 	}
