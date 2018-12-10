@@ -153,6 +153,7 @@ public abstract class TaskSetParser {
 		GO,
 		STOP,
 		FAIL,
+		BREAK,
 		PROCESS,
 		DO,
 		FOR,
@@ -456,6 +457,7 @@ public abstract class TaskSetParser {
 		taskParsers.put(KW.GO.name(), new GoTaskParser());
 		taskParsers.put(KW.STOP.name(), new StopTaskParser());
 		taskParsers.put(KW.FAIL.name(), new FailTaskParser());
+		taskParsers.put(KW.BREAK.name(), new BreakTaskParser());
 		taskParsers.put(KW.PROCESS.name(), new ProcessTaskParser());
 		taskParsers.put(KW.DO.name(), new DoTaskParser());
 		taskParsers.put(KW.FOR.name(), new ForTaskParser());
@@ -1413,6 +1415,23 @@ public abstract class TaskSetParser {
 		@Override
 		protected Task newTask(Task.Prologue prologue, Expression<String> message) {
 			return new FailTask(prologue, message);
+		}
+	}
+
+	class BreakTaskParser extends OptionalMessageTaskParser {
+
+		@Override
+		public Task parse(Task.Prologue prologue) throws IOException {
+
+			if (states.size() == 1) {
+				throw new InputMismatchException(KW.BREAK.name() + " may only appear in a looping construct");
+			}
+			return super.parse(prologue);
+		}
+
+		@Override
+		protected Task newTask(Task.Prologue prologue, Expression<String> message) {
+			return new BreakTask(prologue, message);
 		}
 	}
 

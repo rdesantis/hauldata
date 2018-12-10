@@ -81,6 +81,9 @@ public class ForFilesTask extends Task implements TaskSetParent {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 			throw new RuntimeException("Error occurred resolving FILE " + sourceName + " - " + message, ex);
 		}
+		catch (BreakingException ex) {
+			// Not an error
+		}
 		finally {
 			if (sourcePaths != null) {
 				try { sourcePaths.close(); } catch (Exception ex) {}

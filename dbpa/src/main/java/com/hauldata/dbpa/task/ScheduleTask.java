@@ -68,6 +68,9 @@ public abstract class ScheduleTask extends Task implements TaskSetParent {
 				taskSet.run(nestedContext);
 			}
 		}
+		catch (BreakingException ex) {
+			// Not an error
+		}
 		finally {
 			nestedContext.close();
 		}

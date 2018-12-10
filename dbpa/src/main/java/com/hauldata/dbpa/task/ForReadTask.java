@@ -91,6 +91,9 @@ public class ForReadTask extends FileTask implements TaskSetParent {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
 			throw new RuntimeException("Error occurred reading " + page.getName() + ": " + message);
 		}
+		catch (BreakingException ex) {
+			// Not an error
+		}
 		finally {
 			if (nestedContext != null) {
 				nestedContext.close();

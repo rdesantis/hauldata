@@ -71,6 +71,9 @@ public class ForDataTask extends UpdateVariablesTask implements TaskSetParent {
 		catch (SQLException ex) {
 			DataSource.throwDatabaseExecutionFailed(ex);
 		}
+		catch (BreakingException ex) {
+			// Not an error
+		}
 		finally {
 			source.close(context);
 

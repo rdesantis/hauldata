@@ -32,8 +32,9 @@ public abstract class Task {
 	public static final String terminateMessage = "Task terminated";
 	public static final String failMessage = "Task failed";
 	public static final String stopMessage = "Task thread stopped";
+	public static final String breakingMessage = "Task breaking out of loop";
 
-	public enum Result { waiting, running, success, failure, completed, terminated, orphaned, stopped };
+	public enum Result { waiting, running, success, failure, completed, terminated, orphaned, stopped, breaking };
 
 	private String name;
 	private Expression<String> qualifier;
@@ -84,6 +85,10 @@ public abstract class Task {
 
 	public static class StoppedException extends RuntimeException {
 		private static final long serialVersionUID = 1L;
+	}
+
+	public static class BreakingException extends RuntimeException {
+		private static final long serialVersionUID = 2L;
 	}
 
 	/**
@@ -209,6 +214,11 @@ public abstract class Task {
 			context.logger.warn(name, stopMessage);
 
 			result = Result.stopped;
+		}
+		catch (BreakingException ex) {
+			context.logger.warn(name, breakingMessage);
+
+			result = Result.breaking;
 		}
 		catch (Exception ex) {
 			context.logger.error(name, ex);

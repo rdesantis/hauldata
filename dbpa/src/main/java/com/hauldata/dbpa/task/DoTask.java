@@ -60,6 +60,9 @@ public class DoTask extends Task implements TaskSetParent {
 				}
 			}
 		}
+		catch (BreakingException ex) {
+			// Not an error
+		}
 		finally {
 			nestedContext.close();
 		}

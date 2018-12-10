@@ -77,8 +77,7 @@ public abstract class TaskSet {
 		try {
 			// While any tasks are waiting on predecessors, process tasks as they complete.
 
-			boolean anyTerminalTaskFailed = false;
-			boolean anyTerminalTaskStopped = false;
+			AbnormalTermination termination = new AbnormalTermination();
 
 			while (!waiting.isEmpty()) {
 				Task task = executor.getCompleted();
@@ -116,13 +115,7 @@ public abstract class TaskSet {
 				}
 
 				if (isTerminalTask) {
-					if (task.getResult() == Result.failure) {
-						anyTerminalTaskFailed = true;
-						failedTask = task;
-					}
-					else if (task.getResult() == Result.stopped) {
-						anyTerminalTaskStopped = true;
-					}
+					termination.check(task);
 				}
 			}
 
@@ -131,20 +124,17 @@ public abstract class TaskSet {
 			while (!executor.allCompleted()) {
 				Task task = executor.getCompleted();
 
-				if (task.getResult() == Result.failure) {
-					anyTerminalTaskFailed = true;
-					failedTask = task;
-				}
-				else if (task.getResult() == Result.stopped) {
-					anyTerminalTaskStopped = true;
-				}
+				termination.check(task);
 			}
 
-			if (anyTerminalTaskFailed) {
+			if (termination.failed) {
 				throw new RuntimeException(failedMessage);
 			}
-			else if (anyTerminalTaskStopped) {
+			else if (termination.stopped) {
 				throw new Task.StoppedException();
+			}
+			else if (termination.breaking) {
+				throw new Task.BreakingException();
 			}
 		}
 		catch (InterruptedException iex) {
@@ -167,6 +157,25 @@ public abstract class TaskSet {
 			}
 
 			throw iex;
+		}
+	}
+
+	private class AbnormalTermination {
+		public boolean failed = false;
+		public boolean stopped = false;
+		public boolean breaking = false;
+
+		public void check(Task task) {
+			if (task.getResult() == Result.failure) {
+				failed = true;
+				failedTask = task;
+			}
+			else if (task.getResult() == Result.stopped) {
+				stopped = true;
+			}
+			else if (task.getResult() == Result.breaking) {
+				breaking = true;
+			}
 		}
 	}
 }
