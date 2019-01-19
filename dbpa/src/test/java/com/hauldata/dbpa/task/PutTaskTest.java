@@ -45,4 +45,21 @@ public class PutTaskTest extends TaskTest {
 
 		runScript(processId, logLevel, logToConsole, script, null, null, null); 
 	}
+
+	public void testPutWithConnection() throws Exception {
+
+		String ftpProperties = PutTaskTestProperties.getProperties();
+
+		String processId = "PutWithConnectionTest";
+		String script =
+				"CONNECTIONS myftp FTP END CONNECTIONS \n" +
+				"TASK Connector CONNECT myftp TO '" + ftpProperties + "' END TASK \n" +
+				"TASK Upload3 AFTER Connector PUT 'child/word.txt' TO myftp '/root/staff/test' END TASK \n" +
+				"";
+
+		Level logLevel = Level.info;
+		boolean logToConsole = true;
+
+		runScript(processId, logLevel, logToConsole, script, null, null, null);
+	}
 }
