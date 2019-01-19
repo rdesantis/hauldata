@@ -16,6 +16,8 @@
 
 package com.hauldata.dbpa.connection;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.vfs2.FileObject;
@@ -125,26 +127,26 @@ public class FtpConnection extends Connection {
 
 	private FileSystemOptions getFTPOptions(boolean isBinary) {
 
-		String passiveModeString = getProperties().getProperty("mode", "yes").trim();
-		String dataTimeoutString = getProperties().getProperty("dataTimeout").trim();
-		String socketTimeoutString = getProperties().getProperty("socketTimeout").trim();
-//		String connectTimeoutString = getProperties().getProperty("connectTimeout").trim();
+		String passiveModeString = getProperties().getProperty("passiveMode", "true");
+		String dataTimeoutString = getProperties().getProperty("dataTimeout");
+		String socketTimeoutString = getProperties().getProperty("socketTimeout");
+//		String connectTimeoutString = getProperties().getProperty("connectTimeout");
 
 		FileSystemOptions options = new FileSystemOptions();
 
 		FtpFileSystemConfigBuilder configBuilder = FtpFileSystemConfigBuilder.getInstance();
 		configBuilder.setUserDirIsRoot(options, false);
 
-		configBuilder.setPassiveMode(options, Boolean.parseBoolean(passiveModeString));
+		configBuilder.setPassiveMode(options, Boolean.parseBoolean(passiveModeString.trim()));
 		if (dataTimeoutString != null) {
-			configBuilder.setDataTimeout(options, Integer.parseInt(dataTimeoutString));
+			configBuilder.setDataTimeout(options, Integer.parseInt(dataTimeoutString.trim()));
 		}
 		if (socketTimeoutString != null) {
-			configBuilder.setSoTimeout(options, Integer.parseInt(socketTimeoutString));
+			configBuilder.setSoTimeout(options, Integer.parseInt(socketTimeoutString.trim()));
 		}
 // The following are available in VFS2.1:
 //		if (connectTimeoutString != null) {
-//			configBuilder.setConnectTimeout(options, Integer.parseInt(connectTimeoutString));
+//			configBuilder.setConnectTimeout(options, Integer.parseInt(connectTimeoutString.trim()));
 //		}
 //		configBuilder.setFileType(opts, isBinary ? FtpFileType.BINARY : FtpFileType.ASCII);
 
@@ -153,8 +155,8 @@ public class FtpConnection extends Connection {
 
 	private FileSystemOptions getSFTPOptions(boolean isBinary) {
 
-		String strictHostKeyChecking = getProperties().getProperty("strictHostKeyChecking", "no").trim();
-		String timeoutString = getProperties().getProperty("timeout").trim();
+		String strictHostKeyChecking = getProperties().getProperty("strictHostKeyChecking", "no");
+		String timeoutString = getProperties().getProperty("timeout");
 
 		FileSystemOptions options = new FileSystemOptions();
 
@@ -162,9 +164,9 @@ public class FtpConnection extends Connection {
 			SftpFileSystemConfigBuilder configBuilder = SftpFileSystemConfigBuilder.getInstance();
 			configBuilder.setUserDirIsRoot(options, false);
 
-			configBuilder.setStrictHostKeyChecking(options, strictHostKeyChecking);
+			configBuilder.setStrictHostKeyChecking(options, strictHostKeyChecking.trim());
 			if (timeoutString != null) {
-				configBuilder.setTimeout(options, Integer.parseInt(timeoutString));
+				configBuilder.setTimeout(options, Integer.parseInt(timeoutString.trim()));
 			}
 		}
 		catch (FileSystemException ex) {
@@ -177,12 +179,53 @@ public class FtpConnection extends Connection {
 	private String getRemoteFileURI(String remoteFileName) {
 
 		String protocol = getProperties().getProperty("protocol").trim();
-		String hostname = getProperties().getProperty("hostname").trim();
-		String user = getProperties().getProperty("user").trim();
-		String password = getProperties().getProperty("password").trim();
+		String hostname = percentEncode(getProperties().getProperty("hostname").trim());
+		String user = percentEncode(getProperties().getProperty("user").trim());
+		String password = percentEncode(getProperties().getProperty("password").trim());
 
-		String cleanedFileName = remoteFileName.replaceAll(" ", "%20");
+		String cleanedFileName = percentEncodeExceptSlash(remoteFileName);
 
 		return protocol + "://" + user + ":" + password +  "@" + hostname + cleanedFileName;
+	}
+
+	static Map<String,String> percentEncodings;
+	static {
+		percentEncodings = new HashMap<String, String>();
+		percentEncodings.put(" ", "%20");
+		percentEncodings.put("!", "%21");
+		percentEncodings.put("#", "%23");
+		percentEncodings.put("$", "%24");
+		percentEncodings.put("&", "%26");
+		percentEncodings.put("'", "%27");
+		percentEncodings.put("(", "%28");
+		percentEncodings.put(")", "%29");
+		percentEncodings.put("*", "%2A");
+		percentEncodings.put("+", "%2B");
+		percentEncodings.put(",", "%2C");
+		percentEncodings.put(":", "%3A");
+		percentEncodings.put(";", "%3B");
+		percentEncodings.put("=", "%3D");
+		percentEncodings.put("?", "%3F");
+		percentEncodings.put("@", "%40");
+		percentEncodings.put("[", "%5B");
+		percentEncodings.put("]", "%5D");
+	}
+
+	private String percentEncode(String raw) {
+		String encoded = raw.replace("%", "%25").replace("/", "%2F");
+		return percentEncodeExceptPercentAndSlash(encoded);
+	}
+
+	private String percentEncodeExceptSlash(String raw) {
+		String encoded = raw.replace("%", "%25");
+		return percentEncodeExceptPercentAndSlash(encoded);
+	}
+
+	private String percentEncodeExceptPercentAndSlash(String raw) {
+		String encoded = raw;
+		for (Map.Entry<String, String> encoding : percentEncodings.entrySet()) {
+			encoded = encoded.replace(encoding.getKey(), encoding.getValue());
+		}
+		return encoded;
 	}
 }
