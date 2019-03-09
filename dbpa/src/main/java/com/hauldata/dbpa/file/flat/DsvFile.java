@@ -154,4 +154,11 @@ public abstract class DsvFile extends TextFile {
 	public boolean hasRow() throws IOException {
 		return tokenizer.hasNext();
 	}
+
+	// TextFile overrides
+
+	@Override
+	public int lineno() {
+		return tokenizer.lineno();
+	}
 }

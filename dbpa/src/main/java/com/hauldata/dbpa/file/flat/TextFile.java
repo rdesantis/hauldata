@@ -176,6 +176,11 @@ public abstract class TextFile extends FlatFile {
 		return getOptions() != null ? (TargetOptions)getOptions() : TargetOptions.DEFAULT;
 	}
 
+	/**
+	 * @return the current line number
+	 */
+	public abstract int lineno();
+
 	@Override
 	public void flush() throws IOException {}
 }

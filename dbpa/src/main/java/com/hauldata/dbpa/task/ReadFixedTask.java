@@ -153,7 +153,7 @@ public class ReadFixedTask extends Task {
 						--level;
 					}
 					if (level < 0) {
-						throw new RuntimeException("Record does not match expected data record or first trailer");
+						throw new RuntimeException("Record does not match expected data record or first trailer at line " + String.valueOf(sourcePage.lineno()));
 					}
 
 					DataFixedFieldsTarget dataRecordTarget = dataRecordTargets.get(level);
