@@ -16,8 +16,25 @@
 
 package com.hauldata.dbpa.task.expression.fixed;
 
-import com.hauldata.dbpa.file.fixed.FixedField;
+import com.hauldata.dbpa.expression.Expression;
+import com.hauldata.dbpa.file.fixed.ColumnKeeperFixedField;
 
-public interface FixedFieldExpression {
-	FixedField evaluate();
+public class ColumnKeeperFixedFieldExpression extends ColumnFixedFieldExpression implements KeeperFixedFieldExpression {
+
+	private boolean joined;
+
+	public ColumnKeeperFixedFieldExpression(Expression<Integer> startColumn, Expression<Integer> endColumn, boolean joined) {
+		super(startColumn, endColumn);
+		this.joined = joined;
+	}
+
+	@Override
+	public boolean isJoined() {
+		return joined;
+	}
+
+	@Override
+	public ColumnKeeperFixedField evaluate() {
+		return new ColumnKeeperFixedField(evaluateStartColumn(), evaluateEndColumn(), joined);
+	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Ronald DeSantis
+ * Copyright (c) 2018, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package com.hauldata.dbpa.file.fixed;
 
-public class ValidatorFixedField extends FixedField {
+public class ValidatorFixedField extends ColumnFixedField {
 
 	public static class Validator implements Actor {
 
@@ -27,9 +27,9 @@ public class ValidatorFixedField extends FixedField {
 		}
 
 		@Override
-		public void invokeWith(String value) {
+		public void invokeWith(int lineNumber, String value) {
 			if (!isExpecting(value)) {
-				throw new RuntimeException("Expecting '" + expectedValue + "'; found '" + value + "'");
+				throw new RuntimeException("Expecting '" + expectedValue + "'; found '" + value + "' at line " + String.valueOf(lineNumber));
 			}
 		}
 

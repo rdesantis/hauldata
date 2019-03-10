@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Ronald DeSantis
+ * Copyright (c) 2018, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -45,15 +45,15 @@ public class FixedFields {
 		return validatorFields.isEmpty() || validatorFields.stream().allMatch(field -> field.isExpectedIn(record));
 	}
 
-	public void actOn(String record) {
+	public void actOn(int lineNumber, String record) {
 		for (FixedField field : fields) {
-			field.actOn(record);
+			field.actOn(lineNumber, record);
 		}
 	}
 
-	public void actNonMatchersOn(String record) {
+	public void actNonMatchersOn(int lineNumber, String record) {
 		for (FixedField field : nonValidatorFields) {
-			field.actOn(record);
+			field.actOn(lineNumber, record);
 		}
 	}
 }

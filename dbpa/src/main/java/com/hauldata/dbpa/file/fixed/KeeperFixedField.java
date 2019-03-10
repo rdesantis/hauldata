@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Ronald DeSantis
+ * Copyright (c) 2018, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,36 +16,13 @@
 
 package com.hauldata.dbpa.file.fixed;
 
-public class KeeperFixedField extends FixedField {
+public interface KeeperFixedField {
 
-	public static class Keeper implements Actor {
-
-		private String value;
-
-		public Keeper() {}
-
-		@Override
-		public void invokeWith(String value) {
-			this.value = value;
-		}
-
-		public String getValue() {
-			return value;
-		}
+	public static interface KeeperActor extends FixedField.Actor {
+		public String getValue();
 	}
 
-	private boolean joined;
+	boolean isJoined();
 
-	public KeeperFixedField(int startColumn, int endColumn, boolean joined) {
-		super(startColumn, endColumn, new Keeper());
-		this.joined = joined;
-	}
-
-	public boolean isJoined() {
-		return joined;
-	}
-
-	public String getValue() {
-		return ((Keeper)actor).getValue();
-	}
+	String getValue();
 }

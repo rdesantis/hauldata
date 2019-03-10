@@ -48,8 +48,8 @@ public class TxtFile extends TextFile {
 
 	private BufferedWriter writer;
 	private BufferedReader reader;
-	private String lookaheadRow;
 	private int lineNumber;
+	private String lookaheadRow;
 
 	public TxtFile(Owner owner, Path path, PageOptions options) {
 		super(owner, path, options);
@@ -95,8 +95,8 @@ public class TxtFile extends TextFile {
 	public void open() throws IOException {
 
 		reader = getReader();
+		lineNumber = 0;
 		lookaheadRow = reader.readLine();
-		lineNumber = 1;
 
 		SourceHeaders headers = getSourceHeaders();
 		if ((headers != null) && headers.exist()) {
@@ -162,11 +162,11 @@ public class TxtFile extends TextFile {
 	@Override
 	public Object readColumn(int columnIndex) throws IOException {
 		if (columnIndex == 1) {
+			++lineNumber;
 			return lookaheadRow;
 		}
 		else if (columnIndex == 2) {
 			lookaheadRow = reader.readLine();
-			++lineNumber;
 			return EndOfLine.value;
 		}
 		else {

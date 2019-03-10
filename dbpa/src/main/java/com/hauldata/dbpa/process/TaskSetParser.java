@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 - 2018, Ronald DeSantis
+ * Copyright (c) 2016 - 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -64,7 +64,8 @@ import com.hauldata.dbpa.task.expression.SourceHeaderExpressions;
 import com.hauldata.dbpa.task.expression.TargetHeaderExpressions;
 import com.hauldata.dbpa.task.expression.fixed.DataFixedFieldExpressionsTarget;
 import com.hauldata.dbpa.task.expression.fixed.FixedFieldExpressions;
-import com.hauldata.dbpa.task.expression.fixed.KeeperFixedFieldExpression;
+import com.hauldata.dbpa.task.expression.fixed.LineNumberKeeperFixedFieldExpression;
+import com.hauldata.dbpa.task.expression.fixed.ColumnKeeperFixedFieldExpression;
 import com.hauldata.dbpa.task.expression.fixed.SetterFixedFieldExpression;
 import com.hauldata.dbpa.task.expression.fixed.ValidatorFixedFieldExpression;
 import com.hauldata.dbpa.variable.*;
@@ -210,6 +211,8 @@ public abstract class TaskSetParser {
 		COLUMNS,
 		CONTAIN,
 		DATA,
+		LINE,
+		NUMBER,
 		TRAILER,
 		PREFIX,
 		BINARY,
@@ -1066,15 +1069,25 @@ public abstract class TaskSetParser {
 			DataFixedFieldExpressionsTarget fieldsTarget = new DataFixedFieldExpressionsTarget();
 
 			do {
-				FixedColumns columns = parseFixedColumns();
-				if (tokenizer.skipWordIgnoreCase(KW.CONTAIN.name())) {
-					Expression<String> validator = parseStringExpression();
-					fieldsTarget.add(new ValidatorFixedFieldExpression(columns.startColumn, columns.endColumn, validator));
-				}
-				else {
+				if (tokenizer.skipWordIgnoreCase(KW.LINE.name())) {
+					if (!tokenizer.skipWordIgnoreCase(KW.NUMBER.name())) {
+						throw new InputMismatchException("Expecting " + KW.LINE.name() + " to be followed by " + KW.NUMBER.name());
+					}
 					tokenizer.skipWordIgnoreCase(KW.KEEP.name());
 					boolean join = tokenizer.skipWordIgnoreCase(KW.JOIN.name());
-					fieldsTarget.add(new KeeperFixedFieldExpression(columns.startColumn, columns.endColumn, join));
+					fieldsTarget.add(new LineNumberKeeperFixedFieldExpression(join));
+				}
+				else {
+					FixedColumns columns = parseFixedColumns();
+					if (tokenizer.skipWordIgnoreCase(KW.CONTAIN.name())) {
+						Expression<String> validator = parseStringExpression();
+						fieldsTarget.add(new ValidatorFixedFieldExpression(columns.startColumn, columns.endColumn, validator));
+					}
+					else {
+						tokenizer.skipWordIgnoreCase(KW.KEEP.name());
+						boolean join = tokenizer.skipWordIgnoreCase(KW.JOIN.name());
+						fieldsTarget.add(new ColumnKeeperFixedFieldExpression(columns.startColumn, columns.endColumn, join));
+					}
 				}
 			} while (tokenizer.skipDelimiter(","));
 

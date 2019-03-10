@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Ronald DeSantis
+ * Copyright (c) 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,8 +16,23 @@
 
 package com.hauldata.dbpa.task.expression.fixed;
 
-import com.hauldata.dbpa.file.fixed.FixedField;
+import com.hauldata.dbpa.file.fixed.LineNumberKeeperFixedField;
 
-public interface FixedFieldExpression {
-	FixedField evaluate();
+public class LineNumberKeeperFixedFieldExpression implements FixedFieldExpression, KeeperFixedFieldExpression {
+
+	private boolean joined;
+
+	public LineNumberKeeperFixedFieldExpression(boolean joined) {
+		this.joined = joined;
+	}
+
+	@Override
+	public LineNumberKeeperFixedField evaluate() {
+		return new LineNumberKeeperFixedField(joined);
+	}
+
+	@Override
+	public boolean isJoined() {
+		return joined;
+	}
 }

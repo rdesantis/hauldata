@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Ronald DeSantis
+ * Copyright (c) 2018, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package com.hauldata.dbpa.file.fixed;
 import com.hauldata.dbpa.variable.VariableBase;
 import com.hauldata.dbpa.variable.VariablesFromStrings;
 
-public class SetterFixedField extends FixedField {
+public class SetterFixedField extends ColumnFixedField {
 
 	public static class VariableSetter implements Actor {
 
@@ -30,7 +30,7 @@ public class SetterFixedField extends FixedField {
 		}
 
 		@Override
-		public void invokeWith(String value) {
+		public void invokeWith(int lineNumber, String value) {
 			VariablesFromStrings.set(variable, value);
 		}
 	}

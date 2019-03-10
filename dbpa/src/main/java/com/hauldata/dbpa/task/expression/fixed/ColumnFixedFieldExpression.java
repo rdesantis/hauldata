@@ -16,8 +16,26 @@
 
 package com.hauldata.dbpa.task.expression.fixed;
 
+import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.fixed.FixedField;
 
-public interface FixedFieldExpression {
-	FixedField evaluate();
+public abstract class ColumnFixedFieldExpression implements FixedFieldExpression {
+
+	private Expression<Integer> startColumn;
+	private Expression<Integer> endColumn;
+
+	protected ColumnFixedFieldExpression(Expression<Integer> startColumn, Expression<Integer> endColumn) {
+		this.startColumn = startColumn;
+		this.endColumn = endColumn;
+	}
+
+	public abstract FixedField evaluate();
+
+	protected int evaluateStartColumn() {
+		return startColumn.evaluate();
+	}
+
+	protected int evaluateEndColumn() {
+		return endColumn.evaluate();
+	}
 }

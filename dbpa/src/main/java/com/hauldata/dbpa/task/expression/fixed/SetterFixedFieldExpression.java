@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Ronald DeSantis
+ * Copyright (c) 2018, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -17,11 +17,10 @@
 package com.hauldata.dbpa.task.expression.fixed;
 
 import com.hauldata.dbpa.expression.Expression;
-import com.hauldata.dbpa.file.fixed.FixedField;
 import com.hauldata.dbpa.file.fixed.SetterFixedField;
 import com.hauldata.dbpa.variable.VariableBase;
 
-public class SetterFixedFieldExpression extends FixedFieldExpression {
+public class SetterFixedFieldExpression extends ColumnFixedFieldExpression {
 
 	private VariableBase variable;
 
@@ -31,7 +30,7 @@ public class SetterFixedFieldExpression extends FixedFieldExpression {
 	}
 
 	@Override
-	public FixedField evaluate() {
+	public SetterFixedField evaluate() {
 		return new SetterFixedField(evaluateStartColumn(), evaluateEndColumn(), variable);
 	}
 }

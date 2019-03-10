@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Ronald DeSantis
+ * Copyright (c) 2018, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,25 +16,6 @@
 
 package com.hauldata.dbpa.task.expression.fixed;
 
-import com.hauldata.dbpa.expression.Expression;
-import com.hauldata.dbpa.file.fixed.FixedField;
-import com.hauldata.dbpa.file.fixed.KeeperFixedField;
-
-public class KeeperFixedFieldExpression extends FixedFieldExpression {
-
-	private boolean joined;
-
-	public KeeperFixedFieldExpression(Expression<Integer> startColumn, Expression<Integer> endColumn, boolean joined) {
-		super(startColumn, endColumn);
-		this.joined = joined;
-	}
-
-	public boolean isJoined() {
-		return joined;
-	}
-
-	@Override
-	public FixedField evaluate() {
-		return new KeeperFixedField(evaluateStartColumn(), evaluateEndColumn(), joined);
-	}
+public interface KeeperFixedFieldExpression {
+	boolean isJoined();
 }

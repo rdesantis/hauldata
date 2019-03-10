@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Ronald DeSantis
+ * Copyright (c) 2018, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -78,7 +78,7 @@ public class ReadFixedTask extends Task {
 			read(sourcePage, trailers, false);
 
 			if (sourcePage.hasRow()) {
-				throw new RuntimeException("End of file not found as expected after the trailer record(s)");
+				throw new RuntimeException("End of file not found as expected after the trailer record(s) at line " + String.valueOf(sourcePage.lineno()));
 			}
 		}
 		catch (IOException ex) {
@@ -120,7 +120,7 @@ public class ReadFixedTask extends Task {
 			}
 
 			String record = (String)sourcePage.readColumn(1);
-			fields.actOn(record);
+			fields.actOn(sourcePage.lineno(), record);
 			sourcePage.readColumn(2);
 		}
 	}
@@ -157,7 +157,7 @@ public class ReadFixedTask extends Task {
 					}
 
 					DataFixedFieldsTarget dataRecordTarget = dataRecordTargets.get(level);
-					dataRecordTarget.actNonMatchersOn(record);
+					dataRecordTarget.actNonMatchersOn(sourcePage.lineno(), record);
 
 					DataTarget target = dataRecordTarget.getTarget();
 					int targetColumnIndex = 1;

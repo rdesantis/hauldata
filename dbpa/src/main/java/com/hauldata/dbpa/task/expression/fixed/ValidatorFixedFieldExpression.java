@@ -17,10 +17,9 @@
 package com.hauldata.dbpa.task.expression.fixed;
 
 import com.hauldata.dbpa.expression.Expression;
-import com.hauldata.dbpa.file.fixed.FixedField;
 import com.hauldata.dbpa.file.fixed.ValidatorFixedField;
 
-public class ValidatorFixedFieldExpression extends FixedFieldExpression {
+public class ValidatorFixedFieldExpression extends ColumnFixedFieldExpression {
 
 	Expression<String> expectedValue;
 
@@ -30,7 +29,7 @@ public class ValidatorFixedFieldExpression extends FixedFieldExpression {
 	}
 
 	@Override
-	public FixedField evaluate() {
+	public ValidatorFixedField evaluate() {
 		return new ValidatorFixedField(evaluateStartColumn(), evaluateEndColumn(), expectedValue.evaluate());
 	}
 }
