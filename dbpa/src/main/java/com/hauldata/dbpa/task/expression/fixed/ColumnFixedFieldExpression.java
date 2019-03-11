@@ -31,11 +31,17 @@ public abstract class ColumnFixedFieldExpression implements FixedFieldExpression
 
 	public abstract FixedField evaluate();
 
-	protected int evaluateStartColumn() {
-		return startColumn.evaluate();
-	}
+	protected int[] evaluateColumns() {
+		Integer startColumn = this.startColumn.evaluate();
+		Integer endColumn = this.endColumn.evaluate();
 
-	protected int evaluateEndColumn() {
-		return endColumn.evaluate();
+		if (startColumn == null || endColumn == null) {
+			throw new RuntimeException("Start and/or end column in COLUMNS clause evaluates to NULL");
+		}
+		if (endColumn < startColumn) {
+			throw new RuntimeException("End column evaluates to less than start column in COLUMNS clause");
+		}
+
+		return new int[] { startColumn, endColumn };
 	}
 }

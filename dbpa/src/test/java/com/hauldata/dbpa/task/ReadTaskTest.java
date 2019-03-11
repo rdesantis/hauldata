@@ -336,4 +336,30 @@ public class ReadTaskTest extends TaskTest {
 
 		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
 	}
+
+	public void testReadFixedNegative() throws Exception {
+
+		String script;
+
+		script =
+				"TASK READ FIXED 'other fixed test.txt' \n" +
+				"	HEADER IGNORE HEADER IGNORE HEADER IGNORE HEADER IGNORE HEADER IGNORE \n" +
+				"	DATA COLUMNS 2 1 \n" +
+				"	INTO STATEMENT '' \n" +
+				"END TASK\n" +
+				"";
+
+		assertScriptFails("ReadFixedReversedColums", script, "1", "End column evaluates to less than start column in COLUMNS clause");
+
+		script =
+				"VARIABLES one INTEGER, two INTEGER END VARIABLES \n" +
+				"TASK READ FIXED 'other fixed test.txt' \n" +
+				"	HEADER IGNORE HEADER IGNORE HEADER IGNORE HEADER IGNORE HEADER IGNORE \n" +
+				"	DATA COLUMNS one two \n" +
+				"	INTO STATEMENT '' \n" +
+				"END TASK\n" +
+				"";
+
+		assertScriptFails("ReadFixedNullColums", script, "1", "Start and/or end column in COLUMNS clause evaluates to NULL");
+	}
 }

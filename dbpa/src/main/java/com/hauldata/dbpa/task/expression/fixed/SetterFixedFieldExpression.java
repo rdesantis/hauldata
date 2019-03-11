@@ -31,6 +31,7 @@ public class SetterFixedFieldExpression extends ColumnFixedFieldExpression {
 
 	@Override
 	public SetterFixedField evaluate() {
-		return new SetterFixedField(evaluateStartColumn(), evaluateEndColumn(), variable);
+		int[] columns = evaluateColumns();
+		return new SetterFixedField(columns[0], columns[1], variable);
 	}
 }

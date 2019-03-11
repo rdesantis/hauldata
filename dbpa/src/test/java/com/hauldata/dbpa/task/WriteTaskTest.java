@@ -17,7 +17,6 @@
 package com.hauldata.dbpa.task;
 
 import com.hauldata.dbpa.DbProcessTestTables;
-import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.Logger.Level;
 
 public class WriteTaskTest extends TaskTest {
@@ -242,7 +241,6 @@ public class WriteTaskTest extends TaskTest {
 
 	public void testNullFileName() throws Exception {
 
-		String processId = "WriteNullFileName";
 		String script =
 				"TASK WriteCsv \n" +
 				"	WRITE CSV NULL NOQUOTES \n" +
@@ -250,26 +248,11 @@ public class WriteTaskTest extends TaskTest {
 				"END TASK\n" +
 				"";
 
-		Level logLevel = Level.error;
-		boolean logToConsole = true;
-
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null, false);
-
-		Analyzer.RecordIterator iterator = analyzer.recordIterator(processId, "WRITECSV");
-		Analyzer.Record record;
-
-		record = iterator.next();
-		assertEquals("File path expression evaluates to NULL", record.message);
-
-		record = iterator.next();
-		assertEquals(Task.failMessage, record.message);
-
-		assertFalse(iterator.hasNext());
+		assertScriptFails("WriteNullFileName", script, "WRITECSV", "File path expression evaluates to NULL");
 	}
 
 	public void testNullSheetName() throws Exception {
 
-		String processId = "WriteNullFileName";
 		String script =
 				"TASK WriteXlsx \n" +
 				"	WRITE XLSX 'dontcreate.xlsx' NULL STYLED \n" +
@@ -277,20 +260,6 @@ public class WriteTaskTest extends TaskTest {
 				"END TASK \n" +
 				"";
 
-		Level logLevel = Level.error;
-		boolean logToConsole = true;
-
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null, false);
-
-		Analyzer.RecordIterator iterator = analyzer.recordIterator(processId, "WRITEXLSX");
-		Analyzer.Record record;
-
-		record = iterator.next();
-		assertEquals("Sheet name expression evaluates to NULL", record.message);
-
-		record = iterator.next();
-		assertEquals(Task.failMessage, record.message);
-
-		assertFalse(iterator.hasNext());
+		assertScriptFails("WriteNullSheetName", script, "WRITEXLSX", "Sheet name expression evaluates to NULL");
 	}
 }

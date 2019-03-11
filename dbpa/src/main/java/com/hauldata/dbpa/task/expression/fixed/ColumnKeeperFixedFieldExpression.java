@@ -35,6 +35,7 @@ public class ColumnKeeperFixedFieldExpression extends ColumnFixedFieldExpression
 
 	@Override
 	public ColumnKeeperFixedField evaluate() {
-		return new ColumnKeeperFixedField(evaluateStartColumn(), evaluateEndColumn(), joined);
+		int[] columns = evaluateColumns();
+		return new ColumnKeeperFixedField(columns[0], columns[1], joined);
 	}
 }

@@ -149,5 +149,28 @@ public abstract class TaskTest extends TestCase {
 		assertNotNull(process);
 	}
 
+	public void assertScriptFails(
+			String processId,
+			String script,
+			String taskName,
+			String failMessage) throws Exception {
+
+		Level logLevel = Level.error;
+		boolean logToConsole = true;
+
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null, false);
+
+		Analyzer.RecordIterator iterator = analyzer.recordIterator(processId, taskName);
+		Analyzer.Record record;
+
+		record = iterator.next();
+		assertEquals(failMessage, record.message);
+
+		record = iterator.next();
+		assertEquals(Task.failMessage, record.message);
+
+		assertFalse(iterator.hasNext());
+	}
+
 	static {QuietLog4j.please();}
 }

@@ -30,6 +30,7 @@ public class ValidatorFixedFieldExpression extends ColumnFixedFieldExpression {
 
 	@Override
 	public ValidatorFixedField evaluate() {
-		return new ValidatorFixedField(evaluateStartColumn(), evaluateEndColumn(), expectedValue.evaluate());
+		int[] columns = evaluateColumns();
+		return new ValidatorFixedField(columns[0], columns[1], expectedValue.evaluate());
 	}
 }
