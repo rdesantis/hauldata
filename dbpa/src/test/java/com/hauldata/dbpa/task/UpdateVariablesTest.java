@@ -59,30 +59,27 @@ public class UpdateVariablesTest extends TaskTest {
 
 	public void testUpdateVariablesNegative() throws Exception {
 
-		String processId = "UpdateVariablesNegativeTest";
-		String script =
+		String script;
+
+		script =
 				"VARIABLES i INT, v VARCHAR, b BIT END VARIABLES \n" +
 				"TASK UpdateThem UPDATE i, v, b FROM VALUES (1, 'one', 1, 'garbage') END TASK \n" +
 				"";
 
-		Level logLevel = Level.error;
-		boolean logToConsole = true;
-		Analyzer analyzer = null;
+		assertBadSyntax(script, "At line 2: VALUES clause has too many columns");
 
-		analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null, false);
+		script =
+				"VARIABLES i INT, v VARCHAR, b BIT END VARIABLES \n" +
+				"TASK UpdateThem UPDATE i, v, b FROM VALUES (1, 'one') END TASK \n" +
+				"";
 
-		Analyzer.RecordIterator recordIterator = null;
-		Analyzer.Record record = null;
+		assertBadSyntax(script, "At line 2: VALUES clause has too few columns");
 
-		recordIterator = analyzer.recordIterator(processId, "UPDATETHEM");
+		script =
+				"TASK WRITE CSV 'whatever' FROM VALUES (1, 'one'), (2) END TASK \n" +
+				"";
 
-		record = recordIterator.next();
-		assertEquals("Database query returned different number of columns than variables to update", record.message);
-
-		record = recordIterator.next();
-		assertEquals(Task.failMessage, record.message);
-
-		assertFalse(recordIterator.hasNext());
+		assertBadSyntax(script, "At line 1: VALUES clause has an inconsistent number of columns");
 	}
 
 	public void testForValues() throws Exception {

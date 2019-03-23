@@ -181,6 +181,8 @@ public abstract class TaskSetParser {
 		SCRIPT,
 		VALUES,
 		PROPERTIES,
+		SOURCE,
+		TARGET,
 		FILES,
 		// Future:
 		FILE,
@@ -856,7 +858,11 @@ public abstract class TaskSetParser {
 				variables.add(parseVariableReference());
 			} while (tokenizer.skipDelimiter(","));
 
-			Source source = parseSource(KW.UPDATE.name(), KW.FROM.name(), true, true);
+			ArrayList<VariableType> columnTypes = variables
+					.stream()
+					.map(v -> v.getType())
+					.collect(Collectors.toCollection(ArrayList::new));
+			Source source = parseSource(KW.UPDATE.name(), KW.FROM.name(), true, true, columnTypes);
 
 			return new UpdateTask(prologue, variables, source);
 		}
@@ -886,7 +892,7 @@ public abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(handler);
 
-			Source source = parseSource(KW.APPEND.name(), KW.FROM.name(), false, true);
+			Source source = parseSource(KW.APPEND.name(), KW.FROM.name(), false, true, null);
 
 			return new AppendTask(prologue, page, source);
 		}
@@ -914,7 +920,7 @@ public abstract class TaskSetParser {
 
 			TargetHeaderExpressions headers = parseTargetHeaders(KW.FROM.name());
 
-			Source source = parseSource(KW.WRITE.name(), KW.FROM.name(), false, true);
+			Source source = parseSource(KW.WRITE.name(), KW.FROM.name(), false, true, null);
 
 			return new WriteTask(prologue, page, options, headers, source);
 		}
@@ -937,7 +943,7 @@ public abstract class TaskSetParser {
 
 			TargetHeaderExpressions headers = parseTargetHeaders(KW.FROM.name());
 
-			Source source = parseSource(KW.WRITE.name(), KW.FROM.name(), false, true);
+			Source source = parseSource(KW.WRITE.name(), KW.FROM.name(), false, true, null);
 
 			return new WriteTask(prologue, page, options, headers, source);
 		}
@@ -1523,12 +1529,6 @@ public abstract class TaskSetParser {
 			if (hasFileType(false)) {
 				thisTask = parseForReadFile(prologue, variables);
 			}
-			else if (tokenizer.skipWordIgnoreCase(KW.FILES.name())) {
-				thisTask = parseForFiles(prologue, variables);
-			}
-			else if (tokenizer.skipWordIgnoreCase(KW.VALUES.name())) {
-				thisTask = parseForValues(prologue, variables);
-			}
 			else {
 				thisTask  = parseForData(prologue, variables);
 			}
@@ -1555,57 +1555,15 @@ public abstract class TaskSetParser {
 			return new ForReadTask(prologue, variables, page, options, headers, columns);
 		}
 
-		@SuppressWarnings("unchecked")
-		private ForFilesTask parseForFiles(
-				Task.Prologue prologue,
-				ArrayList<VariableBase> variables) throws IOException, NamingException {
-
-			if ((variables.size() != 1) || (variables.get(0).getType() != VariableType.VARCHAR)) {
-				throw new RuntimeException(KW.FOR.name() + " " + KW.FILES.name() + " must have a single VARCHAR variable in the list");
-			}
-
-			Expression<String> filename = parseStringExpression();
-
-			return new ForFilesTask(prologue, (Variable<String>)variables.get(0), filename);
-		}
-
-		private ForDataTask parseForValues(
-				Task.Prologue prologue,
-				ArrayList<VariableBase> variables) throws IOException, NamingException {
-
-			List<ExpressionBase[]> values = new LinkedList<ExpressionBase[]>();
-			do {
-				values.add(parseExpressionList(variables));
-			} while (tokenizer.skipDelimiter(","));
-
-			ValuesSource source = new ValuesSource(values);
-
-			return new ForDataTask(prologue, variables, source);
-		}
-
-		private ExpressionBase[] parseExpressionList(ArrayList<VariableBase> variables)
-				throws InputMismatchException, NoSuchElementException, IOException {
-
-			ExpressionBase[] expressionList = new ExpressionBase[variables.size()];
-			tokenizer.nextDelimiter("(");
-
-			int index = 0;
-			for (VariableBase variable : variables) {
-				expressionList[index] = parseExpression(variable.getType());
-				if (++index < variables.size()) {
-					tokenizer.nextDelimiter(",");
-				}
-			}
-
-			tokenizer.nextDelimiter(")");
-			return expressionList;
-		}
-
 		private ForDataTask parseForData(
 				Task.Prologue prologue,
 				ArrayList<VariableBase> variables) throws IOException, NamingException {
 
-			DataSource dataSource = parseDataSource(KW.FOR.name(), null, false, true);
+			ArrayList<VariableType> columnTypes = variables
+					.stream()
+					.map(v -> v.getType())
+					.collect(Collectors.toCollection(ArrayList::new));
+			Source dataSource = parseSource(KW.FOR.name(), null, false, true, columnTypes);
 
 			return new ForDataTask(prologue, variables, dataSource);
 		}
@@ -1961,7 +1919,7 @@ public abstract class TaskSetParser {
 
 		protected void parseSourceWithAliases(List<SourceWithAliases> sourcesWithAliases) throws IOException {
 
-			Source source = parseSource(KW.REQUEST.name(), null, false, true);
+			Source source = parseSource(KW.REQUEST.name(), null, false, true, null);
 			List<Expression<String>> columnNameAliases = parseAliases(KW.AS.name(), false);
 
 			sourcesWithAliases.add(new SourceWithAliases(source, columnNameAliases));
@@ -2088,32 +2046,48 @@ public abstract class TaskSetParser {
 		}
 	}
 
-	private Source parseSource(String taskTypeName, String introWord, boolean singleRow, boolean allowTable) throws IOException {
+	private Source parseSource(
+			String taskTypeName,
+			String introWord,
+			boolean singleRow,
+			boolean allowTable,
+			ArrayList<VariableType> columnTypes) throws IOException {
 
 		if (introWord != null) {
 			tokenizer.skipWordIgnoreCase(introWord);
 		}
 
 		if (tokenizer.skipWordIgnoreCase(KW.VALUES.name())) {
-			return parseValuesSource(singleRow);
+			return parseValuesSource(singleRow, columnTypes);
 		}
-		if (tokenizer.skipWordIgnoreCase(KW.PROPERTIES.name())) {
-			return parsePropertiesSource();
+		else if (tokenizer.skipWordIgnoreCase(KW.PROPERTIES.name())) {
+			return parsePropertiesSource(columnTypes);
+		}
+		else if (tokenizer.skipWordIgnoreCase(KW.FILES.name())) {
+			return parseFileSource(false, columnTypes);
+		}
+		else if (tokenizer.skipWordIgnoreCase(KW.SOURCE.name())) {
+			tokenizer.skipWordIgnoreCase(KW.FILES.name());
+			return parseFileSource(false, columnTypes);
+		}
+		else if (tokenizer.skipWordIgnoreCase(KW.TARGET.name())) {
+			tokenizer.skipWordIgnoreCase(KW.FILES.name());
+			return parseFileSource(true, columnTypes);
 		}
 		else {
 			return parseDataSource(taskTypeName, null, singleRow, allowTable);
 		}
 	}
 
-	private ValuesSource parseValuesSource(boolean singleRow) throws InputMismatchException, NoSuchElementException, IOException {
+	private ValuesSource parseValuesSource(boolean singleRow, ArrayList<VariableType> columnTypes) throws InputMismatchException, NoSuchElementException, IOException {
 
 		List<ExpressionBase[]> values = new LinkedList<ExpressionBase[]>();
 
-		ExpressionBase[] firstRow = parseExpressionList(0);
+		ExpressionBase[] firstRow = parseExpressionList((columnTypes != null) ? columnTypes.size() : 0, columnTypes);
 		values.add(firstRow);
 
 		while (tokenizer.skipDelimiter(",")) {
-			values.add(parseExpressionList(firstRow.length));
+			values.add(parseExpressionList(firstRow.length, columnTypes));
 		}
 
 		if (singleRow && (values.size() != 1)) {
@@ -2123,27 +2097,40 @@ public abstract class TaskSetParser {
 		return new ValuesSource(values);
 	}
 
-	private ExpressionBase[] parseExpressionList(int size)
+	private ExpressionBase[] parseExpressionList(int columnCount, ArrayList<VariableType> columnTypes)
 			throws InputMismatchException, NoSuchElementException, IOException {
 
 		List<ExpressionBase> expressionList = new LinkedList<ExpressionBase>();
 		tokenizer.nextDelimiter("(");
 
+		int columnIndex = 0;
 		do {
-			ExpressionBase expression = parseAnyExpression();
+			ExpressionBase expression;
+			if ((columnCount != 0) && (columnCount <= columnIndex)) {
+				throw new InputMismatchException(KW.VALUES.name() + " clause has too many columns");
+			}
+			else if (columnTypes == null) {
+				expression = parseAnyExpression();
+			}
+			else {
+				expression = parseExpression(columnTypes.get(columnIndex));
+			}
 			expressionList.add(expression);
+			++columnIndex;
 		} while (tokenizer.skipDelimiter(","));
 
 		tokenizer.nextDelimiter(")");
 
-		if ((size > 0) && (expressionList.size() != size)) {
-			throw new InputMismatchException("All rows in a " + KW.VALUES.name() + " clause must have the same number of columns");
+		if ((columnCount != 0) && (columnIndex < columnCount)) {
+			throw new InputMismatchException(KW.VALUES.name() + " clause has " +
+					((columnTypes != null) ? "too few" : "an inconsistent number of") + " columns");
 		}
 
 		return expressionList.stream().toArray(ExpressionBase[]::new);
 	}
 
-	private PropertiesSource parsePropertiesSource() throws IOException {
+	private PropertiesSource parsePropertiesSource(ArrayList<VariableType> columnTypes)
+			throws InputMismatchException, IOException {
 
 		Expression<String> fileName = parseStringExpression();
 
@@ -2153,6 +2140,17 @@ public abstract class TaskSetParser {
 		} while (tokenizer.skipDelimiter(","));
 
 		return new PropertiesSource(fileName, propertyNames);
+	}
+
+	private Source parseFileSource(boolean writeNotRead, ArrayList<VariableType> columnTypes) throws IOException {
+
+		if ((columnTypes != null) && ((columnTypes.size() != 1) || (columnTypes.get(0) != VariableType.VARCHAR))) {
+			throw new InputMismatchException(KW.FILES.name() + " source returns a single column of VARCHAR type");
+		}
+
+		Expression<String> fileNamePattern = parseStringExpression();
+
+		return new FilesSource(fileNamePattern, writeNotRead);
 	}
 
 	private DataSource parseDataSource(String taskTypeName, String introWord, boolean singleRow, boolean allowTable) throws IOException {
