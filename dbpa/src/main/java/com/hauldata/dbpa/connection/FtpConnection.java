@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Ronald DeSantis
+ * Copyright (c) 2016, 2018-2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,9 +16,13 @@
 
 package com.hauldata.dbpa.connection;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
@@ -80,6 +84,22 @@ public class FtpConnection extends Connection {
 			FileObject to = manager.resolveFile(toFileURI, options);
 
 			from.moveTo(to);
+		}
+
+		public List<String> findRemote(String baseFolder, String fileNamePattern) throws FileSystemException {
+
+			String regex = fileNamePattern
+					.replace(".", "\\.")
+					.replace("*", ".*")
+					.replace("?", ".");
+			Pattern pattern = Pattern.compile(regex);
+
+			FileObject[] children = manager.resolveFile(getRemoteFileURI(baseFolder), options).getChildren();
+
+			return Arrays.stream(children)
+					.map(fo -> fo.getName().getBaseName())
+					.filter(name -> pattern.matcher(name).matches())
+					.collect(Collectors.toList());
 		}
 
 		public void close() {

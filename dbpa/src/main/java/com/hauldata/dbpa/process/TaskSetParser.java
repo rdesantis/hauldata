@@ -842,7 +842,9 @@ public abstract class TaskSetParser {
 
 		private Task parseRun(Task.Prologue prologue) throws IOException {
 
-			DataSource source = parseDataSource(KW.RUN.name(), null, false, false);
+			DatabaseConnection connection = parseDatabaseConnection(null);
+
+			DataSource source = parseDataSource(KW.RUN.name(), connection, false, false);
 
 			return new RunTask(prologue, source);
 		}
@@ -2064,17 +2066,31 @@ public abstract class TaskSetParser {
 			return parsePropertiesSource(columnTypes);
 		}
 		else if (tokenizer.skipWordIgnoreCase(KW.FILES.name())) {
-			return parseFileSource(false, columnTypes);
+			return parseFileSource(null, false, columnTypes);
 		}
 		else if (tokenizer.skipWordIgnoreCase(KW.SOURCE.name())) {
-			tokenizer.skipWordIgnoreCase(KW.FILES.name());
-			return parseFileSource(false, columnTypes);
+			return parseFileSource(KW.FILES.name(), false, columnTypes);
 		}
 		else if (tokenizer.skipWordIgnoreCase(KW.TARGET.name())) {
-			tokenizer.skipWordIgnoreCase(KW.FILES.name());
-			return parseFileSource(true, columnTypes);
+			return parseFileSource(KW.FILES.name(), true, columnTypes);
 		}
 		else {
+			Connection connection = parseOptionalConnection(null, null);
+
+			if (connection != null) {
+				if (connection instanceof DatabaseConnection) {
+					return parseDataSource(taskTypeName, (DatabaseConnection)connection, singleRow, allowTable);
+				}
+				else if (connection instanceof FtpConnection) {
+					return parseFtpSource((FtpConnection)connection, KW.FTP.name(), columnTypes);
+				}
+				else {
+					throw new InputMismatchException("A connection was specified that cannot be used in this context");
+				}
+			}
+			else if (tokenizer.skipWordIgnoreCase(KW.FTP.name())) {
+				return parseFtpSource(null, null, columnTypes);
+			}
 			return parseDataSource(taskTypeName, null, singleRow, allowTable);
 		}
 	}
@@ -2142,20 +2158,40 @@ public abstract class TaskSetParser {
 		return new PropertiesSource(fileName, propertyNames);
 	}
 
-	private Source parseFileSource(boolean writeNotRead, ArrayList<VariableType> columnTypes) throws IOException {
+	private Source parseFileSource(String introWord, boolean writeNotRead, ArrayList<VariableType> columnTypes) throws IOException {
 
-		if ((columnTypes != null) && ((columnTypes.size() != 1) || (columnTypes.get(0) != VariableType.VARCHAR))) {
-			throw new InputMismatchException(KW.FILES.name() + " source returns a single column of VARCHAR type");
+		if (introWord != null) {
+			tokenizer.skipWordIgnoreCase(introWord);
 		}
+
+		validateSingleVarcharColumn(KW.FILES.name(), columnTypes);
 
 		Expression<String> fileNamePattern = parseStringExpression();
 
 		return new FilesSource(fileNamePattern, writeNotRead);
 	}
 
-	private DataSource parseDataSource(String taskTypeName, String introWord, boolean singleRow, boolean allowTable) throws IOException {
+	private Source parseFtpSource(FtpConnection connection, String introWord, ArrayList<VariableType> columnTypes) throws IOException {
 
-		DatabaseConnection connection = parseDatabaseConnection(introWord);
+		if (introWord != null) {
+			tokenizer.skipWordIgnoreCase(introWord);
+		}
+
+		validateSingleVarcharColumn(KW.FTP.name(), columnTypes);
+
+		Expression<String> fileNamePattern = parseStringExpression();
+
+		return new FtpSource(connection, fileNamePattern);
+	}
+
+	private void validateSingleVarcharColumn(String sourceTypeName, ArrayList<VariableType> columnTypes) {
+
+		if ((columnTypes != null) && ((columnTypes.size() != 1) || (columnTypes.get(0) != VariableType.VARCHAR))) {
+			throw new InputMismatchException(sourceTypeName + " source returns a single column of VARCHAR type");
+		}
+	}
+
+	private DataSource parseDataSource(String taskTypeName, DatabaseConnection connection, boolean singleRow, boolean allowTable) throws IOException {
 
 		if (tokenizer.skipWordIgnoreCase(KW.STATEMENT.name())) {
 			return parseStatementDataSource(connection, singleRow);
@@ -2485,7 +2521,7 @@ public abstract class TaskSetParser {
 				}
 
 				if (connection != null) {
-					if (connection.getClass().getName() != className) {
+					if ((className != null) && (connection.getClass().getName() != className)) {
 						throw new InputMismatchException("Connection is not " + typeName + " type");
 					}
 				}
