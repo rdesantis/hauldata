@@ -54,11 +54,12 @@ public class ConnectTaskTest extends TaskTest {
 		String processId = "ConnectTest";
 		String script =
 				"VARIABLES server VARCHAR END VARIABLES \n" +
-				"CONNECTIONS one DATABASE, two FTP, three EMAIL END CONNECTIONS \n" +
+				"CONNECTIONS one DATABASE, two FTP, three EMAIL, four DATABASE END CONNECTIONS \n" +
 				"TASK WithDefault CONNECT one TO DEFAULT WITH 'url kdbc:yoursql://localhost/whatever Other \"thing within 2 (yes 2) quotes\"' END TASK \n" +
 				"TASK SetServer SET server = 'some:wackadoodie.thing' END TASK \n" +
 				"TASK NoDefault AFTER SetServer CONNECT two TO 'Server ' + server END TASK \n" +
 				"TASK OnlyDefault CONNECT three DEFAULT END TASK \n" +
+				"TASK Bare CONNECT four END TASK \n" +
 				"";
 
 		Level logLevel = Level.info;

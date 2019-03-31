@@ -28,6 +28,8 @@ public class DatabaseConnection extends com.hauldata.dbpa.connection.Connection 
 	private int activeConnectionCount = 0;
 	private List<Connection> idleConnections = new LinkedList<Connection>();
 
+	private static Boolean allConnections = true;
+
 	@Override
 	public void setProperties(Properties properties) {
 
@@ -70,12 +72,17 @@ public class DatabaseConnection extends com.hauldata.dbpa.connection.Connection 
 					throw new RuntimeException("Required database connection properties are not set");
 				}
 
-				try {
-					Class.forName(driver);
-					conn = DriverManager.getConnection(url, getProperties());
-				}
-				catch (Exception ex) {
-					throw new RuntimeException("Database connection failed: " + ex.toString(), ex);
+				// This section is found to cause a process to hang if multiple concurrent threads enter it
+				// specifying different drivers.
+
+				synchronized (allConnections) {
+					try {
+						Class.forName(driver);
+						conn = DriverManager.getConnection(url, getProperties());
+					}
+					catch (Exception ex) {
+						throw new RuntimeException("Database connection failed: " + ex.toString(), ex);
+					}
 				}
 			}
 

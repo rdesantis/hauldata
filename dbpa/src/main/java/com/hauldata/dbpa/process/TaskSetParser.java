@@ -238,6 +238,7 @@ public abstract class TaskSetParser {
 		SCHEDULE,
 		DELAY,
 		TIME,
+		USING,
 		DEFAULT,
 		SUBSTITUTING,
 		SOCKET,
@@ -1728,22 +1729,44 @@ public abstract class TaskSetParser {
 				throws InputMismatchException, NoSuchElementException, IOException, NamingException {
 
 			Connection connection = parseConnection();
-			boolean inherit = false;
-			Expression<String> properties = null;
 
-			tokenizer.skipWordIgnoreCase(KW.TO.name());
+			if (tokenizer.skipWordIgnoreCase(KW.USING.name())) {
+				return parseConnect(prologue, connection, (p, c, i, a) -> new ConnectUsingTask(p, c, i, a));
+			}
+			else if (tokenizer.skipWordIgnoreCase(KW.TO.name()) || !atEndOfTask()) {
+				return parseConnect(prologue, connection, (p, c, i, a) -> new ConnectToTask(p, c, i, a));
+			}
+			else {
+				return new ConnectDefaultTask(prologue, connection);
+			}
+		}
+
+		private Task parseConnect(Task.Prologue prologue, Connection connection, Connector connector)
+				throws InputMismatchException, NoSuchElementException, IOException, NamingException {
+
+			boolean inherit = false;
+			Expression<String> argument = null;
+
 			if (tokenizer.skipWordIgnoreCase(KW.DEFAULT.name())) {
 				inherit = true;
 				if (tokenizer.skipWordIgnoreCase(KW.WITH.name())) {
-					properties = parseStringExpression();
+					argument = parseStringExpression();
+				}
+				else {
+					return new ConnectDefaultTask(prologue, connection);
 				}
 			}
 			else {
-				properties = parseStringExpression();
+				argument = parseStringExpression();
 			}
 
-			return new ConnectTask(prologue, connection, inherit, properties);
+			return connector.newTask(prologue, connection, inherit, argument);
 		}
+	}
+
+	@FunctionalInterface
+	private static interface Connector {
+		Task newTask(Task.Prologue prologue, Connection connection, boolean inherit, Expression<String> argument);
 	}
 
 	class RequestTaskParser implements TaskParser {
