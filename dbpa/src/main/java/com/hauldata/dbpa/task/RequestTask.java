@@ -363,6 +363,8 @@ public abstract class RequestTask extends Task {
 				}
 			}
 
+			parameters.done(context);
+
 			if (!finalStatus.getIsSuccessful()) {
 				throw new RuntimeException("Request failed with status code " + String.valueOf(finalStatus.getStatus()) + ": " + finalStatus.getNonNullMessage());
 			}
@@ -651,6 +653,15 @@ class RequestTaskEvaluatedParameters {
 
 	public ArrayList<DataTarget> getTargets() {
 		return targetsWithKeepers.stream().map(t -> t.target).collect(Collectors.toCollection(ArrayList::new));
+	}
+
+	public void done(Context context) throws SQLException {
+
+		for (SourceWithAliases sourceWithAliases : this.sourcesWithAliases) {
+			if (sourceWithAliases != null && sourceWithAliases.source != null) {
+				sourceWithAliases.source.done(context);
+			}
+		}
 	}
 
 	public void close(Context context) {
