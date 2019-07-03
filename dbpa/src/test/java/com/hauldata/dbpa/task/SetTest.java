@@ -89,6 +89,7 @@ public class SetTest extends TaskTest {
 					"TASK AFTER LOG FORMAT(d1, 'MM/dd/yyyy') END TASK \n" +
 					"TASK AFTER LOG FORMAT(i4, 'd') END TASK \n" +
 					"TASK AFTER LOG FORMAT(b2, 'd') END TASK \n" +
+					"TASK AFTER LOG BASE64STRING('this is a test') END TASK \n" +
 				"END TASK \n" +
 				"";
 
@@ -134,6 +135,8 @@ public class SetTest extends TaskTest {
 		assertEquals("22", record.message);
 		record = recordIterator.next();
 		assertEquals("1", record.message);
+		record = recordIterator.next();
+		assertEquals("dGhpcyBpcyBhIHRlc3Q=", record.message);
 
 		assertFalse(recordIterator.hasNext());
 	}

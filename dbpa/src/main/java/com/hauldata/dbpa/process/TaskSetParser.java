@@ -273,6 +273,7 @@ public abstract class TaskSetParser {
 		DATETIMEFROMPARTS,
 		ERROR_MESSAGE,
 
+		BASE64STRING,
 		CHARINDEX,
 		LEFT,
 		LTRIM,
@@ -514,6 +515,7 @@ public abstract class TaskSetParser {
 		stringFunctionParsers.put(KW.UPPER.name(), new UpperParser());
 		stringFunctionParsers.put(KW.ERROR_MESSAGE.name(), new ErrorMessageParser());
 		stringFunctionParsers.put(KW.CHAR.name(), new CharParser());
+		stringFunctionParsers.put(KW.BASE64STRING.name(), new Base64StringParser());
 
 		datetimeFunctionParsers = new HashMap<String, FunctionParser<LocalDateTime>>();
 		datetimeFunctionParsers.put(KW.ISNULL.name(), new IsNullParser<LocalDateTime>(datetimeTermParser));
@@ -3189,6 +3191,16 @@ public abstract class TaskSetParser {
 			Expression<Integer> ascii = parseIntegerExpression();
 
 			return new Char(ascii);
+		}
+	}
+
+	private class Base64StringParser implements FunctionParser<String> {
+
+		public Expression<String> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<String> string = parseStringExpression();
+
+			return new Base64String(string);
 		}
 	}
 
