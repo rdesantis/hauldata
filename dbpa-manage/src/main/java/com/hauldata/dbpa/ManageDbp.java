@@ -46,6 +46,8 @@ import com.hauldata.dbpa.manage.resources.SchedulesResource;
 import com.hauldata.dbpa.manage.resources.SchemaResource;
 import com.hauldata.dbpa.manage.resources.ScriptsResource;
 import com.hauldata.dbpa.manage.resources.ServiceResource;
+import com.hauldata.dbpa.manage.resources.SourceFilesResource;
+import com.hauldata.dbpa.manage.resources.TargetFilesResource;
 
 public class ManageDbp extends Application<ManageDbpConfiguration> {
 
@@ -108,6 +110,8 @@ public class ManageDbp extends Application<ManageDbpConfiguration> {
 		final SchemaResource schema = new SchemaResource();
 		final ScriptsResource scripts = new ScriptsResource();
 		final PropertiesFilesResource propFiles = new PropertiesFilesResource();
+		final SourceFilesResource sourceFiles = new SourceFilesResource();
+		final TargetFilesResource targetFiles = new TargetFilesResource();
 		final SchedulesResource schedules = new SchedulesResource();
 		final JobsResource jobs = new JobsResource();
 
@@ -116,6 +120,8 @@ public class ManageDbp extends Application<ManageDbpConfiguration> {
 		environment.jersey().register(schema);
 		environment.jersey().register(scripts);
 		environment.jersey().register(propFiles);
+		environment.jersey().register(sourceFiles);
+		environment.jersey().register(targetFiles);
 		environment.jersey().register(schedules);
 		environment.jersey().register(jobs);
 
