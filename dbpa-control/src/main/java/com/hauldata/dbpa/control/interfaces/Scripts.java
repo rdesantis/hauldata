@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Ronald DeSantis
+ * Copyright (c) 2016, 2018-2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.util.Map;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -67,4 +68,8 @@ public interface Scripts {
 	@GET
 	@Path("-/validations")
 	public Map<String, ScriptValidation> validateAll(@QueryParam("like") String likeName);
+
+	@POST
+	@Path("-/running/{name}")
+	public void run(@PathParam("name") String name, String[] arguments);
 }
