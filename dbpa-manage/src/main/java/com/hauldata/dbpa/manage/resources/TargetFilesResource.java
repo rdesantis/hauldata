@@ -25,6 +25,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.Timed;
 import com.hauldata.dbpa.manage.JobManager;
@@ -45,6 +46,14 @@ public class TargetFilesResource {
 	@Timed
 	public String get(@PathParam("name") String name) throws IOException {
 		return files.get(name);
+	}
+
+	@GET
+	@Path("{name}/bytes")
+	@Produces(MediaType.APPLICATION_OCTET_STREAM)
+	@Timed
+	public Response getBytes(@PathParam("name") String name) throws IOException {
+		return files.getBytes(name);
 	}
 
 	@DELETE

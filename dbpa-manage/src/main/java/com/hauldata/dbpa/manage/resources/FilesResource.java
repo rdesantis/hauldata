@@ -23,6 +23,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
@@ -33,6 +34,11 @@ import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
+
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
 
 public class FilesResource {
 
@@ -123,6 +129,47 @@ public class FilesResource {
 		return bodyBuilder.toString();
 	}
 
+	/**
+	 * Read a binary file to be streamed.
+	 * @param name is the name of the file
+	 * @return the HTTP Response specifying the output stream
+	 * @throws WebApplicationException if the file is not found
+	 * @throws IOException for any other file system error
+	 */
+	public Response getBytes(String name) throws IOException {
+
+		String filePathName = getFilePath(name).toString();
+
+		final int bufferLength = 2048;
+		byte[] byteBuffer = new byte[bufferLength];
+
+		StreamingOutput fileStream =  new StreamingOutput() {
+			@Override
+			public void write(OutputStream output) throws IOException, WebApplicationException {
+
+				FileInputStream reader = null;
+				try {
+					reader = new FileInputStream(filePathName);
+
+					int count;
+					while((count = reader.read(byteBuffer, 0, bufferLength)) != -1) {
+						output.write(byteBuffer, 0, count);
+					}
+					output.flush();
+				}
+				catch (FileNotFoundException ex) {
+					throw new WebApplicationException(getNotFoundMessageStem() + name, Response.Status.NOT_FOUND);
+				}
+				finally {
+					if (reader != null) {
+						try { reader.close(); } catch (Exception ex) {}
+					}
+				}
+			}
+		};
+
+		return Response.ok(fileStream, MediaType.APPLICATION_OCTET_STREAM).build();
+	}
 
 	/**
 	 * Rename a file.
