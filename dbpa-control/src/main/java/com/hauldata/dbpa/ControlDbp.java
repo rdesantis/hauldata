@@ -22,7 +22,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
@@ -36,6 +38,8 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+import javax.ws.rs.core.Response;
+
 import com.hauldata.dbpa.control.Context;
 import com.hauldata.dbpa.control.Context.Usage;
 import com.hauldata.dbpa.control.interfaces.Jobs;
@@ -45,6 +49,8 @@ import com.hauldata.dbpa.control.interfaces.Schedules;
 import com.hauldata.dbpa.control.interfaces.Schema;
 import com.hauldata.dbpa.control.interfaces.Scripts;
 import com.hauldata.dbpa.control.interfaces.Service;
+import com.hauldata.dbpa.control.interfaces.SourceFiles;
+import com.hauldata.dbpa.control.interfaces.TargetFiles;
 import com.hauldata.dbpa.manage_control.api.Job;
 import com.hauldata.dbpa.manage_control.api.JobRun;
 import com.hauldata.dbpa.manage_control.api.ScriptArgument;
@@ -55,7 +61,7 @@ import com.hauldata.ws.rs.client.WebClient;
 
 public class ControlDbp {
 
-	static final String defaultBaseUrl = "http://localhost:8080";
+	static final String defaultBaseUrl = "http://localhost:8090/api";
 
 	enum KW {
 
@@ -63,6 +69,7 @@ public class ControlDbp {
 
 		PUT,
 		GET,
+		GETBYTES,
 		DELETE,
 		LIST,
 		SHOW,
@@ -118,6 +125,7 @@ public class ControlDbp {
 
 	static Map<String, TransitiveCommand> putCommands;
 	static Map<String, TransitiveCommand> getCommands;
+	static Map<String, TransitiveCommand> getBytesCommands;
 	static Map<String, TransitiveCommand> deleteCommands;
 	static Map<String, TransitiveCommand> listCommands;
 	static Map<String, TransitiveCommand> showCommands;
@@ -139,6 +147,8 @@ public class ControlDbp {
 	static Schema schema;
 	static Scripts scripts;
 	static PropertiesFiles propertiesFiles;
+	static SourceFiles sourceFiles;
+	static TargetFiles targetFiles;
 	static Schedules schedules;
 	static Jobs jobs;
 	static Service service;
@@ -165,6 +175,8 @@ public class ControlDbp {
 			schema = (Schema)client.getResource(Schema.class);
 			scripts = (Scripts)client.getResource(Scripts.class);
 			propertiesFiles = (PropertiesFiles)client.getResource(PropertiesFiles.class);
+			sourceFiles = (SourceFiles)client.getResource(SourceFiles.class);
+			targetFiles = (TargetFiles)client.getResource(TargetFiles.class);
 			schedules = (Schedules)client.getResource(Schedules.class);
 			jobs = (Jobs)client.getResource(Jobs.class);
 			service = (Service)client.getResource(Service.class);
@@ -197,6 +209,24 @@ public class ControlDbp {
 				(name) -> {propertiesFiles.delete(name);},
 				(likeName) -> {return propertiesFiles.getNames(likeName);});
 
+		FileType sourceFileType = new FileType(
+				Usage.READ,
+				KW.SOURCE,
+				"",
+				(name, body) -> {sourceFiles.put(name, body);},
+				null,
+				(name) -> {sourceFiles.delete(name);},
+				null);
+
+		FileType targetFileType = new FileType(
+				Usage.WRITE,
+				KW.TARGET,
+				"",
+				null,
+				(name) -> {return targetFiles.get(name);},
+				(name) -> {targetFiles.delete(name);},
+				null);
+
 		FileType scheduleType = new FileType(
 				Usage.SCHEDULE,
 				KW.SCHEDULE,
@@ -216,6 +246,7 @@ public class ControlDbp {
 
 		putCommands = new HashMap<String, TransitiveCommand>();
 		getCommands = new HashMap<String, TransitiveCommand>();
+		getBytesCommands = new HashMap<String, TransitiveCommand>();
 		deleteCommands = new HashMap<String, TransitiveCommand>();
 		listCommands = new HashMap<String, TransitiveCommand>();
 		showCommands = new HashMap<String, TransitiveCommand>();
@@ -242,6 +273,13 @@ public class ControlDbp {
 		showCommands.put(KW.PROPERTIES.name(), new ShowObjectCommand(propertiesFileType));
 
 		listCommands.put(KW.RUNNING.name(), new ListRunningCommand());
+
+		putCommands.put(KW.SOURCE.name(), new PutFileCommand(sourceFileType));
+		deleteCommands.put(KW.SOURCE.name(), new DeleteObjectCommand(sourceFileType));
+
+		getCommands.put(KW.TARGET.name(), new GetFileCommand(targetFileType));
+		getBytesCommands.put(KW.TARGET.name(), new GetBytesCommand());
+		deleteCommands.put(KW.TARGET.name(), new DeleteObjectCommand(targetFileType));
 
 		createCommands.put(KW.SCHEDULE.name(), new CreateScheduleCommand());
 		updateCommands.put(KW.SCHEDULE.name(), new UpdateScheduleCommand());
@@ -280,6 +318,7 @@ public class ControlDbp {
 		transitiveCommandMaps = new HashMap<String, Map<String, TransitiveCommand>>();
 		transitiveCommandMaps.put(KW.PUT.name(), putCommands);
 		transitiveCommandMaps.put(KW.GET.name(), getCommands);
+		transitiveCommandMaps.put(KW.GETBYTES.name(), getBytesCommands);
 		transitiveCommandMaps.put(KW.DELETE.name(), deleteCommands);
 		transitiveCommandMaps.put(KW.LIST.name(), listCommands);
 		transitiveCommandMaps.put(KW.VALIDATE.name(), validateCommands);
@@ -510,6 +549,46 @@ public class ControlDbp {
 			}
 
 			return String.format("%s file received: %s\n", type.keyword.name(), name);
+		}
+	}
+
+	static class GetBytesCommand extends StandardNamedObjectCommand {
+
+		@Override
+		protected String execute(String name) {
+
+			String filePathName = context.getPath(Usage.WRITE, name).toString();
+
+			final int bufferLength = 2048;
+			byte[] byteBuffer = new byte[bufferLength];
+
+			Response response = null;
+			InputStream reader = null;
+			OutputStream writer = null;
+			try {
+				response = targetFiles.getBytes(name);
+
+				reader = (InputStream)response.getEntity();
+
+				writer = new FileOutputStream(filePathName);
+
+				int count;
+				while((count = reader.read(byteBuffer, 0, bufferLength)) != -1) {
+					writer.write(byteBuffer, 0, count);
+				}
+			}
+			catch (IOException ex) {
+				throw new ExecutionException(ex.getLocalizedMessage());
+			}
+			finally {
+				if (writer != null) {
+					try { writer.close(); } catch (Exception ex) {}
+					try { reader.close(); } catch (Exception ex) {}
+					try { response.close(); } catch (Exception ex) {}
+				}
+			}
+
+			return String.format("%s file received: %s\n", KW.TARGET, name);
 		}
 	}
 
