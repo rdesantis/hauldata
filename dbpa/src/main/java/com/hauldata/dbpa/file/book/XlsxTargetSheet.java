@@ -651,7 +651,7 @@ class ValueStyles {
 	private static Pattern[] patterns;
 
 	static {
-		final String regex = "\\A<%s +style *= *\"(.+?)\" *>(.*)\\z";
+		final String regex = "\\A<%s(?: +style *= *\"(.*?)\")? *>(.*)\\z";
 
 		patterns = new Pattern[TableTag.values().length];
 		patterns[TableTag.TR.ordinal()] = Pattern.compile(String.format(regex, "tr"));
