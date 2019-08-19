@@ -269,6 +269,9 @@ public class XlsxTargetSheet extends XlsxSheet {
 					cell.setCellStyle(getOwner().getCellStyle(valueStyle.style));
 				}
 			}
+			else {
+				cell.setCellValue(string);
+			}
 		}
 		else if (object instanceof Boolean) {
 			cell.setCellValue((Boolean)object);
