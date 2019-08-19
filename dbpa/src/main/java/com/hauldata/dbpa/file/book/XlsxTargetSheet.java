@@ -240,22 +240,31 @@ public class XlsxTargetSheet extends XlsxSheet {
 		else if (object instanceof Long || object instanceof BigInteger) {
 			cell.setCellValue(object.toString());
 		}
-		else if (object instanceof BigDecimal && ((BigDecimal)object).scale() == 2) {
+		else if (object instanceof BigDecimal) {
 			cell.setCellValue(((Number)object).doubleValue());
-			cell.setCellStyle(getOwner().getCellStyle(XlsxCellStyle.MONEY));
+
+			XlsxCellStyle style;
+			switch (((BigDecimal)object).scale()) {
+			case 2: style = XlsxCellStyle.TWO_DECIMAL; break;
+			case 4: style = XlsxCellStyle.FOUR_DECIMAL; break;
+			default: style = XlsxCellStyle.OTHER_DECIMAL; break;
+			}
+			cell.setCellStyle(getOwner().getCellStyle(style));
 		}
 		else if (object instanceof Number) {
 			cell.setCellValue(((Number)object).doubleValue());
 		}
 		else if (object instanceof String) {
 
-			object = BigDollars.parse((String)object);
-			if (object instanceof BigDollars) {
-				cell.setCellValue(((BigDollars)object).getValue().doubleValue());
-				cell.setCellStyle(getOwner().getCellStyle(XlsxCellStyle.COMMA));
+			ValueXlsxCellStyle valueStyle = ValueXlsxCellStyle.parse((String)object);
+			if (valueStyle.value instanceof Number) {
+				cell.setCellValue(((Number)valueStyle.value).doubleValue());
 			}
 			else {
-				cell.setCellValue((String)object);
+				cell.setCellValue((String)valueStyle.value);
+			}
+			if (valueStyle.style != null) {
+				cell.setCellStyle(getOwner().getCellStyle(valueStyle.style));
 			}
 		}
 		else if (object instanceof Boolean) {
@@ -417,34 +426,111 @@ public class XlsxTargetSheet extends XlsxSheet {
 	@Override public boolean hasRow() { return false; }
 }
 
-class BigDollars {
+class ValueXlsxCellStyle {
 
-	private final BigDecimal value;
+	public Object value;
+	public XlsxCellStyle style;
+
+	final static Pattern pattern = Pattern.compile("\\A(?:(-)?(?:(0|[1-9]\\d*)|([1-9]\\d{0,2}(?:,\\d{3})+))?)(?:\\.(\\d+))?\\z");
+
+	private ValueXlsxCellStyle(Object value, XlsxCellStyle style) {
+		this.value = value;
+		this.style = style;
+	}
 
 	/**
-	 * @param value is a value to parse.
-	 * @return a BigDollars object if the value is in the format of a number
-	 * with comma-separated thousands and two decimal places.  Otherwise,
-	 * returns the original value.
+	 * If a string can be converted to a numeric type, convert it;
+	 * return the numeric type and the enumerator for the xlsx cell style that will
+	 * render the number to reasonably match the appearance of the original string;
+	 * if the string cannot be converted, return the original string
+	 * with a null enumerator
+	 *
+	 * Note that a value starting with a leading zero always returns the original value,
+	 * unless the zero is the only character or is followed immediately by a decimal point.
 	 */
-	static Object parse(String value) {
+	public static ValueXlsxCellStyle parse(String value) {
 
-		final Pattern pattern = Pattern.compile("\\A(-?\\d{1,3})(,\\d{3})+\\.\\d{2}\\z");
+		final int minusGroup = 1;
+		final int wholeGroup = 2;
+		final int commasGroup = 3;
+		final int decimalGroup = 4;
+
+		Object valueObject = null;
+		XlsxCellStyle style = null;
 
 		Matcher matcher = pattern.matcher(value);
 		if (matcher.find()) {
-			return new BigDollars(new BigDecimal(value.replace(",", "")));
+			boolean hasWhole = (matcher.group(wholeGroup) != null) || (matcher.group(commasGroup) != null);
+
+			if (hasWhole) {
+				boolean hasCommas = (matcher.group(commasGroup) != null);
+				boolean hasDecimals = (matcher.group(decimalGroup) != null);
+
+				if (!hasCommas) {
+					if (!hasDecimals) {
+						String wholePart = matcher.group(wholeGroup);
+						if (wholePart.length() <= 9) {
+							valueObject = new Integer(value);
+							style = XlsxCellStyle.INTEGER;
+						}
+						else /* 9 < wholePart.length() */ {
+							valueObject = value;
+						}
+					}
+					else /* hasDecimals */ {
+						valueObject = new BigDecimal(value);
+
+						String decimalPart = matcher.group(decimalGroup);
+						switch (decimalPart.length()) {
+						case 2: style = XlsxCellStyle.TWO_DECIMAL; break;
+						case 4: style = XlsxCellStyle.FOUR_DECIMAL; break;
+						default: style = XlsxCellStyle.OTHER_DECIMAL; break;
+						}
+					}
+				}
+				else /* hasCommas */ {
+					String valueNoCommas = value.replace(",", "");
+					if (!hasDecimals) {
+						String wholePart = matcher.group(commasGroup).replace(",", "");
+						if (wholePart.length() <= 9) {
+							valueObject = new Integer(valueNoCommas);
+							style = XlsxCellStyle.BIG_INTEGER;
+						}
+						else /* 9 < wholePart.length() */ {
+							valueObject = value;
+						}
+					}
+					else /* hasDecimals */ {
+						valueObject = new BigDecimal(valueNoCommas);
+
+						String decimalPart = matcher.group(decimalGroup);
+						switch (decimalPart.length()) {
+						case 2: style = XlsxCellStyle.BIG_TWO_DECIMAL; break;
+						case 4: style = XlsxCellStyle.BIG_FOUR_DECIMAL; break;
+						default: style = XlsxCellStyle.BIG_OTHER_DECIMAL; break;
+						}
+					}
+				}
+			}
+			else /* !hasWhole */ {
+				boolean hasMinus = (matcher.group(minusGroup) != null);
+				String decimalPart = matcher.group(decimalGroup);
+
+				String valueWithZero = (hasMinus ? "-" : "") + "0." + decimalPart;
+				valueObject = new BigDecimal(valueWithZero);
+
+				switch (decimalPart.length()) {
+				case 2: style = XlsxCellStyle.TWO_DECIMAL_ONLY; break;
+				case 4: style = XlsxCellStyle.FOUR_DECIMAL_ONLY; break;
+				default: style = XlsxCellStyle.OTHER_DECIMAL_ONLY; break;
+				}
+			}
+		}
+		else /* !matcher.find() */ {
+			valueObject = value;
 		}
 
-		return value;
-	}
-
-	private BigDollars(BigDecimal value) {
-		this.value = value;
-	}
-
-	public BigDecimal getValue() {
-		return value;
+		return new ValueXlsxCellStyle(valueObject, style);
 	}
 }
 
@@ -669,10 +755,9 @@ class ValueStyles {
 	 * @param object is potentially a string with HTML styling
 	 * @return an always non-NULL object with fields set as follows.
 	 * <p>
-	 * If object is a string that starts with the indicated HTML tag
+	 * If object is a string that starts with the indicated HTML tag optionally
 	 * including a style attribute, value returns the string with
-	 * the tag removed, converted if possible to a numeric type,
-	 * and styles returns a non-null Styles object reflecting the styling.
+	 * the tag removed and styles returns a non-null Styles object reflecting the styling.
 	 * <p>
 	 * Otherwise, value returns the original object and styles returns null.
 	 */
@@ -683,50 +768,13 @@ class ValueStyles {
 			Matcher matcher = patterns[tag.ordinal()].matcher((String)object);
 
 			if (matcher.find()) {
-				object = objectOf(matcher.group(2));
+				object = matcher.group(2);
 				styles = Styles.parse(matcher.group(1));
 			}
 		}
 		return new ValueStyles(object, styles);
 	}
 
-	/**
-	 * If a string can be converted to a numeric type, convert it
-	 *
-	 * @param value is the string to test for convertibility
-	 * @return a Numeric object that is the conversion of the value
-	 * if it can be converted, or the original value if it cannot
-	 * be converted.  However, a value starting with a leading zero
-	 * always returns the original value, unless the zero is the
-	 * only character or is followed immediately by a decimal point.
-	 */
-	private static Object objectOf(String value) {
-
-		final Pattern pattern = Pattern.compile("\\A(-?(?:0|[1-9][0-9]*))(\\.\\d+)?\\z");
-
-		Matcher matcher = pattern.matcher(value);
-		if (matcher.find()) {
-			String wholePart = matcher.group(1);
-			String decimalPart = matcher.group(2);
-
-			if (decimalPart == null) {
-				if (wholePart.length() <= 9) {
-					return new Integer(wholePart);
-				}
-				else if (wholePart.length() <= 19) {
-					return new Long(wholePart);
-				}
-				else {
-					return new BigInteger(wholePart);
-				}
-			}
-			else {
-				return new BigDecimal(value);
-			}
-		}
-
-		return value;
-	}
 }
 
 enum RowPosition { HEADER, NEXT /* after the header row */, TOP /* if there is no header row */, MIDDLE, BOTTOM };

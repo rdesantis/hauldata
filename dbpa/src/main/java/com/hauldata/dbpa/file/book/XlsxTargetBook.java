@@ -37,14 +37,36 @@ public class XlsxTargetBook extends XlsxBook {
 	Map<FontStyles, XSSFFont> fontsUsed;
 	Map<Integer, XSSFColor> colorsUsed;
 
-	public enum XlsxCellStyle { DATE, DATETIME, INTEGER, MONEY, COMMA };
+	public enum XlsxCellStyle {
+		DATE,
+		DATETIME,
+		INTEGER,
+		BIG_INTEGER,
+		TWO_DECIMAL,
+		BIG_TWO_DECIMAL,
+		TWO_DECIMAL_ONLY,
+		FOUR_DECIMAL,
+		BIG_FOUR_DECIMAL,
+		FOUR_DECIMAL_ONLY,
+		OTHER_DECIMAL,
+		BIG_OTHER_DECIMAL,
+		OTHER_DECIMAL_ONLY
+	};
 
 	private CellStyle[] cellStyles;
 	private final String dateFormatString = "mm/dd/yyyy";
 	private final String datetimeFormatString = "mm/dd/yyyy hh:mm:ss AM/PM";
 	private final String integerFormatString = "0";
-	private final String moneyFormatString = "0.00";
-	private final String commaFormatString = "#,##0.00";
+	private final String bigIntegerFormatString = "#,##0";
+	private final String twoDecimalFormatString = "0.00";
+	private final String bigTwoDecimalFormatString = "#,##0.00";
+	private final String twoDecimalOnlyFormatString = ".00";
+	private final String fourDecimalFormatString = "0.0000";
+	private final String bigFourDecimalFormatString = "#,##0.0000";
+	private final String fourDecimalOnlyFormatString = ".0000";
+	private final String otherDecimalFormatString = "0.0#########";
+	private final String bigOtherDecimalFormatString = "#,##0.0#########";
+	private final String otherDecimalOnlyFormatString = ".0#########";
 
 	public XlsxTargetBook(Owner owner, Path path) {
 		super(owner, path);
@@ -77,8 +99,16 @@ public class XlsxTargetBook extends XlsxBook {
 		createCellStyle(XlsxCellStyle.DATE, dateFormatString);
 		createCellStyle(XlsxCellStyle.DATETIME, datetimeFormatString);
 		createCellStyle(XlsxCellStyle.INTEGER, integerFormatString);
-		createCellStyle(XlsxCellStyle.MONEY, moneyFormatString);
-		createCellStyle(XlsxCellStyle.COMMA, commaFormatString);
+		createCellStyle(XlsxCellStyle.BIG_INTEGER, bigIntegerFormatString);
+		createCellStyle(XlsxCellStyle.TWO_DECIMAL, twoDecimalFormatString);
+		createCellStyle(XlsxCellStyle.BIG_TWO_DECIMAL, bigTwoDecimalFormatString);
+		createCellStyle(XlsxCellStyle.TWO_DECIMAL_ONLY, twoDecimalOnlyFormatString);
+		createCellStyle(XlsxCellStyle.FOUR_DECIMAL, fourDecimalFormatString);
+		createCellStyle(XlsxCellStyle.BIG_FOUR_DECIMAL, bigFourDecimalFormatString);
+		createCellStyle(XlsxCellStyle.FOUR_DECIMAL_ONLY, fourDecimalOnlyFormatString);
+		createCellStyle(XlsxCellStyle.OTHER_DECIMAL, otherDecimalFormatString);
+		createCellStyle(XlsxCellStyle.BIG_OTHER_DECIMAL, bigOtherDecimalFormatString);
+		createCellStyle(XlsxCellStyle.OTHER_DECIMAL_ONLY, otherDecimalOnlyFormatString);
 	}
 
 	private void createCellStyle(XlsxCellStyle style, String formatString) {
