@@ -21,7 +21,7 @@ import com.hauldata.dbpa.log.Logger.Level;
 
 public class RequestTaskTest extends TaskTest {
 
-	private final String url = "http://localhost:8080/api";
+	private final String url = "http://localhost:8090/api";
 
 	public RequestTaskTest(String name) {
 		super(name);
