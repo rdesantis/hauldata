@@ -256,15 +256,18 @@ public class XlsxTargetSheet extends XlsxSheet {
 		}
 		else if (object instanceof String) {
 
-			ValueXlsxCellStyle valueStyle = ValueXlsxCellStyle.parse((String)object);
-			if (valueStyle.value instanceof Number) {
-				cell.setCellValue(((Number)valueStyle.value).doubleValue());
-			}
-			else {
-				cell.setCellValue((String)valueStyle.value);
-			}
-			if (valueStyle.style != null) {
-				cell.setCellStyle(getOwner().getCellStyle(valueStyle.style));
+			String string = (String)object;
+			if (0 < string.length()) {
+				ValueXlsxCellStyle valueStyle = ValueXlsxCellStyle.parse(string);
+				if (valueStyle.value instanceof Number) {
+					cell.setCellValue(((Number)valueStyle.value).doubleValue());
+				}
+				else {
+					cell.setCellValue((String)valueStyle.value);
+				}
+				if (valueStyle.style != null) {
+					cell.setCellStyle(getOwner().getCellStyle(valueStyle.style));
+				}
 			}
 		}
 		else if (object instanceof Boolean) {
@@ -447,6 +450,8 @@ class ValueXlsxCellStyle {
 	 *
 	 * Note that a value starting with a leading zero always returns the original value,
 	 * unless the zero is the only character or is followed immediately by a decimal point.
+	 *
+	 * This function does not correctly handle a zero-length string.  Do not pass it.
 	 */
 	public static ValueXlsxCellStyle parse(String value) {
 

@@ -185,7 +185,7 @@ public class WriteTaskTest extends TaskTest {
 				"		('<tr style=\"background-color: #E6E6FA\"><td style=\"background-color: green\">', 'Lavender = #E6E6FA'), \n" +
 				"		('<tr style=\"background-color: HotPink \">', 'HotPink '), \n" +
 				"		('<tr style=\"background-color: #FF69B4\">', '#FF69B4'), \n" +
-				"		(NULL, NULL), \n" +
+				"		(' ', NULL), \n" +
 				"		('normal', 123), \n" +
 				"		('The answer is', '<td style=\"border-top:thin solid;border-bottom:double\">42'), \n" +
 				"		('normal', '1,23,456'), \n" +
