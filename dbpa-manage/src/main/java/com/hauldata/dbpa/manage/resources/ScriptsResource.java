@@ -38,11 +38,13 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.codahale.metrics.annotation.Timed;
+import com.hauldata.dbpa.DBPA;
 import com.hauldata.dbpa.loader.FileLoader;
 import com.hauldata.dbpa.manage.JobManager;
 import com.hauldata.dbpa.manage_control.api.ScriptParameter;
 import com.hauldata.dbpa.manage_control.api.ScriptValidation;
 import com.hauldata.dbpa.process.Context;
+import com.hauldata.dbpa.process.ContextProperties;
 import com.hauldata.dbpa.process.DbProcess;
 import com.hauldata.dbpa.variable.VariableBase;
 
@@ -219,13 +221,21 @@ public class ScriptsResource {
 
 		JobManager manager = JobManager.getInstance();
 
+		ContextProperties props = null;
+		Context context = null;
 		try {
-			Context context = manager.getContext();
-			DbProcess process = context.loader.load(name);
+			props = new ContextProperties(DBPA.runProgramName);
+			context = props.createContext(name);
+			DbProcess process = manager.getContext().loader.load(name);
 			process.run(arguments, context);
 		}
 		catch (FileNotFoundException ex) {
 			throw new FileNotFoundException(scriptNotFoundMessageStem + name);
+		}
+		finally {
+			if (context != null) {
+				try { context.close(); } catch (Exception ex) {}
+			}
 		}
 	}
 }

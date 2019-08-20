@@ -56,6 +56,7 @@ import com.hauldata.dbpa.manage_control.api.JobRun;
 import com.hauldata.dbpa.manage_control.api.ScriptArgument;
 import com.hauldata.util.tokenizer.BacktrackingTokenizer;
 import com.hauldata.util.tokenizer.EndOfLine;
+import com.hauldata.util.tokenizer.Quoted;
 import com.hauldata.util.tokenizer.Token;
 import com.hauldata.ws.rs.client.WebClient;
 
@@ -265,6 +266,7 @@ public class ControlDbp {
 		listCommands.put(KW.SCRIPT.name(), new ListObjectsCommand(scriptType));
 		showCommands.put(KW.SCRIPT.name(), new ShowObjectCommand(scriptType));
 		validateCommands.put(KW.SCRIPT.name(), new ValidateScriptCommand());
+		startCommands.put(KW.SCRIPT.name(), new StartScriptCommand());
 
 		putCommands.put(KW.PROPERTIES.name(), new PutFileCommand(propertiesFileType));
 		getCommands.put(KW.PROPERTIES.name(), new GetFileCommand(propertiesFileType));
@@ -639,6 +641,34 @@ public class ControlDbp {
 		@Override
 		protected String get(String name) {
 			return scripts.validate(name).toString();
+		}
+	}
+
+	static class StartScriptCommand implements TransitiveCommand {
+
+		@Override
+		public boolean supportsPlural() { return false; }
+
+		@Override
+		public boolean interpret(BacktrackingTokenizer tokenizer) throws IOException {
+
+			// Parse.
+
+			String name = nextEntityName(tokenizer);
+
+			List<String> arguments = new LinkedList<String>();
+			while (tokenizer.hasNextOnLine()) {
+				Token token = tokenizer.nextToken();
+				arguments.add(token instanceof Quoted ? ((Quoted)token).getBody() : token.getImage());
+			}
+
+			endOfLine(tokenizer);
+
+			// Execute.
+
+			scripts.run(name, arguments.stream().toArray(String[]::new));
+
+			return false;
 		}
 	}
 
