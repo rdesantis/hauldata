@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Ronald DeSantis
+ * Copyright (c) 2017, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -30,9 +30,10 @@ public class StatementDataTarget extends DataTarget {
 
 	public StatementDataTarget(
 			DatabaseConnection connection,
+			Expression<Integer> batchSize,
 			Expression<String> statement) {
 
-		super(connection);
+		super(connection, batchSize);
 		this.statement = statement;
 	}
 

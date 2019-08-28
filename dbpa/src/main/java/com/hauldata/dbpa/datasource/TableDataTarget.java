@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Ronald DeSantis
+ * Copyright (c) 2017, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -32,10 +32,11 @@ public class TableDataTarget extends DataTarget {
 
 	public TableDataTarget(
 			DatabaseConnection connection,
+			Expression<Integer> batchSize,
 			Expression<String> table,
 			Expression<String> prefix) {
 
-		super(connection);
+		super(connection, batchSize);
 		this.table = table;
 		this.prefix = prefix;
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Ronald DeSantis
+ * Copyright (c) 2017, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package com.hauldata.dbpa.datasource;
 import java.sql.SQLException;
 
 import com.hauldata.dbpa.connection.DatabaseConnection;
+import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.process.Context;
@@ -29,9 +30,10 @@ public class TokenizedStatementDataTarget extends DataTarget {
 
 	public TokenizedStatementDataTarget(
 			DatabaseConnection connection,
+			Expression<Integer> batchSize,
 			String statement) {
 
-		super(connection);
+		super(connection, batchSize);
 		this.statement = statement;
 	}
 

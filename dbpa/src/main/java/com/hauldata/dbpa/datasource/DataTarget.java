@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Ronald DeSantis
+ * Copyright (c) 2017, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -20,14 +20,22 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 import com.hauldata.dbpa.connection.DatabaseConnection;
+import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.process.Context;
 
 public abstract class DataTarget extends DataStore {
 
-	public DataTarget(DatabaseConnection connection) {
+	private Expression<Integer> batchSizeExpression;
+
+	private final int batchSizeMaxDefault = 1000;
+	private Integer batchSizeMax;
+	private int batchSize;
+
+	public DataTarget(DatabaseConnection connection, Expression<Integer> batchSizeExpression) {
 		super(connection);
+		this.batchSizeExpression = batchSizeExpression;
 	}
 
 	public abstract void prepareStatement(Context context, SourceHeaders headers, Columns columns) throws SQLException;
@@ -37,6 +45,9 @@ public abstract class DataTarget extends DataStore {
 		getConnection(context);
 
 		stmt = conn.prepareStatement(sql);
+
+		batchSizeMax = (batchSizeExpression != null) ? batchSizeExpression.evaluate() : batchSizeMaxDefault;
+		batchSize = 0;
 	}
 
 	public int getParameterCount() throws SQLException {
@@ -51,8 +62,14 @@ public abstract class DataTarget extends DataStore {
 		((PreparedStatement)stmt).setObject(parameterIndex, x);
 	}
 
-	public void addBatch() throws SQLException {
+	public void addBatch() throws SQLException, InterruptedException {
 		((PreparedStatement)stmt).addBatch();
+
+		++batchSize;
+		if ((batchSizeMax != null) && (batchSizeMax <= batchSize)) {
+			executeBatch();
+			batchSize = 0;
+		}
 	}
 
 	/**

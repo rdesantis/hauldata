@@ -217,6 +217,8 @@ public abstract class TaskSetParser {
 		NUMBER,
 		TRAILER,
 		PREFIX,
+		BATCH,
+		SIZE,
 		BINARY,
 		ASCII,
 		THROUGH,
@@ -2325,36 +2327,44 @@ public abstract class TaskSetParser {
 
 		DatabaseConnection connection = parseDatabaseConnection(introWord);
 
+		Expression<Integer> batchSize = null;
+		if (tokenizer.skipWordIgnoreCase(KW.BATCH.name())) {
+			if (!tokenizer.skipWordIgnoreCase(KW.SIZE.name())) {
+				throw new InputMismatchException("Expecting " + KW.BATCH.name() + " to be followed by " + KW.SIZE.name());
+			}
+			batchSize = parseIntegerExpression();
+		}
+
 		if (tokenizer.skipWordIgnoreCase(KW.STATEMENT.name())) {
-			return parseStatementDataTarget(connection);
+			return parseStatementDataTarget(connection, batchSize);
 		}
 		else if (tokenizer.skipWordIgnoreCase(KW.SQL.name())) {
-			return parseTokenizedStatementDataTarget(connection);
+			return parseTokenizedStatementDataTarget(connection, batchSize);
 		}
 		else if (allowTable && tokenizer.skipWordIgnoreCase(KW.TABLE.name())) {
-			return parseTableDataTarget(connection, haveHeaders);
+			return parseTableDataTarget(connection, batchSize, haveHeaders);
 		}
 		else {
 			throw new InputMismatchException("Invalid data target in " + taskTypeName + " " + KW.TASK.name());
 		}
 	}
 
-	private StatementDataTarget parseStatementDataTarget(DatabaseConnection connection) throws IOException {
+	private StatementDataTarget parseStatementDataTarget(DatabaseConnection connection, Expression<Integer> batchSize) throws IOException {
 
 		Expression<String> statement = parseStringExpression();
 
-		return new StatementDataTarget(connection, statement);
+		return new StatementDataTarget(connection, batchSize, statement);
 	}
 
-	private TokenizedStatementDataTarget parseTokenizedStatementDataTarget(DatabaseConnection connection) throws IOException {
+	private TokenizedStatementDataTarget parseTokenizedStatementDataTarget(DatabaseConnection connection, Expression<Integer> batchSize) throws IOException {
 
 		StringBuilder statement = new StringBuilder();
 		parseTokenizedStatement(statement);
 
-		return new TokenizedStatementDataTarget(connection, statement.toString());
+		return new TokenizedStatementDataTarget(connection, batchSize, statement.toString());
 	}
 
-	private TableDataTarget parseTableDataTarget(DatabaseConnection connection, boolean haveHeaders) throws IOException {
+	private TableDataTarget parseTableDataTarget(DatabaseConnection connection, Expression<Integer> batchSize, boolean haveHeaders) throws IOException {
 
 		if (!haveHeaders) {
 			throw new RuntimeException(KW.READ.name() + " " + KW.INTO.name() + " " + KW.TABLE.name() + " requires column headers");
@@ -2368,7 +2378,7 @@ public abstract class TaskSetParser {
 			prefix = parseStringExpression();
 		}
 
-		return new TableDataTarget(connection, table, prefix);
+		return new TableDataTarget(connection, batchSize, table, prefix);
 	}
 
 	private VariableBase parseVariableReference() throws InputMismatchException, NoSuchElementException, IOException {
