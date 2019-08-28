@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016-2017, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import com.hauldata.dbpa.datasource.DataTarget;
 import com.hauldata.dbpa.datasource.Source;
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.SourceHeaders;
+import com.hauldata.dbpa.file.SourceOptions;
 import com.hauldata.dbpa.file.SourcePage;
 import com.hauldata.dbpa.file.TargetPage;
 import com.hauldata.dbpa.process.Context;
@@ -58,13 +59,14 @@ public abstract class FileTask extends Task {
 
 	protected void read(
 			Context context,
+			SourceOptions options,
 			SourcePage page,
 			SourceHeaders headers,
 			Columns columns,
 			DataTarget target) {
 
 		try {
-			target.prepareStatement(context, headers, columns);
+			target.prepareStatement(context, options, headers, columns);
 
 			page.read(columns, target);
 		}

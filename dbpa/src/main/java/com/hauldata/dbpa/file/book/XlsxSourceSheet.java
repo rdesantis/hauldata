@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016-2017, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 
+import com.hauldata.dbpa.file.PageOptions;
 import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.util.tokenizer.EndOfLine;
 
@@ -33,8 +34,8 @@ public class XlsxSourceSheet extends XlsxSheet {
 	private int rowIndex;
 	private Row row;
 
-	public XlsxSourceSheet(Book owner, String name) {
-		super(owner, name);
+	public XlsxSourceSheet(Book owner, String name, PageOptions options) {
+		super(owner, name, options);
 
 		sheet = null;
 		rowIndex = 0;

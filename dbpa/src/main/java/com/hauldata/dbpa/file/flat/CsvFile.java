@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016-2017, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import com.hauldata.dbpa.file.File;
 import com.hauldata.dbpa.file.FileHandler;
 import com.hauldata.dbpa.file.Node;
 import com.hauldata.dbpa.file.PageOptions;
-import com.hauldata.dbpa.file.PageOptionsParser;
+import com.hauldata.dbpa.file.SourceOptions;
 import com.hauldata.util.tokenizer.Delimiter;
 import com.hauldata.util.tokenizer.EndOfLine;
 import com.hauldata.util.tokenizer.Quoted;
@@ -89,9 +89,9 @@ public class CsvFile extends DsvFile {
 		return getOptions() != null ? (CsvTargetOptions)getOptions() : CsvTargetOptions.DEFAULT;
 	}
 
-	private static class CsvSourceOptions extends DsvFile.SourceOptions {
+	private static class CsvSourceOptions extends DsvSourceOptions {
 
-		public static class Parser extends PageOptionsParser {
+		public static class Parser extends SourceOptions.Parser {
 
 			static Map<String, Modifier> modifiers;
 

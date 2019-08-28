@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016-2017, 2019 Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import java.util.ArrayList;
 
 import com.hauldata.dbpa.file.PageOptions;
 import com.hauldata.dbpa.file.SourceHeaders;
+import com.hauldata.dbpa.file.SourceOptions;
 import com.hauldata.dbpa.file.TargetHeaders;
 import com.hauldata.util.tokenizer.DsvTokenizer;
 import com.hauldata.util.tokenizer.EndOfLine;
@@ -47,9 +48,9 @@ public abstract class DsvFile extends TextFile {
 		tokenizer = null;
 	}
 
-	protected static class SourceOptions implements PageOptions {
+	protected static class DsvSourceOptions extends SourceOptions {
 
-		public static final SourceOptions DEFAULT = new SourceOptions();
+		public static final DsvSourceOptions DEFAULT = new DsvSourceOptions();
 
 		protected boolean raw = false;
 
@@ -58,8 +59,8 @@ public abstract class DsvFile extends TextFile {
 		}
 	}
 
-	protected SourceOptions getSourceOptions() {
-		return getOptions() != null ? (SourceOptions)getOptions() : SourceOptions.DEFAULT;
+	protected DsvSourceOptions getSourceOptions() {
+		return getOptions() != null ? (DsvSourceOptions)getOptions() : DsvSourceOptions.DEFAULT;
 	}
 
 	// Node overrides

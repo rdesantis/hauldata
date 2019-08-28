@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Ronald DeSantis
+ * Copyright (c) 2017, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -22,17 +22,25 @@ import java.sql.SQLException;
 import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.SourceHeaders;
+import com.hauldata.dbpa.file.SourceOptions;
 import com.hauldata.dbpa.process.Context;
 
 public abstract class DataTarget extends DataStore {
+
+	private final Integer batchSizeMaxDefault = 1000;
+	private Integer batchSizeMax;
+	private int batchSize;
 
 	public DataTarget(DatabaseConnection connection) {
 		super(connection);
 	}
 
-	public abstract void prepareStatement(Context context, SourceHeaders headers, Columns columns) throws SQLException;
+	public abstract void prepareStatement(Context context, SourceOptions options, SourceHeaders headers, Columns columns) throws SQLException;
 
-	protected void prepareStatement(Context context, String sql) throws SQLException {
+	protected void prepareStatement(Context context, SourceOptions options, String sql) throws SQLException {
+
+		batchSizeMax = (options != null) ? options.getBatchSize() : batchSizeMaxDefault;
+		batchSize = 0;
 
 		getConnection(context);
 
@@ -51,8 +59,14 @@ public abstract class DataTarget extends DataStore {
 		((PreparedStatement)stmt).setObject(parameterIndex, x);
 	}
 
-	public void addBatch() throws SQLException {
+	public void addBatch() throws SQLException, InterruptedException {
 		((PreparedStatement)stmt).addBatch();
+
+		++batchSize;
+		if ((batchSizeMax != null) && (batchSizeMax <= batchSize)) {
+			executeBatch();
+			batchSize = 0;
+		}
 	}
 
 	/**
@@ -68,11 +82,16 @@ public abstract class DataTarget extends DataStore {
 	 */
 	public int[] executeBatch() throws SQLException, InterruptedException {
 
-		SQLBatchExecutor executor = new SQLBatchExecutor();
+		if (0 < batchSize) {
+			SQLBatchExecutor executor = new SQLBatchExecutor();
 
-		execute(executor);
+			execute(executor);
 
-		return executor.getResult();
+			return executor.getResult();
+		}
+		else {
+			return new int[0];
+		}
 	}
 
 	private class SQLBatchExecutor extends SQLExecutor {

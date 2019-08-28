@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016-2017, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import com.hauldata.dbpa.file.FileHandler;
 import com.hauldata.dbpa.file.Node;
 import com.hauldata.dbpa.file.PageOptions;
 import com.hauldata.dbpa.file.SourceHeaders;
+import com.hauldata.dbpa.file.SourceOptions;
 import com.hauldata.dbpa.file.TargetHeaders;
 import com.hauldata.util.tokenizer.EndOfLine;
 
@@ -43,7 +44,7 @@ public class TxtFile extends TextFile {
 			public File instantiate(Node.Owner owner, Object path, PageOptions options) { return new TxtFile((File.Owner)owner, (Path)path, options); }
 			public String getTypeName() { return typeName; }
 		};
-		FileHandler.register(name, false, new TargetFilePage.Factory(fileFactory), new TargetOptions.Parser(), new SourceFilePage.Factory(fileFactory), null);
+		FileHandler.register(name, false, new TargetFilePage.Factory(fileFactory), new TargetOptions.Parser(), new SourceFilePage.Factory(fileFactory), new SourceOptions.Parser());
 	}
 
 	private BufferedWriter writer;

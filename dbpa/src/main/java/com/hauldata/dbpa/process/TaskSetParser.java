@@ -988,11 +988,13 @@ public abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(handler);
 
+			SourceOptions options = (SourceOptions)parseFileOptions(false, handler);
+
 			ColumnExpressions columns = parseColumns();
 
 			DataTarget target = parseDataTarget(KW.LOAD.name(), KW.INTO.name(), false, false);
 
-			return new LoadTask(prologue, page, columns, target);
+			return new LoadTask(prologue, page, options, columns, target);
 		}
 	}
 
@@ -1014,7 +1016,7 @@ public abstract class TaskSetParser {
 
 			PageIdentifierExpression page = parsePageIdentifier(handler);
 
-			PageOptions options = parseFileOptions(false, handler);
+			SourceOptions options = (SourceOptions)parseFileOptions(false, handler);
 
 			SourceHeaderExpressions headers = parseSourceHeaders(KW.INTO.name());
 
@@ -1027,9 +1029,13 @@ public abstract class TaskSetParser {
 			return new ReadTask(prologue, page, options, headers, columns, target);
 		}
 
+		private final SourceOptions.Parser readFixedOptionsParser = new SourceOptions.Parser();
+
 		private Task parseReadFixed(Task.Prologue prologue) throws IOException {
 
 			PageIdentifierExpression page = parsePageIdentifier(null);
+
+			SourceOptions options = (SourceOptions)readFixedOptionsParser.parse(thisTaskSetParser);
 
 			List<FixedFieldExpressions> headers = parseFixedHeaders();
 
@@ -1037,7 +1043,7 @@ public abstract class TaskSetParser {
 
 			List<FixedFieldExpressions> trailers = parseFixedTrailers();
 
-			return new ReadFixedTask(prologue, page, headers, dataRecordTargets, trailers);
+			return new ReadFixedTask(prologue, page, options, headers, dataRecordTargets, trailers);
 		}
 
 		private List<FixedFieldExpressions> parseFixedHeaders() throws IOException {
@@ -2852,7 +2858,7 @@ public abstract class TaskSetParser {
 		return result;
 	}
 
-	private Expression<Integer> parseIntegerExpression() throws IOException {
+	public Expression<Integer> parseIntegerExpression() throws IOException {
 
 		Expression<Integer> left = parseIntegerAddend();
 		IntegerBinary.Operator operator = null;

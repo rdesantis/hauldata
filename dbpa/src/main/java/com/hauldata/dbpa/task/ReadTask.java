@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016-2017, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -20,10 +20,10 @@ import java.io.IOException;
 
 import com.hauldata.dbpa.datasource.DataTarget;
 import com.hauldata.dbpa.file.Columns;
-import com.hauldata.dbpa.file.PageOptions;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.PhysicalPageIdentifier;
 import com.hauldata.dbpa.file.SourceHeaders;
+import com.hauldata.dbpa.file.SourceOptions;
 import com.hauldata.dbpa.file.SourcePage;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.task.expression.ColumnExpressions;
@@ -33,7 +33,7 @@ import com.hauldata.dbpa.task.expression.SourceHeaderExpressions;
 public class ReadTask extends FileTask {
 
 	private PageIdentifierExpression page;
-	private PageOptions options;
+	private SourceOptions options;
 	private SourceHeaderExpressions headers;
 	private ColumnExpressions columns;
 	private DataTarget target;
@@ -41,7 +41,7 @@ public class ReadTask extends FileTask {
 	public ReadTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
-			PageOptions options,
+			SourceOptions options,
 			SourceHeaderExpressions headers,
 			ColumnExpressions columns,
 			DataTarget target) {
@@ -64,7 +64,7 @@ public class ReadTask extends FileTask {
 		try {
 			SourcePage sourcePage = page.read(context.files, options, headers);
 			Columns columns = this.columns.evaluate(sourcePage.getReadHeaders());
-			read(context, sourcePage, headers, columns, target);
+			read(context, options, sourcePage, headers, columns, target);
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();

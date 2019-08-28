@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016-2017, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.io.IOException;
 import com.hauldata.dbpa.datasource.DataTarget;
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.PageIdentifier;
+import com.hauldata.dbpa.file.SourceOptions;
 import com.hauldata.dbpa.file.SourcePage;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.task.expression.ColumnExpressions;
@@ -29,17 +30,20 @@ import com.hauldata.dbpa.task.expression.PageIdentifierExpression;
 public class LoadTask extends FileTask {
 
 	private PageIdentifierExpression page;
+	private SourceOptions options;
 	private ColumnExpressions columns;
 	private DataTarget target;
 
 	public LoadTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
+			SourceOptions options,
 			ColumnExpressions columns,
 			DataTarget target) {
 
 		super(prologue);
 		this.page = page;
+		this.options = options;
 		this.columns = columns;
 		this.target = target;
 	}
@@ -52,7 +56,7 @@ public class LoadTask extends FileTask {
 		try {
 			SourcePage sourcePage = page.load(context.files);
 			Columns columns = this.columns.evaluate(sourcePage.getReadHeaders());
-			read(context, sourcePage, null, columns, target);
+			read(context, options, sourcePage, null, columns, target);
 		}
 		catch (IOException ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();

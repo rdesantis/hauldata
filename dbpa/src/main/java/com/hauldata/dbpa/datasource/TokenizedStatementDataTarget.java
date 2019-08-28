@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Ronald DeSantis
+ * Copyright (c) 2017, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.sql.SQLException;
 import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.SourceHeaders;
+import com.hauldata.dbpa.file.SourceOptions;
 import com.hauldata.dbpa.process.Context;
 
 public class TokenizedStatementDataTarget extends DataTarget {
@@ -36,8 +37,8 @@ public class TokenizedStatementDataTarget extends DataTarget {
 	}
 
 	@Override
-	public void prepareStatement(Context context, SourceHeaders headers, Columns columns) throws SQLException {
+	public void prepareStatement(Context context, SourceOptions options, SourceHeaders headers, Columns columns) throws SQLException {
 
-		prepareStatement(context, statement);
+		prepareStatement(context, options, statement);
 	}
 }

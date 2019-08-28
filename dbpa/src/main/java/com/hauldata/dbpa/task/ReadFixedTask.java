@@ -26,6 +26,7 @@ import java.util.List;
 import com.hauldata.dbpa.datasource.DataTarget;
 import com.hauldata.dbpa.file.PageIdentifier;
 import com.hauldata.dbpa.file.PhysicalPageIdentifier;
+import com.hauldata.dbpa.file.SourceOptions;
 import com.hauldata.dbpa.file.fixed.DataFixedFieldsTarget;
 import com.hauldata.dbpa.file.fixed.FixedFields;
 import com.hauldata.dbpa.file.fixed.KeeperFixedField;
@@ -38,6 +39,7 @@ import com.hauldata.dbpa.task.expression.fixed.FixedFieldExpressions;
 public class ReadFixedTask extends Task {
 
 	private PageIdentifierExpression page;
+	private SourceOptions options;
 	private List<FixedFieldExpressions> headers;
 	private List<DataFixedFieldExpressionsTarget> dataRecordTargets;
 	private List<FixedFieldExpressions> trailers;
@@ -45,12 +47,14 @@ public class ReadFixedTask extends Task {
 	public ReadFixedTask(
 			Prologue prologue,
 			PageIdentifierExpression page,
+			SourceOptions options,
 			List<FixedFieldExpressions> headers,
 			List<DataFixedFieldExpressionsTarget> dataRecordTargets,
 			List<FixedFieldExpressions> trailers) {
 
 		super(prologue);
 		this.page = page;
+		this.options = options;
 		this.headers = headers;
 		this.dataRecordTargets = dataRecordTargets;
 		this.trailers = trailers;
@@ -133,7 +137,7 @@ public class ReadFixedTask extends Task {
 
 		try {
 			for (DataFixedFieldsTarget dataRecordTarget : dataRecordTargets) {
-				dataRecordTarget.getTarget().prepareStatement(context, null, null);
+				dataRecordTarget.getTarget().prepareStatement(context, options, null, null);
 			}
 
 			final int maxLevel = dataRecordTargets.size() - 1;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Ronald DeSantis
+ * Copyright (c) 2017-2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -248,7 +248,7 @@ public abstract class RequestTask extends Task {
 				SourceHeaders headers = new SourceHeaders(true, false, true, keeperNames);
 				Columns columns = new Columns(null, headers);
 
-				target.prepareStatement(context, headers, columns);
+				target.prepareStatement(context, null, headers, columns);
 			}
 		}
 

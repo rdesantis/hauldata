@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016-2017, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import com.hauldata.dbpa.file.File;
 import com.hauldata.dbpa.file.FileHandler;
 import com.hauldata.dbpa.file.Node;
 import com.hauldata.dbpa.file.PageOptions;
+import com.hauldata.dbpa.file.SourceOptions;
 
 /**
  * Microsoft Excel XLSX workbook
@@ -47,14 +48,14 @@ public abstract class XlsxBook extends Book {
 			public String getTypeName() { return typeName(); }
 		};
 		Sheet.Factory sourceSheetFactory = new Sheet.Factory() {
-			public Sheet instantiate(Node.Owner book, Object name, PageOptions options) { return new XlsxSourceSheet((Book)book, (String)name); }
+			public Sheet instantiate(Node.Owner book, Object name, PageOptions options) { return new XlsxSourceSheet((Book)book, (String)name, (SourceOptions)options); }
 			public String getTypeName() { return XlsxSheet.typeName(); }
 		};
 
 		FileHandler.register(
 				name, true,
 				new TargetSheetPage.Factory(targetBookFactory, targetSheetFactory), new XlsxTargetSheet.TargetOptions.Parser(),
-				new SourceSheetPage.Factory(sourceBookFactory, sourceSheetFactory), null);
+				new SourceSheetPage.Factory(sourceBookFactory, sourceSheetFactory), new SourceOptions.Parser());
 	}
 
 	protected XlsxBook(Owner owner, Path path) {
