@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -48,18 +48,27 @@ public abstract class FtpTask extends Task {
 	@Override
 	protected void execute(Context context) {
 
-		String toDirectoryName = (toName != null) ? toName.evaluate() : null;
+		String evaluatedToName = (toName != null) ? toName.evaluate() : null;
 
 		FtpConnection.Manager manager = null;
 		try {
 			manager = context.getManager(connection, isBinary);
 
+			Copier copier = getCopier(context, manager, evaluatedToName);
+
+			if (!copier.isToDirectory() && (fromNames.size() != 1)) {
+				throw new IllegalArgumentException("Cannot transfer multiple source files to the same target file; target must be an existing directory");
+			}
+
 			for (Expression<String> fromName : fromNames) {
 				
-				String fromFileName = fromName.evaluate();
+				String evaluatedFromName = fromName.evaluate();
 
-				copy(context, manager, fromFileName, toDirectoryName);
+				copier.copy(context, manager, evaluatedFromName);
 			}
+		}
+		catch (IllegalArgumentException ex) {
+			throw ex;
 		}
 		catch (Exception ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
@@ -70,9 +79,15 @@ public abstract class FtpTask extends Task {
 		}
 	}
 
-	protected abstract void copy(
-			Context context,
-			FtpConnection.Manager manager,
-			String fromFileName,
-			String toDirectoryName) throws FileSystemException;
+	protected interface Copier {
+
+		boolean isToDirectory();
+
+		void copy(
+				Context context,
+				FtpConnection.Manager manager,
+				String fromFileName) throws FileSystemException;
+	}
+
+	protected abstract Copier getCopier(Context context, FtpConnection.Manager manager, String toName) throws FileSystemException;
 }

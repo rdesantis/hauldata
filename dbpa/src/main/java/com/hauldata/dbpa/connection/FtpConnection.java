@@ -47,6 +47,14 @@ public class FtpConnection extends Connection {
 			manager.init();
 		}
 
+		public boolean isRemoteDirectory(String name) throws FileSystemException {
+
+			String remoteFileURI = getRemoteFileURI(name);
+			FileObject remote = manager.resolveFile(remoteFileURI, options);
+
+			return remote.isFolder();
+		}
+
 		public void copyLocalToRemote(String localFileName, String remoteFileName) throws FileSystemException {
 
 			ResolvedFiles files = new ResolvedFiles(localFileName, remoteFileName);

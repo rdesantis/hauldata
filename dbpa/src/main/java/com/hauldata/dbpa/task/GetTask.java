@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -39,20 +39,44 @@ public class GetTask extends FtpTask {
 	}
 
 	@Override
-	protected void copy(
-			Context context,
-			FtpConnection.Manager manager,
-			String fromFileName,
-			String toDirectoryName) throws FileSystemException
-	{
-		String fileName = Files.getFileName(fromFileName); 
-		String toFileName = (toDirectoryName != null) ? toDirectoryName + "/" + fileName : fileName;
+	protected Copier getCopier(Context context, FtpConnection.Manager manager, String toName) {
+		return new GetCopier(context, toName);
+	}
 
-		Path localFilePath = context.getReadPath(toFileName);
-		context.files.assureNotOpen(localFilePath);
+	class GetCopier implements Copier {
 
-		String localFileName = localFilePath.toString();
+		private String toName;
+		private boolean toDirectory;
 
-		manager.copyLocalFromRemote(localFileName, fromFileName);
+		GetCopier(Context context, String toName) {
+			this.toName = toName;
+
+			toDirectory = (toName == null);
+			if (!toDirectory) {
+				Path toPath = context.getReadPath(toName);
+				toDirectory = java.nio.file.Files.isDirectory(toPath);
+			}
+		}
+
+		@Override
+		public boolean isToDirectory() { return toDirectory; }
+
+		@Override
+		public void copy(
+				Context context,
+				FtpConnection.Manager manager,
+				String fromFileName) throws FileSystemException {
+
+			String fileName = Files.getFileName(fromFileName);
+
+			String toFileName = (toName == null) ? fileName : toDirectory ? toName + "/" + fileName : toName;
+
+			Path localFilePath = context.getReadPath(toFileName);
+			context.files.assureNotOpen(localFilePath);
+
+			String localFileName = localFilePath.toString();
+
+			manager.copyLocalFromRemote(localFileName, fromFileName);
+		}
 	}
 }
