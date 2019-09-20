@@ -264,6 +264,7 @@ public abstract class TaskSetParser {
 		YEAR,
 		MONTH,
 		DAY,
+		DAYOFYEAR,
 		WEEKDAY,
 		HOUR,
 		MINUTE,
@@ -2958,6 +2959,7 @@ public abstract class TaskSetParser {
 					tokenizer.skipWordIgnoreCase(KW.YEAR.name()) ? ChronoField.YEAR :
 					tokenizer.skipWordIgnoreCase(KW.MONTH.name()) ? ChronoField.MONTH_OF_YEAR :
 					tokenizer.skipWordIgnoreCase(KW.DAY.name()) ? ChronoField.DAY_OF_MONTH :
+					tokenizer.skipWordIgnoreCase(KW.DAYOFYEAR.name()) ? ChronoField.DAY_OF_YEAR :
 					tokenizer.skipWordIgnoreCase(KW.WEEKDAY.name()) ? ChronoField.DAY_OF_WEEK :
 					tokenizer.skipWordIgnoreCase(KW.HOUR.name()) ? ChronoField.HOUR_OF_DAY :
 					tokenizer.skipWordIgnoreCase(KW.MINUTE.name()) ? ChronoField.MINUTE_OF_HOUR :
