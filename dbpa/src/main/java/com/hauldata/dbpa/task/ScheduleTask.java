@@ -57,7 +57,7 @@ public abstract class ScheduleTask extends Task implements TaskSetParent {
 			}
 
 			long sleepMillis;
-			while ( 0 < (sleepMillis = schedules.untilNext())) {
+			while ( 0 <= (sleepMillis = schedules.untilNext())) {
 
 				boolean longSleep = context.prepareToSleep(sleepMillis, connections);
 
