@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016-2017, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -19,7 +19,24 @@ package com.hauldata.util.schedule;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 
-public interface ScheduleBase {
+public abstract class ScheduleBase {
+
+	private boolean immediate;
+
+	protected ScheduleBase(boolean immediate) {
+		this.immediate = immediate;
+	}
+
+	/**
+	 * @return true if the next scheduled event is immediate.
+	 */
+	public boolean isImmediate() {
+		return immediate;
+	}
+
+	public void setImmediate(boolean immediate) {
+		this.immediate = immediate;
+	}
 
 	/**
 	 * Return the datetime of the next scheduled event on or after
@@ -36,7 +53,7 @@ public interface ScheduleBase {
 	 * @return the datetime of the next event or null if no more events are
 	 * scheduled on or after the datetime
 	 */
-	public LocalDateTime nextFrom(LocalDateTime earliest);
+	public abstract LocalDateTime nextFrom(LocalDateTime earliest);
 
 	/**
 	 * Return the datetime of the next scheduled event on or after
@@ -46,5 +63,5 @@ public interface ScheduleBase {
 	 * @return the datetime of the next event or null if no more events are
 	 * scheduled on or after the datetime
 	 */
-	public ZonedDateTime nextFrom(ZonedDateTime earliest);
+	public abstract ZonedDateTime nextFrom(ZonedDateTime earliest);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016-2017, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -36,14 +36,19 @@ import com.hauldata.util.tokenizer.BacktrackingTokenizer;
 import com.hauldata.util.tokenizer.BacktrackingTokenizerMark;
 import com.hauldata.util.tokenizer.Quoted;
 
-public class Schedule implements ScheduleBase {
+public class Schedule extends ScheduleBase {
 
 	private DateSchedule dateSchedule;
 	private TimeSchedule timeSchedule;
 
-	public Schedule(DateSchedule dateSchedule, TimeSchedule timeSchedule) {
+	public Schedule(boolean immediate, DateSchedule dateSchedule, TimeSchedule timeSchedule) {
+		super(immediate);
 		this.dateSchedule = dateSchedule;
 		this.timeSchedule = timeSchedule;
+	}
+
+	public Schedule(DateSchedule dateSchedule, TimeSchedule timeSchedule) {
+		this(false, dateSchedule, timeSchedule);
 	}
 
 	@Override
@@ -143,7 +148,7 @@ class ScheduleParser {
 			return parseDateSchedule();
 		}
 		else if (tokenizer.skipWordIgnoreCase(TODAY)) {
-			return parseDateSchedule(LocalDate.now());
+			return parseTodaySchedule();
 		}
 		else if (tokenizer.skipWordIgnoreCase(WEEKDAY + "S")) {
 			return parseWeeklySchedule(1, weekdays, false);
@@ -203,6 +208,57 @@ class ScheduleParser {
 
 		LocalDate date = nextQuotedDate();
 		return parseDateSchedule(date);
+	}
+
+	private Schedule parseTodaySchedule() throws IOException {
+
+		if (tokenizer.skipWordIgnoreCase(NOW)) {
+			return parseImmediateSchedule();
+		}
+
+		if (tokenizer.hasNextWordIgnoreCase(EVERY)) {
+			return parseTodayEverySchedule();
+		}
+
+		return parseDateSchedule(LocalDate.now());
+	}
+
+	private Schedule parseImmediateSchedule() throws IOException {
+		return new Schedule(true, DateSchedule.never(), TimeSchedule.never());
+	}
+
+	private Schedule parseTodayEverySchedule() throws IOException {
+
+		BacktrackingTokenizerMark mark = tokenizer.mark();
+		tokenizer.nextToken();	// Skip EVERY
+
+		UnitFrequency unitFrequency = parseUnitFrequency(true);
+		if (tokenizer.skipWordIgnoreCase(FROM) && tokenizer.skipWordIgnoreCase(NOW)) {
+			return parseTodayEveryFromNowSchedule(unitFrequency);
+		}
+
+		tokenizer.reset(mark);
+		return parseDateSchedule(LocalDate.now());
+	}
+
+	private Schedule parseTodayEveryFromNowSchedule(UnitFrequency unitFrequency) throws InputMismatchException, NoSuchElementException, IOException {
+
+		LocalDateTime now = LocalDateTime.now();
+		LocalTime startTime = now.toLocalTime().plus(unitFrequency.frequency, unitFrequency.unit);
+		LocalTime endTime = LocalTime.MAX;
+
+		if (tokenizer.skipWordIgnoreCase(UNTIL)) {
+			// The schedule will be parsed and startTime and endTime evaluated some time before the schedule is run.
+			// If endTime is defined in terms of FROM NOW, the last iteration of the schedule will be missed.
+			// In order to assure it is run, add less than a second to the end time to account for
+			// the lag between parse time and run time.  Adding too much is found to cause an extra iteration.
+			endTime = nextTime().plus(900, ChronoUnit.MILLIS);
+		}
+
+		return new Schedule(
+				true,
+				DateSchedule.onetime(now.toLocalDate()),
+				TimeSchedule.recurring(unitFrequency.unit, unitFrequency.frequency, startTime, endTime));
 	}
 
 	private Schedule parseDateSchedule(LocalDate date) throws IOException {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -25,6 +25,13 @@ import java.util.Set;
  * Schedule of event(s) that occur on a calendar schedule without regard to time of day
  */
 public abstract class DateSchedule {
+
+	/**
+	 * Instantiate a schedule for an event that never occurs
+	 */
+	public static DateSchedule never() {
+		return new NeverDateSchedule();
+	}
 
 	/**
 	 * Instantiate a schedule for an event that occurs on one date
@@ -138,6 +145,16 @@ public abstract class DateSchedule {
 	 * scheduled on or after the date
 	 */
 	public abstract LocalDate nextFrom(LocalDate earliestDate);
+}
+
+class NeverDateSchedule extends DateSchedule {
+
+	public NeverDateSchedule() {}
+
+	@Override
+	public LocalDate nextFrom(LocalDate earliestDate) {
+		return null;
+	}
 }
 
 class OnetimeDateSchedule extends DateSchedule {

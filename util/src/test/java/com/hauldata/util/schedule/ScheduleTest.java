@@ -319,6 +319,9 @@ public class ScheduleTest extends TestCase {
 		assertEquals(LocalDateTime.of(LocalDate.of(2018, 1, 5), fiveTenAm), schedules.nextFrom(LocalDateTime.of(LocalDate.of(2017, 12, 6), noon)));
 	}
 
+	final static int fuzzMillis = 150;
+	final static float fuzzSeconds = (float)fuzzMillis / 1000f;
+
 	public void testSleep() {
 
 		LocalDateTime startDateTime = LocalDateTime.now().plusSeconds(1);	// Add some padding for CPU latency
@@ -333,9 +336,6 @@ public class ScheduleTest extends TestCase {
 		everyTwoSeconds.add(new Schedule(
 				DateSchedule.onetime(startDateTime.toLocalDate()),
 				TimeSchedule.recurring(ChronoUnit.SECONDS, frequency, startTime, endTime)));
-
-		final int fuzzMillis = 150;
-		final float fuzzSeconds = (float)fuzzMillis / 1000f;
 
 		LocalTime previousTime = startTime.minusSeconds(frequency);
 		int count = 0;
@@ -358,5 +358,35 @@ public class ScheduleTest extends TestCase {
 		assertEquals(0f, discrepancy, fuzzSeconds);
 
 		assertEquals(cycles, count);
+	}
+
+	public void testImmediate() {
+
+		ScheduleSet schedules;
+
+		schedules = testParse("TODAY NOW");
+		assertTrue(schedules.isImmediate());
+		assertNull(schedules.nextFrom(ZonedDateTime.now()));
+
+		schedules = testParse("DAILY, TODAY NOW");
+		assertTrue(schedules.isImmediate());
+
+		float duration;
+		ZonedDateTime now = ZonedDateTime.now();
+
+		schedules = testParse("TODAY EVERY 2 SECONDS FROM NOW UNTIL 4 SECONDS FROM NOW");
+		assertTrue(schedules.isImmediate());
+
+		ZonedDateTime next = schedules.nextFrom(now);
+		assertNotNull(next);
+		duration = (float)ChronoUnit.MILLIS.between(now, next) / 1000f;
+		assertEquals(2.0, duration, fuzzSeconds);
+
+		ZonedDateTime last = schedules.nextFrom(next.plus(1, ChronoUnit.MILLIS));
+		assertNotNull(last);
+		duration = (float)ChronoUnit.MILLIS.between(next, last) / 1000f;
+		assertEquals(2.0, duration, fuzzSeconds);
+
+		assertNull(schedules.nextFrom(last.plus(1, ChronoUnit.MILLIS)));
 	}
 }

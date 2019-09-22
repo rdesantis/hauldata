@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016-2017, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -27,12 +27,10 @@ import java.util.List;
 import java.util.Optional;
 
 import com.hauldata.util.tokenizer.BacktrackingTokenizer;
-import com.hauldata.util.tokenizer.BacktrackingTokenizerMark;
 
-public class ScheduleSet implements ScheduleBase {
+public class ScheduleSet extends ScheduleBase {
 
 	private List<Schedule> schedules;
-	private boolean immediate;
 
 	/**
 	 * Construct an empty schedule set.
@@ -40,23 +38,14 @@ public class ScheduleSet implements ScheduleBase {
 	 * The set is initially empty.  Use add() to add schedules to the set.
 	 */
 	public ScheduleSet() {
+		super(false);
 		schedules = new LinkedList<Schedule>();
-		immediate = false;
-	}
-
-	/**
-	 * @return true if the schedule set specifies immediate execution.
-	 * It may also specify subsequent scheduled executions.
-	 */
-	public boolean isImmediate() {
-		return immediate;
-	}
-
-	public void setImmediate(boolean immediate) {
-		this.immediate = immediate;
 	}
 
 	public void add(Schedule schedule) {
+		if (schedule.isImmediate()) {
+			setImmediate(true);
+		}
 		schedules.add(schedule);
 	}
 	
@@ -180,27 +169,9 @@ public class ScheduleSet implements ScheduleBase {
 		ScheduleSet result = new ScheduleSet();
 
 		do {
-			if (skipIsImmediate(tokenizer)) {
-				result.setImmediate(true);
-			}
-			else {
-				result.add(Schedule.parse(tokenizer));
-			}
+			result.add(Schedule.parse(tokenizer));
 		} while (tokenizer.skipDelimiter(","));
 		
 		return result;
-	}
-
-	private static boolean skipIsImmediate(BacktrackingTokenizer tokenizer) throws IOException {
-
-		BacktrackingTokenizerMark mark = tokenizer.mark();
-
-		if (tokenizer.skipWordIgnoreCase("TODAY") && tokenizer.skipWordIgnoreCase("NOW")) {
-			return true;
-		}
-
-		tokenizer.reset(mark);
-
-		return false;
 	}
 }

@@ -26,6 +26,13 @@ import java.time.temporal.ChronoUnit;
 public abstract class TimeSchedule {
 
 	/**
+	 * Instantiate a schedule for an event that never occurs
+	 */
+	public static TimeSchedule never() {
+		return new NeverTimeSchedule();
+	}
+
+	/**
 	 * Instantiate a schedule for an event that occurs once a day
 	 *
 	 * @param time is the time of the event
@@ -79,6 +86,21 @@ public abstract class TimeSchedule {
 	 * be on the same date as earliestDateTime.
 	 */
 	public abstract ZonedDateTime nextFrom(ZonedDateTime earliestDatetime);
+}
+
+class NeverTimeSchedule extends TimeSchedule {
+
+	public NeverTimeSchedule() {}
+
+	@Override
+	public LocalTime nextFrom(LocalTime earliestTime) {
+		return null;
+	}
+
+	@Override
+	public ZonedDateTime nextFrom(ZonedDateTime earliestDatetime) {
+		return null;
+	}
 }
 
 class OnetimeTimeSchedule extends TimeSchedule {
