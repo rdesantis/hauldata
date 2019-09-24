@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2019, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -27,12 +27,17 @@ import com.hauldata.dbpa.process.Context;
 
 public class DeleteTask extends Task {
 
+	private List<Expression<String>> files;
+	private boolean writeNotRead;
+
 	public DeleteTask(
 			Prologue prologue,
-			List<Expression<String>> files) {
+			List<Expression<String>> files,
+			boolean writeNotRead) {
 
 		super(prologue);
 		this.files = files;
+		this.writeNotRead = writeNotRead;
 	}
 
 	@Override
@@ -45,8 +50,8 @@ public class DeleteTask extends Task {
 
 				String fileName = file.evaluate();
 				String[] parentAndFileName = com.hauldata.dbpa.process.Files.getParentAndFileName(fileName);
-				Path parentPath = context.getWritePath(parentAndFileName[0]);
-	
+				Path parentPath = context.getDataPath(parentAndFileName[0], writeNotRead);
+
 				try {
 					filePaths = Files.newDirectoryStream(parentPath, parentAndFileName[1]);
 				}
@@ -78,6 +83,4 @@ public class DeleteTask extends Task {
 			throw new RuntimeException("Error occurred closing directory stream");
 		} }
 	}
-
-	private List<Expression<String>> files;
 }

@@ -1362,11 +1362,39 @@ public abstract class TaskSetParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
 
+			if (tokenizer.skipWordIgnoreCase(KW.SOURCE.name())) {
+				return parseDeleteFiles(prologue, false);
+			}
+			else if (tokenizer.skipWordIgnoreCase(KW.TARGET.name())) {
+				return parseDeleteFiles(prologue, true);
+			}
+			else {
+				FtpConnection connection = parseFtpConnection();
+				if (tokenizer.skipWordIgnoreCase(KW.FTP.name()) || (connection != null)) {
+					return parseDeleteFtpFiles(prologue, connection);
+				}
+				else {
+					return parseDeleteFiles(prologue, true);
+				}
+			}
+		}
+
+		private Task parseDeleteFiles(Task.Prologue prologue, boolean writeNotRead) throws IOException {
+
 			List<Expression<String>> files = new LinkedList<Expression<String>>();
 			do {
 				files.add(parseStringExpression());
 			} while (tokenizer.skipDelimiter(","));
-			return new DeleteTask(prologue, files);
+			return new DeleteTask(prologue, files, writeNotRead);
+		}
+
+		private Task parseDeleteFtpFiles(Task.Prologue prologue, FtpConnection connection) throws IOException {
+
+			List<Expression<String>> files = new LinkedList<Expression<String>>();
+			do {
+				files.add(parseStringExpression());
+			} while (tokenizer.skipDelimiter(","));
+			return new DeleteFtpTask(prologue, connection, files);
 		}
 	}
 

@@ -94,6 +94,14 @@ public class FtpConnection extends Connection {
 			from.moveTo(to);
 		}
 
+		public void deleteRemote(String fileName) throws FileSystemException {
+
+			String fileURI = getRemoteFileURI(fileName);
+			FileObject file = manager.resolveFile(fileURI, options);
+
+			file.delete();
+		}
+
 		public List<String> findRemote(String baseFolder, String fileNamePattern) throws FileSystemException {
 
 			String regex = fileNamePattern
@@ -137,7 +145,6 @@ public class FtpConnection extends Connection {
 
 			return options;
 		}
-
 	}
 
 	@Override
