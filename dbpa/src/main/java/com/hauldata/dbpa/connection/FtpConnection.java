@@ -16,6 +16,7 @@
 
 package com.hauldata.dbpa.connection;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +31,7 @@ import org.apache.commons.vfs2.FileSystemOptions;
 import org.apache.commons.vfs2.Selectors;
 import org.apache.commons.vfs2.impl.StandardFileSystemManager;
 import org.apache.commons.vfs2.provider.ftp.FtpFileSystemConfigBuilder;
+import org.apache.commons.vfs2.provider.sftp.IdentityInfo;
 import org.apache.commons.vfs2.provider.sftp.SftpFileSystemConfigBuilder;
 
 public class FtpConnection extends Connection {
@@ -131,7 +133,11 @@ public class FtpConnection extends Connection {
 		private FileSystemOptions getOptions(boolean isBinary) {
 
 			if (options == null) {
-				String protocol = getProperties().getProperty("protocol").trim();
+				String protocol = getProperties().getProperty("protocol");
+				if (protocol == null) {
+					throw new RuntimeException("File transfer protocol is not specified");
+				}
+				protocol = protocol.trim();
 				if (protocol.equals("ftp") || protocol.equals("ftps")) {
 					options = getFTPOptions(isBinary);
 				}
@@ -190,6 +196,8 @@ public class FtpConnection extends Connection {
 
 	private FileSystemOptions getSFTPOptions(boolean isBinary) {
 
+		String keyFile = getProperties().getProperty("keyfile");
+		String passPhrase = getProperties().getProperty("passphrase");
 		String strictHostKeyChecking = getProperties().getProperty("strictHostKeyChecking", "no");
 		String timeoutString = getProperties().getProperty("timeout");
 
@@ -198,6 +206,12 @@ public class FtpConnection extends Connection {
 		try {
 			SftpFileSystemConfigBuilder configBuilder = SftpFileSystemConfigBuilder.getInstance();
 			configBuilder.setUserDirIsRoot(options, false);
+
+			if (keyFile != null) {
+				byte[] passPhraseBytes = (passPhrase != null) ? passPhrase.getBytes() : null;
+				IdentityInfo identityInfo = new IdentityInfo(new File(keyFile), passPhraseBytes);
+				configBuilder.setIdentityInfo(options, identityInfo);
+			}
 
 			configBuilder.setStrictHostKeyChecking(options, strictHostKeyChecking.trim());
 			if (timeoutString != null) {
@@ -214,13 +228,35 @@ public class FtpConnection extends Connection {
 	private String getRemoteFileURI(String remoteFileName) {
 
 		String protocol = getProperties().getProperty("protocol").trim();
-		String hostname = percentEncode(getProperties().getProperty("hostname").trim());
-		String user = percentEncode(getProperties().getProperty("user").trim());
-		String password = percentEncode(getProperties().getProperty("password").trim());
+		String hostname = getProperties().getProperty("hostname");
+		if (hostname == null) {
+			throw new RuntimeException("FTP hostname not specified");
+		}
+		String[] hostnameParts = hostname.trim().split(":");
+		hostnameParts[0] = percentEncode(hostnameParts[0]);
+		hostname = String.join(":",  hostnameParts);
+
+		String credentials;
+
+		String user = getProperties().getProperty("user");
+		if (user != null) {
+			user = percentEncode(user.trim());
+			String password = getProperties().getProperty("password");
+			if (password != null) {
+				password = percentEncode(password.trim());
+				credentials = user + ":" + password + "@";
+			}
+			else {
+				credentials = user + "@";
+			}
+		}
+		else {
+			credentials = "";
+		}
 
 		String cleanedFileName = percentEncodeExceptSlash(remoteFileName);
 
-		return protocol + "://" + user + ":" + password +  "@" + hostname + cleanedFileName;
+		return protocol + "://" + credentials + hostname + cleanedFileName;
 	}
 
 	static Map<String,String> percentEncodings;
