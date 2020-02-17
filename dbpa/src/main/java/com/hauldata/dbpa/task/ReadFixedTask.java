@@ -70,6 +70,7 @@ public class ReadFixedTask extends Task {
 		TxtFile sourcePage = new TxtFile(context.files, sourcePath, null);
 		try {
 			sourcePage.open();
+			sourcePage.setOpen(true);
 
 			read(sourcePage, headers, true);
 
