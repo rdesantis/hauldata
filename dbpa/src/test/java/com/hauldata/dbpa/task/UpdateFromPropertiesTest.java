@@ -29,9 +29,9 @@ public class UpdateFromPropertiesTest extends TaskTest {
 
 		String processId = "ErrorMessageTest";
 		String script =
-				"VARIABLES first VARCHAR, second VARCHAR, third VARCHAR END VARIABLES \n" +
-				"TASK UpdateThem UPDATE first, second, third FROM PROPERTIES 'sample.properties' 'one', 'two', 'three' END TASK \n" +
-				"TASK ShowThem AFTER LOG first, second, third END TASK \n" +
+				"VARIABLES first VARCHAR, second VARCHAR, third VARCHAR, fourth INTEGER, fifth BIT, sixth DATETIME END VARIABLES \n" +
+				"TASK UpdateThem UPDATE first, second, third, fourth, fifth, sixth FROM PROPERTIES 'sample.properties' 'one', 'two', 'three', 'four', 'five', 'six' END TASK \n" +
+				"TASK ShowThem AFTER LOG first, second, third, FORMAT(fourth, 'd'), IIF(fifth = 1, '1', '0'), FORMAT(sixth, 'yyyy-MM-dd HH:mm:ss') END TASK \n" +
 				"";
 
 		Level logLevel = Level.info;
@@ -49,6 +49,12 @@ public class UpdateFromPropertiesTest extends TaskTest {
 		assertEquals("The middle thing", record.message);
 		record = recordIterator.next();
 		assertEquals("The final thing", record.message);
+		record = recordIterator.next();
+		assertEquals("122345", record.message);
+		record = recordIterator.next();
+		assertEquals("1", record.message);
+		record = recordIterator.next();
+		assertEquals("2020-02-17 15:51:00", record.message);
 		assertFalse(recordIterator.hasNext());
 	}
 }

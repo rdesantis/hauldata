@@ -22,6 +22,7 @@ import java.util.List;
 import com.hauldata.dbpa.datasource.DataSource;
 import com.hauldata.dbpa.datasource.Source;
 import com.hauldata.dbpa.variable.VariableBase;
+import com.hauldata.dbpa.variable.VariablesFromStrings;
 
 public abstract class UpdateVariablesTask extends Task {
 
@@ -45,7 +46,13 @@ public abstract class UpdateVariablesTask extends Task {
 
 			int columnIndex = 1;
 			for (VariableBase variable : variables) {
-				variable.setValueChecked(DataSource.fromSQL(source.getObject(columnIndex++)));
+				Object value = DataSource.fromSQL(source.getObject(columnIndex++));
+				if (value instanceof String) {
+					VariablesFromStrings.set(variable, (String)value);
+				}
+				else {
+					variable.setValueChecked(value);
+				}
 			}
 		}
 
