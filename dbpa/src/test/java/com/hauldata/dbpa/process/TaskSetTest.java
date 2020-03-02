@@ -430,6 +430,23 @@ public class TaskSetTest extends TaskTest {
 		assertGoodSyntax(script);
 	}
 
+	public void testConnectionsAsVariables() {
+		String script;
+		String message;
+
+		script =
+				"VARIABLES xxx DATABASE, yyy INTEGER, zzz FTP END VARIABLES\n" +
+				"TASK LOG 'succeed' END TASK\n";
+		assertGoodSyntax(script);
+
+		script =
+				"CONNECTIONS xxx DATABASE, yyy INTEGER, zzz FTP END CONNECTIONS\n" +
+				"TASK LOG 'fail' END TASK\n";
+
+		message = "At line 1: Invalid connection type name: INTEGER";
+		assertBadSyntax(script, message);
+	}
+
 	public void testFunctionSyntax() {
 		String script;
 		String message;

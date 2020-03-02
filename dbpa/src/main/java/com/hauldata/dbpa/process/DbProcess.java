@@ -37,6 +37,7 @@ import com.hauldata.dbpa.connection.EmailConnection;
 import com.hauldata.dbpa.connection.FtpConnection;
 import com.hauldata.dbpa.task.Task;
 import com.hauldata.dbpa.variable.*;
+import com.hauldata.util.tokenizer.BacktrackingTokenizerMark;
 
 /**
  * Executable database process
@@ -241,7 +242,8 @@ class DbProcessParser extends TaskSetParser {
 		String section = KW.PARAMETERS.name();
 		if (tokenizer.skipWordIgnoreCase(section)) {
 
-			do { parameters.add(parseVariable());
+			do {
+				parameters.add(parseVariable(true));
 			} while (tokenizer.skipDelimiter(","));
 
 			nextEnd(section);
@@ -254,15 +256,20 @@ class DbProcessParser extends TaskSetParser {
 		String section = KW.VARIABLES.name();
 		if (tokenizer.skipWordIgnoreCase(section)) {
 
-			do { parseVariable();
+			do {
+				if (parseVariable(false) == null) {
+					parseConnection(false);
+				}
 			} while (tokenizer.skipDelimiter(","));
 
 			nextEnd(section);
 		}
 	}
 
-	private VariableBase parseVariable()
+	private VariableBase parseVariable(boolean isRequired)
 			throws InputMismatchException, NoSuchElementException, IOException, NameAlreadyBoundException {
+
+		BacktrackingTokenizerMark mark = tokenizer.mark();
 
 		String name = tokenizer.nextWordUpperCase();
 		if (variables.containsKey(name)) {
@@ -272,10 +279,19 @@ class DbProcessParser extends TaskSetParser {
 			throw new NameAlreadyBoundException("Cannot use reserved word as a variable name: " + name);
 		}
 
+		VariableBase variable = null;
 		VariableType type = parseType();
 
-		VariableBase variable = new Variable<Object>(name, type);
-		variables.put(name, variable);
+		if (type != null) {
+			variable = new Variable<Object>(name, type);
+			variables.put(name, variable);
+		}
+		else if (isRequired) {
+			throw new InputMismatchException("Invalid variable type name: " + type);
+		}
+		else {
+			tokenizer.reset(mark);
+		}
 
 		return variable;
 	}
@@ -309,7 +325,7 @@ class DbProcessParser extends TaskSetParser {
 			return VariableType.DATETIME;
 		}
 		else {
-			throw new InputMismatchException("Invalid variable type name: " + type);
+			return null;
 		}
 	}
 
@@ -319,19 +335,19 @@ class DbProcessParser extends TaskSetParser {
 		String section = KW.CONNECTIONS.name();
 		if (tokenizer.skipWordIgnoreCase(section)) {
 
-			do { parseConnection();
+			do { parseConnection(true);
 			} while (tokenizer.skipDelimiter(","));
 
 			nextEnd(section);
 		}
 	}
 
-	private void parseConnection()
+	private void parseConnection(boolean isConnection)
 			throws InputMismatchException, NoSuchElementException, IOException, NameAlreadyBoundException {
 
 		String name = tokenizer.nextWordUpperCase();
 		if (connections.containsKey(name)) {
-			throw new NameAlreadyBoundException("Duplicate connection name: " + name);
+			throw new NameAlreadyBoundException("Duplicate " + entityTypeName(isConnection) + " name: " + name);
 		}
 		else if (reservedConnectionNames.contains(name)) {
 			throw new NameAlreadyBoundException("Cannot use reserved word as a connection name: " + name);
@@ -354,9 +370,13 @@ class DbProcessParser extends TaskSetParser {
 			connection = new EmailConnection();
 		}
 		else {
-			throw new InputMismatchException("Invalid connection type name: " + type);
+			throw new InputMismatchException("Invalid " + entityTypeName(isConnection) + " type name: " + type);
 		}
 
 		connections.put(name, connection);
+	}
+
+	private String entityTypeName(boolean isConnection) {
+		return isConnection ? "connection" : "variable";
 	}
 }
