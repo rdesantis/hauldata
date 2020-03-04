@@ -467,4 +467,73 @@ public class TaskSetTest extends TaskTest {
 		message = "At line 2: Invalid INTEGER expression term: ISNULL";
 		assertBadSyntax(script, message);
 	}
+
+
+	public void testNewSyntax() throws Exception {
+
+		String script;
+
+		script =
+				"PROCESS\n" +
+				"VARIABLES isnull INTEGER;\n" +
+				"SET isnull = 1;\n" +
+				"END PROCESS" +
+				"";
+		assertGoodSyntax(script);
+
+		script =
+				"PROCESS\n" +
+				"VARIABLES x INTEGER;\n" +
+				"SET x = ISNULL(x, 0);\n" +
+				"END PROCESS" +
+				"";
+		assertGoodSyntax(script);
+
+		script =
+				"PROCESS\n" +
+				"VARIABLES \n" +
+					"d1 DATETIME, d2 DATETIME, d3 DATETIME, \n" +
+					"s1 VARCHAR, s2 VARCHAR, s3 VARCHAR, \n" +
+					"i1 INTEGER, i2 INTEGER, i3 INTEGER \n" +
+				";\n" +
+				"DateFormat: SET \n" +
+					"d1 = '9/1/2015 9:30 PM', \n" +
+					"d2 = '2001-8-10 12:34:56', \n" +
+					"d3 = '2015-09-05T00:40:26.090' \n" +
+				";\n" +
+				"Echo :AFTER DateFormat LOG \n" +
+					"'d1 = ' + FORMAT(d1,'yyyy-MM-dd HH:mm:ss') + ', d2 = ' + FORMAT(d2,'yyyy-MM-dd') + ', d3 = ' + FORMAT(d3,'M/d/yyyy h:mm:ss a') \n" +
+				";\n" +
+				"END PROCESS" +
+				"";
+		assertGoodSyntax(script);
+
+		String processId = "NewSyntaxTest";
+		script =
+				"PROCESS\n" +
+					"LOG 'one';\n" +
+					"LOG 'two';\n" +
+					"GO ;\n" +
+					"LOG 'three';\n" +
+				"END PROCESS\n" +
+				"";
+
+		Level logLevel = Level.message;
+		boolean logToConsole = true;
+
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
+
+		Analyzer.RecordIterator recordIterator = analyzer.recordIterator();
+		Analyzer.Record record;
+
+		record = recordIterator.next();
+		assertEquals("one", record.message);
+		record = recordIterator.next();
+		assertEquals("two", record.message);
+		record = recordIterator.next();
+		assertEquals("three", record.message);
+		record = recordIterator.next();
+
+		assertFalse(recordIterator.hasNext());
+	}
 }

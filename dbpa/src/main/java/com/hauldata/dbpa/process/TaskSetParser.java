@@ -43,6 +43,7 @@ import com.hauldata.dbpa.connection.*;
 import com.hauldata.dbpa.datasource.*;
 import com.hauldata.dbpa.datasource.ProcedureDataSource.*;
 import com.hauldata.dbpa.expression.*;
+import com.hauldata.dbpa.expression.Expression.Combination;
 import com.hauldata.dbpa.expression.strings.*;
 import com.hauldata.dbpa.file.*;
 import com.hauldata.dbpa.file.book.XlsxBook;
@@ -55,6 +56,7 @@ import com.hauldata.dbpa.task.RequestTask.Header;
 import com.hauldata.dbpa.task.RequestTask.SourceWithAliases;
 import com.hauldata.dbpa.task.RequestTask.TargetWithKeepers;
 import com.hauldata.dbpa.task.Task.Prologue;
+import com.hauldata.dbpa.task.Task.Result;
 import com.hauldata.dbpa.task.expression.ColumnExpressions;
 import com.hauldata.dbpa.task.expression.FileIdentifierExpression;
 import com.hauldata.dbpa.task.expression.HtmlPageIdentifierExpression;
@@ -365,6 +367,8 @@ public abstract class TaskSetParser {
 
 	protected BacktrackingTokenizer tokenizer;
 
+	protected VersionDependencies versionDependencies;
+
 	protected TermParser<Integer> integerTermParser;
 	protected TermParser<String> stringTermParser;
 	protected TermParser<LocalDateTime> datetimeTermParser;
@@ -422,7 +426,7 @@ public abstract class TaskSetParser {
 	public TaskSetParser(
 			Reader r,
 			Map<String, VariableBase> variables,
-			Map<String, Connection> connections) {
+			Map<String, Connection> connections) throws IOException {
 
 		thisTaskSetParser = this;
 
@@ -436,6 +440,10 @@ public abstract class TaskSetParser {
 		tokenizer.wordChars('_', '_');
 
 		tokenizer.eolIsSignificant(false);
+
+		versionDependencies = tokenizer.skipWordIgnoreCase(KW.PROCESS.name()) ?
+				new LatestVersionDependencies() :
+				new LegacyVersionDependencies();
 
 		integerTermParser = new TermParser<Integer>(VariableType.INTEGER) { public Expression<Integer> parseExpression() throws IOException { return parseIntegerExpression(); } };
 		stringTermParser = new TermParser<String>(VariableType.VARCHAR) { public Expression<String> parseExpression() throws IOException { return parseStringExpression(); } };
@@ -558,7 +566,7 @@ public abstract class TaskSetParser {
 	 * @throws NameAlreadyBoundException
 	 * @throws NamingException
 	 */
-	 public Map<String, Task> parseTasks(Task parentTask)
+	 public Map<String, Task> parseTasks(Task parentTask, String structureName)
 			throws IOException, InputMismatchException, NoSuchElementException, NameNotFoundException, NameAlreadyBoundException, NamingException {
 
 		pushState(parentTask);
@@ -567,7 +575,7 @@ public abstract class TaskSetParser {
 
 		int taskIndex = 1;
 		Task previousTask = null;
-		while (tokenizer.hasNextWordIgnoreCase(KW.TASK.name())) {
+		while (hasTask()) {
 
 			Task task = parseTask(tasks, previousTask);
 			if (task.getTaskName() == null) {
@@ -578,6 +586,8 @@ public abstract class TaskSetParser {
 			++taskIndex;
 			previousTask = task;
 		}
+
+		endStructure(structureName);
 
 		determineSuccessors(tasks);
 
@@ -596,6 +606,10 @@ public abstract class TaskSetParser {
 		}
 	}
 
+	protected String enclosingStructureName() {
+		return KW.PROCESS.name();
+	}
+
 	interface TaskParser {
 		Task parse(Task.Prologue prologue) throws IOException, NamingException;
 	}
@@ -603,10 +617,7 @@ public abstract class TaskSetParser {
 	private Task parseTask(Map<String, Task> tasks, Task previousTask)
 			throws IOException, InputMismatchException, NoSuchElementException, NamingException {
 
-		String section = KW.TASK.name();
-		if (!tokenizer.skipWordIgnoreCase(section)) {
-			throw new InputMismatchException(section + " not found where expected");
-		}
+		startTask();
 
 		// Parse the task name.
 		// With an explicit NAME keyword, task name is allowed to be the same as a task type name.
@@ -645,11 +656,18 @@ public abstract class TaskSetParser {
 			qualifier = parseStringExpression();
 		}
 
+		if (name != null) {
+			delimitTaskName();
+		}
+
 		Map<Task, Task.Result> predecessors = new HashMap<Task, Task.Result>();
 		Expression.Combination combination = null;
 
 		if (tokenizer.skipWordIgnoreCase(KW.AFTER.name())) {
 			combination = parsePredecessors(tasks, predecessors, previousTask);
+		}
+		else {
+			combination = defaultPredecessors(predecessors, previousTask);
 		}
 
 		Expression<Boolean> condition = null;
@@ -671,7 +689,7 @@ public abstract class TaskSetParser {
 
 		resolveTaskReference(task);
 
-		nextEnd(section);
+		endSection(KW.TASK.name());
 
 		return task;
 	}
@@ -761,11 +779,173 @@ public abstract class TaskSetParser {
 		return new SimpleEntry<Task, Task.Result>(task, result);
 	}
 
-	protected void nextEnd(String section) throws IOException {
-
-		if (!tokenizer.skipWordIgnoreCase(KW.END.name()) || !tokenizer.skipWordIgnoreCase(section)) {
-			throw new InputMismatchException(KW.END.name() + " " + section + " not found where expected");
+	abstract class VersionDependencies {
+		public void endEntity(String entity) throws IOException {
+			if (!tokenizer.skipWordIgnoreCase(KW.END.name()) || !tokenizer.skipWordIgnoreCase(entity)) {
+				throw new InputMismatchException(KW.END.name() + " " + entity + " not found where expected");
+			}
 		}
+
+		public abstract void endSection(String section) throws IOException;
+		public abstract boolean hasTask() throws IOException;
+		public abstract void startTask() throws IOException;
+		public abstract void delimitTaskName() throws IOException;
+		public abstract Combination defaultPredecessors(Map<Task, Result> predecessors, Task previousTask);
+		public abstract boolean atEndOfTask() throws IOException;
+		public abstract boolean atEndOrStartOfTask() throws IOException;
+		public abstract boolean atEndOfProcedure() throws IOException;
+		public abstract void endStructure(String section) throws IOException;
+	}
+
+	class LegacyVersionDependencies extends VersionDependencies {
+		@Override
+		public void endSection(String section) throws IOException {
+			endEntity(section);
+		}
+
+		@Override
+		public boolean hasTask() throws IOException {
+			return tokenizer.hasNextWordIgnoreCase(KW.TASK.name());
+		}
+
+		@Override
+		public void startTask() throws IOException {
+			if (!tokenizer.skipWordIgnoreCase(KW.TASK.name())) {
+				throw new InputMismatchException(KW.TASK.name() + " not found where expected");
+			}
+		}
+
+		@Override
+		public void delimitTaskName() {}
+
+		@Override
+		public Combination defaultPredecessors(Map<Task, Result> predecessors, Task previousTask) {
+			return null;
+		}
+
+		@Override
+		public boolean atEndOfTask() throws IOException {
+			return atEndOf(KW.TASK);
+		}
+
+		private boolean atStartOfTask() throws IOException {
+
+			if (!tokenizer.hasNextWordIgnoreCase(KW.TASK.name())) {
+				return false;
+			}
+
+			BacktrackingTokenizerMark mark = tokenizer.mark();
+			tokenizer.nextToken();
+
+			boolean result = tokenizer.hasNextWord();
+
+			tokenizer.reset(mark);
+			return result;
+		}
+
+		@Override
+		public boolean atEndOrStartOfTask() throws IOException {
+			return atEndOfTask() || atStartOfTask();
+		}
+
+		@Override
+		public boolean atEndOfProcedure() throws IOException {
+			return atEndOrStartOfTask();
+		}
+
+		@Override
+		public void endStructure(String section) {}
+	}
+
+	class LatestVersionDependencies extends  VersionDependencies {
+		@Override
+		public void endSection(String section) throws IOException {
+			if (!tokenizer.skipDelimiter(";")) {
+				throw new InputMismatchException("Semicolon \";\" not found where expected");
+			}
+		}
+
+		@Override
+		public boolean hasTask() throws IOException {
+			return !tokenizer.hasNextWordIgnoreCase(KW.END.name());
+		}
+
+		@Override
+		public void startTask() {}
+
+		@Override
+		public void delimitTaskName() throws IOException {
+			if (!tokenizer.skipDelimiter(":")) {
+				throw new InputMismatchException("Colon \":\" not found after task name");
+			}
+		}
+
+		@Override
+		public Combination defaultPredecessors(Map<Task, Result> predecessors, Task previousTask) {
+			if (previousTask != null) {
+				predecessors.put(previousTask, Result.success);
+				return Combination.and;
+			}
+			else {
+				return null;
+			}
+		}
+
+		@Override
+		public boolean atEndOfTask() throws IOException {
+			return tokenizer.hasNextDelimiter(";");
+		}
+
+		@Override
+		public boolean atEndOrStartOfTask() throws IOException {
+			return false;
+		}
+
+		@Override
+		public boolean atEndOfProcedure() throws IOException {
+			return atEndOfTask();
+		}
+
+		@Override
+		public void endStructure(String structure) throws IOException {
+			endEntity(structure);
+		}
+	}
+
+	protected void endSection(String section) throws IOException {
+		versionDependencies.endSection(section);
+	}
+
+	private boolean hasTask() throws IOException {
+		return versionDependencies.hasTask();
+	}
+
+	private void startTask() throws IOException {
+		versionDependencies.startTask();
+	}
+
+	private void delimitTaskName() throws IOException {
+		versionDependencies.delimitTaskName();
+	}
+
+	private Combination defaultPredecessors(Map<Task, Result> predecessors, Task previousTask) {
+		return versionDependencies.defaultPredecessors(predecessors, previousTask);
+	}
+
+	private boolean atEndOfTask() throws IOException {
+		return versionDependencies.atEndOfTask();
+	}
+
+	private boolean atEndOfProcedure() throws IOException {
+		return versionDependencies.atEndOfProcedure();
+	}
+
+	private boolean atEndOrStartOfTask() throws IOException {
+		return versionDependencies.atEndOrStartOfTask();
+	}
+
+	protected void endStructure(String structure) throws IOException {
+		versionDependencies.endStructure(structure);
 	}
 
 	class SetVariablesTaskParser implements TaskParser {
@@ -1545,7 +1725,7 @@ public abstract class TaskSetParser {
 
 			DoTask thisTask = new DoTask(prologue, whileCondition);
 
-			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskSetParser, thisTask));
+			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskSetParser, thisTask, KW.DO.name()));
 		}
 	}
 
@@ -1569,7 +1749,7 @@ public abstract class TaskSetParser {
 				thisTask  = parseForData(prologue, variables);
 			}
 
-			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskSetParser, (Task)thisTask));
+			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskSetParser, (Task)thisTask, KW.FOR.name()));
 		}
 
 		private ForReadTask parseForReadFile(
@@ -1624,7 +1804,7 @@ public abstract class TaskSetParser {
 
 			OnScheduleTask thisTask = new OnScheduleTask(prologue, schedule, connections);
 
-			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskSetParser, thisTask));
+			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskSetParser, thisTask, KW.ON.name()));
 		}
 
 		private Task parseOn(Task.Prologue prologue) throws IOException, NamingException {
@@ -1633,7 +1813,7 @@ public abstract class TaskSetParser {
 
 			OnTask thisTask = new OnTask(prologue, schedules, connections);
 
-			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskSetParser, thisTask));
+			return thisTask.setTaskSet(NestedTaskSet.parse(thisTaskSetParser, thisTask, KW.ON.name()));
 		}
 	}
 
@@ -2317,7 +2497,7 @@ public abstract class TaskSetParser {
 			return false;
 		}
 		else {
-			return !atEndOrStartOfTask();
+			return !atEndOfProcedure();
 		}
 	}
 
@@ -2630,10 +2810,6 @@ public abstract class TaskSetParser {
 		return true;
 	}
 
-	private boolean atEndOfTask() throws IOException {
-		return atEndOf(KW.TASK);
-	}
-
 	private boolean atEndOf(KW keyword) throws IOException {
 
 		if (!tokenizer.hasNextWordIgnoreCase(KW.END.name())) {
@@ -2647,25 +2823,6 @@ public abstract class TaskSetParser {
 
 		tokenizer.reset(mark);
 		return result;
-	}
-
-	private boolean atStartOfTask() throws IOException {
-
-		if (!tokenizer.hasNextWordIgnoreCase(KW.TASK.name())) {
-			return false;
-		}
-
-		BacktrackingTokenizerMark mark = tokenizer.mark();
-		tokenizer.nextToken();
-
-		boolean result = tokenizer.hasNextWord();
-
-		tokenizer.reset(mark);
-		return result;
-	}
-
-	private boolean atEndOrStartOfTask() throws IOException {
-		return atEndOfTask() || atStartOfTask();
 	}
 
 	/**

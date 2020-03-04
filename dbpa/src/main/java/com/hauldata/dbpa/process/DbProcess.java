@@ -195,7 +195,7 @@ public class DbProcess extends TaskSet {
  */
 class DbProcessParser extends TaskSetParser {
 
-	public DbProcessParser(Reader r) {
+	public DbProcessParser(Reader r) throws IOException {
 		super(r,
 				new HashMap<String, VariableBase>(),
 				new HashMap<String, Connection>());
@@ -218,7 +218,7 @@ class DbProcessParser extends TaskSetParser {
 			parseVariables();
 			parseConnections();
 
-			tasks = parseTasks(null);
+			tasks = parseTasks(null, enclosingStructureName());
 
 			if (tokenizer.hasNext()) {
 				throw new RuntimeException("Unexpected token where " + KW.TASK.name() + " is expected");
@@ -246,7 +246,7 @@ class DbProcessParser extends TaskSetParser {
 				parameters.add(parseVariable(true));
 			} while (tokenizer.skipDelimiter(","));
 
-			nextEnd(section);
+			endSection(section);
 		}
 	}
 
@@ -262,7 +262,7 @@ class DbProcessParser extends TaskSetParser {
 				}
 			} while (tokenizer.skipDelimiter(","));
 
-			nextEnd(section);
+			endSection(section);
 		}
 	}
 
@@ -338,7 +338,7 @@ class DbProcessParser extends TaskSetParser {
 			do { parseConnection(true);
 			} while (tokenizer.skipDelimiter(","));
 
-			nextEnd(section);
+			endSection(section);
 		}
 	}
 

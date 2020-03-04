@@ -31,9 +31,9 @@ public class NestedTaskSet extends TaskSet {
 	/**
 	 * Instantiate a NestedTaskSet object by parsing at the parent parser hand-off
 	 */
-	public static NestedTaskSet parse(TaskSetParser parser, Task parentTask) throws IOException, NamingException {
+	public static NestedTaskSet parse(TaskSetParser parser, Task parentTask, String structureName) throws IOException, NamingException {
 
-		Map<String, Task> tasks = parser.parseTasks(parentTask);
+		Map<String, Task> tasks = parser.parseTasks(parentTask, structureName);
 
 		return new NestedTaskSet(tasks);
 	}
