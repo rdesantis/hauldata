@@ -689,7 +689,7 @@ public abstract class TaskSetParser {
 
 		resolveTaskReference(task);
 
-		endSection(KW.TASK.name());
+		endTask(task);
 
 		return task;
 	}
@@ -792,7 +792,8 @@ public abstract class TaskSetParser {
 		public abstract void delimitTaskName() throws IOException;
 		public abstract Combination defaultPredecessors(Map<Task, Result> predecessors, Task previousTask);
 		public abstract boolean atEndOfTask() throws IOException;
-		public abstract boolean atEndOrStartOfTask() throws IOException;
+		public abstract void endTask(Task task) throws IOException;
+		public abstract boolean atEndOrStartOfLegacyTask() throws IOException;
 		public abstract boolean atEndOfProcedure() throws IOException;
 		public abstract void endStructure(String section) throws IOException;
 	}
@@ -828,6 +829,11 @@ public abstract class TaskSetParser {
 			return atEndOf(KW.TASK);
 		}
 
+		@Override
+		public void endTask(Task task) throws IOException {
+			endSection(KW.TASK.name());
+		}
+
 		private boolean atStartOfTask() throws IOException {
 
 			if (!tokenizer.hasNextWordIgnoreCase(KW.TASK.name())) {
@@ -844,13 +850,13 @@ public abstract class TaskSetParser {
 		}
 
 		@Override
-		public boolean atEndOrStartOfTask() throws IOException {
+		public boolean atEndOrStartOfLegacyTask() throws IOException {
 			return atEndOfTask() || atStartOfTask();
 		}
 
 		@Override
 		public boolean atEndOfProcedure() throws IOException {
-			return atEndOrStartOfTask();
+			return atEndOrStartOfLegacyTask();
 		}
 
 		@Override
@@ -897,7 +903,18 @@ public abstract class TaskSetParser {
 		}
 
 		@Override
-		public boolean atEndOrStartOfTask() throws IOException {
+		public void endTask(Task task) throws IOException {
+			// Semicolon is optional after END entity-name
+			if (TaskSetParent.class.isInstance(task)) {
+				tokenizer.skipDelimiter(";");
+			}
+			else {
+				endSection(KW.TASK.name());
+			}
+		}
+
+		@Override
+		public boolean atEndOrStartOfLegacyTask() throws IOException {
 			return false;
 		}
 
@@ -936,12 +953,16 @@ public abstract class TaskSetParser {
 		return versionDependencies.atEndOfTask();
 	}
 
+	private void endTask(Task task) throws IOException {
+		versionDependencies.endTask(task);
+	}
+
 	private boolean atEndOfProcedure() throws IOException {
 		return versionDependencies.atEndOfProcedure();
 	}
 
-	private boolean atEndOrStartOfTask() throws IOException {
-		return versionDependencies.atEndOrStartOfTask();
+	private boolean atEndOrStartOfLegacyTask() throws IOException {
+		return versionDependencies.atEndOrStartOfLegacyTask();
 	}
 
 	protected void endStructure(String structure) throws IOException {
@@ -2836,7 +2857,7 @@ public abstract class TaskSetParser {
 	 */
 	private boolean atEndOfSQL() throws IOException {
 
-		if (atEndOrStartOfTask()) {
+		if (atEndOrStartOfLegacyTask()) {
 			return true;
 		}
 

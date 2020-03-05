@@ -508,7 +508,44 @@ public class TaskSetTest extends TaskTest {
 				"";
 		assertGoodSyntax(script);
 
-		String processId = "NewSyntaxTest";
+		Level logLevel = Level.message;
+		boolean logToConsole = true;
+
+		String processId;
+		Analyzer analyzer;
+		Analyzer.RecordIterator recordIterator;
+		Analyzer.Record record;
+
+		processId = "NewStructureTest";
+		script =
+				"PROCESS \n" +
+				"PARAMETERS c VARCHAR;\n" +
+				"VARIABLES i INTEGER;\n" +
+					"ON TODAY NOW \n" +
+						"DO\n" +
+							"FOR i FROM VALUES (1), (2), (3)\n" +
+								"DoIt: IF c IS NULL\n" +
+								"LOG FORMAT(i, 'd');\n" +
+							"END FOR \n" +
+						"END DO \n" +
+					"END ON \n" +
+				"END PROCESS \n" +
+				"";
+		analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
+
+		recordIterator = analyzer.recordIterator();
+
+		record = recordIterator.next();
+		assertEquals("1", record.message);
+		record = recordIterator.next();
+		assertEquals("2", record.message);
+		record = recordIterator.next();
+		assertEquals("3", record.message);
+		record = recordIterator.next();
+
+		assertFalse(recordIterator.hasNext());
+
+		processId = "NewSyntaxTest";
 		script =
 				"PROCESS\n" +
 					"LOG 'one';\n" +
@@ -518,13 +555,9 @@ public class TaskSetTest extends TaskTest {
 				"END PROCESS\n" +
 				"";
 
-		Level logLevel = Level.message;
-		boolean logToConsole = true;
+		analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
 
-		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
-
-		Analyzer.RecordIterator recordIterator = analyzer.recordIterator();
-		Analyzer.Record record;
+		recordIterator = analyzer.recordIterator();
 
 		record = recordIterator.next();
 		assertEquals("one", record.message);
