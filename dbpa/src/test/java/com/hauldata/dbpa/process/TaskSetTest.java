@@ -552,6 +552,17 @@ public class TaskSetTest extends TaskTest {
 					"LOG 'two';\n" +
 					"GO ;\n" +
 					"LOG 'three';\n" +
+					"RUN PROCESS 'included';\n" +
+				"END PROCESS\n" +
+				"PROCESS alsoincluded\n" +
+					"PARAMETERS word VARCHAR;\n" +
+					"LOG word;\n" +
+				"END PROCESS\n" +
+				"PROCESS included\n" +
+					"VARIABLES word VARCHAR;\n" +
+					"SET word = 'four';\n" +
+					"LOG word;\n" +
+					"RUN PROCESS 'AlsoIncluded' 'five';\n" +
 				"END PROCESS\n" +
 				"";
 
@@ -565,6 +576,13 @@ public class TaskSetTest extends TaskTest {
 		assertEquals("two", record.message);
 		record = recordIterator.next();
 		assertEquals("three", record.message);
+		record = recordIterator.next();
+		assertEquals("four", record.message);
+		record = recordIterator.next();
+		assertEquals("five", record.message);
+
+		record = recordIterator.next();
+		record = recordIterator.next();
 		record = recordIterator.next();
 
 		assertFalse(recordIterator.hasNext());

@@ -17,6 +17,7 @@
 package com.hauldata.dbpa.task;
 
 import java.util.List;
+import java.util.Map;
 
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.expression.ExpressionBase;
@@ -28,9 +29,10 @@ public class SyncProcessTask extends ProcessTask {
 	public SyncProcessTask(
 			Prologue prologue,
 			Expression<String> name,
-			List<ExpressionBase> arguments) {
+			List<ExpressionBase> arguments,
+			Map<String, DbProcess> siblingProcesses) {
 
-		super(prologue, name, arguments);
+		super(prologue, name, arguments, siblingProcesses);
 	}
 
 	@Override
@@ -42,16 +44,19 @@ public class SyncProcessTask extends ProcessTask {
 
 		String processName = name.evaluate();
 		String[] args = new String[arguments.size()];
-		
+
 		int i = 0;
 		for (ExpressionBase argument : arguments) {
 			Object argumentValue = argument.getEvaluationObject();
 			args[i++] = (argumentValue != null) ? argumentValue.toString() : null;
 		}
-		
+
 		Context childContext = context.makeChildContext(getName(), processName);
 		try {
-			DbProcess process = context.loader.load(processName);
+			DbProcess process = siblingProcesses.get(processName.toUpperCase());
+			if (process == null) {
+				process = context.loader.load(processName);
+			}
 			process.run(args, childContext);
 		}
 		catch (Exception ex) {

@@ -56,14 +56,16 @@ public class DbProcess extends TaskSet {
 	public static final String elapsedMessageStem = "Elapsed time: ";
 
 	// Note that Task objects created outside the scope of this compilation unit but owned by this DbProcess
-	// hold direct references to elements of the variables map.  Therefore the map is retained
-	// even though the compiler warns it is "unused" because this class does not directly reference it
-	// again after it is set.
+	// hold direct references to elements of the variables and siblings maps.  Therefore the maps are retained
+	// even though the compiler warns they are "unused" because this class does not directly reference them
+	// again after they are set.
 
 	private List<VariableBase> parameters;
 	@SuppressWarnings("unused")
 	private Map<String, VariableBase> variables;
 	private Map<String, Connection> connections;
+	@SuppressWarnings("unused")
+	private Map<String, DbProcess> siblings;
 
 	/**
 	 * Instantiate a DbProcess object by parsing a script from a Reader
@@ -89,6 +91,7 @@ public class DbProcess extends TaskSet {
 				List<VariableBase> parameters,
 				Map<String, VariableBase> variables,
 				Map<String, Connection> connections,
+				Map<String, DbProcess> siblings,
 				Map<String, Task> tasks) {
 
 		super(tasks);
@@ -96,6 +99,7 @@ public class DbProcess extends TaskSet {
 		this.parameters = parameters;
 		this.variables = variables;
 		this.connections = connections;
+		this.siblings = siblings;
 	}
 
 	/**
@@ -198,7 +202,8 @@ class DbProcessParser extends TaskSetParser {
 	public DbProcessParser(Reader r) throws IOException {
 		super(r,
 				new HashMap<String, VariableBase>(),
-				new HashMap<String, Connection>());
+				new HashMap<String, Connection>(),
+				new HashMap<String, DbProcess>());
 	}
 
 	/**
@@ -210,15 +215,25 @@ class DbProcessParser extends TaskSetParser {
 	 */
 	public DbProcess parse() throws IOException {
 
-		List<VariableBase> parameters = new ArrayList<VariableBase>();
+		DbProcess result;
 
-		Map<String, Task> tasks;
 		try {
-			parseParameters(parameters);
-			parseVariables();
-			parseConnections();
+			result = parseProcess();
 
-			tasks = parseTasks(null, enclosingStructureName());
+			while (tokenizer.skipWordIgnoreCase(enclosingStructureName())) {
+
+				String siblingName = tokenizer.nextWordUpperCase();
+				if (siblingProcesses.containsKey(siblingName)) {
+					throw new RuntimeException("Duplicate " + enclosingStructureName() + ": " + siblingName);
+				}
+
+				variables = new HashMap<String, VariableBase>();
+				connections = new HashMap<String, Connection>();
+
+				DbProcess sibling = parseProcess();
+
+				siblingProcesses.put(siblingName, sibling);
+			}
 
 			if (tokenizer.hasNext()) {
 				throw new RuntimeException("Unexpected token where " + KW.TASK.name() + " is expected");
@@ -233,7 +248,21 @@ class DbProcessParser extends TaskSetParser {
 			close();
 		}
 
-		return new DbProcess(parameters, variables, connections, tasks);
+		return result;
+	}
+
+	private DbProcess parseProcess()
+			throws IOException, InputMismatchException, NoSuchElementException, NameNotFoundException, NamingException {
+
+		List<VariableBase> parameters = new ArrayList<VariableBase>();
+
+		parseParameters(parameters);
+		parseVariables();
+		parseConnections();
+
+		Map<String, Task> tasks = parseTasks(null, enclosingStructureName());
+
+		return new DbProcess(parameters, variables, connections, siblingProcesses, tasks);
 	}
 
 	private void parseParameters(List<VariableBase> parameters)

@@ -17,22 +17,27 @@
 package com.hauldata.dbpa.task;
 
 import java.util.List;
+import java.util.Map;
 
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.expression.ExpressionBase;
+import com.hauldata.dbpa.process.DbProcess;
 
 public abstract class ProcessTask extends Task {
+
+	protected Expression<String> name;
+	protected List<ExpressionBase> arguments;
+	protected Map<String, DbProcess> siblingProcesses;
 
 	public ProcessTask(
 			Prologue prologue,
 			Expression<String> name,
-			List<ExpressionBase> arguments) {
+			List<ExpressionBase> arguments,
+			Map<String, DbProcess> siblingProcesses) {
 
 		super(prologue);
 		this.name = name;
 		this.arguments = arguments;
+		this.siblingProcesses = siblingProcesses;
 	}
-
-	protected Expression<String> name;
-	protected List<ExpressionBase> arguments;
 }

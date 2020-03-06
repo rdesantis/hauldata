@@ -382,6 +382,7 @@ public abstract class TaskSetParser {
 
 	protected Map<String, VariableBase> variables;
 	protected Map<String, Connection> connections;
+	protected Map<String, DbProcess> siblingProcesses;
 
 	private static class State {
 
@@ -426,7 +427,8 @@ public abstract class TaskSetParser {
 	public TaskSetParser(
 			Reader r,
 			Map<String, VariableBase> variables,
-			Map<String, Connection> connections) throws IOException {
+			Map<String, Connection> connections,
+			Map<String, DbProcess> siblingProcesses) throws IOException {
 
 		thisTaskSetParser = this;
 
@@ -539,6 +541,7 @@ public abstract class TaskSetParser {
 
 		this.variables = variables;
 		this.connections = connections;
+		this.siblingProcesses = siblingProcesses;
 
 		initializeState();
 
@@ -1727,10 +1730,10 @@ public abstract class TaskSetParser {
 			}
 
 			if (isSynchronous) {
-				return new SyncProcessTask(prologue, name, arguments);
+				return new SyncProcessTask(prologue, name, arguments, siblingProcesses);
 			}
 			else {
-				return new AsyncProcessTask(prologue, name, arguments);
+				return new AsyncProcessTask(prologue, name, arguments, siblingProcesses);
 			}
 		}
 	}
