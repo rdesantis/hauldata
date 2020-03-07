@@ -220,11 +220,11 @@ class DbProcessParser extends TaskSetParser {
 		try {
 			result = parseProcess();
 
-			while (tokenizer.skipWordIgnoreCase(enclosingStructureName())) {
+			while (tokenizer.skipWordIgnoreCase(processStructureName())) {
 
 				String siblingName = tokenizer.nextWordUpperCase();
 				if (siblingProcesses.containsKey(siblingName)) {
-					throw new RuntimeException("Duplicate " + enclosingStructureName() + ": " + siblingName);
+					throw new RuntimeException("Duplicate " + processStructureName() + ": " + siblingName);
 				}
 
 				variables = new HashMap<String, VariableBase>();
@@ -260,7 +260,7 @@ class DbProcessParser extends TaskSetParser {
 		parseVariables();
 		parseConnections();
 
-		Map<String, Task> tasks = parseTasks(null, enclosingStructureName());
+		Map<String, Task> tasks = parseTasks(null, processStructureName());
 
 		endProcess();
 

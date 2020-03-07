@@ -609,7 +609,7 @@ public abstract class TaskSetParser {
 		}
 	}
 
-	protected String enclosingStructureName() {
+	protected String processStructureName() {
 		return KW.PROCESS.name();
 	}
 
