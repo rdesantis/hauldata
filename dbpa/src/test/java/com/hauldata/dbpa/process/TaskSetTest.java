@@ -563,6 +563,9 @@ public class TaskSetTest extends TaskTest {
 					"SET word = 'four';\n" +
 					"LOG word;\n" +
 					"RUN PROCESS 'AlsoIncluded' 'five';\n" +
+				"END PROCESS;\n" +
+				"PROCESS NotUsed\n" +
+					"LOG 'this should not be logged';\n" +
 				"END PROCESS\n" +
 				"";
 

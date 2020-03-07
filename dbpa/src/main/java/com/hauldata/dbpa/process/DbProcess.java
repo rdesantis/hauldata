@@ -262,6 +262,8 @@ class DbProcessParser extends TaskSetParser {
 
 		Map<String, Task> tasks = parseTasks(null, enclosingStructureName());
 
+		endProcess();
+
 		return new DbProcess(parameters, variables, connections, siblingProcesses, tasks);
 	}
 
