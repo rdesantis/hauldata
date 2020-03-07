@@ -590,4 +590,36 @@ public class TaskSetTest extends TaskTest {
 
 		assertFalse(recordIterator.hasNext());
 	}
+
+	public void testLegacyLocalProcess() throws Exception {
+
+		Level logLevel = Level.message;
+		boolean logToConsole = true;
+
+		String processId = "NewStructureTest";
+		String script =
+				"TASK LOG 'uno' END TASK\n" +
+				"TASK AFTER RUN PROCESS 'local' END TASK\n" +
+				"PROCESS local \n" +
+				"TASK LOG 'due' END TASK\n" +
+				"END PROCESS\n" +
+				"";
+
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
+
+		Analyzer.RecordIterator recordIterator;
+		Analyzer.Record record;
+
+		recordIterator = analyzer.recordIterator();
+
+		record = recordIterator.next();
+		assertEquals("uno", record.message);
+		record = recordIterator.next();
+		assertEquals("due", record.message);
+		record = recordIterator.next();
+		record = recordIterator.next();
+
+		assertFalse(recordIterator.hasNext());
+	}
+
 }

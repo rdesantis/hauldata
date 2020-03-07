@@ -218,7 +218,7 @@ class DbProcessParser extends TaskSetParser {
 		DbProcess result;
 
 		try {
-			result = parseProcess();
+			result = parseProcess(true);
 
 			while (tokenizer.skipWordIgnoreCase(processStructureName())) {
 
@@ -230,7 +230,7 @@ class DbProcessParser extends TaskSetParser {
 				variables = new HashMap<String, VariableBase>();
 				connections = new HashMap<String, Connection>();
 
-				DbProcess sibling = parseProcess();
+				DbProcess sibling = parseProcess(false);
 
 				siblingProcesses.put(siblingName, sibling);
 			}
@@ -251,7 +251,7 @@ class DbProcessParser extends TaskSetParser {
 		return result;
 	}
 
-	private DbProcess parseProcess()
+	private DbProcess parseProcess(boolean isMain)
 			throws IOException, InputMismatchException, NoSuchElementException, NameNotFoundException, NamingException {
 
 		List<VariableBase> parameters = new ArrayList<VariableBase>();
@@ -262,7 +262,7 @@ class DbProcessParser extends TaskSetParser {
 
 		Map<String, Task> tasks = parseTasks(null, processStructureName());
 
-		endProcess();
+		endProcess(isMain);
 
 		return new DbProcess(parameters, variables, connections, siblingProcesses, tasks);
 	}

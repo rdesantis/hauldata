@@ -799,7 +799,7 @@ public abstract class TaskSetParser {
 		public abstract boolean atEndOrStartOfLegacyTask() throws IOException;
 		public abstract boolean atEndOfProcedure() throws IOException;
 		public abstract void endStructure(String section) throws IOException;
-		public abstract void endProcess() throws IOException;
+		public abstract void endProcess(boolean isMain) throws IOException;
 	}
 
 	class LegacyVersionDependencies extends VersionDependencies {
@@ -867,7 +867,11 @@ public abstract class TaskSetParser {
 		public void endStructure(String section) {}
 
 		@Override
-		public void endProcess() throws IOException {}
+		public void endProcess(boolean isMain) throws IOException {
+			if (!isMain) {
+				endEntity(processStructureName());
+			}
+		}
 	}
 
 	class LatestVersionDependencies extends  VersionDependencies {
@@ -936,7 +940,7 @@ public abstract class TaskSetParser {
 		}
 
 		@Override
-		public void endProcess() throws IOException {
+		public void endProcess(boolean isMain) throws IOException {
 			tokenizer.skipDelimiter(";");
 		}
 	}
@@ -981,8 +985,8 @@ public abstract class TaskSetParser {
 		versionDependencies.endStructure(structure);
 	}
 
-	protected void endProcess() throws IOException {
-		versionDependencies.endProcess();
+	protected void endProcess(boolean isMain) throws IOException {
+		versionDependencies.endProcess(isMain);
 	}
 
 	class SetVariablesTaskParser implements TaskParser {
