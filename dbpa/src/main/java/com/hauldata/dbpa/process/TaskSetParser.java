@@ -117,6 +117,7 @@ public abstract class TaskSetParser {
 
 		// Task predecessors and conditions
 
+		CONCURRENTLY,
 		AFTER,
 		PREVIOUS,
 		SUCCEEDS,
@@ -326,6 +327,7 @@ public abstract class TaskSetParser {
 						KW.END,
 						KW.TASK,
 
+						KW.CONCURRENTLY,
 						KW.AFTER,
 						KW.PREVIOUS,
 						KW.SUCCEEDS,
@@ -666,11 +668,14 @@ public abstract class TaskSetParser {
 		Map<Task, Task.Result> predecessors = new HashMap<Task, Task.Result>();
 		Expression.Combination combination = null;
 
-		if (tokenizer.skipWordIgnoreCase(KW.AFTER.name())) {
+		if (tokenizer.skipWordIgnoreCase(KW.CONCURRENTLY.name())) {
+			// No predecessors
+		}
+		else if (tokenizer.skipWordIgnoreCase(KW.AFTER.name())) {
 			combination = parsePredecessors(tasks, predecessors, previousTask);
 		}
 		else {
-			combination = defaultPredecessors(predecessors, previousTask);
+			combination = addDefaultPredecessors(predecessors, previousTask);
 		}
 
 		Expression<Boolean> condition = null;
@@ -793,7 +798,7 @@ public abstract class TaskSetParser {
 		public abstract boolean hasTask() throws IOException;
 		public abstract void startTask() throws IOException;
 		public abstract void delimitTaskName() throws IOException;
-		public abstract Combination defaultPredecessors(Map<Task, Result> predecessors, Task previousTask);
+		public abstract Combination addDefaultPredecessors(Map<Task, Result> predecessors, Task previousTask);
 		public abstract boolean atEndOfTask() throws IOException;
 		public abstract void endTask(Task task) throws IOException;
 		public abstract boolean atEndOrStartOfLegacyTask() throws IOException;
@@ -824,7 +829,7 @@ public abstract class TaskSetParser {
 		public void delimitTaskName() {}
 
 		@Override
-		public Combination defaultPredecessors(Map<Task, Result> predecessors, Task previousTask) {
+		public Combination addDefaultPredecessors(Map<Task, Result> predecessors, Task previousTask) {
 			return null;
 		}
 
@@ -898,7 +903,7 @@ public abstract class TaskSetParser {
 		}
 
 		@Override
-		public Combination defaultPredecessors(Map<Task, Result> predecessors, Task previousTask) {
+		public Combination addDefaultPredecessors(Map<Task, Result> predecessors, Task previousTask) {
 			if (previousTask != null) {
 				predecessors.put(previousTask, Result.success);
 				return Combination.and;
@@ -961,8 +966,8 @@ public abstract class TaskSetParser {
 		versionDependencies.delimitTaskName();
 	}
 
-	private Combination defaultPredecessors(Map<Task, Result> predecessors, Task previousTask) {
-		return versionDependencies.defaultPredecessors(predecessors, previousTask);
+	private Combination addDefaultPredecessors(Map<Task, Result> predecessors, Task previousTask) {
+		return versionDependencies.addDefaultPredecessors(predecessors, previousTask);
 	}
 
 	private boolean atEndOfTask() throws IOException {

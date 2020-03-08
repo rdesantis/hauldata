@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2020, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -557,6 +557,9 @@ public class TaskSetTest extends TaskTest {
 				"PROCESS alsoincluded\n" +
 					"PARAMETERS word VARCHAR;\n" +
 					"LOG word;\n" +
+					"CONCURRENTLY\n" +
+					"IF word = 'nomatch'\n" +
+					"LOG 'this will not happen';\n" +
 				"END PROCESS\n" +
 				"PROCESS included\n" +
 					"VARIABLES word VARCHAR;\n" +
