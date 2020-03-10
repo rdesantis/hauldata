@@ -181,7 +181,7 @@ public class Context {
 	 * Throws an exception if the connection cannot be established.
 	 */
 	public java.sql.Connection getConnection(DatabaseConnection connection) {
-		return (connection != null ? connection : resources.dbconn).get();
+		return resolveConnection(connection).get();
 	}
 
 	/**
@@ -189,7 +189,11 @@ public class Context {
 	 * is no longer needed by the acquirer.
 	 */
 	public void releaseConnection(DatabaseConnection connection, java.sql.Connection conn) {
-		(connection != null ? connection : resources.dbconn).release(conn);
+		resolveConnection(connection).release(conn);
+	}
+
+	public DatabaseConnection resolveConnection(DatabaseConnection connection) {
+		return (connection != null) ? connection : resources.dbconn;
 	}
 
 	/**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2020, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -16,29 +16,28 @@
 
 package com.hauldata.dbpa.task;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 
-import com.hauldata.dbpa.connection.DatabaseConnection;
-import com.hauldata.dbpa.datasource.DataSource;
-import com.hauldata.dbpa.datasource.StatementDataSource;
+import com.hauldata.dbpa.datasource.DataExecutor;
 import com.hauldata.dbpa.expression.Expression;
-import com.hauldata.dbpa.expression.StringConstant;
-import com.hauldata.dbpa.file.flat.TextFile;
+import com.hauldata.dbpa.file.flat.TxtFile;
 import com.hauldata.dbpa.process.Context;
 
 public class RunScriptTask extends Task {
 
 	private Expression<String> source;
-	DatabaseConnection connection;
+	DataExecutor executor;
 
 	public RunScriptTask(
 			Prologue prologue,
-			DatabaseConnection connection,
+			DataExecutor executor,
 			Expression<String> source) {
 
 		super(prologue);
+		this.executor = executor;
 		this.source = source;
 	}
 
@@ -48,35 +47,91 @@ public class RunScriptTask extends Task {
 		Path sourcePath = context.getReadPath(source.evaluate());
 		context.files.assureNotOpen(sourcePath);
 
-		// Get the script body into a string.
-		// See http://stackoverflow.com/questions/326390/how-to-create-a-java-string-from-the-contents-of-a-file
-
-		String body = null;
 		try {
-			byte[] encoded = Files.readAllBytes(sourcePath);
-			body = new String(encoded, TextFile.getDefaultCharset());
-		}
-		catch (Exception ex) {
-			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
-			throw new RuntimeException("Error attempting to read script file: " + message, ex);
-		}
+			executor.createStatement(context);
 
-		// Execute the script body.
-
-		DataSource dataSource = new StatementDataSource(connection, new StringConstant(body), false);
-
-		try {
-		    dataSource.executeUpdate(context);
+			String dialect = executor.getDialect(context);
+			if ("T-SQL".equals(dialect) || "TRANSACT-SQL".equals(dialect)) {
+				executeTSQL(context, executor, sourcePath);
+			}
+			else {
+				executeGeneric(executor, sourcePath);
+			}
 		}
 		catch (SQLException ex) {
-			DataSource.throwDatabaseExecutionFailed(ex);
+			DataExecutor.throwDatabaseExecutionFailed(ex);
+		}
+		catch (IOException ex) {
+			throw new RuntimeException("Error attempting to read script file: " + ex.toString());
 		}
 		catch (InterruptedException ex) {
 			throw new RuntimeException("Script execution terminated due to interruption");
 		}
 		finally {
-			try { dataSource.done(context); } catch (Exception ex) {}
-			try { dataSource.close(context); } catch (Exception ex) {}
+			executor.close(context);
 		}
+	}
+
+	private void executeTSQL(Context context, DataExecutor executor, Path sourcePath) throws IOException, SQLException, InterruptedException {
+
+		TxtFile sourcePage = new TxtFile(context.files, sourcePath, null);
+		try {
+
+			sourcePage.open();
+			sourcePage.setOpen(true);
+
+			String batch = "";
+			String line;
+			do {
+				line = (String)sourcePage.readColumn(1);
+				boolean endOfBatch = (line == null);
+
+				if (!endOfBatch) {
+					sourcePage.readColumn(2);
+
+					// A line that starts with GO defines the end of a batch to be executed.
+
+					String leading = line.trim().toUpperCase();
+					if (leading.startsWith("GO")) {
+						String trailing = line.substring(2).trim();
+
+						if (trailing.isEmpty() || trailing.startsWith("--")) {
+							endOfBatch = true;
+						}
+						else {
+							throw new RuntimeException("GO can only be followed by a comment at line " + String.valueOf(sourcePage.lineno()));
+						}
+					}
+				}
+
+				if (endOfBatch) {
+					if (!batch.isEmpty()) {
+						executor.addBatch(batch);
+						executor.executeBatch();
+					}
+					batch = "";
+				}
+				else {
+					batch += line;
+					batch += "\n";
+				}
+			} while (line != null);
+		}
+		finally {
+			if (sourcePage.isOpen()) { try { sourcePage.close(); } catch (Exception ex) {} }
+		}
+	}
+
+	private void executeGeneric(DataExecutor executor, Path sourcePath) throws IOException, SQLException, InterruptedException  {
+
+		// Get the script body into a string.
+		// See http://stackoverflow.com/questions/326390/how-to-create-a-java-string-from-the-contents-of-a-file
+
+		byte[] encoded = Files.readAllBytes(sourcePath);
+		String body = new String(encoded, TxtFile.getDefaultCharset());
+
+		// Execute the script body.
+
+		executor.executeUpdate(body);
 	}
 }

@@ -94,7 +94,7 @@ public abstract class DataStore {
 		this.stmt = null;
 	}
 
-	public void getConnection(Context context) {
+	protected void getConnection(Context context) {
 
 		conn = context.getConnection(connection);
 		if (conn == null) {
@@ -142,6 +142,87 @@ public abstract class DataStore {
 			if (ex != null) {
 				throw ex;
 			}
+		}
+	}
+
+	/**
+	 * Execute a statement so that it is terminated when this thread is interrupted.
+	 *
+	 * @return the result of the Statement.executeUpdate() method on the statement.
+	 * @throws SQLException if thrown by the Statement.executeUpdate() method.
+	 * @throws InterruptedException if this thread was interrupted while the statement was in progress,
+	 * in which case the statement execution is attempted to be terminated subject
+	 * to the limitations specified on Statement.cancel().
+	 */
+	public int executeUpdate(String sql) throws SQLException, InterruptedException {
+
+		SQLStatementExecutor executor = new SQLStatementExecutor(sql);
+
+		execute(executor);
+
+		return executor.getResult();
+	}
+
+	private class SQLStatementExecutor extends SQLExecutor {
+
+		private String sql;
+		private int result;
+
+		SQLStatementExecutor(String sql) {
+			this.sql = sql;
+		}
+
+		@Override
+		public void run() {
+			try {
+				result = stmt.executeUpdate(sql);
+			} catch (SQLException ex) {
+				this.ex = ex;
+			}
+		}
+
+		public int getResult() throws SQLException {
+			getException();
+			return result;
+		}
+	}
+
+	/**
+	 * Execute a batch so that it is terminated when this thread is interrupted.
+	 * <p>
+	 * Data member stmt must contain a prepared statement.
+	 *
+	 * @return the result of the PreparedStatement.executeBatch() method on the statement.
+	 * @throws SQLException if thrown by the PreparedStatement.executeBatch() method.
+	 * @throws InterruptedException if this thread was interrupted while the statement was in progress,
+	 * in which case the statement execution is attempted to be terminated subject
+	 * to the limitations specified on Statement.cancel().
+	 */
+	public int[] executeBatch() throws SQLException, InterruptedException {
+
+		SQLBatchExecutor executor = new SQLBatchExecutor();
+
+		execute(executor);
+
+		return executor.getResult();
+	}
+
+	private class SQLBatchExecutor extends SQLExecutor {
+
+		private int[] result;
+
+		@Override
+		public void run() {
+			try {
+				result = stmt.executeBatch();
+			} catch (SQLException ex) {
+				this.ex = ex;
+			}
+		}
+
+		public int[] getResult() throws SQLException {
+			getException();
+			return result;
 		}
 	}
 }

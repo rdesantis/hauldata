@@ -86,48 +86,6 @@ public abstract class DataSource extends DataStore implements Source {
 	}
 
 	/**
-	 * Execute a statement so that it is terminated when this thread is interrupted.
-	 *
-	 * @return the result of the Statement.executeUpdate() method on the statement.
-	 * @throws SQLException if thrown by the Statement.executeUpdate() method.
-	 * @throws InterruptedException if this thread was interrupted while the statement was in progress,
-	 * in which case the statement execution is attempted to be terminated subject
-	 * to the limitations specified on Statement.cancel().
-	 */
-	protected int executeUpdate(String sql) throws SQLException, InterruptedException {
-
-		SQLStatementExecutor executor = new SQLStatementExecutor(sql);
-
-		execute(executor);
-
-		return executor.getResult();
-	}
-
-	private class SQLStatementExecutor extends SQLExecutor {
-
-		private String sql;
-		private int result;
-
-		SQLStatementExecutor(String sql) {
-			this.sql = sql;
-		}
-
-		@Override
-		public void run() {
-			try {
-				result = stmt.executeUpdate(sql);
-			} catch (SQLException ex) {
-				this.ex = ex;
-			}
-		}
-
-		public int getResult() throws SQLException {
-			getException();
-			return result;
-		}
-	}
-
-	/**
 	 * Execute a query so that it is terminated when this thread is interrupted.
 	 *
 	 * @return the result of the Statement.executeQuery() method on the statement.

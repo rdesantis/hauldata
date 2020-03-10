@@ -1069,7 +1069,9 @@ public abstract class TaskSetParser {
 
 			DatabaseConnection connection = parseDatabaseConnection(KW.ON.name());
 
-			return new RunScriptTask(prologue, connection, source);
+			DataExecutor executor = new DataExecutor(connection);
+
+			return new RunScriptTask(prologue, executor, source);
 		}
 
 		private Task parseRun(Task.Prologue prologue) throws IOException {

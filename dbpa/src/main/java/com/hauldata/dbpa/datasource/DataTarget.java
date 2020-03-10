@@ -71,43 +71,4 @@ public abstract class DataTarget extends DataStore {
 			batchSize = 0;
 		}
 	}
-
-	/**
-	 * Execute a batch so that it is terminated when this thread is interrupted.
-	 * <p>
-	 * Data member stmt must contain a prepared statement.
-	 *
-	 * @return the result of the PreparedStatement.executeBatch() method on the statement.
-	 * @throws SQLException if thrown by the PreparedStatement.executeBatch() method.
-	 * @throws InterruptedException if this thread was interrupted while the statement was in progress,
-	 * in which case the statement execution is attempted to be terminated subject
-	 * to the limitations specified on Statement.cancel().
-	 */
-	public int[] executeBatch() throws SQLException, InterruptedException {
-
-		SQLBatchExecutor executor = new SQLBatchExecutor();
-
-		execute(executor);
-
-		return executor.getResult();
-	}
-
-	private class SQLBatchExecutor extends SQLExecutor {
-
-		private int[] result;
-
-		@Override
-		public void run() {
-			try {
-				result = ((PreparedStatement)stmt).executeBatch();
-			} catch (SQLException ex) {
-				this.ex = ex;
-			}
-		}
-
-		public int[] getResult() throws SQLException {
-			getException();
-			return result;
-		}
-	}
 }
