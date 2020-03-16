@@ -1,0 +1,12 @@
+# Maven
+target/
+dependency-reduced-pom.xml
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
+
+# Eclipse
+.settings/
+.classpath
+.project
+/bin/

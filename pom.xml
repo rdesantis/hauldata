@@ -15,6 +15,7 @@
 		<module>dbpa</module>
 		<module>dbpa-common</module>
 		<module>dbpa-run</module>
+		<module>dbpa-check</module>
 		<module>dbpa-manage</module>
 		<module>dbpa-control</module>
 		<module>dbpa-manage-control</module>
