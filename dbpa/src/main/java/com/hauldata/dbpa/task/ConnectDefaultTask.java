@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Ronald DeSantis
+ * Copyright (c) 2019, 2020, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -18,20 +18,20 @@ package com.hauldata.dbpa.task;
 
 import java.util.Properties;
 
-import com.hauldata.dbpa.connection.Connection;
+import com.hauldata.dbpa.connection.ConnectionReference;
 import com.hauldata.dbpa.process.Context;
 
 public class ConnectDefaultTask extends ConnectTask {
 
 	public ConnectDefaultTask(
 			Prologue prologue,
-			Connection connection) {
+			ConnectionReference reference) {
 
-		super(prologue, connection);
+		super(prologue, reference);
 	}
 
 	@Override
-	protected Properties getConnectionProperties(Context context) {
-		return defaultProperties(context, connection);
+	protected Properties getNewProperties(Context context) {
+		return getDefaultProperties(context);
 	}
 }

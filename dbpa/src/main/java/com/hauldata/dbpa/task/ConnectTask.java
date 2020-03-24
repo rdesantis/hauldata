@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Ronald DeSantis
+ * Copyright (c) 2019, 2020, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package com.hauldata.dbpa.task;
 
 import java.util.Properties;
 
-import com.hauldata.dbpa.connection.Connection;
+import com.hauldata.dbpa.connection.ConnectionReference;
 import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.connection.EmailConnection;
 import com.hauldata.dbpa.connection.FtpConnection;
@@ -26,34 +26,34 @@ import com.hauldata.dbpa.process.Context;
 
 public abstract class ConnectTask extends Task {
 
-	protected Connection connection;
+	protected ConnectionReference reference;
 
 	protected ConnectTask(
 			Prologue prologue,
-			Connection connection) {
+			ConnectionReference reference) {
 		super(prologue);
-		this.connection = connection;
+		this.reference = reference;
 	}
 
 	@Override
 	protected void execute(Context context) {
-		connection.setProperties(getConnectionProperties(context));
+		reference.setProperties(context, getNewProperties(context));
 	}
 
-	protected abstract Properties getConnectionProperties(Context context);
+	protected abstract Properties getNewProperties(Context context);
 
-	protected Properties defaultProperties(Context context, Connection connection) {
-		if (connection instanceof DatabaseConnection) {
+	protected Properties getDefaultProperties(Context context) {
+		if (reference.getConnection(context) instanceof DatabaseConnection) {
 			return context.connectionProps;
 		}
-		if (connection instanceof EmailConnection) {
+		if (reference.getConnection(context) instanceof EmailConnection) {
 			return context.sessionProps;
 		}
-		if (connection instanceof FtpConnection) {
+		if (reference.getConnection(context) instanceof FtpConnection) {
 			return context.ftpProps;
 		}
 		else {
-			throw new RuntimeException("Unsupported connection type " + connection.getClass().getName());
+			throw new RuntimeException("Unsupported connection type " + reference.getConnection(context).getClass().getName());
 		}
 	}
 }

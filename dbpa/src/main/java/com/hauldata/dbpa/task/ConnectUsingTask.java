@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Ronald DeSantis
+ * Copyright (c) 2019, 2020, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import java.nio.file.Path;
 import java.util.Properties;
 
 import com.hauldata.dbpa.DBPA;
-import com.hauldata.dbpa.connection.Connection;
+import com.hauldata.dbpa.connection.ConnectionReference;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.Files;
@@ -34,17 +34,17 @@ public class ConnectUsingTask extends ConnectTask {
 
 	public ConnectUsingTask(
 			Prologue prologue,
-			Connection connection,
+			ConnectionReference reference,
 			boolean inherit,
 			Expression<String> fileNameTrunk) {
 
-		super(prologue, connection);
+		super(prologue, reference);
 		this.inherit = inherit;
 		this.fileNameTrunk = fileNameTrunk;
 	}
 
 	@Override
-	protected Properties getConnectionProperties(Context context) {
+	protected Properties getNewProperties(Context context) {
 
 		String fileNameTrunk = this.fileNameTrunk.evaluate();
 		if (fileNameTrunk == null) {
@@ -53,7 +53,7 @@ public class ConnectUsingTask extends ConnectTask {
 		String fileName = "Connect." + fileNameTrunk + ".properties";
 		Path path = Files.getPath(DBPA.home, fileName);
 
-		Properties properties = inherit ? new Properties(defaultProperties(context, connection)) : new Properties();
+		Properties properties = inherit ? new Properties(getDefaultProperties(context)) : new Properties();
 
 		FileInputStream in = null;
 		try {

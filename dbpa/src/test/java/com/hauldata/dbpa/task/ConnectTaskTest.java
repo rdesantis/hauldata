@@ -46,7 +46,7 @@ public class ConnectTaskTest extends TaskTest {
 		}
 
 		assertNull(process);
-		assertEquals("At line 2: Connection name not declared: FOUR", message);
+		assertEquals("At line 2: Name not declared as a CONNECTION: FOUR", message);
 	}
 
 	public void testConnect() throws Exception {
@@ -91,5 +91,18 @@ public class ConnectTaskTest extends TaskTest {
 		assertEquals(Task.failMessage, record.message);
 
 		assertFalse(iterator.hasNext());
+	}
+
+	public void testConnectDefault() {
+		String script =
+				"PROCESS \n" +
+				"CONNECT DATABASE USING 'garbage1'; \n" +
+				"CONNECT DEFAULT DATABASE USING 'garbage1'; \n" +
+				"CONNECT FTP TO 'garbage2'; \n" +
+				"CONNECT DEFAULT FTP TO 'garbage2'; \n" +
+				"CONNECT EMAIL TO DEFAULT; \n" +
+				"CONNECT DEFAULT EMAIL TO DEFAULT; \n" +
+				"END PROCESS \n";
+		assertGoodSyntax(script);
 	}
 }

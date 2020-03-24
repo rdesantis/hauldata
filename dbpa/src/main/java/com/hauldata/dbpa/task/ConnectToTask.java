@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Ronald DeSantis
+ * Copyright (c) 2019, 2020, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import java.io.StringReader;
 import java.util.NoSuchElementException;
 import java.util.Properties;
 
-import com.hauldata.dbpa.connection.Connection;
+import com.hauldata.dbpa.connection.ConnectionReference;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.util.tokenizer.KeywordValueTokenizer;
@@ -35,23 +35,23 @@ public class ConnectToTask extends ConnectTask {
 
 	public ConnectToTask(
 			Prologue prologue,
-			Connection connection,
+			ConnectionReference reference,
 			boolean inherit,
 			Expression<String> properties) {
 
-		super(prologue, connection);
+		super(prologue, reference);
 		this.inherit = inherit;
 		this.properties = properties;
 	}
 
 	@Override
-	protected Properties getConnectionProperties(Context context) {
+	protected Properties getNewProperties(Context context) {
 
 		String keywordValues = this.properties.evaluate();
 		if (keywordValues == null) {
 			throw new RuntimeException("Connection properties expression evaluates to NULL");
 		}
-		return parse(keywordValues, inherit, defaultProperties(context, connection));
+		return parse(keywordValues, inherit, getDefaultProperties(context));
 	}
 
 	private Properties parse(

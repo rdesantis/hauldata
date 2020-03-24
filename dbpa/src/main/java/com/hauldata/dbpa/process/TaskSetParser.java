@@ -349,6 +349,9 @@ public abstract class TaskSetParser {
 				{
 						KW.CONNECTION,
 						KW.DEFAULT,
+						KW.DATABASE,
+						KW.FTP,
+						KW.EMAIL,
 
 						KW.STATEMENT,
 						KW.SQL,
@@ -1989,20 +1992,20 @@ public abstract class TaskSetParser {
 		public Task parse(Task.Prologue prologue)
 				throws InputMismatchException, NoSuchElementException, IOException, NamingException {
 
-			Connection connection = parseConnection();
+			ConnectionReference reference = parseConnectionReference();
 
 			if (tokenizer.skipWordIgnoreCase(KW.USING.name())) {
-				return parseConnect(prologue, connection, (p, c, i, a) -> new ConnectUsingTask(p, c, i, a));
+				return parseConnect(prologue, reference, (p, c, i, a) -> new ConnectUsingTask(p, c, i, a));
 			}
 			else if (tokenizer.skipWordIgnoreCase(KW.TO.name()) || !atEndOfTask()) {
-				return parseConnect(prologue, connection, (p, c, i, a) -> new ConnectToTask(p, c, i, a));
+				return parseConnect(prologue, reference, (p, c, i, a) -> new ConnectToTask(p, c, i, a));
 			}
 			else {
-				return new ConnectDefaultTask(prologue, connection);
+				return new ConnectDefaultTask(prologue, reference);
 			}
 		}
 
-		private Task parseConnect(Task.Prologue prologue, Connection connection, Connector connector)
+		private Task parseConnect(Task.Prologue prologue, ConnectionReference reference, Connector connector)
 				throws InputMismatchException, NoSuchElementException, IOException, NamingException {
 
 			boolean inherit = false;
@@ -2014,20 +2017,46 @@ public abstract class TaskSetParser {
 					argument = parseStringExpression();
 				}
 				else {
-					return new ConnectDefaultTask(prologue, connection);
+					return new ConnectDefaultTask(prologue, reference);
 				}
 			}
 			else {
 				argument = parseStringExpression();
 			}
 
-			return connector.newTask(prologue, connection, inherit, argument);
+			return connector.newTask(prologue, reference, inherit, argument);
 		}
+	}
+
+	private ConnectionReference parseConnectionReference() throws InputMismatchException, NoSuchElementException, IOException {
+
+		ConnectionReference reference = null;
+
+		String name = tokenizer.nextWordUpperCase();
+		if (name.equals(KW.DEFAULT.name())) {
+			String typeName = tokenizer.nextWordUpperCase();
+			reference = ConnectionReference.createDefault(typeName);
+			if (reference == null) {
+				throw new InputMismatchException("Expecting " + KW.CONNECTION.name() + " type name, found " + typeName);
+			}
+		}
+		else {
+			reference = ConnectionReference.createDefault(name);
+			if (reference == null) {
+				Connection connection = connections.get(name);
+				if (connection == null) {
+					throw new NoSuchElementException("Name not declared as a " + KW.CONNECTION.name() + ": " + name);
+				}
+				reference = ConnectionReference.create(connection);
+			}
+		}
+
+		return reference;
 	}
 
 	@FunctionalInterface
 	private static interface Connector {
-		Task newTask(Task.Prologue prologue, Connection connection, boolean inherit, Expression<String> argument);
+		Task newTask(Task.Prologue prologue, ConnectionReference reference, boolean inherit, Expression<String> argument);
 	}
 
 	class RequestTaskParser implements TaskParser {
@@ -2767,7 +2796,7 @@ public abstract class TaskSetParser {
 		String name = tokenizer.nextWordUpperCase();
 		Connection connection = connections.get(name);
 		if (connection == null) {
-			throw new NoSuchElementException("Connection name not declared: " + name);
+			throw new NoSuchElementException("Name not declared as a " + KW.CONNECTION.name() + ": " + name);
 		}
 		return connection;
 	}

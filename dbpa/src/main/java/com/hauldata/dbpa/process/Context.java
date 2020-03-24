@@ -254,7 +254,11 @@ public class Context {
 	 * Throws an exception if the session cannot be established.
 	 */
 	public Session getSession(EmailConnection connection) {
-		return (connection != null ? connection : resources.mailconn).get();
+		return resolveConnection(connection).get();
+	}
+
+	public EmailConnection resolveConnection(EmailConnection connection) {
+		return (connection != null) ? connection : resources.mailconn;
 	}
 
 	// FTP connection functions.
@@ -264,7 +268,11 @@ public class Context {
 	 * otherwise for the context default connection.
 	 */
 	public FtpConnection.Manager getManager(FtpConnection connection, boolean isBinary) throws FileSystemException {
-		return (connection != null ? connection : resources.ftpconn).getManager(isBinary);
+		return resolveConnection(connection).getManager(isBinary);
+	}
+
+	public FtpConnection resolveConnection(FtpConnection connection) {
+		return (connection != null) ? connection : resources.ftpconn;
 	}
 
 	// File system functions.

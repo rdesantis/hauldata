@@ -388,8 +388,8 @@ public class TaskSetTest extends TaskTest {
 		assertReservedConnectionName("VARIABLE");
 		assertReservedConnectionName("END");
 		assertReservedConnectionName("TASK");
+		assertReservedConnectionName("DATABASE");
 
-		assertGoodConnectionName("DATABASE");
 		assertGoodConnectionName("whatever");
 
 		String script;
