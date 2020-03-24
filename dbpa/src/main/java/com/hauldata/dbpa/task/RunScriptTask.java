@@ -92,7 +92,7 @@ public class RunScriptTask extends Task {
 					// A line that starts with GO defines the end of a batch to be executed.
 
 					String leading = line.trim().toUpperCase();
-					if (leading.startsWith("GO")) {
+					if (leading.startsWith("GO") && !leading.matches("GO\\w.*")) {
 						String trailing = line.substring(2).trim();
 
 						if (trailing.isEmpty() || trailing.startsWith("--")) {
