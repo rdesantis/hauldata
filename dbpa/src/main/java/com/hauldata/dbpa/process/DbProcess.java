@@ -297,7 +297,7 @@ class DbProcessParser extends TaskSetParser {
 		}
 	}
 
-	private VariableBase parseVariable(boolean isRequired)
+	private VariableBase parseVariable(boolean isParameter)
 			throws InputMismatchException, NoSuchElementException, IOException, NameAlreadyBoundException {
 
 		BacktrackingTokenizerMark mark = tokenizer.mark();
@@ -311,13 +311,13 @@ class DbProcessParser extends TaskSetParser {
 		}
 
 		VariableBase variable = null;
-		VariableType type = parseType();
+		VariableType type = parseType(isParameter);
 
 		if (type != null) {
 			variable = new Variable<Object>(name, type);
 			variables.put(name, variable);
 		}
-		else if (isRequired) {
+		else if (isParameter) {
 			throw new InputMismatchException("Invalid variable type name: " + type);
 		}
 		else {
@@ -334,7 +334,7 @@ class DbProcessParser extends TaskSetParser {
 	 * @throws InputMismatchException
 	 * @throws IOException
 	 */
-	private VariableType parseType() throws InputMismatchException, IOException {
+	private VariableType parseType(boolean isParameter) throws InputMismatchException, IOException {
 
 		String type = tokenizer.nextWordUpperCase();
 
@@ -354,6 +354,12 @@ class DbProcessParser extends TaskSetParser {
 		}
 		else if (type.equals(KW.DATETIME.name()) || type.equals(KW.DATE.name())) {
 			return VariableType.DATETIME;
+		}
+		else if (type.equals(KW.VALUES.name() )) {
+			if (isParameter) {
+				throw new InputMismatchException("A parameter cannot be " + KW.VALUES.name() + " type");
+			}
+			return VariableType.VALUES;
 		}
 		else {
 			return null;

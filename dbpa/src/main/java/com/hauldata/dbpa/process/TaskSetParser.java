@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 - 2019, Ronald DeSantis
+ * Copyright (c) 2016 - 2020, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -103,6 +103,7 @@ public abstract class TaskSetParser {
 		CHARACTER,
 		DATETIME,
 		DATE,
+		//VALUES,	// Also a data source
 
 		// Connection types
 
@@ -134,6 +135,8 @@ public abstract class TaskSetParser {
 		// Task types
 
 		SET,
+		INSERT,
+		TRUNCATE,
 		UPDATE,
 		RUN,
 		CREATE,
@@ -459,6 +462,8 @@ public abstract class TaskSetParser {
 		taskParsers = new HashMap<String, TaskParser>();
 
 		taskParsers.put(KW.SET.name(), new SetVariablesTaskParser());
+		taskParsers.put(KW.INSERT.name(), new InsertTaskParser());
+		taskParsers.put(KW.TRUNCATE.name(), new TruncateTaskParser());
 		taskParsers.put(KW.UPDATE.name(), new UpdateTaskParser());
 		taskParsers.put(KW.RUN.name(), new RunTaskParser());
 		taskParsers.put(KW.CREATE.name(), new CreateTaskParser());
@@ -1023,6 +1028,42 @@ public abstract class TaskSetParser {
 			return new SetVariablesTask.Assignment(variable, expression);
 		}
 
+	}
+
+	class InsertTaskParser implements TaskParser {
+
+		@SuppressWarnings("unchecked")
+		public Task parse(Task.Prologue prologue) throws IOException {
+
+			tokenizer.skipWordIgnoreCase(KW.INTO.name());
+
+			VariableBase variable = parseVariableReference();
+			if (variable.getType() != VariableType.VALUES) {
+				throw new InputMismatchException("Variable must be of " + KW.VALUES.name() + " type: " + variable.getName());
+			}
+
+			tokenizer.skipWordIgnoreCase(KW.VALUES.name());
+
+			ValuesSource source = parseValuesSource(false, null);
+
+			variable.setValueObject(new Values());
+
+			return new InsertTask(prologue, (Variable<Values>)variable, source);
+		}
+	}
+
+	class TruncateTaskParser implements TaskParser {
+
+		@SuppressWarnings("unchecked")
+		public Task parse(Task.Prologue prologue) throws IOException {
+
+			VariableBase variable = parseVariableReference();
+			if (variable.getType() != VariableType.VALUES) {
+				throw new InputMismatchException("Variable must be of " + KW.VALUES.name() + " type: " + variable.getName());
+			}
+
+			return new TruncateTask(prologue, (Variable<Values>)variable);
+		}
 	}
 
 	class RunTaskParser implements TaskParser {
@@ -2373,7 +2414,9 @@ public abstract class TaskSetParser {
 		}
 
 		if (tokenizer.skipWordIgnoreCase(KW.VALUES.name())) {
-			return parseValuesSource(singleRow, columnTypes);
+			return tokenizer.hasNextWord() ?
+					parseValuesVariableSource() :
+					parseValuesSource(singleRow, columnTypes);
 		}
 		else if (tokenizer.skipWordIgnoreCase(KW.PROPERTIES.name())) {
 			return parsePropertiesSource(columnTypes);
@@ -2406,6 +2449,17 @@ public abstract class TaskSetParser {
 			}
 			return parseDataSource(taskTypeName, null, singleRow, allowTable);
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private ValuesVariableSource parseValuesVariableSource() throws InputMismatchException, NoSuchElementException, IOException {
+
+		VariableBase variable = parseVariableReference();
+		if (variable.getType() != VariableType.VALUES) {
+			throw new InputMismatchException("A variable used as a " + KW.VALUES.name() + " data source must be of type " + KW.VALUES.name());
+		}
+
+		return new ValuesVariableSource((Variable<Values>)variable);
 	}
 
 	private ValuesSource parseValuesSource(boolean singleRow, ArrayList<VariableType> columnTypes) throws InputMismatchException, NoSuchElementException, IOException {
@@ -2941,7 +2995,7 @@ public abstract class TaskSetParser {
 			expression = parseDatetimeFromCompatibleExpression();
 		}
 		else {
-			throw new InputMismatchException("Internal error - variable type not recognized");
+			throw new InputMismatchException(KW.SET.name() + " is not supported for variable of type " + type.getName());
 		}
 
 		return expression;

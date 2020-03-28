@@ -39,6 +39,7 @@ public abstract class VariableType {
 	public static final VariableType VARCHAR = new VariableType("VARCHAR") { public Object getValueChecked(Object value) { return (String)value; } };
 	public static final VariableType DATETIME = new VariableType("DATETIME") { public Object getValueChecked(Object value) { return (LocalDateTime)value; } };
 	public static final VariableType BOOLEAN = new VariableType("BOOLEAN") { public Object getValueChecked(Object value) { return (Boolean)value; } };
+	public static final VariableType VALUES = new VariableType("VALUES") { public Object getValueChecked(Object value) { return (Values)value; } };
 
 	private static abstract class IntegerType extends VariableType {
 
