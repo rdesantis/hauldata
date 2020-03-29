@@ -19,19 +19,19 @@ package com.hauldata.dbpa.task;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.hauldata.dbpa.datasource.ValuesSource;
+import com.hauldata.dbpa.datasource.Source;
 import com.hauldata.dbpa.process.Context;
-import com.hauldata.dbpa.variable.Values;
+import com.hauldata.dbpa.variable.Table;
 import com.hauldata.dbpa.variable.Variable;
 
 public class InsertTask extends Task {
-	private Variable<Values> variable;
-	private ValuesSource source;
+	private Variable<Table> variable;
+	private Source source;
 
 	public InsertTask(
 			Prologue prologue,
-			Variable<Values> variable,
-			ValuesSource source) {
+			Variable<Table> variable,
+			Source source) {
 		super(prologue);
 		this.variable = variable;
 		this.source = source;

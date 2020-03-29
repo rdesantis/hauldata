@@ -103,7 +103,7 @@ public abstract class TaskSetParser {
 		CHARACTER,
 		DATETIME,
 		DATE,
-		//VALUES,	// Also a data source
+		//TABLE,	// Also a data source
 
 		// Connection types
 
@@ -1038,17 +1038,18 @@ public abstract class TaskSetParser {
 			tokenizer.skipWordIgnoreCase(KW.INTO.name());
 
 			VariableBase variable = parseVariableReference();
-			if (variable.getType() != VariableType.VALUES) {
-				throw new InputMismatchException("Variable must be of " + KW.VALUES.name() + " type: " + variable.getName());
+			if (variable.getType() != VariableType.TABLE) {
+				throw new InputMismatchException("Variable must be of " + KW.TABLE.name() + " type: " + variable.getName());
 			}
 
-			tokenizer.skipWordIgnoreCase(KW.VALUES.name());
+			Source source = parseSource(KW.INSERT.name(), null, false, true, null);
+			if (source instanceof TableVariableSource && (((TableVariableSource)source).getVariable() == variable)) {
+				throw new InputMismatchException("Cannot " + KW.INSERT.name() +" a variable into itself");
+			}
 
-			ValuesSource source = parseValuesSource(false, null);
+			variable.setValueObject(new Table());
 
-			variable.setValueObject(new Values());
-
-			return new InsertTask(prologue, (Variable<Values>)variable, source);
+			return new InsertTask(prologue, (Variable<Table>)variable, source);
 		}
 	}
 
@@ -1058,11 +1059,11 @@ public abstract class TaskSetParser {
 		public Task parse(Task.Prologue prologue) throws IOException {
 
 			VariableBase variable = parseVariableReference();
-			if (variable.getType() != VariableType.VALUES) {
-				throw new InputMismatchException("Variable must be of " + KW.VALUES.name() + " type: " + variable.getName());
+			if (variable.getType() != VariableType.TABLE) {
+				throw new InputMismatchException("Variable must be of " + KW.TABLE.name() + " type: " + variable.getName());
 			}
 
-			return new TruncateTask(prologue, (Variable<Values>)variable);
+			return new TruncateTask(prologue, (Variable<Table>)variable);
 		}
 	}
 
@@ -2414,9 +2415,10 @@ public abstract class TaskSetParser {
 		}
 
 		if (tokenizer.skipWordIgnoreCase(KW.VALUES.name())) {
-			return tokenizer.hasNextWord() ?
-					parseValuesVariableSource() :
-					parseValuesSource(singleRow, columnTypes);
+			return parseValuesSource(singleRow, columnTypes);
+		}
+		else if (tokenizer.skipWordIgnoreCase(KW.VARIABLE.name())) {
+			return parseTableVariableSource();
 		}
 		else if (tokenizer.skipWordIgnoreCase(KW.PROPERTIES.name())) {
 			return parsePropertiesSource(columnTypes);
@@ -2452,14 +2454,14 @@ public abstract class TaskSetParser {
 	}
 
 	@SuppressWarnings("unchecked")
-	private ValuesVariableSource parseValuesVariableSource() throws InputMismatchException, NoSuchElementException, IOException {
+	private TableVariableSource parseTableVariableSource() throws InputMismatchException, NoSuchElementException, IOException {
 
 		VariableBase variable = parseVariableReference();
-		if (variable.getType() != VariableType.VALUES) {
-			throw new InputMismatchException("A variable used as a " + KW.VALUES.name() + " data source must be of type " + KW.VALUES.name());
+		if (variable.getType() != VariableType.TABLE) {
+			throw new InputMismatchException("A variable used as a " + KW.VARIABLE.name() + " data source must be of type " + KW.TABLE.name());
 		}
 
-		return new ValuesVariableSource((Variable<Values>)variable);
+		return new TableVariableSource((Variable<Table>)variable);
 	}
 
 	private ValuesSource parseValuesSource(boolean singleRow, ArrayList<VariableType> columnTypes) throws InputMismatchException, NoSuchElementException, IOException {

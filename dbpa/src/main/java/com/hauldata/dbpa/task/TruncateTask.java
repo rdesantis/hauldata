@@ -17,15 +17,15 @@
 package com.hauldata.dbpa.task;
 
 import com.hauldata.dbpa.process.Context;
-import com.hauldata.dbpa.variable.Values;
+import com.hauldata.dbpa.variable.Table;
 import com.hauldata.dbpa.variable.Variable;
 
 public class TruncateTask extends Task {
-	private Variable<Values> variable;
+	private Variable<Table> variable;
 
 	public TruncateTask(
 			Prologue prologue,
-			Variable<Values> variable) {
+			Variable<Table> variable) {
 		super(prologue);
 		this.variable = variable;
 	}

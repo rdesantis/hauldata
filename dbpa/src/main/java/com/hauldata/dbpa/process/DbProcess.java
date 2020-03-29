@@ -355,11 +355,11 @@ class DbProcessParser extends TaskSetParser {
 		else if (type.equals(KW.DATETIME.name()) || type.equals(KW.DATE.name())) {
 			return VariableType.DATETIME;
 		}
-		else if (type.equals(KW.VALUES.name() )) {
+		else if (type.equals(KW.TABLE.name() )) {
 			if (isParameter) {
-				throw new InputMismatchException("A parameter cannot be " + KW.VALUES.name() + " type");
+				throw new InputMismatchException("A parameter cannot be " + KW.TABLE.name() + " type");
 			}
-			return VariableType.VALUES;
+			return VariableType.TABLE;
 		}
 		else {
 			return null;

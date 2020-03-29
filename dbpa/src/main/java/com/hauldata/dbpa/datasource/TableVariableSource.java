@@ -20,18 +20,22 @@ import java.util.List;
 import java.util.ListIterator;
 
 import com.hauldata.dbpa.process.Context;
-import com.hauldata.dbpa.variable.Values;
+import com.hauldata.dbpa.variable.Table;
 import com.hauldata.dbpa.variable.Variable;
 
-public class ValuesVariableSource implements Source {
+public class TableVariableSource implements Source {
 
-	private Variable<Values> variable;
+	private Variable<Table> variable;
 
 	private ListIterator<List<Object>> rowIterator;
 	private List<Object> valuesList;
 
-	public ValuesVariableSource(Variable<Values> variable) {
+	public TableVariableSource(Variable<Table> variable) {
 		this.variable = variable;
+	}
+
+	public Variable<Table> getVariable() {
+		return variable;
 	}
 
 	@Override

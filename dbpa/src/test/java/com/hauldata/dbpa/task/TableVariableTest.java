@@ -19,9 +19,9 @@ package com.hauldata.dbpa.task;
 import com.hauldata.dbpa.log.Analyzer;
 import com.hauldata.dbpa.log.Logger.Level;
 
-public class ValuesVariableTest extends TaskTest {
+public class TableVariableTest extends TaskTest {
 
-	public ValuesVariableTest(String name) {
+	public TableVariableTest(String name) {
 		super(name);
 	}
 
@@ -30,10 +30,10 @@ public class ValuesVariableTest extends TaskTest {
 		String processId = "InsertValuesTest";
 		String script =
 				"PROCESS \n" +
-				"VARIABLES i INT, v VARCHAR, b BIT, rows VALUES; \n" +
+				"VARIABLES i INT, v VARCHAR, b BIT, rows TABLE; \n" +
 				"SET i = 1, v = 'one', b = 0; \n" +
 				"INSERT INTO rows VALUES (i, v, b), (2, 'two', 1), (i+2, 'the' + 'ee', IIF(b = 1, 0, 1)); \n" +
-				"FOR i, v, b FROM VALUES rows \n" +
+				"FOR i, v, b FROM VARIABLE rows \n" +
 				"	LOG FORMAT(i, 'd') + ' ' + v + ' ' + IIF(b = 1, '1', '0'); \n" +
 				"END FOR \n" +
 				"END PROCESS\n" +
@@ -65,10 +65,10 @@ public class ValuesVariableTest extends TaskTest {
 		String processId = "TruncateValuesTest";
 		String script =
 				"PROCESS \n" +
-				"VARIABLES ii INT, vv VARCHAR, bb BIT, v VALUES; \n" +
+				"VARIABLES ii INT, vv VARCHAR, bb BIT, v TABLE; \n" +
 				"INSERT INTO v VALUES (3, 'two', 1); \n" +
 				"TRUNCATE v; \n" +
-				"FOR ii, vv, bb FROM VALUES v \n" +
+				"FOR ii, vv, bb FROM VARIABLE v \n" +
 				"	LOG FORMAT(ii, 'd') + ' ' + vv + ' ' + IIF(bb = 1, '1', '0'); \n" +
 				"END FOR \n" +
 				"END PROCESS\n" +
@@ -93,19 +93,29 @@ public class ValuesVariableTest extends TaskTest {
 
 		script =
 				"PROCESS \n" +
-				"PARAMETERS ii INT, vv VARCHAR, bb BIT, v VALUES; \n" +
+				"PARAMETERS ii INT, vv VARCHAR, bb BIT, v TABLE; \n" +
 				"END PROCESS\n" +
 				"";
 
-		assertBadSyntax(script, "At line 2: A parameter cannot be VALUES type");
+		assertBadSyntax(script, "At line 2: A parameter cannot be TABLE type");
 
 		script =
 				"PROCESS \n" +
-				"VARIABLES v VALUES; \n" +
+				"VARIABLES v TABLE; \n" +
 				"SET v = 1; \n" +
 				"END PROCESS\n" +
 				"";
 
-		assertBadSyntax(script, "At line 3: SET is not supported for variable of type VALUES");
+		assertBadSyntax(script, "At line 3: SET is not supported for variable of type TABLE");
+
+		script =
+				"PROCESS \n" +
+				"VARIABLES v TABLE, w TABLE; \n" +
+				"INSERT INTO w VARIABLE v; \n" +
+				"INSERT INTO v VARIABLE v; \n" +
+				"END PROCESS\n" +
+				"";
+
+		assertBadSyntax(script, "At line 4: Cannot INSERT a variable into itself");
 	}
 }

@@ -19,10 +19,10 @@ package com.hauldata.dbpa.variable;
 import java.util.LinkedList;
 import java.util.List;
 
-public class Values {
+public class Table {
 	private List<List<Object>> valuesLists;
 
-	public Values() {
+	public Table() {
 		valuesLists = new LinkedList<List<Object>>();
 	}
 
