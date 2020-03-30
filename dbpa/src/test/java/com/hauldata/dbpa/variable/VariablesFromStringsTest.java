@@ -34,7 +34,7 @@ public class VariablesFromStringsTest extends TestCase {
 
 		boolean isFailed = false;
 		try {
-			VariablesFromStrings.set(integer, arg);
+			VariablesFromArguments.set(integer, arg);
 		}
 		catch (RuntimeException ex) {
 			isFailed = true;
@@ -49,7 +49,7 @@ public class VariablesFromStringsTest extends TestCase {
 
 		boolean isFailed = false;
 		try {
-			VariablesFromStrings.set(datetime, arg);
+			VariablesFromArguments.set(datetime, arg);
 		}
 		catch (RuntimeException ex) {
 			isFailed = true;
@@ -73,7 +73,7 @@ public class VariablesFromStringsTest extends TestCase {
 
 		String[] args = new String[] {"hello", "123", "4567", "6/4/2017 12:55 AM"};
 
-		VariablesFromStrings.set(variables, args);
+		VariablesFromArguments.set(variables, args);
 
 		assertEquals("hello", varchar.getValue());
 		assertEquals(123, integer.getValue().intValue());

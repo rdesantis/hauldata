@@ -17,7 +17,7 @@
 package com.hauldata.dbpa.file.fixed;
 
 import com.hauldata.dbpa.variable.VariableBase;
-import com.hauldata.dbpa.variable.VariablesFromStrings;
+import com.hauldata.dbpa.variable.VariablesFromArguments;
 
 public class SetterFixedField extends ColumnFixedField {
 
@@ -31,7 +31,7 @@ public class SetterFixedField extends ColumnFixedField {
 
 		@Override
 		public void invokeWith(int lineNumber, String value) {
-			VariablesFromStrings.set(variable, value);
+			VariablesFromArguments.set(variable, value);
 		}
 	}
 

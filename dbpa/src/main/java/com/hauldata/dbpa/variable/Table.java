@@ -31,13 +31,11 @@ public class Table {
 	}
 
 	public void add(List<Object> values) {
-		if (!valuesLists.isEmpty() && (valuesLists.get(0).size() != values.size())) {
-			throw new RuntimeException("All rows of a VALUES variables must have the same number of columns");
+		synchronized (valuesLists) {
+			if (!valuesLists.isEmpty() && (valuesLists.get(0).size() != values.size())) {
+				throw new RuntimeException("All rows of a VALUES variables must have the same number of columns");
+			}
+			valuesLists.add(values);
 		}
-		valuesLists.add(values);
-	}
-
-	public void clear() {
-		valuesLists.clear();
 	}
 }

@@ -24,7 +24,7 @@ import java.util.List;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.variable.VariableBase;
-import com.hauldata.dbpa.variable.VariablesFromStrings;
+import com.hauldata.dbpa.variable.VariablesFromArguments;
 import com.hauldata.util.tokenizer.KeywordValueTokenizer;
 import com.hauldata.util.tokenizer.Quoted;
 import com.hauldata.util.tokenizer.Token;
@@ -82,6 +82,6 @@ public class PromptTask extends Task {
 			tokenizer.close();
 		}
 
-		VariablesFromStrings.set(variables, args.stream().toArray(String[]::new));
+		VariablesFromArguments.set(variables, args.stream().toArray(String[]::new));
 	}
 }

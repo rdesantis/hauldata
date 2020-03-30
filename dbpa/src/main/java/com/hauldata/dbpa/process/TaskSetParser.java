@@ -380,6 +380,7 @@ public abstract class TaskSetParser {
 	protected TermParser<Integer> integerTermParser;
 	protected TermParser<String> stringTermParser;
 	protected TermParser<LocalDateTime> datetimeTermParser;
+	protected TermParser<Table> tableTermParser;
 
 	protected Map<String, TaskParser> taskParsers;
 	protected Map<String, RequestTaskTrailingParser> requestTaskParsers;
@@ -387,6 +388,7 @@ public abstract class TaskSetParser {
 	protected Map<String, FunctionParser<Integer>> integerFunctionParsers;
 	protected Map<String, FunctionParser<String>> stringFunctionParsers;
 	protected Map<String, FunctionParser<LocalDateTime>> datetimeFunctionParsers;
+	protected Map<String, FunctionParser<Table>> tableFunctionParsers;
 
 	protected Map<String, VariableBase> variables;
 	protected Map<String, Connection> connections;
@@ -458,6 +460,7 @@ public abstract class TaskSetParser {
 		integerTermParser = new TermParser<Integer>(VariableType.INTEGER) { public Expression<Integer> parseExpression() throws IOException { return parseIntegerExpression(); } };
 		stringTermParser = new TermParser<String>(VariableType.VARCHAR) { public Expression<String> parseExpression() throws IOException { return parseStringExpression(); } };
 		datetimeTermParser = new TermParser<LocalDateTime>(VariableType.DATETIME) { public Expression<LocalDateTime> parseExpression() throws IOException { return parseDatetimeExpression(); } };
+		tableTermParser = new TermParser<Table>(VariableType.TABLE) { public Expression<Table> parseExpression() throws IOException { return parseTableVariableExpression(); } };
 
 		taskParsers = new HashMap<String, TaskParser>();
 
@@ -548,6 +551,10 @@ public abstract class TaskSetParser {
 		datetimeFunctionParsers.put(KW.DATEADD.name(), new DateAddParser());
 		datetimeFunctionParsers.put(KW.DATEFROMPARTS.name(), new DateFromPartsParser());
 		datetimeFunctionParsers.put(KW.DATETIMEFROMPARTS.name(), new DateTimeFromPartsParser());
+
+		tableFunctionParsers = new HashMap<String, FunctionParser<Table>>();
+		tableFunctionParsers.put(KW.IIF.name(), new IfParser<Table>(tableTermParser));
+		tableFunctionParsers.put(KW.CHOOSE.name(), new ChooseParser<Table>(tableTermParser));
 
 		this.variables = variables;
 		this.connections = connections;
@@ -1011,8 +1018,6 @@ public abstract class TaskSetParser {
 			do { assignments.add(parseAssignment());
 			} while (tokenizer.skipDelimiter(","));
 
-			// Note no check that there actually were any assignments.  Not an error, just pointless.
-
 			return new SetVariablesTask(prologue, assignments);
 		}
 
@@ -1023,11 +1028,10 @@ public abstract class TaskSetParser {
 
 			tokenizer.nextDelimiter("=");
 
-			ExpressionBase expression = parseExpression(variable.getType());
+			ExpressionBase expression = parseExpression(variable.getType(), true);
 
 			return new SetVariablesTask.Assignment(variable, expression);
 		}
-
 	}
 
 	class InsertTaskParser implements TaskParser {
@@ -1794,7 +1798,7 @@ public abstract class TaskSetParser {
 			List<ExpressionBase> arguments = new LinkedList<ExpressionBase>();
 			if (tokenizer.skipWordIgnoreCase(KW.WITH.name()) || !atEndOfTask()) {
 				do {
-					arguments.add(parseAnyExpression());
+					arguments.add(parseAnyExpression(true));
 				} while (tokenizer.skipDelimiter(","));
 			}
 
@@ -2985,6 +2989,11 @@ public abstract class TaskSetParser {
 
 	private ExpressionBase parseExpression(VariableType type)
 			throws InputMismatchException, NoSuchElementException, IOException {
+		return parseExpression(type, false);
+	}
+
+	private ExpressionBase parseExpression(VariableType type, boolean allowTable)
+			throws InputMismatchException, NoSuchElementException, IOException {
 
 		ExpressionBase expression = null;
 		if (type == VariableType.INTEGER || type == VariableType.BIT) {
@@ -2996,14 +3005,21 @@ public abstract class TaskSetParser {
 		else if (type == VariableType.DATETIME) {
 			expression = parseDatetimeFromCompatibleExpression();
 		}
+		else if (allowTable && (type == VariableType.TABLE)) {
+			expression = parseTableVariableExpression();
+		}
 		else {
-			throw new InputMismatchException(KW.SET.name() + " is not supported for variable of type " + type.getName());
+			throw new InputMismatchException("Variable of type " + type.getName() + " is not supported in this context");
 		}
 
 		return expression;
 	}
 
 	private ExpressionBase parseAnyExpression() {
+		return parseAnyExpression(false);
+	}
+
+	private ExpressionBase parseAnyExpression(boolean allowTable) {
 
 		BacktrackingTokenizerMark mark = tokenizer.mark();
 
@@ -3014,10 +3030,14 @@ public abstract class TaskSetParser {
 		catch (Exception ex) { tokenizer.reset(mark); }
 
 		try { return parseDatetimeExpression(); }
-		catch (Exception ex) { tokenizer.reset(mark);
+		catch (Exception ex) { tokenizer.reset(mark); }
 
-			throw new InputMismatchException(Optional.ofNullable(ex.getMessage()).orElse(ex.getClass().getName()));
+		if (allowTable) {
+			try { return parseTableVariableExpression(); }
+			catch (Exception ex) { tokenizer.reset(mark); }
 		}
+
+		throw new InputMismatchException("Invalid expression");
 	}
 
 	@SuppressWarnings("unchecked")
@@ -3666,6 +3686,36 @@ public abstract class TaskSetParser {
 			Expression<Integer> milliseconds = parseIntegerExpression();
 
 			return new DatetimeFromParts(year, month, day, hour, minute, seconds, milliseconds);
+		}
+	}
+
+	private Expression<Table> parseTableVariableExpression()
+			throws InputMismatchException, NoSuchElementException, IOException {
+
+		if (tokenizer.skipWordIgnoreCase(KW.CASE.name())) {
+			return tableTermParser.parseCase();
+		}
+		else if (hasNextFunction()) {
+			String name = tokenizer.nextWordUpperCase();
+
+			FunctionParser<Table> functionParser = tableFunctionParsers.get(name);
+			if (functionParser != null) {
+
+				tokenizer.nextDelimiter("(");
+				Expression<Table> result = functionParser.parse();
+				tokenizer.nextDelimiter(")");
+
+				return result;
+			}
+			else {
+				throw new InputMismatchException("Unrecognized " + KW.TABLE.name() + " function: " + name);
+			}
+		}
+		else if (hasNextVariable()) {
+			return tableTermParser.parseReference();
+		}
+		else {
+			throw new InputMismatchException("Invalid " + KW.TABLE.name() + " expression term: " + tokenizer.nextToken().getImage());
 		}
 	}
 

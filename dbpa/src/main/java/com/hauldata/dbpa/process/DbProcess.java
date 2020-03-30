@@ -135,13 +135,21 @@ public class DbProcess extends TaskSet {
 	 * @throws Exception
 	 */
 	public void run(String[] args, Context context) throws Exception {
+		run(new ParameterSetter() { public void set() { setParameters(args); } }, context);
+	}
+
+	public void run(List<Object> args, Context context) throws Exception {
+		run(new ParameterSetter() { public void set() { setParameters(args); } }, context);
+	}
+
+	public void run(ParameterSetter parameterSetter, Context context) throws Exception {
 
 		LocalDateTime startTime = LocalDateTime.now();
 
 		try {
 			context.logger.info(processTaskId, startMessage);
 
-			setParameters(args);
+			parameterSetter.set();
 			runTasks(context);
 
 			context.logger.info(processTaskId, completeMessage);
@@ -170,6 +178,11 @@ public class DbProcess extends TaskSet {
 		}
 	}
 
+	@FunctionalInterface
+	interface ParameterSetter {
+		void set();
+	}
+
 	/**
 	 * Validate that the arguments are of appropriate types for the process
 	 *
@@ -190,7 +203,11 @@ public class DbProcess extends TaskSet {
 	}
 
 	private void setParameters(String[] args) {
-		VariablesFromStrings.set(parameters, args);
+		VariablesFromArguments.set(parameters, args);
+	}
+
+	private void setParameters(List<Object> args) {
+		VariablesFromArguments.set(parameters, args);
 	}
 }
 
@@ -356,9 +373,6 @@ class DbProcessParser extends TaskSetParser {
 			return VariableType.DATETIME;
 		}
 		else if (type.equals(KW.TABLE.name() )) {
-			if (isParameter) {
-				throw new InputMismatchException("A parameter cannot be " + KW.TABLE.name() + " type");
-			}
 			return VariableType.TABLE;
 		}
 		else {

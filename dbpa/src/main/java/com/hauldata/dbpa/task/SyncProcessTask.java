@@ -16,6 +16,7 @@
 
 package com.hauldata.dbpa.task;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -43,12 +44,11 @@ public class SyncProcessTask extends ProcessTask {
 		}
 
 		String processName = name.evaluate();
-		String[] args = new String[arguments.size()];
 
-		int i = 0;
+		List<Object> args = new LinkedList<Object>();
 		for (ExpressionBase argument : arguments) {
 			Object argumentValue = argument.getEvaluationObject();
-			args[i++] = (argumentValue != null) ? argumentValue.toString() : null;
+			args.add(argumentValue);
 		}
 
 		Context childContext = context.makeChildContext(getName(), processName);

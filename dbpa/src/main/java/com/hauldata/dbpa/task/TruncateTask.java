@@ -32,6 +32,9 @@ public class TruncateTask extends Task {
 
 	@Override
 	protected void execute(Context context) throws Exception {
-		variable.getValue().clear();
+		// Rather than clearing the existing list, allocate a new value with a new list
+		// so that any asynchronous child process or concurrent task that is accessing the previous list
+		// can continue to access it.
+		variable.setValue(new Table());
 	}
 }

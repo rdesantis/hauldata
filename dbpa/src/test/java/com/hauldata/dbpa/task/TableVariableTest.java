@@ -27,7 +27,7 @@ public class TableVariableTest extends TaskTest {
 
 	public void testInsert() throws Exception {
 
-		String processId = "InsertValuesTest";
+		String processId = "InsertTest";
 		String script =
 				"PROCESS \n" +
 				"VARIABLES i INT, v VARCHAR, b BIT, rows TABLE; \n" +
@@ -62,7 +62,7 @@ public class TableVariableTest extends TaskTest {
 
 	public void testTruncate() throws Exception {
 
-		String processId = "TruncateValuesTest";
+		String processId = "TruncateTest";
 		String script =
 				"PROCESS \n" +
 				"VARIABLES ii INT, vv VARCHAR, bb BIT, v TABLE; \n" +
@@ -88,16 +88,75 @@ public class TableVariableTest extends TaskTest {
 		assertFalse(recordIterator.hasNext());
 	}
 
-	public void testBadSyntax() throws Exception {
-		String script;
+	public void testSetTableVariable() throws Exception {
 
-		script =
+		String processId = "SetTableVariableTest";
+		String script =
 				"PROCESS \n" +
-				"PARAMETERS ii INT, vv VARCHAR, bb BIT, v TABLE; \n" +
+				"VARIABLES ii INT, vv VARCHAR, bb BIT, v TABLE, w TABLE; \n" +
+				"INSERT INTO v VALUES (3, 'two', 1); \n" +
+				"SET w = v; \n" +
+				"FOR ii, vv, bb FROM VARIABLE w \n" +
+				"	LOG FORMAT(ii, 'd') + ' ' + vv + ' ' + IIF(bb = 1, '1', '0'); \n" +
+				"END FOR \n" +
 				"END PROCESS\n" +
 				"";
 
-		assertBadSyntax(script, "At line 2: A parameter cannot be TABLE type");
+		Level logLevel = Level.message;
+		boolean logToConsole = true;
+
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
+
+		Analyzer.RecordIterator recordIterator = null;
+		Analyzer.Record record = null;
+
+		recordIterator = analyzer.recordIterator();
+
+		record = recordIterator.next();
+		assertEquals("3 two 1", record.message);
+		record = recordIterator.next();
+
+		assertFalse(recordIterator.hasNext());
+	}
+
+	public void testPassTableVariable() throws Exception {
+
+		String processId = "PassTableVariableTest";
+		String script =
+				"PROCESS \n" +
+				"VARIABLES v TABLE; \n" +
+				"INSERT INTO v VALUES (3, 'two', 1); \n" +
+				"RUN PROCESS 'TakeTable' v; \n" +
+				"END PROCESS\n" +
+				"PROCESS TakeTable\n" +
+				"PARAMETERS w TABLE; \n" +
+				"VARIABLES ii INT, vv VARCHAR, bb BIT; \n" +
+				"FOR ii, vv, bb FROM VARIABLE w \n" +
+				"	LOG FORMAT(ii, 'd') + ' ' + vv + ' ' + IIF(bb = 1, '1', '0'); \n" +
+				"END FOR \n" +
+				"END PROCESS\n" +
+				"";
+
+		Level logLevel = Level.message;
+		boolean logToConsole = true;
+
+		Analyzer analyzer = runScript(processId, logLevel, logToConsole, script, null, null, null);
+
+		Analyzer.RecordIterator recordIterator = null;
+		Analyzer.Record record = null;
+
+		recordIterator = analyzer.recordIterator();
+
+		record = recordIterator.next();
+		assertEquals("3 two 1", record.message);
+		record = recordIterator.next();
+		record = recordIterator.next();
+
+		assertFalse(recordIterator.hasNext());
+	}
+
+	public void testBadSyntax() throws Exception {
+		String script;
 
 		script =
 				"PROCESS \n" +
@@ -106,7 +165,7 @@ public class TableVariableTest extends TaskTest {
 				"END PROCESS\n" +
 				"";
 
-		assertBadSyntax(script, "At line 3: SET is not supported for variable of type TABLE");
+		assertBadSyntax(script, "At line 3: Invalid TABLE expression term: 1");
 
 		script =
 				"PROCESS \n" +

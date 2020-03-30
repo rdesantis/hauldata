@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Ronald DeSantis
+ * Copyright (c) 2017, 2020, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import java.util.List;
 import com.hauldata.dbpa.expression.DatetimeFromString;
 import com.hauldata.dbpa.expression.StringConstant;
 
-public class VariablesFromStrings {
+public class VariablesFromArguments {
 
 	public static void set(List<VariableBase> variables, String[] args) {
 
@@ -52,6 +52,28 @@ public class VariablesFromStrings {
 		else if (variable.getType() == VariableType.DATETIME) {
 			DatetimeFromString converter = new DatetimeFromString(new StringConstant(arg));
 			variable.setValueObject(converter.evaluate());
+		}
+		else if (variable.getType() == VariableType.TABLE) {
+			throw new RuntimeException("Cannot set " + variable.getType().getName() + " variable " + variable.getName() + " from a string");
+		}
+	}
+
+	public static void set(List<VariableBase> variables, List<Object> args) {
+
+		int n = Math.min(variables.size(), args.size());
+		Iterator<VariableBase> parameterIterator = variables.iterator();
+		Iterator<Object> argIterator = args.iterator();
+		for (int i = 0; i < n; ++i) {
+			set(parameterIterator.next(), argIterator.next());
+		}
+	}
+
+	public static void set(VariableBase variable, Object arg) {
+		if (arg instanceof String) {
+			set(variable, (String)arg);
+		}
+		else {
+			variable.setValueChecked(arg);
 		}
 	}
 }
