@@ -328,7 +328,7 @@ class DbProcessParser extends TaskSetParser {
 		}
 
 		VariableBase variable = null;
-		VariableType type = parseType(isParameter);
+		VariableType type = parseType();
 
 		if (type != null) {
 			variable = new Variable<Object>(name, type);
@@ -351,7 +351,7 @@ class DbProcessParser extends TaskSetParser {
 	 * @throws InputMismatchException
 	 * @throws IOException
 	 */
-	private VariableType parseType(boolean isParameter) throws InputMismatchException, IOException {
+	private VariableType parseType() throws InputMismatchException, IOException {
 
 		String type = tokenizer.nextWordUpperCase();
 
