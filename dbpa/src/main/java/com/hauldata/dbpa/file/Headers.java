@@ -23,12 +23,14 @@ public abstract class Headers {
 	protected boolean exist;
 	protected ArrayList<String> captions;
 	protected int columnCount;
+	protected int requiredColumnCount;
 
 	public Headers() {
 
 		this.exist = false;
 		this.captions = new ArrayList<String>();
 		columnCount = 0;
+		requiredColumnCount = 0;
 	}
 
 	public Headers(
@@ -69,4 +71,11 @@ public abstract class Headers {
 		this.columnCount = columnCount;
 	}
 
+	public int getRequiredColumnCount() {
+		return requiredColumnCount;
+	}
+
+	public void setRequiredColumnCount(int requiredColumnCount) {
+		this.requiredColumnCount = requiredColumnCount;
+	}
 }

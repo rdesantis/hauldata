@@ -70,19 +70,29 @@ public class ColumnExpressions {
 
 	/**
 	 * Evaluate column expressions and resolve against headers at task run time.
+	 *
+	 * NOTE: As a side effect, headers.setRequiredColumnCount(int) will be called.
+	 * The required column count will be set to the value of the largest
+	 * column position that is specified as an integer.
+	 *
 	 * @param headers is the evaluated headers
 	 * @return the evaluated columns resolved against the headers
 	 */
 	public Columns evaluate(Headers headers) {
 		List<Object> positions = new LinkedList<Object>();
 
+		int requiredColumnCount = 0;
 		for (ExpressionBase column : columns) {
 			Object value = column.getEvaluationObject();
 			if (value == null) {
 				throw new RuntimeException("Column position expression evaluates to NULL");
 			}
+			else if (value instanceof Integer) {
+				requiredColumnCount = Math.max(requiredColumnCount, (Integer)value);
+			}
 			positions.add(value);
 		}
+		headers.setRequiredColumnCount(requiredColumnCount);
 
 		return new Columns(positions, headers);
 	}

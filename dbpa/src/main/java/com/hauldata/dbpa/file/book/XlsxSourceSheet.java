@@ -98,26 +98,20 @@ public class XlsxSourceSheet extends XlsxSheet {
 				row = sheet.getRow(rowIndex++);
 			}
 
-			if (row == null) {
-				// There are no non-empty cells in the row.
-
-				if (headers.getColumnCount() == 0) {
-					throw new RuntimeException("Row is empty and numbers of columns is not established; cannot read");
-				}
-				else if (columnIndex <= headers.getColumnCount()) {
-					return null;
-				}
-				else {
-					return EndOfLine.value;
-				}
-			}
-			else if (row.getLastCellNum() < columnIndex) {
+			if ((row == null) || (row.getLastCellNum() < columnIndex)) {
 				// There is no cell at this column index or after.
 
 				if (headers.getColumnCount() == 0) {
-					return EndOfLine.value;
+					int inferredColumnCount = Math.max(headers.getRequiredColumnCount(), columnIndex - 1);
+					if (0 < inferredColumnCount) {
+						headers.setColumnCount(inferredColumnCount);
+					}
+					else {
+						throw new RuntimeException("First row is empty and numbers of columns is not established; cannot read");
+					}
 				}
-				else if (columnIndex <= headers.getColumnCount()) {
+
+				if (columnIndex <= headers.getColumnCount()) {
 					return null;
 				}
 				else {
