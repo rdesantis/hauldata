@@ -46,7 +46,8 @@ import com.hauldata.dbpa.expression.*;
 import com.hauldata.dbpa.expression.Expression.Combination;
 import com.hauldata.dbpa.expression.strings.*;
 import com.hauldata.dbpa.file.*;
-import com.hauldata.dbpa.file.book.XlsxBook;
+import com.hauldata.dbpa.file.book.XlsHandler;
+import com.hauldata.dbpa.file.book.XlsxHandler;
 import com.hauldata.dbpa.file.flat.CsvFile;
 import com.hauldata.dbpa.file.flat.TsvFile;
 import com.hauldata.dbpa.file.flat.TxtFile;
@@ -209,6 +210,7 @@ public abstract class TaskSetParser {
 		CSV,
 		TSV,
 		TXT,
+		XLS,
 		XLSX,
 		FIXED,
 		SHEET,
@@ -565,7 +567,8 @@ public abstract class TaskSetParser {
 		CsvFile.registerHandler(KW.CSV.name());
 		TsvFile.registerHandler(KW.TSV.name());
 		TxtFile.registerHandler(KW.TXT.name());
-		XlsxBook.registerHandler(KW.XLSX.name());
+		XlsHandler.register(KW.XLS.name());
+		XlsxHandler.register(KW.XLSX.name());
 	}
 
 	public BacktrackingTokenizer getTokenizer() {

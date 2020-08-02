@@ -214,6 +214,25 @@ public class WriteTaskTest extends TaskTest {
 		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
 	}
 
+	public void testWriteXlsValues() throws Exception {
+
+		String processId = "WriteXlsValuesTest";
+		String script =
+				"VARIABLES true BIT, false BIT END VARIABLES\n" +
+				"TASK SetBits SET true = 1, false = 0 END TASK\n" +
+				"TASK WriteXlsx AFTER SetBits\n" +
+				"	WRITE XLS 'valuesTest.xls' 'The Other Sheet' \n" +
+				"	HEADERS 'Stringy', 'Integral Value', 'Important Date', 'A Bit' \n" +
+				"	FROM VALUES ('first', 1, DATEFROMPARTS(2017, 3, 5), true), ('SECOND Row', 22, DATEFROMPARTS(1999, 12, 31), false) \n" +
+				"END TASK\n" +
+				"";
+
+		Level logLevel = Level.error;
+		boolean logToConsole = true;
+
+		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
+	}
+	
 	public void testDebug() throws Exception {
 
 		String processId = "debug";

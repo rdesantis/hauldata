@@ -236,6 +236,19 @@ public class ReadTaskTest extends TaskTest {
 		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
 	}
 
+	public void testReadEmptyFirstRowXls() throws Exception {
+
+		String processId = "ReadEmptyFirstRowXlsTest";
+		String script =
+				"TASK READ XLS 'problem.xls' 'Report1' NO HEADERS COLUMNS 4, 8, 33 INTO SQL INSERT INTO test.threestrings (one, two, three) VALUES (?,?,?) END TASK\n" +
+				"";
+
+		Level logLevel = Level.error;
+		boolean logToConsole = true;
+
+		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
+	}
+
 	public void testReadFixed() throws Exception {
 
 		String processId = "ReadFixedTest";

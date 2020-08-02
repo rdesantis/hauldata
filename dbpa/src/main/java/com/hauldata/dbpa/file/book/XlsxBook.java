@@ -16,49 +16,32 @@
 
 package com.hauldata.dbpa.file.book;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.nio.file.Path;
 
-import com.hauldata.dbpa.file.File;
-import com.hauldata.dbpa.file.FileHandler;
-import com.hauldata.dbpa.file.Node;
-import com.hauldata.dbpa.file.PageOptions;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.Workbook;
 
 /**
  * Microsoft Excel XLSX workbook
  */
 public abstract class XlsxBook extends Book {
 
-	private static final String typeName = "XLSX file";
-	static public String typeName() { return typeName; }
-
-	public static void registerHandler(String name) {
-
-		Book.Factory targetBookFactory = new Book.Factory() {
-			public Book instantiate(Node.Owner owner, Object path, PageOptions options) { return new XlsxTargetBook((File.Owner)owner, (Path)path); }
-			public String getTypeName() { return typeName(); }
-		};
-		Sheet.Factory targetSheetFactory = new Sheet.Factory() {
-			public Sheet instantiate(Node.Owner book, Object name, PageOptions options) { return new XlsxTargetSheet((Book)book, (String)name, (XlsxTargetSheet.TargetOptions)options); }
-			public String getTypeName() { return XlsxSheet.typeName(); }
-		};
-
-		Book.Factory sourceBookFactory = new Book.Factory() {
-			public Book instantiate(Node.Owner owner, Object path, PageOptions options) { return new XlsxSourceBook((File.Owner)owner, (Path)path); }
-			public String getTypeName() { return typeName(); }
-		};
-		Sheet.Factory sourceSheetFactory = new Sheet.Factory() {
-			public Sheet instantiate(Node.Owner book, Object name, PageOptions options) { return new XlsxSourceSheet((Book)book, (String)name); }
-			public String getTypeName() { return XlsxSheet.typeName(); }
-		};
-
-		FileHandler.register(
-				name, true,
-				new TargetSheetPage.Factory(targetBookFactory, targetSheetFactory), new XlsxTargetSheet.TargetOptions.Parser(),
-				new SourceSheetPage.Factory(sourceBookFactory, sourceSheetFactory), null);
+	public interface WorkbookWrapper extends Closeable {
+		Workbook getBook();
 	}
 
-	protected XlsxBook(Owner owner, Path path) {
+	public interface WorkbookFactory {
+		WorkbookWrapper newSourceBook(String filename) throws InvalidFormatException, IOException;
+		WorkbookWrapper newTargetBook();
+	}
+
+	private String typeName;
+
+	protected XlsxBook(String typeName, Owner owner, Path path) {
 		super(owner, path);
+		this.typeName = typeName;
 	}
 
 	// Node overrides

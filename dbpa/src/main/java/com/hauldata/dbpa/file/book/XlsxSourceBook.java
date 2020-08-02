@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016-2017, 2020, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -20,34 +20,30 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
-import org.apache.poi.openxml4j.opc.OPCPackage;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.Workbook;
 
 public class XlsxSourceBook extends XlsxBook {
 
-	private OPCPackage pkg;
-	private XSSFWorkbook book;
+	private WorkbookFactory factory;
+	private WorkbookWrapper bookWrapper;
 
-	public XlsxSourceBook(Owner owner, Path path) {
-		super(owner, path);
-
-		pkg = null;
-		book = null;
+	public XlsxSourceBook(String typeName, String sheetTypeName, WorkbookFactory factory, Owner owner, Path path) {
+		super(typeName, owner, path);
+		this.factory = factory;
 	}
 
-	public XSSFWorkbook getBook() {
-		return book;
+	public Workbook getBook() {
+		return bookWrapper.getBook();
 	}
 
 	@Override
 	public void open() throws IOException {
 
 		try {
-			pkg = OPCPackage.open(new java.io.File(getName()));
-			book = new XSSFWorkbook(pkg);
+			bookWrapper = factory.newSourceBook(getName());
 		}
 		catch (InvalidFormatException ex) {
-			throw new RuntimeException(ex.getMessage());
+			throw new RuntimeException("File is not formatted as " + getTypeName());
 		}
 	}
 
@@ -62,7 +58,7 @@ public class XlsxSourceBook extends XlsxBook {
 	@Override
 	public void close() throws IOException {
 
-		pkg.close();
+		bookWrapper.close();
 	}
 
 	// Never called.

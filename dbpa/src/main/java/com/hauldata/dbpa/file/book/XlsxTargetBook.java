@@ -23,18 +23,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.xssf.streaming.SXSSFWorkbook;
-import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFColor;
-import org.apache.poi.xssf.usermodel.XSSFFont;
 
 public class XlsxTargetBook extends XlsxBook {
 
+	private WorkbookFactory factory;
 	private FileOutputStream out;
-	private SXSSFWorkbook book;
+	private WorkbookWrapper bookWrapper;
 
-	Map<StylesWithFormatting, XSSFCellStyle> stylesUsed;
-	Map<FontStyles, XSSFFont> fontsUsed;
+	Map<StylesWithFormatting, CellStyle> stylesUsed;
+	Map<FontStyles, Font> fontsUsed;
 	Map<Integer, XSSFColor> colorsUsed;
 
 	public enum XlsxCellStyle {
@@ -68,19 +68,20 @@ public class XlsxTargetBook extends XlsxBook {
 	private final String bigOtherDecimalFormatString = "#,##0.0#########";
 	private final String otherDecimalOnlyFormatString = ".0#########";
 
-	public XlsxTargetBook(Owner owner, Path path) {
-		super(owner, path);
+	public XlsxTargetBook(String typeName, String sheetTypeName, WorkbookFactory factory, Owner owner, Path path) {
+		super(typeName, owner, path);
+		this.factory = factory;
 
 		out = null;
-		book = null;
+		bookWrapper = null;
 
-		stylesUsed = new HashMap<StylesWithFormatting, XSSFCellStyle>();
-		fontsUsed = new HashMap<FontStyles, XSSFFont>();
+		stylesUsed = new HashMap<StylesWithFormatting, CellStyle>();
+		fontsUsed = new HashMap<FontStyles, Font>();
 		colorsUsed = new HashMap<Integer, XSSFColor>();
 	}
 
-	public SXSSFWorkbook getBook() {
-		return book;
+	public Workbook getBook() {
+		return bookWrapper.getBook();
 	}
 
 	public CellStyle getCellStyle(XlsxCellStyle style) {
@@ -93,7 +94,7 @@ public class XlsxTargetBook extends XlsxBook {
 	public void create() throws IOException {
 
 		out = new FileOutputStream(getName());
-		book = new SXSSFWorkbook();
+		bookWrapper = factory.newTargetBook();
 
 		cellStyles = new CellStyle[XlsxCellStyle.values().length];
 		createCellStyle(XlsxCellStyle.DATE, dateFormatString);
@@ -114,8 +115,8 @@ public class XlsxTargetBook extends XlsxBook {
 	private void createCellStyle(XlsxCellStyle style, String formatString) {
 
 		int index = style.ordinal();
-		cellStyles[index] = book.createCellStyle();
-		cellStyles[index].setDataFormat(book.createDataFormat().getFormat(formatString));
+		cellStyles[index] = bookWrapper.getBook().createCellStyle();
+		cellStyles[index].setDataFormat(bookWrapper.getBook().createDataFormat().getFormat(formatString));
 	}
 
 	@Override
@@ -137,9 +138,9 @@ public class XlsxTargetBook extends XlsxBook {
 
 		// Close the book.
 
-		book.write(out);
+		bookWrapper.getBook().write(out);
 		out.close();
-		book.dispose();
+		bookWrapper.close();
 	}
 
 	// Never called.

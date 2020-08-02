@@ -33,8 +33,8 @@ public class XlsxSourceSheet extends XlsxSheet {
 	private int rowIndex;
 	private Row row;
 
-	public XlsxSourceSheet(Book owner, String name) {
-		super(owner, name);
+	public XlsxSourceSheet(String typeName, Book owner, String name) {
+		super(typeName, owner, name);
 
 		sheet = null;
 		rowIndex = 0;

@@ -38,11 +38,10 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.FontUnderline;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
-import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFFont;
@@ -56,7 +55,7 @@ import com.hauldata.dbpa.file.html.HtmlOptions;
 
 public class XlsxTargetSheet extends XlsxSheet {
 
-	private SXSSFSheet sheet;
+	private org.apache.poi.ss.usermodel.Sheet sheet;
 	private int rowIndex;
 	private ArrayList<Object> rowValues;
 	private int columnCount;
@@ -64,8 +63,8 @@ public class XlsxTargetSheet extends XlsxSheet {
 
 	private ResolvedSheetStyles sheetStyles;
 
-	public XlsxTargetSheet(Book owner, String name, PageOptions options) {
-		super(owner, name, options);
+	public XlsxTargetSheet(String typeName, Book owner, String name, PageOptions options) {
+		super(typeName, owner, name, options);
 
 		sheet = null;
 		rowIndex = 0;
@@ -116,7 +115,9 @@ public class XlsxTargetSheet extends XlsxSheet {
 		sheetStyles = new ResolvedSheetStyles(getTargetOptions());
 
 		sheet = getOwner().getBook().createSheet(getName());
-		sheet.trackAllColumnsForAutoSizing();
+		if (sheet instanceof SXSSFSheet) {
+			((SXSSFSheet)sheet).trackAllColumnsForAutoSizing();
+		}
 
 		// The following is duplicated in DsvFile.create() and should probably be moved to common code
 		// but TxtFile has a different implementation.
@@ -575,19 +576,20 @@ class StylesWithFormatting {
 	 * @param stylesUsed tracks the styles that have been used in the workbook; it will be updated
 	 * @param fontsUsed tracks the fonts that have been used in the workbook; it may be updated
 	 * @param colorsUsed tracks the colors that have been used in the workbook; it may be updated
+	 * Note that color is only supported for XLSX files.  Color settings are ignored for XLS files.
 	 */
 	public CellStyle getCellStyle(
-			SXSSFWorkbook book,
-			Map<StylesWithFormatting, XSSFCellStyle> stylesUsed,
-			Map<FontStyles, XSSFFont> fontsUsed,
+			Workbook book,
+			Map<StylesWithFormatting, CellStyle> stylesUsed,
+			Map<FontStyles, Font> fontsUsed,
 			Map<Integer, XSSFColor> colorsUsed) {
 
-		XSSFCellStyle cellStyle = stylesUsed.get(this);
+		CellStyle cellStyle = stylesUsed.get(this);
 		if (cellStyle != null) {
 			return cellStyle;
 		}
 
-		cellStyle = (XSSFCellStyle)book.createCellStyle();
+		cellStyle = book.createCellStyle();
 		cellStyle.cloneStyleFrom(book.getCellStyleAt(formatIndex));
 
 		if (styles.bottomBorder.style != null) {
@@ -603,22 +605,26 @@ class StylesWithFormatting {
 			cellStyle.setBorderTop(resolveBorderStyle(styles.topBorder));
 		}
 
-		if (styles.bottomBorder.color != null) {
-			cellStyle.setBottomBorderColor(getColor(styles.bottomBorder.color, book, colorsUsed));
-		}
-		if (styles.leftBorder.color != null) {
-			cellStyle.setLeftBorderColor(getColor(styles.leftBorder.color, book, colorsUsed));
-		}
-		if (styles.rightBorder.color != null) {
-			cellStyle.setRightBorderColor(getColor(styles.rightBorder.color, book, colorsUsed));
-		}
-		if (styles.topBorder.color != null) {
-			cellStyle.setTopBorderColor(getColor(styles.topBorder.color, book, colorsUsed));
-		}
+		if (cellStyle instanceof XSSFCellStyle) {
+			XSSFCellStyle cellXStyle = (XSSFCellStyle)cellStyle;
 
-		if (styles.backgroundColor != null) {
-			cellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-			cellStyle.setFillForegroundColor(getColor(styles.backgroundColor, book, colorsUsed));
+			if (styles.bottomBorder.color != null) {
+				cellXStyle.setBottomBorderColor(getColor(styles.bottomBorder.color, book, colorsUsed));
+			}
+			if (styles.leftBorder.color != null) {
+				cellXStyle.setLeftBorderColor(getColor(styles.leftBorder.color, book, colorsUsed));
+			}
+			if (styles.rightBorder.color != null) {
+				cellXStyle.setRightBorderColor(getColor(styles.rightBorder.color, book, colorsUsed));
+			}
+			if (styles.topBorder.color != null) {
+				cellXStyle.setTopBorderColor(getColor(styles.topBorder.color, book, colorsUsed));
+			}
+
+			if (styles.backgroundColor != null) {
+				cellXStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+				cellXStyle.setFillForegroundColor(getColor(styles.backgroundColor, book, colorsUsed));
+			}
 		}
 
 		if (styles.textAlign != null) {
@@ -669,7 +675,7 @@ class StylesWithFormatting {
 		}
 	}
 
-	private static XSSFColor getColor(Integer rgb, SXSSFWorkbook book, Map<Integer, XSSFColor> colorsUsed) {
+	private static XSSFColor getColor(Integer rgb, Workbook book, Map<Integer, XSSFColor> colorsUsed) {
 
 		XSSFColor color = colorsUsed.get(rgb);
 		if (color != null) {
@@ -683,17 +689,19 @@ class StylesWithFormatting {
 		return color;
 	}
 
-	private static Font getFont(FontStyles fontStyles, SXSSFWorkbook book, Map<FontStyles, XSSFFont> fontsUsed, Map<Integer, XSSFColor> colorsUsed) {
+	private static Font getFont(FontStyles fontStyles, Workbook book, Map<FontStyles, Font> fontsUsed, Map<Integer, XSSFColor> colorsUsed) {
 
-		XSSFFont font = fontsUsed.get(fontStyles);
+		Font font = fontsUsed.get(fontStyles);
 		if (font != null) {
 			return font;
 		}
 
-		font = (XSSFFont)book.createFont();
+		font = book.createFont();
 
 		if (fontStyles.color != null) {
-			font.setColor(getColor(fontStyles.color, book, colorsUsed));
+			if (font instanceof XSSFFont) {
+				((XSSFFont)font).setColor(getColor(fontStyles.color, book, colorsUsed));
+			}
 		}
 
 		if (fontStyles.fontStyle != null) {
@@ -724,7 +732,7 @@ class StylesWithFormatting {
 				font.setStrikeout(true);
 				break;
 			case UNDERLINE:
-				font.setUnderline((fontStyles.textDecorationStyle == FontStyles.TextDecorationStyle.DOUBLE) ? FontUnderline.DOUBLE : FontUnderline.SINGLE);
+				font.setUnderline((fontStyles.textDecorationStyle == FontStyles.TextDecorationStyle.DOUBLE) ? Font.U_DOUBLE : Font.U_SINGLE);
 				break;
 			}
 		}

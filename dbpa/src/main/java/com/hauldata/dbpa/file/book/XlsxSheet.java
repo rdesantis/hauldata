@@ -19,19 +19,19 @@ package com.hauldata.dbpa.file.book;
 import com.hauldata.dbpa.file.PageOptions;
 
 /**
- * Microsoft Excel XLSX worksheet
+ * Microsoft Excel worksheet
  */
 public abstract class XlsxSheet extends com.hauldata.dbpa.file.book.Sheet {
 
-	static final String typeName = "XLSX sheet";
-	static public String typeName() { return typeName; }
+	private String typeName;
 
-	public XlsxSheet(Book owner, String name, PageOptions options) {
+	public XlsxSheet(String typeName, Book owner, String name, PageOptions options) {
 		super(owner, name, options);
+		this.typeName = typeName;
 	}
 
-	public XlsxSheet(Book owner, String name) {
-		this(owner, name, null);
+	public XlsxSheet(String typeName, Book owner, String name) {
+		this(typeName, owner, name, null);
 	}
 
 	// Node overrides
