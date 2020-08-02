@@ -22,12 +22,12 @@ import java.nio.file.Path;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Workbook;
 
-public class XlsxSourceBook extends XlsxBook {
+public class XlSourceBook extends XlBook {
 
 	private WorkbookFactory factory;
 	private WorkbookWrapper bookWrapper;
 
-	public XlsxSourceBook(String typeName, String sheetTypeName, WorkbookFactory factory, Owner owner, Path path) {
+	public XlSourceBook(String typeName, String sheetTypeName, WorkbookFactory factory, Owner owner, Path path) {
 		super(typeName, owner, path);
 		this.factory = factory;
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016-2017, 2020, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -21,16 +21,16 @@ import com.hauldata.dbpa.file.PageOptions;
 /**
  * Microsoft Excel worksheet
  */
-public abstract class XlsxSheet extends com.hauldata.dbpa.file.book.Sheet {
+public abstract class XlSheet extends com.hauldata.dbpa.file.book.Sheet {
 
 	private String typeName;
 
-	public XlsxSheet(String typeName, Book owner, String name, PageOptions options) {
+	public XlSheet(String typeName, Book owner, String name, PageOptions options) {
 		super(owner, name, options);
 		this.typeName = typeName;
 	}
 
-	public XlsxSheet(String typeName, Book owner, String name) {
+	public XlSheet(String typeName, Book owner, String name) {
 		this(typeName, owner, name, null);
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016-2017, 2020, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -24,9 +24,9 @@ import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Workbook;
 
 /**
- * Microsoft Excel XLSX workbook
+ * Microsoft Excel XLSX and XLS workbook
  */
-public abstract class XlsxBook extends Book {
+public abstract class XlBook extends Book {
 
 	public interface WorkbookWrapper extends Closeable {
 		Workbook getBook();
@@ -39,7 +39,7 @@ public abstract class XlsxBook extends Book {
 
 	private String typeName;
 
-	protected XlsxBook(String typeName, Owner owner, Path path) {
+	protected XlBook(String typeName, Owner owner, Path path) {
 		super(owner, path);
 		this.typeName = typeName;
 	}

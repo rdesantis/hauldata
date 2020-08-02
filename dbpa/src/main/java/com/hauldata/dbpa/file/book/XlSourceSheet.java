@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016-2017, 2020, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -27,13 +27,13 @@ import org.apache.poi.ss.usermodel.Sheet;
 import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.util.tokenizer.EndOfLine;
 
-public class XlsxSourceSheet extends XlsxSheet {
+public class XlSourceSheet extends XlSheet {
 
 	private Sheet sheet;
 	private int rowIndex;
 	private Row row;
 
-	public XlsxSourceSheet(String typeName, Book owner, String name) {
+	public XlSourceSheet(String typeName, Book owner, String name) {
 		super(typeName, owner, name);
 
 		sheet = null;
@@ -44,7 +44,7 @@ public class XlsxSourceSheet extends XlsxSheet {
 	@Override
 	public void open() throws IOException {
 
-		sheet = ((XlsxSourceBook)owner).getBook().getSheet(getName());
+		sheet = ((XlSourceBook)owner).getBook().getSheet(getName());
 		
 		// The following is duplicated in DsvFile.open() and should probably be moved to common code.
 

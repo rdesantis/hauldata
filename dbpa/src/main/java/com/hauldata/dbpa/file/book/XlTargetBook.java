@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Ronald DeSantis
+ * Copyright (c) 2016-2017, 2020, Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 
-public class XlsxTargetBook extends XlsxBook {
+public class XlTargetBook extends XlBook {
 
 	private WorkbookFactory factory;
 	private FileOutputStream out;
@@ -68,7 +68,7 @@ public class XlsxTargetBook extends XlsxBook {
 	private final String bigOtherDecimalFormatString = "#,##0.0#########";
 	private final String otherDecimalOnlyFormatString = ".0#########";
 
-	public XlsxTargetBook(String typeName, String sheetTypeName, WorkbookFactory factory, Owner owner, Path path) {
+	public XlTargetBook(String typeName, String sheetTypeName, WorkbookFactory factory, Owner owner, Path path) {
 		super(typeName, owner, path);
 		this.factory = factory;
 

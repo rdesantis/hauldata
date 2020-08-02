@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Ronald DeSantis
+ * Copyright (c) 2016, 2018, 2020 Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -50,10 +50,10 @@ import com.hauldata.dbpa.file.PageOptions;
 import com.hauldata.dbpa.file.TargetHeaders;
 import com.hauldata.dbpa.file.book.BorderStyles.BorderEdge;
 import com.hauldata.dbpa.file.book.BorderStyles.BorderWidth;
-import com.hauldata.dbpa.file.book.XlsxTargetBook.XlsxCellStyle;
+import com.hauldata.dbpa.file.book.XlTargetBook.XlsxCellStyle;
 import com.hauldata.dbpa.file.html.HtmlOptions;
 
-public class XlsxTargetSheet extends XlsxSheet {
+public class XlTargetSheet extends XlSheet {
 
 	private org.apache.poi.ss.usermodel.Sheet sheet;
 	private int rowIndex;
@@ -63,7 +63,7 @@ public class XlsxTargetSheet extends XlsxSheet {
 
 	private ResolvedSheetStyles sheetStyles;
 
-	public XlsxTargetSheet(String typeName, Book owner, String name, PageOptions options) {
+	public XlTargetSheet(String typeName, Book owner, String name, PageOptions options) {
 		super(typeName, owner, name, options);
 
 		sheet = null;
@@ -382,8 +382,8 @@ public class XlsxTargetSheet extends XlsxSheet {
 		return stylesWithFormatting.getCellStyle(getOwner().getBook(), getOwner().stylesUsed, getOwner().fontsUsed, getOwner().colorsUsed);
 	}
 
-	private XlsxTargetBook getOwner() {
-		return (XlsxTargetBook)owner;
+	private XlTargetBook getOwner() {
+		return (XlTargetBook)owner;
 	}
 
 	@Override
@@ -811,7 +811,7 @@ class ResolvedSheetStyles extends SheetStyles {
 		return areDefault;
 	}
 
-	public ResolvedSheetStyles(XlsxTargetSheet.TargetOptions options) {
+	public ResolvedSheetStyles(XlTargetSheet.TargetOptions options) {
 
 		super(options);
 
@@ -873,7 +873,7 @@ class SheetStyles {
 	public Styles headCellStyles;
 	public Styles bodyCellStyles;
 
-	public SheetStyles(XlsxTargetSheet.TargetOptions options) {
+	public SheetStyles(XlTargetSheet.TargetOptions options) {
 
 		tableStyles = Styles.parse(options.getTableStyle());
 		headStyles = Styles.parse(options.getHeadStyle());

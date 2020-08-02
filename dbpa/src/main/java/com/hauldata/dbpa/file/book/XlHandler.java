@@ -22,33 +22,33 @@ import com.hauldata.dbpa.file.File;
 import com.hauldata.dbpa.file.FileHandler;
 import com.hauldata.dbpa.file.Node;
 import com.hauldata.dbpa.file.PageOptions;
-import com.hauldata.dbpa.file.book.XlsxBook.WorkbookFactory;
+import com.hauldata.dbpa.file.book.XlBook.WorkbookFactory;
 
 public abstract class XlHandler {
 
 	protected static void register(String name, String typeName, String sheetTypeName, WorkbookFactory factory) {
 
 		Book.Factory targetBookFactory = new Book.Factory() {
-			public Book instantiate(Node.Owner owner, Object path, PageOptions options) { return new XlsxTargetBook(typeName, sheetTypeName, factory, (File.Owner)owner, (Path)path); }
+			public Book instantiate(Node.Owner owner, Object path, PageOptions options) { return new XlTargetBook(typeName, sheetTypeName, factory, (File.Owner)owner, (Path)path); }
 			public String getTypeName() { return typeName; }
 		};
 		Sheet.Factory targetSheetFactory = new Sheet.Factory() {
-			public Sheet instantiate(Node.Owner book, Object name, PageOptions options) { return new XlsxTargetSheet(sheetTypeName, (Book)book, (String)name, (XlsxTargetSheet.TargetOptions)options); }
+			public Sheet instantiate(Node.Owner book, Object name, PageOptions options) { return new XlTargetSheet(sheetTypeName, (Book)book, (String)name, (XlTargetSheet.TargetOptions)options); }
 			public String getTypeName() { return sheetTypeName; }
 		};
 
 		Book.Factory sourceBookFactory = new Book.Factory() {
-			public Book instantiate(Node.Owner owner, Object path, PageOptions options) { return new XlsxSourceBook(typeName, sheetTypeName, factory, (File.Owner)owner, (Path)path); }
+			public Book instantiate(Node.Owner owner, Object path, PageOptions options) { return new XlSourceBook(typeName, sheetTypeName, factory, (File.Owner)owner, (Path)path); }
 			public String getTypeName() { return typeName; }
 		};
 		Sheet.Factory sourceSheetFactory = new Sheet.Factory() {
-			public Sheet instantiate(Node.Owner book, Object name, PageOptions options) { return new XlsxSourceSheet(sheetTypeName, (Book)book, (String)name); }
+			public Sheet instantiate(Node.Owner book, Object name, PageOptions options) { return new XlSourceSheet(sheetTypeName, (Book)book, (String)name); }
 			public String getTypeName() { return sheetTypeName; }
 		};
 
 		FileHandler.register(
 				name, true,
-				new TargetSheetPage.Factory(targetBookFactory, targetSheetFactory), new XlsxTargetSheet.TargetOptions.Parser(),
+				new TargetSheetPage.Factory(targetBookFactory, targetSheetFactory), new XlTargetSheet.TargetOptions.Parser(),
 				new SourceSheetPage.Factory(sourceBookFactory, sourceSheetFactory), null);
 	}
 }
