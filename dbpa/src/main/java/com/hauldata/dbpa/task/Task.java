@@ -116,8 +116,8 @@ public abstract class Task {
 		return name;
 	}
 
-	public void setTaskNameFromIndex(int taskIndex) {
-		name = String.valueOf(taskIndex);
+	public void setTaskNameFromIndex(int taskIndex, int lineNumber) {
+		name = String.valueOf(taskIndex) + "@" + String.valueOf(lineNumber);
 	}
 
 	/**

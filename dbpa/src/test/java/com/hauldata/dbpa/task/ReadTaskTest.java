@@ -375,7 +375,7 @@ public class ReadTaskTest extends TaskTest {
 				"END TASK\n" +
 				"";
 
-		assertScriptFails("ReadFixedReversedColums", script, "1", "End column evaluates to less than start column in COLUMNS clause");
+		assertScriptFails("ReadFixedReversedColums", script, "1@6", "End column evaluates to less than start column in COLUMNS clause");
 
 		script =
 				"VARIABLES one INTEGER, two INTEGER END VARIABLES \n" +
@@ -386,6 +386,6 @@ public class ReadTaskTest extends TaskTest {
 				"END TASK\n" +
 				"";
 
-		assertScriptFails("ReadFixedNullColums", script, "1", "Start and/or end column in COLUMNS clause evaluates to NULL");
+		assertScriptFails("ReadFixedNullColums", script, "1@7", "Start and/or end column in COLUMNS clause evaluates to NULL");
 	}
 }

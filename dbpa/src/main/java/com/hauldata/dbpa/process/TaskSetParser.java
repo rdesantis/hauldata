@@ -606,7 +606,7 @@ public abstract class TaskSetParser {
 
 			Task task = parseTask(tasks, previousTask);
 			if (task.getTaskName() == null) {
-				task.setTaskNameFromIndex(taskIndex);
+				task.setTaskNameFromIndex(taskIndex, tokenizer.lineno());
 			}
 			tasks.put(task.getTaskName(), task);
 
