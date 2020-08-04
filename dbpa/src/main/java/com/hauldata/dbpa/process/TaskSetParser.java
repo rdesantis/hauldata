@@ -521,6 +521,7 @@ public abstract class TaskSetParser {
 		integerFunctionParsers.put(KW.ISNULL.name(), new IsNullParser<Integer>(integerTermParser));
 		integerFunctionParsers.put(KW.IIF.name(), new IfParser<Integer>(integerTermParser));
 		integerFunctionParsers.put(KW.CHOOSE.name(), new ChooseParser<Integer>(integerTermParser));
+		integerFunctionParsers.put(KW.CALL.name(), new CallParser<Integer>(integerTermParser));
 		integerFunctionParsers.put(KW.DATEPART.name(), new DatePartParser());
 		integerFunctionParsers.put(KW.CHARINDEX.name(), new CharIndexParser());
 		integerFunctionParsers.put(KW.LEN.name(), new LengthParser());
@@ -529,6 +530,7 @@ public abstract class TaskSetParser {
 		stringFunctionParsers.put(KW.ISNULL.name(), new IsNullParser<String>(stringTermParser));
 		stringFunctionParsers.put(KW.IIF.name(), new IfParser<String>(stringTermParser));
 		stringFunctionParsers.put(KW.CHOOSE.name(), new ChooseParser<String>(stringTermParser));
+		stringFunctionParsers.put(KW.CALL.name(), new CallParser<String>(stringTermParser));
 		stringFunctionParsers.put(KW.FORMAT.name(), new FormatParser());
 		stringFunctionParsers.put(KW.LEFT.name(), new LeftParser());
 		stringFunctionParsers.put(KW.LTRIM.name(), new LeftTrimParser());
@@ -549,6 +551,7 @@ public abstract class TaskSetParser {
 		datetimeFunctionParsers.put(KW.ISNULL.name(), new IsNullParser<LocalDateTime>(datetimeTermParser));
 		datetimeFunctionParsers.put(KW.IIF.name(), new IfParser<LocalDateTime>(datetimeTermParser));
 		datetimeFunctionParsers.put(KW.CHOOSE.name(), new ChooseParser<LocalDateTime>(datetimeTermParser));
+		datetimeFunctionParsers.put(KW.CALL.name(), new CallParser<LocalDateTime>(datetimeTermParser));
 		datetimeFunctionParsers.put(KW.GETDATE.name(), new GetDateParser());
 		datetimeFunctionParsers.put(KW.DATEADD.name(), new DateAddParser());
 		datetimeFunctionParsers.put(KW.DATEFROMPARTS.name(), new DateFromPartsParser());
@@ -557,6 +560,7 @@ public abstract class TaskSetParser {
 		tableFunctionParsers = new HashMap<String, FunctionParser<Table>>();
 		tableFunctionParsers.put(KW.IIF.name(), new IfParser<Table>(tableTermParser));
 		tableFunctionParsers.put(KW.CHOOSE.name(), new ChooseParser<Table>(tableTermParser));
+		tableFunctionParsers.put(KW.CALL.name(), new CallParser<Table>(tableTermParser));
 
 		this.variables = variables;
 		this.connections = connections;
@@ -3799,6 +3803,20 @@ public abstract class TaskSetParser {
 		}
 	}
 
+	private class CallParser<Type> implements FunctionParser<Type> {
+
+		private TermParser<Type> termParser;
+
+		public CallParser(TermParser<Type> termParser) {
+			this.termParser = termParser;
+		}
+
+		@Override
+		public Expression<Type> parse() throws InputMismatchException, NoSuchElementException, IOException {
+			return termParser.parseCall();
+		}
+	}
+
 	private abstract class TermParser<Type> {
 
 		private VariableType type;
@@ -3918,6 +3936,22 @@ public abstract class TaskSetParser {
 			} while (tokenizer.skipDelimiter(","));
 
 			return new Choose<Type>(index, expressions);
+		}
+
+		public Expression<Type> parseCall()
+				throws InputMismatchException, NoSuchElementException, IOException {
+
+			Expression<String> className = parseStringExpression();
+			tokenizer.nextDelimiter(",");
+			Expression<String> methodName = parseStringExpression();
+
+			List<ExpressionBase> expressions = new ArrayList<ExpressionBase>();
+			while (tokenizer.skipDelimiter(",")) {
+				ExpressionBase expression = parseAnyExpression();
+				expressions.add(expression);
+			}
+
+			return new Call<Type>(type, className, methodName, expressions);
 		}
 
 		public Expression<Type> parseReference()

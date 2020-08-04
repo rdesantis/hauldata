@@ -26,6 +26,10 @@ public class Table {
 		valuesLists = new LinkedList<List<Object>>();
 	}
 
+	public Table(List<List<Object>> valuesLists) {
+		this.valuesLists = valuesLists;
+	}
+
 	public List<List<Object>> getValuesLists() {
 		return valuesLists;
 	}
