@@ -156,16 +156,27 @@ public class CallTest extends TaskTest {
 		String script =
 				"PROCESS \n" +
 				"VARIABLES i INTEGER, v VARCHAR, d DATETIME, t TABLE; \n" +
-				"IF CALL('" + className + "', 'bitTrue') <> 1 FAIL 'bitTrue';\n" +
-				"IF CALL('" + className + "', 'five') <> 5 FAIL 'five';\n" +
-				"IF CALL('" + className + "', 'add', 321, 654) <> 975 FAIL 'add';\n" +
-				"SET v = CALL('" + className + "', 'fred');\n" +
+				"IF CALL(INTEGER, '" + className + "', 'bitTrue') <> 1 FAIL 'bitTrue';\n" +
+				"IF CALL(INTEGER, '" + className + "', 'five') <> 5 FAIL 'five';\n" +
+				"IF CALL(INTEGER, '" + className + "', 'add', 321, 654) <> 975 FAIL 'add';\n" +
+				"SET v = CALL(VARCHAR, '" + className + "', 'fred');\n" +
 				"IF  v <> 'fred' FAIL 'fred';\n" +
-				"SET v = CALL('" + className + "', 'left', 'something', 4);\n" +
+				"SET v = CALL(VARCHAR, '" + className + "', 'left', 'something', 4);\n" +
 				"IF  v <> 'some' FAIL 'left';\n" +
-				"setd: SET d = DATEADD(DAY, 0, CALL('" + className + "', 'now'));\n" +
-				"testd: IF d > GETDATE() FAIL 'now';\n" +
-//				"IF CALL('" + className + "', 'plusDays', '1/1/2021', 1) <> DATEADD(DAY, 1, '1/1/2021') FAIL 'plusDays';\n" +
+				"SET d = DATEADD(DAY, 0, CALL(DATETIME, '" + className + "', 'now'));\n" +
+				"IF d > GETDATE() FAIL 'now';\n" +
+				"setdd: SET d = CALL(DATETIME, '" + className + "', 'now');\n" +
+				"IF d > GETDATE() FAIL 'now';\n" +
+				"SET d = '1/1/2021';\n" +
+				"IF CALL(DATETIME, '" + className + "', 'plusDays', d, 1) <> DATEADD(DAY, 1, '1/1/2021') FAIL 'plusDays';\n" +
+				"IF CALL(DATETIME, '" + className + "', 'plusDays', d, 1) <> '1/2/2021' FAIL 'plusDays';\n" +
+				"INSERT INTO t VALUES (101, 'whatever', 66), (50, 'yep', 3123);\n" +
+				"IF CALL(INTEGER, '" + className + "', 'sum', t) <> 101 + 66 + 50 + 3123 FAIL 'sum';\n" +
+				"SET t = CALL(TABLE, '" + className + "', 'stuff');\n" +
+				"FOR v, i FROM VARIABLE t\n" +
+				"	LOG '''' + v + ''', ' + FORMAT(i, 'd');\n" +
+				"END FOR;\n" +
+				"IF CALL(INTEGER, '" + className + "', 'sum', t) <> 123 + 456 FAIL 'sum';\n" +
 				"END PROCESS \n" +
 				"";
 

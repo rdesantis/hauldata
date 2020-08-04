@@ -344,42 +344,6 @@ class DbProcessParser extends TaskSetParser {
 		return variable;
 	}
 
-	/**
-	 * Parse a data type
-	 *
-	 * @return the data type object
-	 * @throws InputMismatchException
-	 * @throws IOException
-	 */
-	private VariableType parseType() throws InputMismatchException, IOException {
-
-		String type = tokenizer.nextWordUpperCase();
-
-		if (type.equals(KW.TINYINT.name()) || type.equals(KW.INT.name()) || type.equals(KW.INTEGER.name())) {
-			return VariableType.INTEGER;
-		}
-		else if (type.equals(KW.BIT.name())) {
-			return VariableType.BIT;
-		}
-		else if (type.equals(KW.VARCHAR.name()) || type.equals(KW.CHAR.name()) || type.equals(KW.CHARACTER.name())) {
-			// Ignore length qualifier if present
-			if (tokenizer.skipDelimiter("(")) {
-				tokenizer.nextToken();
-				tokenizer.skipDelimiter(")");
-			}
-			return VariableType.VARCHAR;
-		}
-		else if (type.equals(KW.DATETIME.name()) || type.equals(KW.DATE.name())) {
-			return VariableType.DATETIME;
-		}
-		else if (type.equals(KW.TABLE.name() )) {
-			return VariableType.TABLE;
-		}
-		else {
-			return null;
-		}
-	}
-
 	private void parseConnections()
 			throws IOException, InputMismatchException, NoSuchElementException, NameAlreadyBoundException {
 

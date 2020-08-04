@@ -3941,13 +3941,21 @@ public abstract class TaskSetParser {
 		public Expression<Type> parseCall()
 				throws InputMismatchException, NoSuchElementException, IOException {
 
+			VariableType returnType = parseType();
+			if (returnType == null) {
+				throw new InputMismatchException("A type name must be the first argument to the CALL function");
+			}
+			if (returnType != type) {
+				throw new InputMismatchException("The return type specified in CALL cannot be used in this context");
+			}
+			tokenizer.nextDelimiter(",");
 			Expression<String> className = parseStringExpression();
 			tokenizer.nextDelimiter(",");
 			Expression<String> methodName = parseStringExpression();
 
 			List<ExpressionBase> expressions = new ArrayList<ExpressionBase>();
 			while (tokenizer.skipDelimiter(",")) {
-				ExpressionBase expression = parseAnyExpression();
+				ExpressionBase expression = parseAnyExpression(true);
 				expressions.add(expression);
 			}
 
@@ -3983,6 +3991,42 @@ public abstract class TaskSetParser {
 			}
 
 			return (Variable<Type>)variable;
+		}
+	}
+
+	/**
+	 * Parse a data type
+	 *
+	 * @return the data type object
+	 * @throws InputMismatchException
+	 * @throws IOException
+	 */
+	protected VariableType parseType() throws InputMismatchException, IOException {
+
+		String type = tokenizer.nextWordUpperCase();
+
+		if (type.equals(KW.TINYINT.name()) || type.equals(KW.INT.name()) || type.equals(KW.INTEGER.name())) {
+			return VariableType.INTEGER;
+		}
+		else if (type.equals(KW.BIT.name())) {
+			return VariableType.BIT;
+		}
+		else if (type.equals(KW.VARCHAR.name()) || type.equals(KW.CHAR.name()) || type.equals(KW.CHARACTER.name())) {
+			// Ignore length qualifier if present
+			if (tokenizer.skipDelimiter("(")) {
+				tokenizer.nextToken();
+				tokenizer.skipDelimiter(")");
+			}
+			return VariableType.VARCHAR;
+		}
+		else if (type.equals(KW.DATETIME.name()) || type.equals(KW.DATE.name())) {
+			return VariableType.DATETIME;
+		}
+		else if (type.equals(KW.TABLE.name() )) {
+			return VariableType.TABLE;
+		}
+		else {
+			return null;
 		}
 	}
 }
