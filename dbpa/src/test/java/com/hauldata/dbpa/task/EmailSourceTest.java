@@ -37,6 +37,10 @@ public class EmailSourceTest extends TaskTest {
 				"	WRITE XLSX 'email.xlsx' 'Attachment Count' FROM EMAIL SENDER, RECEIVED, SUBJECT, BODY, ATTACHMENT COUNT WHERE FOLDER 'InBox' SENDER 'desantis';\n" +
 				"	WRITE XLSX 'email.xlsx' 'Attachment Names' FROM EMAIL SENDER, RECEIVED, SUBJECT, BODY, ATTACHMENT NAME WHERE FOLDER 'InBox' SENDER 'desantis';\n" +
 				"	WRITE XLSX 'email.xlsx' 'Filtered Attachments' FROM EMAIL SENDER, RECEIVED, SUBJECT, BODY, ATTACHMENT NAME WHERE FOLDER 'InBox' ATTACHMENT NAME 'bage.xlsx';\n" +
+				"	WRITE XLSX 'email.xlsx' 'Detached' FROM EMAIL SENDER, RECEIVED, SUBJECT, ATTACHMENT NAME WHERE FOLDER 'InBox' ATTACHMENT NAME 'garbage' DETACH MARK READ;\n" +
+				"	WRITE XLSX 'email.xlsx' 'Unread' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT WHERE UNREAD FOLDER 'InBox' MARK READ;\n" +
+//				"	WRITE XLSX 'deleted.xlsx' 'Deleted' FROM EMAIL SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' SUBJECT 'delete me' DELETE;\n" +
+//				"	WRITE XLSX 'moved.xlsx' 'Moved' FROM EMAIL SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' SUBJECT 'move me' MOVE TO 'Another World';\n" +
 				"END PROCESS\n" +
 				"";
 

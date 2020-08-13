@@ -330,6 +330,10 @@ public class EmailSource implements Source {
 			messageIndex = -1;
 		}
 
+		protected boolean isMessageActionable() {
+			return true;
+		}
+
 		@Override
 		public Message getMessage() {
 			return message;
@@ -337,7 +341,7 @@ public class EmailSource implements Source {
 
 		@Override
 		public boolean next() {
-			if (0 <= messageIndex) {
+			if ((0 <= messageIndex) && isMessageActionable()) {
 				actOnMessage();
 			}
 
@@ -417,14 +421,20 @@ public class EmailSource implements Source {
 		private ArrayList<String> attachmentNames;
 
 		public AttachmentFilterIterator() {
-			iterator = new AttachmentProcessingIterator();
+			iterator = new AttachmentProcessingIterator() {
+				@Override
+				protected boolean isMessageActionable() {
+					return (0 < getAttachmentCount());
+				}
+			};
+
 			last = !lookAhead();
 			attachmentCount = 0;
 		}
 
 		private boolean lookAhead() {
 			while (iterator.next()) {
-				if (0 < iterator.getAttachmentCount()) {
+				if (iterator.isMessageActionable()) {
 					return true;
 				}
 			}

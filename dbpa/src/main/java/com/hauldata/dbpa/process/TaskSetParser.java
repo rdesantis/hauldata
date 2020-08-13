@@ -2623,7 +2623,7 @@ public abstract class TaskSetParser {
 
 		EmailSource.Status status = emailSourceStatusParser.parsePhrase();
 		if (status == null) {
-			status = EmailSource.Status.unread;
+			status = EmailSource.Status.all;
 		}
 
 		Expression<String> folder = null;
