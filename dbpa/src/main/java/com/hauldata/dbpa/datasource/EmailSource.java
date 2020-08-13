@@ -97,10 +97,7 @@ public class EmailSource implements Source {
 	private Message[] messages;
 	private Folder targetFolder;
 
-	private int messageIndex;
-	private Message message;
-	private int attachmentCount;
-	private int messageCount;
+	private Iterator iterator;
 
 	public EmailSource(
 			EmailConnection connection,
@@ -170,11 +167,7 @@ public class EmailSource implements Source {
 			SearchTerm searchTerm = buildSearchTerm();
 			messages = (searchTerm != null) ? folder.search(searchTerm) : folder.getMessages();
 
-			if (fields.contains(Field.count)) {
-				scanAllMessages();
-			}
-
-			messageIndex = -1;
+			iterator = makeIterator();
 		}
 		catch (MessagingException ex) {
 			throw new RuntimeException(ex.toString());
@@ -288,17 +281,22 @@ public class EmailSource implements Source {
 				new AndTerm(terms.toArray(new SearchTerm[terms.size()]));
 	}
 
-	private void scanAllMessages() throws InterruptedException {
-
-		int totalAttachmentCount = 0;
-		messageIndex = -1;
-		while (next()) {
-			totalAttachmentCount += attachmentCount;
+	private Iterator makeIterator() {
+		Iterator iterator;
+		if (fields.contains(Field.attachmentName)) {
+			iterator = new AttachmentNameIterator();
 		}
-		attachmentCount = totalAttachmentCount;
+		else if (attachmentName != null) {
+			iterator = new AttachmentFilterIterator();
+		}
+		else if (fields.contains(Field.attachmentCount) || detach) {
+			iterator = new AttachmentProcessingIterator();
+		}
+		else {
+			iterator = new SimpleIterator();
+		}
 
-		messageCount = messages.length;
-		messages = new Message[] { null };
+		return (fields.contains(Field.count)) ? new CountIterator(iterator) : iterator;
 	}
 
 	@Override
@@ -313,23 +311,232 @@ public class EmailSource implements Source {
 
 	@Override
 	public boolean next() throws InterruptedException {
-		if ((0 <= messageIndex) && (messages[messageIndex] != null)) {
-			actOnMessage();
+		return iterator.next();
+	}
+
+	private interface Iterator {
+		Message getMessage();
+
+		boolean next();
+		boolean isLast();
+	}
+
+	private class SimpleIterator implements Iterator {
+
+		protected int messageIndex;
+		protected Message message;
+
+		protected SimpleIterator() {
+			messageIndex = -1;
 		}
 
-		boolean hasNext = (++messageIndex < messages.length);
-		if (hasNext) {
-			message = messages[messageIndex];
-			countAttachments();
+		@Override
+		public Message getMessage() {
+			return message;
 		}
 
-		return hasNext;
+		@Override
+		public boolean next() {
+			if (0 <= messageIndex) {
+				actOnMessage();
+			}
+
+			boolean hasNext = (++messageIndex < messages.length);
+			if (hasNext) {
+				message = messages[messageIndex];
+				processAttachments();
+			}
+
+			return hasNext;
+		}
+
+		protected void processAttachments() {}
+
+		@Override
+		public boolean isLast() {
+			return (messageIndex == (messages.length - 1));
+		}
+	}
+
+	private interface AttachmentCountingIterator {
+		int getAttachmentCount();
+	}
+
+	class AttachmentProcessingIterator extends SimpleIterator implements AttachmentCountingIterator {
+		private ArrayList<String> attachmentNames;
+
+		public ArrayList<String> getAttachmentNames() { return attachmentNames; }
+
+		@Override
+		public int getAttachmentCount() { return attachmentNames.size(); }
+
+		@Override
+		protected void processAttachments() {
+			attachmentNames = new ArrayList<String>();
+			try {
+				Object content = message.getContent();
+				if (content instanceof Multipart) {
+					Multipart multipart = (Multipart)content;
+					for (int i = 0; i < multipart.getCount(); ++i) {
+						BodyPart bodyPart = multipart.getBodyPart(i);
+						if (
+								bodyPart instanceof MimeBodyPart &&
+								Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) &&
+								attachmentNameMatch(bodyPart.getFileName())) {
+
+							attachmentNames.add(bodyPart.getFileName());
+
+							if (detach) {
+								String filePath = attachmentTargetDirectory + "/" + bodyPart.getFileName();
+								((MimeBodyPart)bodyPart).saveFile(filePath);
+							}
+						}
+					}
+				}
+			}
+			catch (IOException | MessagingException ex) {
+				throw new RuntimeException("Error processing attachment: " + ex.toString());
+			}
+		}
+
+		private boolean attachmentNameMatch(String fileName) {
+			for (String term : attachmentNameSearchTerms) {
+				if (!fileName.contains(term)) {
+					return false;
+				}
+			}
+			return true;
+		}
+	}
+
+	class AttachmentFilterIterator implements Iterator, AttachmentCountingIterator {
+		private AttachmentProcessingIterator iterator;
+		private boolean last;
+		private Message message;
+		private int attachmentCount;
+		private ArrayList<String> attachmentNames;
+
+		public AttachmentFilterIterator() {
+			iterator = new AttachmentProcessingIterator();
+			last = !lookAhead();
+			attachmentCount = 0;
+		}
+
+		private boolean lookAhead() {
+			while (iterator.next()) {
+				if (0 < iterator.getAttachmentCount()) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		@Override
+		public Message getMessage() { return message; }
+
+		@Override
+		public int getAttachmentCount() { return attachmentCount; }
+
+		public ArrayList<String> getAttachmentNames() { return attachmentNames; }
+
+		@Override
+		public boolean next() {
+			if (last) {
+				return false;
+			}
+			else {
+				message = iterator.getMessage();
+				attachmentCount = iterator.getAttachmentCount();
+				attachmentNames = iterator.getAttachmentNames();
+
+				last = !lookAhead();
+
+				return true;
+			}
+		}
+
+		@Override
+		public boolean isLast() { return last; }
+	}
+
+	class AttachmentNameIterator implements Iterator, AttachmentCountingIterator {
+		private AttachmentFilterIterator iterator;
+		private int attachmentIndex;
+
+		public AttachmentNameIterator() {
+			iterator = new AttachmentFilterIterator();
+			attachmentIndex = -1;
+		}
+
+		public String getAttachmentName() {
+			return iterator.getAttachmentNames().get(attachmentIndex);
+		}
+
+		@Override
+		public int getAttachmentCount() {
+			return iterator.getAttachmentCount();
+		}
+
+		@Override
+		public Message getMessage() {
+			return iterator.getMessage();
+		}
+
+		@Override
+		public boolean next() {
+			if (++attachmentIndex < iterator.getAttachmentCount()) {
+				return true;
+			}
+			else if (!iterator.next()) {
+				return false;
+			}
+			else {
+				attachmentIndex = 0;
+				return true;
+			}
+		}
+
+		@Override
+		public boolean isLast() {
+			return iterator.isLast() && (attachmentIndex == (iterator.getAttachmentCount() - 1));
+		}
+	}
+
+	private class CountIterator implements Iterator {
+		private int count;
+		private boolean first;
+
+		public CountIterator(Iterator resultIterator) {
+			count = 0;
+			while (resultIterator.next()) {
+				++count;
+			}
+			first = true;
+		}
+
+		@Override
+		public Message getMessage() {
+			return null;
+		}
+
+		public int getCount() {
+			return count;
+		}
+
+		@Override
+		public boolean next() {
+			boolean result = first;
+			first = false;
+			return result;
+		}
+
+		@Override
+		public boolean isLast() {
+			return true;
+		}
 	}
 
 	private void actOnMessage() {
-		if (detach) {
-			saveAttachments();
-		}
 		if (markReadNotUnread != null) {
 			markRead(markReadNotUnread);
 		}
@@ -341,65 +548,9 @@ public class EmailSource implements Source {
 		}
 	}
 
-	private void saveAttachments() {
-		
-		try {
-			Object content = message.getContent();
-			if (content instanceof Multipart) {
-				Multipart multipart = (Multipart)content;
-				for (int i = 0; i < multipart.getCount(); ++i) {
-					BodyPart bodyPart = multipart.getBodyPart(i);
-					if (
-							bodyPart instanceof MimeBodyPart &&
-							Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) &&
-							attachmentNameMatch(bodyPart.getFileName())) {
-						String filePath = attachmentTargetDirectory + "/" + bodyPart.getFileName();
-						((MimeBodyPart)bodyPart).saveFile(filePath);
-					}
-				}
-			}
-		}
-		catch (IOException | MessagingException ex) {
-			throw new RuntimeException("Error saving attachment: " + ex.toString());
-		}
-	}
-
-	private void countAttachments() {
-		attachmentCount = 0;
-		if (fields.contains(Field.attachmentCount)) {
-			try {
-				Object content = message.getContent();
-				if (content instanceof Multipart) {
-					Multipart multipart = (Multipart)content;
-					for (int i = 0; i < multipart.getCount(); ++i) {
-						BodyPart bodyPart = multipart.getBodyPart(i);
-						if (
-								bodyPart instanceof MimeBodyPart &&
-								Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) &&
-								attachmentNameMatch(bodyPart.getFileName())) {
-							++attachmentCount;
-						}
-					}
-				}
-			}
-			catch (IOException | MessagingException ex) {
-				throw new RuntimeException("Error counting attachments: " + ex.toString());
-			}
-		}
-	}
-
-	private boolean attachmentNameMatch(String fileName) {
-		for (String term : attachmentNameSearchTerms) {
-			if (!fileName.contains(term)) {
-				return false;
-			}
-		}
-		return true;
-	}
-
 	private void markRead(boolean status) {
 		try {
-			message.setFlag(Flags.Flag.SEEN, status);
+			iterator.getMessage().setFlag(Flags.Flag.SEEN, status);
 		}
 		catch (MessagingException ex) {
 			throw new RuntimeException("Error marking message READ or UNREAD: " + ex.toString());
@@ -408,7 +559,7 @@ public class EmailSource implements Source {
 
 	private void move() {
 		try {
-			folder.copyMessages(new Message[] { message }, targetFolder);
+			folder.copyMessages(new Message[] { iterator.getMessage() }, targetFolder);
 		}
 		catch (MessagingException ex) {
 			throw new RuntimeException("Error copying message to target folder: " + ex.toString());
@@ -418,7 +569,7 @@ public class EmailSource implements Source {
 
 	private void delete() {
 		try {
-			message.setFlag(Flags.Flag.DELETED, true);
+			iterator.getMessage().setFlag(Flags.Flag.DELETED, true);
 			folder.expunge();
 		}
 		catch (MessagingException ex) {
@@ -431,35 +582,20 @@ public class EmailSource implements Source {
 		try {
 			switch (fields.get(columnIndex - 1)) {
 			case count:
-				return messageCount;
+				return ((CountIterator)iterator).getCount();
 			case sender:
-				return message.getFrom()[0].toString();
+				return iterator.getMessage().getFrom()[0].toString();
 			case received:
-				return message.getReceivedDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+				return iterator.getMessage().getReceivedDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
 			case subject:
-				return message.getSubject();
+				return iterator.getMessage().getSubject();
 			case body: {
-				Object content = message.getContent();
-				if (content instanceof Multipart) {
-					Multipart multipart = (Multipart)content;
-					content = "";
-					for (int i = 0; i < multipart.getCount(); ++i) {
-						BodyPart bodyPart =  multipart.getBodyPart(i);
-						if (
-								(!Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition())) &&
-								(bodyPart.isMimeType("text/plain") || bodyPart.isMimeType("text/html"))) {
-							content = bodyPart.getContent();
-							break;
-						}
-					}
-				}
-				return content.toString();
+				return getText(iterator.getMessage());
 			}
 			case attachmentCount:
-				return attachmentCount;
+				return ((AttachmentCountingIterator)iterator).getAttachmentCount();
 			case attachmentName:
-				// TODO
-				return null;
+				return ((AttachmentNameIterator)iterator).getAttachmentName();
 			default:
 				throw new RuntimeException("Internal error: EmailSource.getObject(int) unhandled field");
 			}
@@ -469,9 +605,52 @@ public class EmailSource implements Source {
 		}
 	}
 
+	/**
+     * Return the primary text content of the message.
+     * Copied directly from https://javaee.github.io/javamail/FAQ#mainbody
+     */
+	private String getText(Part p) throws MessagingException, IOException {
+		if (p.isMimeType("text/*")) {
+			String s = (String)p.getContent();
+			return s;
+		}
+
+		if (p.isMimeType("multipart/alternative")) {
+			// prefer html text over plain text
+			Multipart mp = (Multipart)p.getContent();
+			String text = null;
+			for (int i = 0; i < mp.getCount(); i++) {
+				Part bp = mp.getBodyPart(i);
+				if (bp.isMimeType("text/plain")) {
+					if (text == null)
+						text = getText(bp);
+					continue;
+				}
+				else if (bp.isMimeType("text/html")) {
+					String s = getText(bp);
+					if (s != null)
+					return s;
+				}
+				else {
+					return getText(bp);
+				}
+			}
+			return text;
+		}
+		else if (p.isMimeType("multipart/*")) {
+			Multipart mp = (Multipart)p.getContent();
+			for (int i = 0; i < mp.getCount(); i++) {
+				String s = getText(mp.getBodyPart(i));
+				if (s != null)
+					return s;
+			}
+		}
+		return null;
+	}
+
 	@Override
 	public boolean isLast() throws SQLException {
-		return (messageIndex == (messages.length - 1));
+		return iterator.isLast();
 	}
 
 	@Override

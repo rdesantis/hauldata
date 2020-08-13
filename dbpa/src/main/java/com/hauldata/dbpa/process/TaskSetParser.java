@@ -2759,10 +2759,8 @@ public abstract class TaskSetParser {
 			throw new InputMismatchException("Fewer fields were specified than variables to hold them");
 		}
 
-		if (fields.contains(EmailSource.Field.count) &&
-				(((fields.size() == 2) && !fields.contains(EmailSource.Field.attachmentCount)) ||
-				(2 < fields.size()))) {
-			throw new InputMismatchException(KW.COUNT.name() + " field can only be combined with " + KW.ATTACHMENT.name() + " " + KW.COUNT.name() + " field");
+		if (fields.contains(EmailSource.Field.count) && (1 < fields.size())) {
+			throw new InputMismatchException(KW.COUNT.name() + " field cannot be combined with any other field");
 		}
 
 		return fields;

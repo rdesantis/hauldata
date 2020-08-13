@@ -32,7 +32,11 @@ public class EmailSourceTest extends TaskTest {
 				"PROCESS\n" +
 				"	VARIABLES test EMAIL;\n" +
 				"	CONNECT EMAIL USING 'testdbpa.mail';\n" +
-				"	WRITE XLSX 'email.xlsx' 'Mail' FROM EMAIL SENDER, RECEIVED, SUBJECT, BODY, ATTACHMENT COUNT WHERE FOLDER 'InBox' SENDER 'cmtgroup.com';\n" +
+				"	WRITE XLSX 'email.xlsx' 'Count' FROM EMAIL COUNT WHERE FOLDER 'InBox';\n" +
+				"	WRITE XLSX 'email.xlsx' 'Fields' FROM EMAIL SENDER, RECEIVED, SUBJECT, BODY WHERE FOLDER 'InBox';\n" +
+				"	WRITE XLSX 'email.xlsx' 'Attachment Count' FROM EMAIL SENDER, RECEIVED, SUBJECT, BODY, ATTACHMENT COUNT WHERE FOLDER 'InBox' SENDER 'desantis';\n" +
+				"	WRITE XLSX 'email.xlsx' 'Attachment Names' FROM EMAIL SENDER, RECEIVED, SUBJECT, BODY, ATTACHMENT NAME WHERE FOLDER 'InBox' SENDER 'desantis';\n" +
+				"	WRITE XLSX 'email.xlsx' 'Filtered Attachments' FROM EMAIL SENDER, RECEIVED, SUBJECT, BODY, ATTACHMENT NAME WHERE FOLDER 'InBox' ATTACHMENT NAME 'bage.xlsx';\n" +
 				"END PROCESS\n" +
 				"";
 
