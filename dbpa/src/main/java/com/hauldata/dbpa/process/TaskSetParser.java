@@ -238,6 +238,19 @@ public abstract class TaskSetParser {
 		HTML,
 		ATTACH,
 		ATTACHMENT,
+		SELECT,
+		WHERE,
+		UNREAD,
+		//READ,		// Also a task type
+		COUNT,
+		FOLDER,
+		SENDER,
+		RECEIVED,
+		BEFORE,
+		CONTAINS,
+		DETACH,
+		MARK,
+		ALL,
 		DIRECTORY,
 		COMMAND,
 		SYNC,
@@ -391,6 +404,9 @@ public abstract class TaskSetParser {
 	protected Map<String, FunctionParser<String>> stringFunctionParsers;
 	protected Map<String, FunctionParser<LocalDateTime>> datetimeFunctionParsers;
 	protected Map<String, FunctionParser<Table>> tableFunctionParsers;
+
+	protected PhraseParser<EmailSource.Field> emailSourceFieldParser;
+	protected PhraseParser<EmailSource.Status> emailSourceStatusParser;
 
 	protected Map<String, VariableBase> variables;
 	protected Map<String, Connection> connections;
@@ -561,6 +577,24 @@ public abstract class TaskSetParser {
 		tableFunctionParsers.put(KW.IIF.name(), new IfParser<Table>(tableTermParser));
 		tableFunctionParsers.put(KW.CHOOSE.name(), new ChooseParser<Table>(tableTermParser));
 		tableFunctionParsers.put(KW.CALL.name(), new CallParser<Table>(tableTermParser));
+
+		emailSourceFieldParser = new PhraseParser<EmailSource.Field>(
+				new String[] {
+						KW.COUNT.name(),
+						KW.SENDER.name(),
+						KW.RECEIVED.name(),
+						KW.SUBJECT.name(),
+						KW.BODY.name(),
+						KW.ATTACHMENT.name() + " " + KW.COUNT.name(),
+						KW.ATTACHMENT.name() + " " + KW.NAME.name()},
+				EmailSource.Field.values());
+
+		emailSourceStatusParser = new PhraseParser<EmailSource.Status>(
+				new String[] {
+						KW.UNREAD.name(),
+						KW.READ.name(),
+						KW.ALL.name()},
+				EmailSource.Status.values());
 
 		this.variables = variables;
 		this.connections = connections;
@@ -2453,12 +2487,18 @@ public abstract class TaskSetParser {
 				else if (connection instanceof FtpConnection) {
 					return parseFtpSource((FtpConnection)connection, KW.FTP.name(), columnTypes);
 				}
+				else if (connection instanceof EmailConnection) {
+					return parseEmailSource((EmailConnection)connection, KW.EMAIL.name(), columnTypes);
+				}
 				else {
 					throw new InputMismatchException("A connection was specified that cannot be used in this context");
 				}
 			}
 			else if (tokenizer.skipWordIgnoreCase(KW.FTP.name())) {
 				return parseFtpSource(null, null, columnTypes);
+			}
+			else if (tokenizer.skipWordIgnoreCase(KW.EMAIL.name())) {
+				return parseEmailSource(null, null, columnTypes);
 			}
 			return parseDataSource(taskTypeName, null, singleRow, allowTable);
 		}
@@ -2569,6 +2609,215 @@ public abstract class TaskSetParser {
 		if ((columnTypes != null) && ((columnTypes.size() != 1) || (columnTypes.get(0) != VariableType.VARCHAR))) {
 			throw new InputMismatchException(sourceTypeName + " source returns a single column of VARCHAR type");
 		}
+	}
+
+	private Source parseEmailSource(EmailConnection connection, String introWord, ArrayList<VariableType> columnTypes) throws IOException {
+
+		if (introWord != null) {
+			tokenizer.skipWordIgnoreCase(introWord);
+		}
+
+		ArrayList<EmailSource.Field> fields = parseEmailSourceFields(columnTypes);
+
+		tokenizer.skipWordIgnoreCase(KW.WHERE.name());
+
+		EmailSource.Status status = emailSourceStatusParser.parsePhrase();
+		if (status == null) {
+			status = EmailSource.Status.unread;
+		}
+
+		Expression<String> folder = null;
+		if (tokenizer.skipWordIgnoreCase(KW.FOLDER.name())) {
+			folder = parseStringExpression();
+		}
+
+		List<Expression<String>> senders = null;
+		if (tokenizer.skipWordIgnoreCase(KW.SENDER.name())) {
+			senders = new LinkedList<Expression<String>>();
+			do {
+				senders.add(parseStringExpression());
+			} while (tokenizer.skipDelimiter(","));
+		}
+
+		if ((folder == null) && (senders == null)) {
+			throw new InputMismatchException("Either " + KW.FOLDER.name() + " or " + KW.SENDER.name() + " must be specified");
+		}
+
+		Expression<LocalDateTime> after = null;
+		Expression<LocalDateTime> before = null;
+		if (tokenizer.skipWordIgnoreCase(KW.RECEIVED.name())) {
+			if (tokenizer.skipWordIgnoreCase(KW.AFTER.name())) {
+				after = parseDatetimeExpression();
+			}
+			if (tokenizer.skipWordIgnoreCase(KW.BEFORE.name())) {
+				before = parseDatetimeExpression();
+			}
+			if ((before == null) && (after == null)) {
+				throw new InputMismatchException(KW.RECEIVED.name() + " must be followed by " + KW.BEFORE.name() + " and/or " + KW.AFTER.name());
+			}
+		}
+
+		List<Expression<String>> subject = null;
+		if (tokenizer.skipWordIgnoreCase(KW.SUBJECT.name())) {
+			subject = parseStringContains();
+		}
+
+		List<Expression<String>> body = null;
+		if (tokenizer.skipWordIgnoreCase(KW.BODY.name())) {
+			body = parseStringContains();
+		}
+
+		List<Expression<String>> attachmentName = null;
+		if (tokenizer.skipWordIgnoreCase(KW.ATTACHMENT.name())) {
+			if (!tokenizer.skipWordIgnoreCase(KW.NAME.name())) {
+				throw new InputMismatchException(KW.ATTACHMENT.name() + " must be followed by " + KW.NAME.name() + " in this context");
+			}
+			attachmentName = parseStringContains();
+		}
+
+		boolean detach = tokenizer.skipWordIgnoreCase(KW.DETACH.name());
+
+		Expression<String> attachmentDirectory = null;
+		if (detach && tokenizer.skipWordIgnoreCase(KW.TO.name())) {
+			attachmentDirectory = parseStringExpression();
+		}
+
+		Boolean markReadNotUnread = null;
+		if (tokenizer.skipWordIgnoreCase(KW.MARK.name())) {
+			if (tokenizer.skipWordIgnoreCase(KW.READ.name())) {
+				markReadNotUnread = true;
+			}
+			else if (tokenizer.skipWordIgnoreCase(KW.UNREAD.name())) {
+				markReadNotUnread = false;
+			}
+			else {
+				throw new InputMismatchException(KW.MARK.name() + " must be followed by " + KW.READ.name() + " or " + KW.UNREAD.name());
+			}
+		}
+
+		Expression<String> targetFolder = null;
+		if (tokenizer.skipWordIgnoreCase(KW.MOVE.name())) {
+			tokenizer.skipWordIgnoreCase(KW.TO.name());
+			targetFolder = parseStringExpression();
+		}
+
+		boolean delete = tokenizer.skipWordIgnoreCase(KW.DELETE.name());
+
+		if ((targetFolder != null) && delete) {
+			throw new InputMismatchException(KW.MOVE.name() + " and " + KW.DELETE.name() + " cannot both be specified");
+		}
+
+		return new EmailSource(
+				connection,
+				fields,
+				status,
+				folder,
+				senders,
+				after,
+				before,
+				subject,
+				body,
+				attachmentName,
+				detach,
+				attachmentDirectory,
+				markReadNotUnread,
+				targetFolder,
+				delete);
+	}
+
+	private ArrayList<EmailSource.Field> parseEmailSourceFields(ArrayList<VariableType> columnTypes) throws IOException {
+
+		tokenizer.skipWordIgnoreCase(KW.SELECT.name());
+
+		ArrayList<EmailSource.Field> fields = new ArrayList<EmailSource.Field>();
+
+		EmailSource.Field field = emailSourceFieldParser.parsePhrase();
+		if (field != null) {
+			for (int i = 0; ; ++i) {
+				if (columnTypes != null) {
+					if (columnTypes.size() <= i) {
+						throw new InputMismatchException("More fields were specified than variables to hold them");
+					}
+					if (columnTypes.get(i) != EmailSource.typeOf(field)) {
+						throw new InputMismatchException("Wrong variable type was specified for field #" + String.valueOf(i));
+					}
+				}
+
+				fields.add(field);
+				if (!tokenizer.skipDelimiter(",")) {
+					break;
+				}
+
+				field = emailSourceFieldParser.parsePhrase();
+				if (field == null) {
+					throw new InputMismatchException("Expecting " + KW.EMAIL.name() + " " + KW.SOURCE.name() + " field name, found " + tokenizer.nextToken().getImage());
+				}
+			}
+		}
+
+		if ((columnTypes != null) && (fields.size() < columnTypes.size())) {
+			throw new InputMismatchException("Fewer fields were specified than variables to hold them");
+		}
+
+		if (fields.contains(EmailSource.Field.count) &&
+				(((fields.size() == 2) && !fields.contains(EmailSource.Field.attachmentCount)) ||
+				(2 < fields.size()))) {
+			throw new InputMismatchException(KW.COUNT.name() + " field can only be combined with " + KW.ATTACHMENT.name() + " " + KW.COUNT.name() + " field");
+		}
+
+		return fields;
+	}
+
+	private class PhraseParser<T> {
+		private String[][] wordsOfPhrases;
+		private T[] values;
+
+		public PhraseParser(String[] phrases, T[] values) {
+			wordsOfPhrases = new String[phrases.length][];
+			for (int i = 0; i < phrases.length; ++i) {
+				wordsOfPhrases[i] = phrases[i].split(" ");
+			}
+			this.values = values;
+		}
+
+		public T parsePhrase() throws IOException {
+
+			if (tokenizer.hasNextWord()) {
+				BacktrackingTokenizerMark phraseMark = tokenizer.mark();
+
+				for (int i = 0; i < wordsOfPhrases.length; ++i) {
+					String[] wordsOfPhrase = wordsOfPhrases[i];
+					boolean isMatch = true;
+					for (int j = 0; j < wordsOfPhrase.length; ++j) {
+						if (!tokenizer.skipWordIgnoreCase(wordsOfPhrase[j])) {
+							isMatch = false;
+							break;
+						}
+					}
+
+					if (isMatch) {
+						return values[i];
+					}
+					else {
+						tokenizer.reset(phraseMark);
+					}
+				}
+			}
+
+			return null;
+		}
+	}
+
+	private List<Expression<String>> parseStringContains() throws IOException {
+
+		tokenizer.skipWordIgnoreCase(KW.CONTAINS.name());
+
+		List<Expression<String>> result = new LinkedList<Expression<String>>();
+		do {
+			result.add(parseStringExpression());
+		} while (tokenizer.skipWordIgnoreCase(KW.AND.name()));
+
+		return result;
 	}
 
 	private DataSource parseDataSource(String taskTypeName, DatabaseConnection connection, boolean singleRow, boolean allowTable) throws IOException {
