@@ -273,7 +273,7 @@ public class EmailSource implements Source {
 	private SearchTerm getContainsTerm(List<Expression<String>> expressions, Function<String, SearchTerm> newTerm) {
 
 		ArrayList<SearchTerm> terms = new ArrayList<SearchTerm>();
-		for (Expression<String> expression : subject) {
+		for (Expression<String> expression : expressions) {
 			terms.add(newTerm.apply(expression.evaluate()));
 		}
 		return

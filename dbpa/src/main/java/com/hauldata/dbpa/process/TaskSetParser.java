@@ -2636,7 +2636,7 @@ public abstract class TaskSetParser {
 			senders = new LinkedList<Expression<String>>();
 			do {
 				senders.add(parseStringExpression());
-			} while (tokenizer.skipDelimiter(","));
+			} while (tokenizer.skipWordIgnoreCase(KW.OR.name()));
 		}
 
 		if ((folder == null) && (senders == null)) {
