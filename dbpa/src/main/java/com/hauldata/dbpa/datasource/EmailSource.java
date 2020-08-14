@@ -18,7 +18,6 @@ package com.hauldata.dbpa.datasource;
 
 import java.io.IOException;
 import java.sql.Date;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -300,12 +299,12 @@ public class EmailSource implements Source {
 	}
 
 	@Override
-	public int getColumnCount() throws SQLException {
+	public int getColumnCount() {
 		return fields.size();
 	}
 
 	@Override
-	public String getColumnLabel(int column) throws SQLException {
+	public String getColumnLabel(int column) {
 		return fields.get(column - 1).name();
 	}
 
@@ -599,9 +598,8 @@ public class EmailSource implements Source {
 				return iterator.getMessage().getReceivedDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
 			case subject:
 				return iterator.getMessage().getSubject();
-			case body: {
+			case body:
 				return getText(iterator.getMessage());
-			}
 			case attachmentCount:
 				return ((AttachmentCountingIterator)iterator).getAttachmentCount();
 			case attachmentName:
@@ -659,19 +657,19 @@ public class EmailSource implements Source {
 	}
 
 	@Override
-	public boolean isLast() throws SQLException {
+	public boolean isLast() {
 		return iterator.isLast();
 	}
 
 	@Override
-	public void done(Context context) throws SQLException {}
+	public void done(Context context) {}
 
 	@Override
 	public void close(Context context) {
 		if (targetFolder != null) {
 			try { targetFolder.close(false); } catch (Exception ex) {}
 		}
-		if (targetFolder != null) {
+		if (folder != null) {
 			try { folder.close(false); } catch (Exception ex) {}
 		}
 		if ((store != null) && store.isConnected()) {
