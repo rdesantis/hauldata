@@ -45,7 +45,10 @@ public class XlSourceSheet extends XlSheet {
 	public void open() throws IOException {
 
 		sheet = ((XlSourceBook)owner).getBook().getSheet(getName());
-		
+		if (sheet == null ) {
+			throw new RuntimeException("Sheet does not exist: " + getName());
+		}
+
 		// The following is duplicated in DsvFile.open() and should probably be moved to common code.
 
 		SourceHeaders headers = getSourceHeaders();
@@ -60,13 +63,13 @@ public class XlSourceSheet extends XlSheet {
 						throw new RuntimeException("Expected column header '" + caption + "', found '" + captionFound + "'");
 					}
 				}
-	
+
 				if (readColumn(columnIndex) != EndOfLine.value) {
 					throw new RuntimeException("File has more column headers than specified");
 				}
 			}
 			else {
-				ArrayList<String> captions = new ArrayList<String>(); 
+				ArrayList<String> captions = new ArrayList<String>();
 
 				int columnIndex = 1;
 				for (Object value = null; (value = readColumn(columnIndex)) != EndOfLine.value; ++columnIndex) {

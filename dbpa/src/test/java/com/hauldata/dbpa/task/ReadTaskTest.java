@@ -249,6 +249,22 @@ public class ReadTaskTest extends TaskTest {
 		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
 	}
 
+	public void testReadNoSuchSheet() throws Exception {
+
+		String processId = "NoSuchSheetTest";
+		String script =
+				"PROCESS\n" +
+				"ShouldFail: READ XLSX 'problem.xlsx' 'Bogus' NO HEADERS COLUMNS 4, 8, 33 INTO SQL INSERT INTO test.threestrings (one, two, three) VALUES (?,?,?) END SQL;\n" +
+				"AFTER ShouldFail FAILS GO;\n" +
+				"AFTER ShouldFail SUCCEEDS FAIL 'The READ should have failed';\n" +
+				"END PROCESS\n";
+
+		Level logLevel = Level.error;
+		boolean logToConsole = true;
+
+		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
+	}
+
 	public void testReadFixed() throws Exception {
 
 		String processId = "ReadFixedTest";
