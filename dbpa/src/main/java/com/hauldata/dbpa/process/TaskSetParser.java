@@ -1292,7 +1292,7 @@ public abstract class TaskSetParser {
 
 			FileHandler handler = parseFileHandler(false);
 
-			PageIdentifierExpression page = parsePageIdentifier(handler);
+			PageIdentifierExpression page = parsePageIdentifier(handler, false);
 
 			PageOptions options = parseFileOptions(false, handler);
 
@@ -1308,7 +1308,7 @@ public abstract class TaskSetParser {
 
 			FileHandler handler = parseFileHandler(false);
 
-			PageIdentifierExpression page = parsePageIdentifier(handler);
+			PageIdentifierExpression page = parsePageIdentifier(handler, false);
 
 			ColumnExpressions columns = parseColumns();
 
@@ -1334,7 +1334,7 @@ public abstract class TaskSetParser {
 
 			FileHandler handler = parseFileHandler(false);
 
-			PageIdentifierExpression page = parsePageIdentifier(handler);
+			PageIdentifierExpression page = parsePageIdentifier(handler, false);
 
 			PageOptions options = parseFileOptions(false, handler);
 
@@ -1904,7 +1904,7 @@ public abstract class TaskSetParser {
 
 			FileHandler handler = parseFileHandler(false);
 
-			PageIdentifierExpression page = parsePageIdentifier(handler);
+			PageIdentifierExpression page = parsePageIdentifier(handler, false);
 
 			PageOptions options = parseFileOptions(false, handler);
 
@@ -3006,14 +3006,24 @@ public abstract class TaskSetParser {
 	}
 
 	private PageIdentifierExpression parsePageIdentifier(FileHandler handler) throws IOException {
+		return parsePageIdentifier(handler, true);
+	}
+
+	private PageIdentifierExpression parsePageIdentifier(FileHandler handler, boolean isSheetNameRequired) throws IOException {
 
 		Expression<String> filePath = parseStringExpression();
 		if ((handler == null) || !handler.getHasSheets()) {
 			return new FileIdentifierExpression(handler, filePath);
 		}
 		else {
-			Expression<String> sheetName = parseStringExpression();
-			tokenizer.skipWordIgnoreCase(KW.SHEET.name());
+			Expression<String> sheetName;
+			if (isSheetNameRequired || !tokenizer.skipWordIgnoreCase(KW.SHEET.name())) {
+				sheetName = parseStringExpression();
+				tokenizer.skipWordIgnoreCase(KW.SHEET.name());
+			}
+			else {
+				sheetName = new StringConstant("");
+			}
 			return new SheetIdentifierExpression(handler, filePath, sheetName);
 		}
 	}

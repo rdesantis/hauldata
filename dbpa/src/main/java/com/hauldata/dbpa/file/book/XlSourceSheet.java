@@ -23,6 +23,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 
 import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.util.tokenizer.EndOfLine;
@@ -44,10 +45,7 @@ public class XlSourceSheet extends XlSheet {
 	@Override
 	public void open() throws IOException {
 
-		sheet = ((XlSourceBook)owner).getBook().getSheet(getName());
-		if (sheet == null ) {
-			throw new RuntimeException("Sheet does not exist: " + getName());
-		}
+		getSheet();
 
 		// The following is duplicated in DsvFile.open() and should probably be moved to common code.
 
@@ -65,7 +63,7 @@ public class XlSourceSheet extends XlSheet {
 				}
 
 				if (readColumn(columnIndex) != EndOfLine.value) {
-					throw new RuntimeException("File has more column headers than specified");
+					throw new RuntimeException("Sheet has more column headers than specified");
 				}
 			}
 			else {
@@ -77,11 +75,27 @@ public class XlSourceSheet extends XlSheet {
 				}
 
 				if (captions.size() == 0) {
-					throw new RuntimeException("File was specified with column headers but header row is blank");
+					throw new RuntimeException("Sheet was specified with column headers but header row is blank");
 				}
 
 				headers.setCaptions(captions);
 			}
+		}
+	}
+
+	private void getSheet() {
+		Workbook book = ((XlSourceBook)owner).getBook();
+		if (!getName().isEmpty()) {
+			sheet = book.getSheet(getName());
+			if (sheet == null ) {
+				throw new RuntimeException("Sheet does not exist: " + getName());
+			}
+		}
+		else {
+			if (book.getNumberOfSheets() != 1) {
+				throw new RuntimeException("Workbook does not have exactly one sheet and a sheet name was not provided");
+			}
+			sheet = book.getSheetAt(0);
 		}
 	}
 

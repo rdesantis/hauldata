@@ -265,6 +265,20 @@ public class ReadTaskTest extends TaskTest {
 		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
 	}
 
+	public void testReadOmitSheetName() throws Exception {
+
+		String processId = "OmitSheetNameTest";
+		String script =
+				"PROCESS\n" +
+				"READ XLSX 'problem.xlsx' SHEET NO HEADERS COLUMNS 4, 8, 33 INTO SQL INSERT INTO test.threestrings (one, two, three) VALUES (?,?,?) END SQL;\n" +
+				"END PROCESS\n";
+
+		Level logLevel = Level.error;
+		boolean logToConsole = true;
+
+		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
+	}
+
 	public void testReadFixed() throws Exception {
 
 		String processId = "ReadFixedTest";
