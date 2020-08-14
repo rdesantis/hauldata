@@ -718,7 +718,7 @@ public abstract class TaskSetParser {
 			qualifier = parseStringExpression();
 		}
 
-		if (name != null) {
+		if ((name != null) || (qualifier != null)) {
 			delimitTaskName();
 		}
 

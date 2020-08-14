@@ -51,4 +51,17 @@ public class ForValuesTaskTest extends TaskTest {
 
 		assertFalse(recordIterator.hasNext());
 	}
+
+	public void testOfNewSyntax() {
+
+		String script =
+				"PROCESS VARIABLES file_name VARCHAR, remote_directory VARCHAR, source_type VARCHAR;\n" +
+				"FOR file_name FROM FTP '/' + remote_directory + '/*'\n" +
+				"	OF source_type: LOG file_name;\n" +
+				"END FOR\n" +
+				"END PROCESS\n" +
+				"";
+
+		assertGoodSyntax(script);
+	}
 }
