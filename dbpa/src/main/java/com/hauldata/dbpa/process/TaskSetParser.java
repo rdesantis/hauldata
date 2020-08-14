@@ -227,6 +227,7 @@ public abstract class TaskSetParser {
 		PREFIX,
 		BATCH,
 		SIZE,
+		DELIMITER,
 		BINARY,
 		ASCII,
 		THROUGH,
@@ -2980,13 +2981,18 @@ public abstract class TaskSetParser {
 
 		Expression<String> table = parseStringExpression();
 
+		Expression<String> delimiter = null;
+		if (tokenizer.skipWordIgnoreCase(KW.DELIMITER.name())) {
+			delimiter = parseStringExpression();
+		}
+
 		Expression<String> prefix = null;
 		if (tokenizer.skipWordIgnoreCase(KW.PREFIX.name())) {
 			tokenizer.skipWordIgnoreCase(KW.WITH.name());
 			prefix = parseStringExpression();
 		}
 
-		return new TableDataTarget(connection, batchSize, table, prefix);
+		return new TableDataTarget(connection, batchSize, table, delimiter, prefix);
 	}
 
 	private VariableBase parseVariableReference() throws InputMismatchException, NoSuchElementException, IOException {

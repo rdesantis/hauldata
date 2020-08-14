@@ -141,6 +141,23 @@ public class ReadTaskTest extends TaskTest {
 		assertFalse(recordIterator.hasNext());
 	}
 
+	public void testTableWithDelimiter() throws Exception {
+
+		String target = "../../../../target/test/resources/data/";
+
+		String processId = "ReadEmptyFirstRowXlsxTest";
+		String script =
+				"PROCESS\n" +
+				"WRITE CSV 'trivial.csv' FROM TABLE 'test.threestrings';\n" +
+				"READ CSV '" + target + "trivial.csv' INTO TABLE 'test.threestrings' DELIMITER '`';\n" +
+				"END PROCESS\n";
+
+		Level logLevel = Level.error;
+		boolean logToConsole = true;
+
+		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
+	}
+
 	public void testReadBadSyntax() throws Exception {
 		String script;
 		String message;

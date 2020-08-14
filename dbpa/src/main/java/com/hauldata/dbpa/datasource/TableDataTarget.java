@@ -28,16 +28,19 @@ import com.hauldata.dbpa.process.Context;
 public class TableDataTarget extends DataTarget {
 
 	Expression<String> table;
+	Expression<String> delimiter;
 	Expression<String> prefix;
 
 	public TableDataTarget(
 			DatabaseConnection connection,
 			Expression<Integer> batchSize,
 			Expression<String> table,
+			Expression<String> delimiter,
 			Expression<String> prefix) {
 
 		super(connection, batchSize);
 		this.table = table;
+		this.delimiter = delimiter;
 		this.prefix = prefix;
 	}
 
@@ -45,6 +48,7 @@ public class TableDataTarget extends DataTarget {
 	public void prepareStatement(Context context, SourceHeaders headers, Columns columns) throws SQLException {
 
 		String table = this.table.evaluate();
+		String delimiter = (this.delimiter != null) ? this.delimiter.evaluate() : "";
 		String prefix = (this.prefix != null) ? this.prefix.evaluate() : null;
 
 		List<String> captions = columns.getCaptions();
@@ -64,7 +68,7 @@ public class TableDataTarget extends DataTarget {
 				if (caption.length() == 0) {
 					throw new RuntimeException("File has a blank column header - not allowed when headers are not explicitly provided");
 				}
-				statement.append(separator).append(caption);
+				statement.append(separator).append(delimiter).append(caption).append(delimiter);
 				separator = ", ";
 			}
 			statement.append(") ");
