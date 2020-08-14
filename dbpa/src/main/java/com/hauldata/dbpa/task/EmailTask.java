@@ -44,6 +44,7 @@ public class EmailTask extends Task {
 	private Expression<String> from;
 	private List<Expression<String>> to;
 	private List<Expression<String>> cc;
+	private List<Expression<String>> bcc;
 	private Expression<String> subject;
 	private Expression<String> body;
 	private boolean isHtml;
@@ -55,6 +56,7 @@ public class EmailTask extends Task {
 			Expression<String> from,
 			List<Expression<String>> to,
 			List<Expression<String>> cc,
+			List<Expression<String>> bcc,
 			Expression<String> subject,
 			Expression<String> body,
 			boolean isHtml,
@@ -65,6 +67,7 @@ public class EmailTask extends Task {
 		this.from = from;
 		this.to = to;
 		this.cc = cc;
+		this.bcc = bcc;
 		this.subject = subject;
 		this.body = body;
 		this.isHtml = isHtml;
@@ -86,6 +89,9 @@ public class EmailTask extends Task {
 			}
 			for (Expression<String> cc : this.cc) {
 				Alert.addRecipients(message, Message.RecipientType.CC, cc.evaluate());
+			}
+			for (Expression<String> bcc : this.bcc) {
+				Alert.addRecipients(message, Message.RecipientType.BCC, bcc.evaluate());
 			}
 
 			if (subject != null) {

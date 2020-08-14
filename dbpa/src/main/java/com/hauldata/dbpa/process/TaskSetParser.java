@@ -232,6 +232,7 @@ public abstract class TaskSetParser {
 		THROUGH,
 		TO,
 		CC,
+		BCC,
 		SUBJECT,
 		BODY,
 		TEXT,
@@ -1648,6 +1649,13 @@ public abstract class TaskSetParser {
 				} while (tokenizer.skipDelimiter(","));
 			}
 
+			List<Expression<String>> bcc = new LinkedList<Expression<String>>();
+			if (tokenizer.skipWordIgnoreCase(KW.BCC.name())) {
+				do {
+					bcc.add(parseStringExpression());
+				} while (tokenizer.skipDelimiter(","));
+			}
+
 			Expression<String> subject = null;
 			if (tokenizer.skipWordIgnoreCase(KW.SUBJECT.name())) {
 				subject = parseStringExpression();
@@ -1672,7 +1680,7 @@ public abstract class TaskSetParser {
 				} while (tokenizer.skipDelimiter(","));
 			}
 
-			return new EmailTask(prologue, connection, from, to, cc, subject, body, isHtml, attachments);
+			return new EmailTask(prologue, connection, from, to, cc, bcc, subject, body, isHtml, attachments);
 		}
 	}
 
