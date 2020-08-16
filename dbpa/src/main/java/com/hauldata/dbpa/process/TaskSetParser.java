@@ -135,6 +135,7 @@ public abstract class TaskSetParser {
 
 		// Task types
 
+		DECLARE,
 		SET,
 		INSERT,
 		TRUNCATE,
@@ -333,7 +334,7 @@ public abstract class TaskSetParser {
 	public static TreeSet<String> reservedConnectionNames;
 
 	static {
-		KW firstTaskTypeKeyword = KW.SET;
+		KW firstTaskTypeKeyword = KW.DECLARE;
 		KW lastTaskTypeKeyword = KW.CALL;
 
 		taskTypeNames = Stream.of(KW.values()).filter(
@@ -484,6 +485,7 @@ public abstract class TaskSetParser {
 
 		taskParsers = new HashMap<String, TaskParser>();
 
+		taskParsers.put(KW.DECLARE.name(), new DeclareVariablesTaskParser());
 		taskParsers.put(KW.SET.name(), new SetVariablesTaskParser());
 		taskParsers.put(KW.INSERT.name(), new InsertTaskParser());
 		taskParsers.put(KW.TRUNCATE.name(), new TruncateTaskParser());
@@ -1050,6 +1052,100 @@ public abstract class TaskSetParser {
 
 	protected void endProcess(boolean isMain) throws IOException {
 		versionDependencies.endProcess(isMain);
+	}
+
+	class DeclareVariablesTaskParser implements TaskParser {
+
+		public Task parse(Prologue prologue) throws IOException, NamingException {
+
+			List<SetVariablesTask.Assignment> assignments = new LinkedList<SetVariablesTask.Assignment>();
+			do {
+				VariableBase variable = parseVariable(false);
+				if (variable != null) {
+					if (tokenizer.skipDelimiter("=")) {
+						ExpressionBase expression = parseExpression(variable.getType(), true);
+						assignments.add(new SetVariablesTask.Assignment(variable, expression));
+					}
+				}
+				else {
+					parseConnection(false);
+				}
+			} while (tokenizer.skipDelimiter(","));
+
+			return new SetVariablesTask(prologue, assignments);
+		}
+	}
+
+	protected VariableBase parseVariable(boolean isParameter)
+			throws InputMismatchException, NoSuchElementException, IOException, NameAlreadyBoundException {
+
+		BacktrackingTokenizerMark mark = tokenizer.mark();
+
+		String name = tokenizer.nextWordUpperCase();
+		if (variables.containsKey(name)) {
+			throw new NameAlreadyBoundException("Duplicate variable name: " + name);
+		}
+		else if (reservedVariableNames.contains(name)) {
+			throw new NameAlreadyBoundException("Cannot use reserved word as a variable name: " + name);
+		}
+		else if (connections.containsKey(name)) {
+			// This is not strictly necessary but it will eliminate certain confusing task constructs.
+			throw new NameAlreadyBoundException("Variable name cannot be the same as a connection name: " + name);
+		}
+
+		VariableBase variable = null;
+		VariableType type = parseType();
+
+		if (type != null) {
+			variable = new Variable<Object>(name, type);
+			variables.put(name, variable);
+		}
+		else if (isParameter) {
+			throw new InputMismatchException("Invalid variable type name: " + type);
+		}
+		else {
+			tokenizer.reset(mark);
+		}
+
+		return variable;
+	}
+
+	protected void parseConnection(boolean isConnection)
+			throws InputMismatchException, NoSuchElementException, IOException, NameAlreadyBoundException {
+
+		String name = tokenizer.nextWordUpperCase();
+		if (connections.containsKey(name)) {
+			throw new NameAlreadyBoundException("Duplicate " + entityTypeName(isConnection) + " name: " + name);
+		}
+		else if (reservedConnectionNames.contains(name)) {
+			throw new NameAlreadyBoundException("Cannot use reserved word as a connection name: " + name);
+		}
+		else if (variables.containsKey(name)) {
+			// This is not strictly necessary but it will eliminate certain confusing task constructs.
+			throw new NameAlreadyBoundException("Connection name cannot be the same as a variable name: " + name);
+		}
+
+		String type = tokenizer.nextWordUpperCase();
+		Connection connection = null;
+
+		if (type.equals(KW.DATABASE.name())) {
+			connection = new DatabaseConnection();
+		}
+		else if (type.equals(KW.FTP.name())) {
+			connection = new FtpConnection();
+		}
+		else if (type.equals(KW.EMAIL.name())) {
+			connection = new EmailConnection();
+		}
+		else {
+			throw new InputMismatchException("Invalid " + entityTypeName(isConnection) + " type name: " + type);
+		}
+
+		connections.put(name, connection);
+	}
+
+	private String entityTypeName(boolean isConnection) {
+		return isConnection ? "connection" : "variable";
 	}
 
 	class SetVariablesTaskParser implements TaskParser {

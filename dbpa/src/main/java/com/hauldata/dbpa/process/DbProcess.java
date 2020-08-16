@@ -32,12 +32,8 @@ import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
 import com.hauldata.dbpa.connection.Connection;
-import com.hauldata.dbpa.connection.DatabaseConnection;
-import com.hauldata.dbpa.connection.EmailConnection;
-import com.hauldata.dbpa.connection.FtpConnection;
 import com.hauldata.dbpa.task.Task;
 import com.hauldata.dbpa.variable.*;
-import com.hauldata.util.tokenizer.BacktrackingTokenizerMark;
 
 /**
  * Executable database process
@@ -314,36 +310,6 @@ class DbProcessParser extends TaskSetParser {
 		}
 	}
 
-	private VariableBase parseVariable(boolean isParameter)
-			throws InputMismatchException, NoSuchElementException, IOException, NameAlreadyBoundException {
-
-		BacktrackingTokenizerMark mark = tokenizer.mark();
-
-		String name = tokenizer.nextWordUpperCase();
-		if (variables.containsKey(name)) {
-			throw new NameAlreadyBoundException("Duplicate variable name: " + name);
-		}
-		else if (reservedVariableNames.contains(name)) {
-			throw new NameAlreadyBoundException("Cannot use reserved word as a variable name: " + name);
-		}
-
-		VariableBase variable = null;
-		VariableType type = parseType();
-
-		if (type != null) {
-			variable = new Variable<Object>(name, type);
-			variables.put(name, variable);
-		}
-		else if (isParameter) {
-			throw new InputMismatchException("Invalid variable type name: " + type);
-		}
-		else {
-			tokenizer.reset(mark);
-		}
-
-		return variable;
-	}
-
 	private void parseConnections()
 			throws IOException, InputMismatchException, NoSuchElementException, NameAlreadyBoundException {
 
@@ -355,43 +321,5 @@ class DbProcessParser extends TaskSetParser {
 
 			endSection(section);
 		}
-	}
-
-	private void parseConnection(boolean isConnection)
-			throws InputMismatchException, NoSuchElementException, IOException, NameAlreadyBoundException {
-
-		String name = tokenizer.nextWordUpperCase();
-		if (connections.containsKey(name)) {
-			throw new NameAlreadyBoundException("Duplicate " + entityTypeName(isConnection) + " name: " + name);
-		}
-		else if (reservedConnectionNames.contains(name)) {
-			throw new NameAlreadyBoundException("Cannot use reserved word as a connection name: " + name);
-		}
-		else if (variables.containsKey(name)) {
-			// This is not strictly necessary but it will eliminate certain confusing task constructs.
-			throw new NameAlreadyBoundException("Connection name cannot be the same as a variable name: " + name);
-		}
-
-		String type = tokenizer.nextWordUpperCase();
-		Connection connection = null;
-
-		if (type.equals(KW.DATABASE.name())) {
-			connection = new DatabaseConnection();
-		}
-		else if (type.equals(KW.FTP.name())) {
-			connection = new FtpConnection();
-		}
-		else if (type.equals(KW.EMAIL.name())) {
-			connection = new EmailConnection();
-		}
-		else {
-			throw new InputMismatchException("Invalid " + entityTypeName(isConnection) + " type name: " + type);
-		}
-
-		connections.put(name, connection);
-	}
-
-	private String entityTypeName(boolean isConnection) {
-		return isConnection ? "connection" : "variable";
 	}
 }
