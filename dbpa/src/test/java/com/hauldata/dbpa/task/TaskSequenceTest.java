@@ -62,13 +62,13 @@ public class TaskSequenceTest extends TaskTest {
 		assertEquals(DbProcess.startMessage, record.message);
 
 		record = recordIterator.next();
-		assertEquals("1", record.taskId);
+		assertEquals("1@1", record.taskId);
 		assertEquals("One", record.message);
 		record = recordIterator.next();
-		assertEquals("2", record.taskId);
+		assertEquals("2@2", record.taskId);
 		assertEquals("Two", record.message);
 		record = recordIterator.next();
-		assertEquals("3", record.taskId);
+		assertEquals("3@3", record.taskId);
 		assertEquals("Three", record.message);
 		record = recordIterator.next();
 		assertEquals("FOUR", record.taskId);
@@ -83,19 +83,19 @@ public class TaskSequenceTest extends TaskTest {
 		assertEquals("SEVEN", record.taskId);
 		assertEquals("Seven", record.message);
 		record = recordIterator.next();
-		assertEquals("8", record.taskId);
+		assertEquals("8@8", record.taskId);
 		assertEquals("Eight", record.message);
 		record = recordIterator.next();
-		assertEquals("9", record.taskId);
+		assertEquals("9@9", record.taskId);
 		assertEquals("Nine", record.message);
 		record = recordIterator.next();
-		assertEquals("10", record.taskId);
+		assertEquals("10@10", record.taskId);
 		assertEquals("Ten", record.message);
 		record = recordIterator.next();
-		assertEquals("11", record.taskId);
+		assertEquals("11@11", record.taskId);
 		assertEquals("Eleven", record.message);
 		record = recordIterator.next();
-		assertEquals("12", record.taskId);
+		assertEquals("12@12", record.taskId);
 		assertEquals(TaskSet.orphanedMessage, record.message);
 
 		record = recordIterator.next();

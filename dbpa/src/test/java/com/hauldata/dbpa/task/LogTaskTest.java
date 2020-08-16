@@ -109,7 +109,7 @@ public class LogTaskTest extends LogTaskTestBase {
 		recordIterator = analyzer.recordIterator(processId, Pattern.compile("\\d+.*"));
 
 		record = recordIterator.next();
-		assertEquals("4:one_two", record.taskId);
+		assertEquals("4@11:one_two", record.taskId);
 		assertEquals("uno_due", record.message);
 
 		assertFalse(recordIterator.hasNext());
