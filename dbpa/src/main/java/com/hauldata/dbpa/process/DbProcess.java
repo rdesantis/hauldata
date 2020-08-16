@@ -285,13 +285,20 @@ class DbProcessParser extends TaskSetParser {
 
 		String section = KW.PARAMETERS.name();
 		if (tokenizer.skipWordIgnoreCase(section)) {
-
-			do {
-				parameters.add(parseVariable(true));
-			} while (tokenizer.skipDelimiter(","));
-
+			parseParameterList(parameters);
 			endSection(section);
 		}
+		else if (tokenizer.skipDelimiter("(")) {
+			parseParameterList(parameters);
+			tokenizer.nextDelimiter(")");
+		}
+	}
+
+	private void parseParameterList(List<VariableBase> parameters)
+			throws IOException, InputMismatchException, NoSuchElementException, NameAlreadyBoundException {
+		do {
+			parameters.add(parseVariable(true));
+		} while (tokenizer.skipDelimiter(","));
 	}
 
 	private void parseVariables()

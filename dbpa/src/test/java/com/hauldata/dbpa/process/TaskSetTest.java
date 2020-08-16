@@ -508,6 +508,26 @@ public class TaskSetTest extends TaskTest {
 				"";
 		assertGoodSyntax(script);
 
+		script =
+				"PROCESS\n" +
+				"(\n" +
+					"d1 DATETIME, d2 DATETIME, d3 DATETIME, \n" +
+					"s1 VARCHAR, s2 VARCHAR, s3 VARCHAR, \n" +
+					"i1 INTEGER, i2 INTEGER, i3 INTEGER \n" +
+				")\n" +
+				"SET d2 = DATEADD(DAY, i1, d1);\n" +
+				"END PROCESS\n" +
+				"PROCESS local\n" +
+				"(\n" +
+					"d1 DATETIME, d2 DATETIME, d3 DATETIME, \n" +
+					"s1 VARCHAR, s2 VARCHAR, s3 VARCHAR, \n" +
+					"i1 INTEGER, i2 INTEGER, i3 INTEGER \n" +
+				")\n" +
+				"DECLARE s4 VARCHAR = s1 + s2 + s3;\n" +
+				"END PROCESS\n" +
+				"";
+		assertGoodSyntax(script);
+
 		Level logLevel = Level.message;
 		boolean logToConsole = true;
 
