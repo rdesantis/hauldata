@@ -581,6 +581,7 @@ public abstract class TaskSetParser {
 		tableFunctionParsers.put(KW.IIF.name(), new IfParser<Table>(tableTermParser));
 		tableFunctionParsers.put(KW.CHOOSE.name(), new ChooseParser<Table>(tableTermParser));
 		tableFunctionParsers.put(KW.CALL.name(), new CallParser<Table>(tableTermParser));
+		tableFunctionParsers.put(KW.VALUES.name(), new TableFromValuesParser());
 
 		emailSourceFieldParser = new PhraseParser<EmailSource.Field>(
 				new String[] {
@@ -4090,6 +4091,16 @@ public abstract class TaskSetParser {
 		}
 		else {
 			throw new InputMismatchException("Invalid " + KW.TABLE.name() + " expression term: " + tokenizer.nextToken().getImage());
+		}
+	}
+
+	private class TableFromValuesParser implements FunctionParser<Table> {
+
+		public Expression<Table> parse() throws InputMismatchException, NoSuchElementException, IOException {
+
+			ValuesSource source = parseValuesSource(false, null);
+
+			return new TableFromValues(source);
 		}
 	}
 

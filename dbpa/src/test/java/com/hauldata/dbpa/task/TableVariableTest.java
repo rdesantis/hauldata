@@ -155,6 +155,31 @@ public class TableVariableTest extends TaskTest {
 		assertFalse(recordIterator.hasNext());
 	}
 
+	public void testValuesFunction() throws Exception {
+
+		String processId = "ValuesFunctionTest";
+		String script =
+				"PROCESS \n" +
+				"DECLARE i INTEGER, v VARCHAR, t TABLE = VALUES((1, 'one'), (2, 'two')); \n" +
+				"FOR i, v FROM VARIABLE t \n" +
+				"	OF FORMAT(i, 'd') + ' ' + v:\n" +
+				"	DECLARE expected VARCHAR =\n" +
+				"		CASE i\n" +
+				"		WHEN 1 THEN 'one'\n" +
+				"		WHEN 2 THEN 'two'\n" +
+				"		ELSE NULL\n" +
+				"		END;\n" +
+				"	IF expected IS NULL OR v <> expected FAIL;\n" +
+				"END FOR \n" +
+				"END PROCESS\n" +
+				"";
+
+		Level logLevel = Level.info;
+		boolean logToConsole = true;
+
+		runScript(processId, logLevel, logToConsole, script, null, null, null);
+	}
+
 	public void testBadSyntax() throws Exception {
 		String script;
 
