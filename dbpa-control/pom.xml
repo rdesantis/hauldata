@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>com.hauldata</groupId>
 		<artifactId>dbpa-parent</artifactId>
-		<version>3.2</version>
+		<version>3.3</version>
 	</parent>
 
 	<artifactId>dbpa-control</artifactId>
@@ -23,7 +23,7 @@
 		<dependency>
 			<groupId>com.hauldata</groupId>
 			<artifactId>dbpa-manage-control</artifactId>
-			<version>3.2</version>
+			<version>3.3</version>
 		</dependency>
 		<dependency>
 			<groupId>com.hauldata</groupId>
