@@ -37,6 +37,7 @@ public abstract class TaskSet {
 
 	protected Map<String, Task> tasks;
 	private Task failedTask;
+	private Object returnValue;
 
 	protected TaskSet(Map<String, Task> tasks) {
 		this.tasks = tasks;
@@ -50,9 +51,14 @@ public abstract class TaskSet {
 		return failedTask;
 	}
 
+	public Object getReturnValue() {
+		return returnValue;
+	}
+
 	protected void runTasks(Context context) throws InterruptedException {
 
 		failedTask = null;
+		returnValue = null;
 
 		// Queue up the tasks that have no predecessors for execution.
 
@@ -172,6 +178,7 @@ public abstract class TaskSet {
 			}
 			else if (task.getResult() == Result.stopped) {
 				stopped = true;
+				returnValue = task.getReturnValue();
 			}
 			else if (task.getResult() == Result.breaking) {
 				breaking = true;

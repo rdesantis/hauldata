@@ -28,6 +28,7 @@ import com.hauldata.dbpa.expression.ExpressionBase;
 import com.hauldata.dbpa.expression.StringConstant;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.DbProcess;
+import com.hauldata.dbpa.variable.VariableBase;
 
 public class AsyncProcessTask extends ProcessTask {
 
@@ -37,9 +38,10 @@ public class AsyncProcessTask extends ProcessTask {
 			Prologue prologue,
 			Expression<String> name,
 			List<ExpressionBase> arguments,
+			VariableBase returnVariable,
 			Map<String, DbProcess> siblingProcesses) {
 
-		super(prologue, name, arguments, siblingProcesses);
+		super(prologue, name, arguments, returnVariable, siblingProcesses);
 		asyncSuccessors = new HashSet<Task>();
 	}
 
@@ -60,7 +62,7 @@ public class AsyncProcessTask extends ProcessTask {
 		
 		String asyncTaskName = getName() + "-async";
 		Map<Task, Task.Result> noPredecessors = new HashMap<Task, Task.Result>();
-		SyncProcessTask processTask = new SyncProcessTask(new Prologue(asyncTaskName, null, noPredecessors, null, null, null), evaluatedName, evaluatedArguments, siblingProcesses);
+		SyncProcessTask processTask = new SyncProcessTask(new Prologue(asyncTaskName, null, noPredecessors, null, null, null), evaluatedName, evaluatedArguments, returnVariable, siblingProcesses);
 
 		for (Task waitTask : asyncSuccessors) {
 			waitTask.putRemainingPredecessor(processTask, Result.completed);

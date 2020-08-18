@@ -24,6 +24,7 @@ import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.expression.ExpressionBase;
 import com.hauldata.dbpa.process.Context;
 import com.hauldata.dbpa.process.DbProcess;
+import com.hauldata.dbpa.variable.VariableBase;
 
 public class SyncProcessTask extends ProcessTask {
 
@@ -31,9 +32,10 @@ public class SyncProcessTask extends ProcessTask {
 			Prologue prologue,
 			Expression<String> name,
 			List<ExpressionBase> arguments,
+			VariableBase returnVariable,
 			Map<String, DbProcess> siblingProcesses) {
 
-		super(prologue, name, arguments, siblingProcesses);
+		super(prologue, name, arguments, returnVariable, siblingProcesses);
 	}
 
 	@Override
@@ -57,7 +59,10 @@ public class SyncProcessTask extends ProcessTask {
 			if (process == null) {
 				process = context.loader.load(processName);
 			}
-			process.run(args, childContext);
+			Object returnValue = process.run(args, childContext);
+			if (returnVariable != null) {
+				returnVariable.setValueChecked(returnValue);
+			}
 		}
 		catch (Exception ex) {
 			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();

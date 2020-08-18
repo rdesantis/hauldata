@@ -47,6 +47,7 @@ public abstract class Task {
 	private Map<Task, Result> remainingPredecessors;
 	private Exception exception;
 	private Result result;
+	private Object returnValue;
 
 	/**
 	 * Prologue to each task constructor
@@ -85,6 +86,20 @@ public abstract class Task {
 
 	public static class StoppedException extends RuntimeException {
 		private static final long serialVersionUID = 1L;
+
+		private Object returnValue;
+
+		public StoppedException() {
+			returnValue = null;
+		}
+
+		public StoppedException(Object returnValue) {
+			this.returnValue = returnValue;
+		}
+
+		public Object getReturnValue() {
+			return returnValue;
+		}
 	}
 
 	public static class BreakingException extends RuntimeException {
@@ -105,6 +120,7 @@ public abstract class Task {
 		this.successors = new LinkedList<Task>();
 		this.remainingPredecessors = new HashMap<Task, Task.Result>();
 		this.result = null;
+		this.returnValue = null;
 	}
 
 	// Getters and setters.
@@ -214,6 +230,7 @@ public abstract class Task {
 			context.logger.warn(name, stopMessage);
 
 			result = Result.stopped;
+			returnValue = ex.getReturnValue();
 		}
 		catch (BreakingException ex) {
 			context.logger.warn(name, breakingMessage);
@@ -286,6 +303,14 @@ public abstract class Task {
 	 */
 	public Result getResult() {
 		return result;
+	}
+
+	/**
+	 * @return the return value of the task.  Only the RETURN task sets
+	 * a return value.  For all others, this function returns null.
+	 */
+	public Object getReturnValue() {
+		return returnValue;
 	}
 
 	/**

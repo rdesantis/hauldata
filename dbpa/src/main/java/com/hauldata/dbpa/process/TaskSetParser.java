@@ -161,6 +161,7 @@ public abstract class TaskSetParser {
 		LOG,
 		GO,
 		STOP,
+		RETURN,
 		FAIL,
 		BREAK,
 		PROCESS,
@@ -511,6 +512,7 @@ public abstract class TaskSetParser {
 		taskParsers.put(KW.LOG.name(), new LogTaskParser());
 		taskParsers.put(KW.GO.name(), new GoTaskParser());
 		taskParsers.put(KW.STOP.name(), new StopTaskParser());
+		taskParsers.put(KW.RETURN.name(), new ReturnTaskParser());
 		taskParsers.put(KW.FAIL.name(), new FailTaskParser());
 		taskParsers.put(KW.BREAK.name(), new BreakTaskParser());
 		taskParsers.put(KW.PROCESS.name(), new ProcessTaskParser());
@@ -1890,6 +1892,17 @@ public abstract class TaskSetParser {
 		}
 	}
 
+	class ReturnTaskParser implements TaskParser {
+		@Override
+		public Task parse(Prologue prologue) throws IOException, NamingException {
+			ExpressionBase expression = null;
+			if (!atEndOfTask()) {
+				expression = parseAnyExpression();
+			}
+			return new ReturnTask(prologue, expression);
+		}
+	}
+
 	class FailTaskParser extends OptionalMessageTaskParser {
 		@Override
 		protected Task newTask(Task.Prologue prologue, Expression<String> message) {
@@ -1943,17 +1956,22 @@ public abstract class TaskSetParser {
 			Expression<String> name = parseStringExpression();
 
 			List<ExpressionBase> arguments = new LinkedList<ExpressionBase>();
-			if (tokenizer.skipWordIgnoreCase(KW.WITH.name()) || !atEndOfTask()) {
+			if (tokenizer.skipWordIgnoreCase(KW.WITH.name()) || (!atEndOfTask() && !tokenizer.hasNextWordIgnoreCase(KW.RETURNING.name()))) {
 				do {
 					arguments.add(parseAnyExpression(true));
 				} while (tokenizer.skipDelimiter(","));
 			}
 
+			VariableBase returnVariable = null;
+			if (tokenizer.skipWordIgnoreCase(KW.RETURNING.name())) {
+				returnVariable = parseVariableReference();
+			}
+
 			if (isSynchronous) {
-				return new SyncProcessTask(prologue, name, arguments, siblingProcesses);
+				return new SyncProcessTask(prologue, name, arguments, returnVariable, siblingProcesses);
 			}
 			else {
-				return new AsyncProcessTask(prologue, name, arguments, siblingProcesses);
+				return new AsyncProcessTask(prologue, name, arguments, returnVariable, siblingProcesses);
 			}
 		}
 	}

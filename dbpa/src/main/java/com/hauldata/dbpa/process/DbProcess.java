@@ -130,15 +130,15 @@ public class DbProcess extends TaskSet {
 	 * Caller must close the log.
 	 * @throws Exception
 	 */
-	public void run(String[] args, Context context) throws Exception {
-		run(new ParameterSetter() { public void set() { setParameters(args); } }, context);
+	public Object run(String[] args, Context context) throws Exception {
+		return run(new ParameterSetter() { public void set() { setParameters(args); } }, context);
 	}
 
-	public void run(List<Object> args, Context context) throws Exception {
-		run(new ParameterSetter() { public void set() { setParameters(args); } }, context);
+	public Object run(List<Object> args, Context context) throws Exception {
+		return run(new ParameterSetter() { public void set() { setParameters(args); } }, context);
 	}
 
-	public void run(ParameterSetter parameterSetter, Context context) throws Exception {
+	public Object run(ParameterSetter parameterSetter, Context context) throws Exception {
 
 		LocalDateTime startTime = LocalDateTime.now();
 
@@ -172,6 +172,8 @@ public class DbProcess extends TaskSet {
 
 			context.logger.message(processTaskId, elapsedMessageStem + formatElapsed(millis));
 		}
+
+		return getReturnValue();
 	}
 
 	@FunctionalInterface
