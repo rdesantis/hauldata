@@ -148,6 +148,7 @@ public abstract class TaskSetParser {
 		OPEN,
 		LOAD,
 		READ,
+		FLOW,
 		ZIP,
 		UNZIP,
 		PUT,
@@ -499,6 +500,7 @@ public abstract class TaskSetParser {
 		taskParsers.put(KW.OPEN.name(), new OpenTaskParser());
 		taskParsers.put(KW.LOAD.name(), new LoadTaskParser());
 		taskParsers.put(KW.READ.name(), new ReadTaskParser());
+		taskParsers.put(KW.FLOW.name(), new FlowTaskParser());
 		taskParsers.put(KW.ZIP.name(), new ZipTaskParser());
 		taskParsers.put(KW.UNZIP.name(), new UnzipTaskParser());
 		taskParsers.put(KW.PUT.name(), new PutTaskParser());
@@ -1586,6 +1588,17 @@ public abstract class TaskSetParser {
 		}
 	}
 
+	class FlowTaskParser implements TaskParser {
+
+		public Task parse(Prologue prologue) throws IOException, NamingException {
+
+			Source source = parseSource(KW.FLOW.name(), KW.FROM.name(), false, true, null);
+			Target target = parseDataTarget(KW.FLOW.name(), KW.INTO.name(), true, false);
+
+			return new FlowTask(prologue, source, target);
+		}
+	}
+
 	class ZipTaskParser implements TaskParser {
 
 		public Task parse(Task.Prologue prologue) throws IOException {
@@ -1893,7 +1906,7 @@ public abstract class TaskSetParser {
 	}
 
 	class ReturnTaskParser implements TaskParser {
-		@Override
+
 		public Task parse(Prologue prologue) throws IOException, NamingException {
 			ExpressionBase expression = null;
 			if (!atEndOfTask()) {

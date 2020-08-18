@@ -25,7 +25,7 @@ import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.process.Context;
 
-public abstract class DataTarget extends DataStore {
+public abstract class DataTarget extends DataStore implements Target {
 
 	private Expression<Integer> batchSizeExpression;
 
