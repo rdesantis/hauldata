@@ -83,8 +83,7 @@ public class ReturnTaskTest extends TaskTest {
 				"PROCESS\n" +
 				"DECLARE sum INTEGER = 0; \n" +
 				"RUN PROCESS ASYNC 'SlowAdd' 4, 5 RETURNING sum;\n" +
-//				"RUN PROCESS ASYNC 'Add' 1, 2 RETURNING sum;\n" +		// TODO: Fix bug in WAITFOR ASYNC not waiting
-				"SET sum = 999;\n" +
+				"RUN PROCESS ASYNC 'Add' 1, 2 RETURNING sum;\n" +
 				"wait_here: WAITFOR ASYNC;\n" +
 				"LOG 'sum = ' + FORMAT(sum, 'd');\n" +
 				"IF sum <> 9 FAIL;\n" +

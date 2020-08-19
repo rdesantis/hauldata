@@ -2178,12 +2178,10 @@ public abstract class TaskSetParser {
 							((AsyncProcessTask)predecessor).addAsyncSuccessor(waitTask);
 							updated = true;
 						}
-						else {
-							updated = updated || updateAsyncPredecessors(waitTask, predecessor, updated);
-						}
+						updated = updateAsyncPredecessors(waitTask, predecessor, updated) || updated;
 
 						if (predecessor instanceof TaskSetParent) {
-							updated = updated || updateNestedAsyncPredecessors(waitTask, (TaskSetParent)predecessor, updated);
+							updated = updateNestedAsyncPredecessors(waitTask, (TaskSetParent)predecessor, updated) || updated;
 						}
 					}
 				}
@@ -2203,7 +2201,7 @@ public abstract class TaskSetParser {
 				}
 
 				if (task instanceof TaskSetParent) {
-					updated = updated || updateNestedAsyncPredecessors(waitTask, (TaskSetParent)task, updated);
+					updated = updateNestedAsyncPredecessors(waitTask, (TaskSetParent)task, updated) || updated;
 				}
 			}
 
