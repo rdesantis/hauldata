@@ -145,14 +145,15 @@ public class ReadTaskTest extends TaskTest {
 
 		String target = "../../../../target/test/resources/data/";
 
-		String processId = "ReadEmptyFirstRowXlsxTest";
+		String processId = "ReadTableWithDelimiterTest";
 		String script =
 				"PROCESS\n" +
 				"WRITE CSV 'trivial.csv' FROM TABLE 'test.threestrings';\n" +
+				"RUN SQL TRUNCATE TABLE test.threestrings; END SQL;\n" +
 				"READ CSV '" + target + "trivial.csv' INTO TABLE 'test.threestrings' DELIMITER '`';\n" +
 				"END PROCESS\n";
 
-		Level logLevel = Level.error;
+		Level logLevel = Level.info;
 		boolean logToConsole = true;
 
 		runScript(processId, logLevel, logToConsole, script, null, null, DbProcessTestTables.assureExist);
@@ -244,7 +245,10 @@ public class ReadTaskTest extends TaskTest {
 
 		String processId = "ReadEmptyFirstRowXlsxTest";
 		String script =
-				"TASK READ XLSX 'problem.xlsx' 'Report1' NO HEADERS COLUMNS 4, 8, 33 INTO SQL INSERT INTO test.threestrings (one, two, three) VALUES (?,?,?) END TASK\n" +
+				"PROCESS\n" +
+				"RUN SQL TRUNCATE TABLE test.threestrings END SQL;\n" +
+				"READ XLSX 'problem.xlsx' 'Report1' NO HEADERS COLUMNS 4, 8, 33 INTO SQL INSERT INTO test.threestrings (one, two, three) VALUES (?,?,?) END SQL;\n" +
+				"END PROCESS\n" +
 				"";
 
 		Level logLevel = Level.error;
@@ -257,7 +261,10 @@ public class ReadTaskTest extends TaskTest {
 
 		String processId = "ReadEmptyFirstRowXlsTest";
 		String script =
-				"TASK READ XLS 'problem.xls' 'Report1' NO HEADERS COLUMNS 4, 8, 33 INTO SQL INSERT INTO test.threestrings (one, two, three) VALUES (?,?,?) END TASK\n" +
+				"PROCESS\n" +
+				"RUN SQL TRUNCATE TABLE test.threestrings END SQL;\n" +
+				"READ XLS 'problem.xls' 'Report1' NO HEADERS COLUMNS 4, 8, 33 INTO SQL INSERT INTO test.threestrings (one, two, three) VALUES (?,?,?) END SQL;\n" +
+				"END PROCESS\n" +
 				"";
 
 		Level logLevel = Level.error;
@@ -287,6 +294,7 @@ public class ReadTaskTest extends TaskTest {
 		String processId = "OmitSheetNameTest";
 		String script =
 				"PROCESS\n" +
+				"RUN SQL TRUNCATE TABLE test.threestrings; END SQL;\n" +
 				"READ XLSX 'problem.xlsx' SHEET NO HEADERS COLUMNS 4, 8, 33 INTO SQL INSERT INTO test.threestrings (one, two, three) VALUES (?,?,?) END SQL;\n" +
 				"END PROCESS\n";
 
