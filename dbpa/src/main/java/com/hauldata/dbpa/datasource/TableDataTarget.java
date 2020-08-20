@@ -17,12 +17,9 @@
 package com.hauldata.dbpa.datasource;
 
 import java.sql.SQLException;
-import java.util.List;
-
 import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.Columns;
-import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.process.Context;
 
 public class TableDataTarget extends DataTarget {
@@ -45,13 +42,11 @@ public class TableDataTarget extends DataTarget {
 	}
 
 	@Override
-	public void prepareStatement(Context context, SourceHeaders headers, Columns columns) throws SQLException {
+	public void prepareStatement(Context context, Columns columns) throws SQLException {
 
 		String table = this.table.evaluate();
 		String delimiter = (this.delimiter != null) ? this.delimiter.evaluate() : "";
 		String prefix = (this.prefix != null) ? this.prefix.evaluate() : null;
-
-		List<String> captions = columns.getCaptions();
 
 		StringBuilder statement = new StringBuilder();
 		if (prefix != null) {
@@ -60,11 +55,11 @@ public class TableDataTarget extends DataTarget {
 
 		statement.append("INSERT INTO ").append(table).append(" ");
 
-		if (headers.toMetadata()) {
+		if (columns.toMetadata()) {
 			statement.append("(");
 
 			String separator = "";
-			for (String caption : captions) {
+			for (String caption : columns.getCaptions()) {
 				if (caption.length() == 0) {
 					throw new RuntimeException("File has a blank column header - not allowed when headers are not explicitly provided");
 				}
@@ -77,7 +72,7 @@ public class TableDataTarget extends DataTarget {
 		statement.append("VALUES (");
 
 		String separator = "";
-		for (int i = 0; i < captions.size(); ++i) {
+		for (int i = 0; i < columns.size(); ++i) {
 			statement.append(separator).append("?");
 			separator = ",";
 		}

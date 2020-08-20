@@ -248,7 +248,7 @@ public abstract class RequestTask extends Task {
 				SourceHeaders headers = new SourceHeaders(true, false, true, keeperNames);
 				Columns columns = new Columns(null, headers);
 
-				target.prepareStatement(context, headers, columns);
+				target.prepareStatement(context, columns);
 			}
 		}
 

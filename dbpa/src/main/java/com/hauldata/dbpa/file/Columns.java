@@ -35,6 +35,7 @@ public class Columns {
 
 	private List<String> captions;
 	private int size;
+	private boolean toMetadata;
 
 	/**
 	 * Return the default mapping of source columns to target columns for a column list of a given size.
@@ -50,7 +51,7 @@ public class Columns {
 		}
 		return sourceColumnTargetColumnIndexes;
 	}
-	
+
 	/**
 	 * Constructor
 	 * 
@@ -66,6 +67,27 @@ public class Columns {
 		sourceColumnTargetColumnIndexes = resolvePositions(positions, headers);
 		captions = determineCaptions(positions, headers);
 		size = captions.size();
+		toMetadata = (headers instanceof SourceHeaders) ? ((SourceHeaders)headers).toMetadata() : false;
+	}
+
+	/**
+	 * Constructor
+	 */
+	public Columns(List<String> captions) {
+		sourceColumnTargetColumnIndexes = getDefaultSourceColumnTargetColumnIndexes(captions.size());
+		this.captions = captions;
+		size = captions.size();
+		toMetadata = true;
+	}
+
+	/**
+	 * Constructor
+	 */
+	public Columns(int size) {
+		sourceColumnTargetColumnIndexes = getDefaultSourceColumnTargetColumnIndexes(size);
+		captions = null;
+		this.size = size;
+		toMetadata = false;
 	}
 
 	/**
@@ -191,10 +213,19 @@ public class Columns {
 	}
 
 	/**
+	 * @return true if the column captions may be used as metadata.
+	 * If false, getCaptions() may return null or an empty list.
+	 */
+	public boolean toMetadata() {
+		return toMetadata;
+	}
+
+	/**
 	 * @return a non-null list of column captions with possible null place holders.
 	 * If the number of columns could not be deduced from the arguments, the list is empty.
 	 * If the list is not empty but the actual caption at a given column position
 	 * could not be determined, the corresponding list element is null.
+	 * @see #toMetadata()
 	 */
 	public List<String> getCaptions() {
 		return captions;

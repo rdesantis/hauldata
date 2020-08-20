@@ -132,6 +132,11 @@ public class EmailSource implements Source {
 	}
 
 	@Override
+	public boolean hasMetadata() {
+		return true;
+	}
+
+	@Override
 	public void executeQuery(Context context) throws InterruptedException {
 
 		attachmentNameSearchTerms = new LinkedList<String>();

@@ -43,6 +43,11 @@ public class ValuesSource implements Source {
 	}
 
 	@Override
+	public boolean hasMetadata() {
+		return false;
+	}
+
+	@Override
 	public void executeQuery(Context context) {
 		rowIterator = values.listIterator();
 	}

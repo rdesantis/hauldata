@@ -39,6 +39,11 @@ public class TableVariableSource implements Source {
 	}
 
 	@Override
+	public boolean hasMetadata() {
+		return false;
+	}
+
+	@Override
 	public void executeQuery(Context context) {
 		rowIterator = variable.getValue().getValuesLists().listIterator();
 	}

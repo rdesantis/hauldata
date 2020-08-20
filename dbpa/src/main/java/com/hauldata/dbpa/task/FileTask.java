@@ -64,7 +64,7 @@ public abstract class FileTask extends Task {
 			DataTarget target) {
 
 		try {
-			target.prepareStatement(context, headers, columns);
+			target.prepareStatement(context, columns);
 
 			page.read(columns, target);
 		}

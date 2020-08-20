@@ -134,7 +134,7 @@ public class ReadFixedTask extends Task {
 
 		try {
 			for (DataFixedFieldsTarget dataRecordTarget : dataRecordTargets) {
-				dataRecordTarget.getTarget().prepareStatement(context, null, null);
+				dataRecordTarget.getTarget().prepareStatement(context, null);
 			}
 
 			final int maxLevel = dataRecordTargets.size() - 1;

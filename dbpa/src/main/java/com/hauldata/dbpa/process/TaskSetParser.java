@@ -1593,7 +1593,7 @@ public abstract class TaskSetParser {
 		public Task parse(Prologue prologue) throws IOException, NamingException {
 
 			Source source = parseSource(KW.FLOW.name(), KW.FROM.name(), false, true, null);
-			Target target = parseDataTarget(KW.FLOW.name(), KW.INTO.name(), true, false);
+			Target target = parseDataTarget(KW.FLOW.name(), KW.INTO.name(), true, true);
 
 			return new FlowTask(prologue, source, target);
 		}
@@ -2489,7 +2489,7 @@ public abstract class TaskSetParser {
 			List<Expression<String>> targetIdentifiers = parseAliases(KW.KEEP.name(), false);
 			if (targetIdentifiers != null) {
 
-				DataTarget target = parseDataTarget(KW.REQUEST.name(), KW.INTO.name(), true, false);
+				DataTarget target = parseDataTarget(KW.REQUEST.name(), KW.INTO.name(), true, true);
 
 				targetWithKeepers = new TargetWithKeepers(target, targetIdentifiers);
 			}
@@ -2508,7 +2508,7 @@ public abstract class TaskSetParser {
 
 				skipRequiredWordIgnoreCase(KW.JOIN.name());
 
-				DataTarget target = parseDataTarget(KW.REQUEST.name(), null, true, false);
+				DataTarget target = parseDataTarget(KW.REQUEST.name(), null, true, true);
 
 				targetsWithKeepers.add(new TargetWithKeepers(target, targetIdentifiers));
 			}
@@ -3058,7 +3058,7 @@ public abstract class TaskSetParser {
 		}
 	}
 
-	private DataTarget parseDataTarget(String taskTypeName, String introWord, boolean allowTable, boolean haveHeaders) throws IOException {
+	private DataTarget parseDataTarget(String taskTypeName, String introWord, boolean allowTable, boolean willHaveColumnCount) throws IOException {
 
 		DatabaseConnection connection = parseDatabaseConnection(introWord);
 
@@ -3077,7 +3077,7 @@ public abstract class TaskSetParser {
 			return parseTokenizedStatementDataTarget(connection, batchSize);
 		}
 		else if (allowTable && tokenizer.skipWordIgnoreCase(KW.TABLE.name())) {
-			return parseTableDataTarget(connection, batchSize, haveHeaders);
+			return parseTableDataTarget(connection, batchSize, willHaveColumnCount);
 		}
 		else {
 			throw new InputMismatchException("Invalid data target in " + taskTypeName + " " + KW.TASK.name());
@@ -3099,10 +3099,10 @@ public abstract class TaskSetParser {
 		return new TokenizedStatementDataTarget(connection, batchSize, statement.toString());
 	}
 
-	private TableDataTarget parseTableDataTarget(DatabaseConnection connection, Expression<Integer> batchSize, boolean haveHeaders) throws IOException {
+	private TableDataTarget parseTableDataTarget(DatabaseConnection connection, Expression<Integer> batchSize, boolean willHaveColumnCount) throws IOException {
 
-		if (!haveHeaders) {
-			throw new RuntimeException(KW.READ.name() + " " + KW.INTO.name() + " " + KW.TABLE.name() + " requires column headers");
+		if (!willHaveColumnCount) {
+			throw new RuntimeException("Cannot use " + KW.NO.name() + " " + KW.HEADERS.name() + " or similar with " + KW.TABLE.name() + " data target");
 		}
 
 		Expression<String> table = parseStringExpression();

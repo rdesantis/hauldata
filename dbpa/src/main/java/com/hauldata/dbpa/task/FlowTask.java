@@ -16,8 +16,13 @@
 
 package com.hauldata.dbpa.task;
 
+import java.sql.SQLException;
+import java.util.LinkedList;
+import java.util.List;
+
 import com.hauldata.dbpa.datasource.Source;
 import com.hauldata.dbpa.datasource.Target;
+import com.hauldata.dbpa.file.Columns;
 import com.hauldata.dbpa.process.Context;
 
 public class FlowTask extends Task {
@@ -36,7 +41,7 @@ public class FlowTask extends Task {
 
 		try {
 			source.executeQuery(context);
-			target.prepareStatement(context, null, null);
+			target.prepareStatement(context, getColumns());
 
 			if ((0 <= target.getParameterCount()) && (target.getParameterCount() != source.getColumnCount())) {
 				throw new RuntimeException("Number of source columns does not match the number of target parameters");
@@ -55,6 +60,19 @@ public class FlowTask extends Task {
 		finally {
 			target.close(context);
 			source.close(context);
+		}
+	}
+
+	private Columns getColumns() throws SQLException {
+		if (source.hasMetadata()) {
+			List<String> columnNames = new LinkedList<String>();
+			for (int i = 1; i <= source.getColumnCount(); ++i) {
+				columnNames.add(source.getColumnLabel(i));
+			}
+			return new Columns(columnNames);
+		}
+		else {
+			return new Columns(source.getColumnCount());
 		}
 	}
 }

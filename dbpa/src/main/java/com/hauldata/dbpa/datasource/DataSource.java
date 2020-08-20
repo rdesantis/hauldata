@@ -42,6 +42,11 @@ public abstract class DataSource extends DataStore implements Source {
 	public abstract void executeUpdate(Context context) throws SQLException, InterruptedException;
 
 	@Override
+	public boolean hasMetadata() {
+		return true;
+	}
+
+	@Override
 	public abstract void executeQuery(Context context) throws SQLException, InterruptedException;
 
 	@Override

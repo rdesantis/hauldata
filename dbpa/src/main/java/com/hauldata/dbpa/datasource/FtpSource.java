@@ -39,6 +39,11 @@ public class FtpSource implements Source {
 	}
 
 	@Override
+	public boolean hasMetadata() {
+		return true;
+	}
+
+	@Override
 	public void executeQuery(Context context) {
 
 		String evaluatedPattern = fileNamePattern.evaluate();

@@ -44,6 +44,11 @@ public class FilesSource implements Source {
 	}
 
 	@Override
+	public boolean hasMetadata() {
+		return true;
+	}
+
+	@Override
 	public void executeQuery(Context context) throws SQLException, InterruptedException {
 
 		String evaluatedPattern = fileNamePattern.evaluate();

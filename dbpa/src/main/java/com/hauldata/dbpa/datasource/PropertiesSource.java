@@ -44,6 +44,11 @@ public class PropertiesSource implements Source {
 	}
 
 	@Override
+	public boolean hasMetadata() {
+		return true;
+	}
+
+	@Override
 	public void executeQuery(Context context) {
 
 		// Evaluate argument expressions.

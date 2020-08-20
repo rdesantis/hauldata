@@ -164,7 +164,7 @@ public class ReadTaskTest extends TaskTest {
 		String message;
 
 		script = "TASK READ CSV 'import no header.csv' WITH NO HEADERS INTO TABLE 'test.importtarget' END TASK \n";
-		message = "At line 1: READ INTO TABLE requires column headers";
+		message = "At line 1: Cannot use NO HEADERS or similar with TABLE data target";
 		assertBadSyntax(script, message);
 
 		script = "TASK READ CSV 'import arbitrary header.csv' WITH HEADERS 'Arbitrary','Random Stuff' COLUMNS 3, 2 INTO SQL INSERT INTO test.importtarget (number, word) VALUES (?, ?) END TASK \n";

@@ -22,7 +22,6 @@ import java.sql.SQLException;
 import com.hauldata.dbpa.connection.DatabaseConnection;
 import com.hauldata.dbpa.expression.Expression;
 import com.hauldata.dbpa.file.Columns;
-import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.process.Context;
 
 public abstract class DataTarget extends DataStore implements Target {
@@ -38,7 +37,7 @@ public abstract class DataTarget extends DataStore implements Target {
 		this.batchSizeExpression = batchSizeExpression;
 	}
 
-	public abstract void prepareStatement(Context context, SourceHeaders headers, Columns columns) throws SQLException;
+	public abstract void prepareStatement(Context context, Columns columns) throws SQLException;
 
 	protected void prepareStatement(Context context, String sql) throws SQLException {
 

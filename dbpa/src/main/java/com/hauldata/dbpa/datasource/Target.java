@@ -19,12 +19,11 @@ package com.hauldata.dbpa.datasource;
 import java.sql.SQLException;
 
 import com.hauldata.dbpa.file.Columns;
-import com.hauldata.dbpa.file.SourceHeaders;
 import com.hauldata.dbpa.process.Context;
 
 public interface Target {
 
-	void prepareStatement(Context context, SourceHeaders headers, Columns columns) throws SQLException;
+	void prepareStatement(Context context, Columns columns) throws SQLException;
 
 	int getParameterCount() throws SQLException;
 

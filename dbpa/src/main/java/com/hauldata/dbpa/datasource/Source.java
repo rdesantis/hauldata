@@ -22,6 +22,8 @@ import com.hauldata.dbpa.process.Context;
 
 public interface Source {
 
+	boolean hasMetadata();
+
 	void executeQuery(Context context) throws SQLException, InterruptedException;
 
 	int getColumnCount() throws SQLException;
