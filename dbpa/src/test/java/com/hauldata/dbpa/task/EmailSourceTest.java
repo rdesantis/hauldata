@@ -42,8 +42,8 @@ public class EmailSourceTest extends TaskTest {
 //				"	WRITE XLSX 'email.xlsx' 'Received After' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' RECEIVED AFTER '8/13/2020 3:00 PM';\n" +
 //				"	WRITE XLSX 'email.xlsx' 'Received Before' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' RECEIVED BEFORE '8/13/2020 3:03 PM';\n" +
 //				"	WRITE XLSX 'email.xlsx' 'Received Multi' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' RECEIVED AFTER '8/13/2020 3:00 PM' BEFORE '8/13/2020 3:03 PM';\n" +
-				"	WRITE XLSX 'email.xlsx' 'Sender Multi' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' SENDER 'desantis.pmp' OR 'google';\n" +
-				"	WRITE XLSX 'email.xlsx' 'Sender Comma' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' SENDER 'ronald.desantis.pmp@gmail.com, rdesantis@cmtgroup.com';\n" +
+//				"	WRITE XLSX 'email.xlsx' 'Sender Multi' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' SENDER 'desantis.pmp' OR 'google';\n" +
+//				"	WRITE XLSX 'email.xlsx' 'Sender Comma' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' SENDER 'ronald.desantis.pmp@gmail.com, rdesantis@cmtgroup.com';\n" +
 //				"	WRITE XLSX 'email.xlsx' 'Attachment Filter' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT, ATTACHMENT NAME WHERE FOLDER 'InBox' ATTACHMENT NAME 'bag' AND '.xlsx';\n" +
 //				"	WRITE XLSX 'email.xlsx' 'Body Filter' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' BODY 'has';\n" +
 //				"	WRITE XLSX 'email.xlsx' 'Body Multi' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' BODY 'has' AND 'attachment';\n" +
@@ -52,7 +52,7 @@ public class EmailSourceTest extends TaskTest {
 //				"	WRITE XLSX 'email.xlsx' 'Multi Filter' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT, ATTACHMENT NAME WHERE FOLDER 'InBox' SENDER 'desantis' SUBJECT 'testing' AND 'also' ATTACHMENT NAME 'bag' AND '.xlsx';\n" +
 //				"	WRITE XLSX 'email.xlsx' 'Another World' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT WHERE FOLDER 'Another World';\n" +
 //				"	WRITE XLSX 'deleted.xlsx' 'Deleted' FROM EMAIL SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' SUBJECT 'delete me' DELETE;\n" +
-//				"	WRITE XLSX 'moved.xlsx' 'Moved' FROM EMAIL SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' SUBJECT 'move me' MOVE TO 'Another World';\n" +
+				"	WRITE XLSX 'moved.xlsx' 'Moved' FROM EMAIL SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' SUBJECT 'move me' MOVE TO 'Somewhere Else';\n" +
 				"END PROCESS\n" +
 				"";
 

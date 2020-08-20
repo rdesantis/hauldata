@@ -160,6 +160,9 @@ public class EmailSource implements Source {
 
 			if (targetFolderName != null) {
 				targetFolder = store.getFolder(targetFolderName.evaluate());
+				if (!targetFolder.exists()) {
+					targetFolder.create(Folder.HOLDS_MESSAGES | Folder.HOLDS_FOLDERS);
+				}
 				targetFolder.open(Folder.READ_WRITE);
 			}
 
