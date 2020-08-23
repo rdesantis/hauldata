@@ -645,4 +645,17 @@ public class TaskSetTest extends TaskTest {
 		assertFalse(recordIterator.hasNext());
 	}
 
+	public void testFailLogging() throws Exception {
+
+		String processId = "FailLoggingTest";
+		String script =
+				"PROCESS\n" +
+				"DoLoop: DO\n" +
+				"DECLARE x VARCHAR = null;\n" +
+				"BadLog: LOG x;\n" +
+				"END DO\n" +
+				"END PROCESS\n";
+
+		assertScriptFails(processId, script, "DOLOOP", "Message evaluates to NULL");
+	}
 }

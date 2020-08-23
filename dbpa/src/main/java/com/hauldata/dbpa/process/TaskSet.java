@@ -30,7 +30,6 @@ import com.hauldata.dbpa.task.Task.Result;
  */
 public abstract class TaskSet {
 
-	public static final String failedMessage = "Last task failed";
 	public static final String orphanedMessage = "Task orphaned";
 	public static final String cancelledMessage = "Task cancelled";
 	public static final String interruptedMessage = "Process interrupted";
@@ -134,7 +133,7 @@ public abstract class TaskSet {
 			}
 
 			if (termination.failed) {
-				throw new RuntimeException(failedMessage);
+				throw new RuntimeException(failedTask.getException().getMessage());
 			}
 			else if (termination.stopped) {
 				throw new Task.StoppedException();
