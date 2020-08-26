@@ -617,7 +617,7 @@ public class EmailSource implements Source {
 			}
 		}
 		catch (MessagingException | IOException ex) {
-			throw new RuntimeException("Error retrieving field #" + String.valueOf(columnIndex) + " of type " +  fields.get(columnIndex).name() + ": " + ex.toString());
+			throw new RuntimeException("Error retrieving field #" + String.valueOf(columnIndex) + " of type " +  fields.get(columnIndex - 1).name() + ": " + ex.toString());
 		}
 	}
 
