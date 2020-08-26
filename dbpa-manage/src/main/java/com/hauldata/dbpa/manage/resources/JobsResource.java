@@ -589,12 +589,14 @@ public class JobsResource {
 				String jobName = rs.getString(2);
 				String scriptName = rs.getString(3);
 				boolean enabled = (rs.getInt(4) == 1);
+				String alertTo = rs.getString(5);
+				String logUsing = rs.getString(6);
 
 				List<ScriptArgument> arguments = getArguments(conn, argumentSql, id);
 
 				List<String> scheduleNames = getJobScheduleNames(conn, jobScheduleSql, id);
 
-				jobs.put(jobName, new Job(scriptName, arguments, scheduleNames, enabled));
+				jobs.put(jobName, new Job(scriptName, arguments, scheduleNames, enabled, alertTo, logUsing));
 			}
 		}
 		finally {

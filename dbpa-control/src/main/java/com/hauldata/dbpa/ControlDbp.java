@@ -102,6 +102,8 @@ public class ControlDbp {
 
 		ARGUMENT,
 		ENABLED,
+		ALERT,
+		LOG,
 
 		// Other
 
@@ -791,7 +793,7 @@ public class ControlDbp {
 
 	static abstract class WriteJobCommand implements TransitiveCommand {
 
-		protected enum Component { script, arguments, schedules, enabled };
+		protected enum Component { script, arguments, schedules, enabled, alertTo, logUsing };
 
 		@Override
 		public boolean supportsPlural() { return false; }
@@ -848,9 +850,21 @@ public class ControlDbp {
 				}
 			}
 
+			String alertTo = null;
+			if (tokenizer.skipWordIgnoreCase(KW.ALERT.name())) {
+				components.add(Component.alertTo);
+				alertTo = tokenizer.nextQuoted().getBody();
+			}
+
+			String logUsing = null;
+			if (tokenizer.skipWordIgnoreCase(KW.LOG.name())) {
+				components.add(Component.logUsing);
+				logUsing = tokenizer.nextQuoted().getBody();
+			}
+
 			endOfLine(tokenizer);
 
-			Job job = new Job(scriptName, arguments, scheduleNames, enabled);
+			Job job = new Job(scriptName, arguments, scheduleNames, enabled, alertTo, logUsing);
 
 			return execute(name, components, job);
 		}

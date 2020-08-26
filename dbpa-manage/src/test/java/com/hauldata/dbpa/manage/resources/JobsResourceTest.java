@@ -98,7 +98,7 @@ public class JobsResourceTest extends TestCase {
 		someSchedules.add("Monday");
 		someSchedules.add("Daily");
 
-		detritusJob = new Job(crapScriptName, someArguments, someSchedules, true);
+		detritusJob = new Job(crapScriptName, someArguments, someSchedules, true, null, null);
 	}
 
 	protected void tearDown() throws InterruptedException {
@@ -130,7 +130,7 @@ public class JobsResourceTest extends TestCase {
 
 	public void testPutOver() throws NameNotFoundException, SQLException {
 
-		Job job = new Job(crapScriptName, someArguments, someSchedules, true);
+		Job job = new Job(crapScriptName, someArguments, someSchedules, true, null, null);
 
 		int id = jobsResource.put(detritusName, job);
 
@@ -235,11 +235,11 @@ public class JobsResourceTest extends TestCase {
 			String garbageNameN = detritusName + String.valueOf(i);
 
 			deleteNoError(garbageNameN);
-			Job job = new Job(crapScriptName, someArguments, someSchedules, true);
+			Job job = new Job(crapScriptName, someArguments, someSchedules, true, null, null);
 			jobsResource.put(garbageNameN, job);
 		}
 		deleteNoError(differentName);
-		Job differentJob = new Job(crapScriptName, null, null, false);
+		Job differentJob = new Job(crapScriptName, null, null, false, null, null);
 		jobsResource.put(differentName, differentJob);
 
 		// Confirm all like named are found.  There may be other similarly named jobs too.
@@ -269,7 +269,7 @@ public class JobsResourceTest extends TestCase {
 		scriptsResource.put(sleepJobName, sleepScript);
 		assertTrue(scriptsResource.validate(sleepJobName).isValid());
 
-		Job job = new Job(sleepJobName, null, null, true);
+		Job job = new Job(sleepJobName, null, null, true, null, null);
 		jobsResource.put(sleepJobName, job);
 
 		int id = jobsResource.run(sleepJobName, null);
@@ -318,7 +318,7 @@ public class JobsResourceTest extends TestCase {
 		scriptsResource.put(stopJobName, sleepScript);
 		assertTrue(scriptsResource.validate(stopJobName).isValid());
 
-		Job job = new Job(stopJobName, null, null, true);
+		Job job = new Job(stopJobName, null, null, true, null, null);
 		jobsResource.put(stopJobName, job);
 
 		int id = jobsResource.run(stopJobName, null);
@@ -385,7 +385,7 @@ public class JobsResourceTest extends TestCase {
 		// Save the job, which will schedule it.
 		// Then wait long enough for it to complete.
 
-		Job job = new Job(scriptName, null, scheduleNames, true);
+		Job job = new Job(scriptName, null, scheduleNames, true, null, null);
 		jobsResource.put(jobName, job);
 
 		try {

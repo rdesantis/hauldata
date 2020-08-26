@@ -29,6 +29,8 @@ public class Job {
 	private List<ScriptArgument> arguments;
 	private List<String> scheduleNames;
 	private boolean enabled;
+	private String alertTo;
+	private String logUsing;
 
 	public Job() {
 		// Jackson deserialization
@@ -38,12 +40,16 @@ public class Job {
 			String scriptName,
 			List<ScriptArgument> arguments,
 			List<String> scheduleNames,
-			boolean enabled) {
+			boolean enabled,
+			String alertTo,
+			String logUsing) {
 
 		this.scriptName = scriptName;
 		this.arguments = arguments;
 		this.scheduleNames = scheduleNames;
 		this.enabled = enabled;
+		this.alertTo = alertTo;
+		this.logUsing = logUsing;
 	}
 
 	@Override
@@ -53,7 +59,9 @@ public class Job {
 				String.valueOf(scriptName) + "," +
 				String.valueOf(arguments) + "," +
 				String.valueOf(scheduleNames) + "," +
-				String.valueOf(enabled) +
+				String.valueOf(enabled) + "," +
+				String.valueOf(alertTo) + "," +
+				String.valueOf(logUsing) +
 				"}";
 	}
 
@@ -77,5 +85,15 @@ public class Job {
 	@JsonProperty
 	public boolean isEnabled() {
 		return enabled;
+	}
+
+	@JsonProperty
+	public String getAlertTo() {
+		return alertTo;
+	}
+
+	@JsonProperty
+	public String getLogUsing() {
+		return logUsing;
 	}
 }

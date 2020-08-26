@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Ronald DeSantis
+ * Copyright (c) 2016, 2020 Ronald DeSantis
  *
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
@@ -24,13 +24,13 @@ public class JobSql extends CommonSql {
 			"( id INTEGER, name VARCHAR(255) UNIQUE, scriptName VARCHAR(255), enabled TINYINT, PRIMARY KEY (id) )";
 	public final static String insert_ = "INSERT INTO %1$s" + tableName + " VALUES (?,?,?,?)";
 	public final static String selectLastId_ = "SELECT MAX(id) FROM %1$s" + tableName;
-	public final static String select_ = "SELECT id, name, scriptName, enabled FROM %1$s" + tableName + " WHERE name LIKE ? ORDER BY name";
+	public final static String select_ = "SELECT id, name, scriptName, enabled, alertTo, logUsing FROM %1$s" + tableName + " WHERE name LIKE ? ORDER BY name";
 	public final static String selectNames_ = "SELECT name FROM %1$s" + tableName + " WHERE name LIKE ? ORDER BY name";
 	public final static String selectId_ = "SELECT id FROM %1$s" + tableName + " WHERE name = ?";
 	public final static String selectIdEnabled_ = "SELECT id, enabled FROM %1$s" + tableName + " WHERE name = ?";
 	public final static String update_ = "UPDATE %1$s" + tableName + " SET scriptName = ?, enabled = ? WHERE id = ?";
 	public final static String delete_ = "DELETE FROM %1$s" + tableName + " WHERE id = ?";
-	public final static String selectAllColumns_ = "SELECT id, name, scriptName, enabled FROM %1$s" + tableName;
+	public final static String selectAllColumns_ = "SELECT id, name, scriptName, enabled, alertTo, logUsing FROM %1$s" + tableName;
 	public final static String dropTable_ = "DROP TABLE %1$s" + tableName;
 
 	public final static String updateField_ = "UPDATE %1$s" + tableName + " SET %%1$s = ? WHERE id = ?";
