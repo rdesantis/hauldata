@@ -37,7 +37,8 @@ public class EmailSourceTest extends TaskTest {
 //				"	WRITE XLSX 'email.xlsx' 'Attachment Count' FROM EMAIL SENDER, RECEIVED, SUBJECT, BODY, ATTACHMENT COUNT WHERE FOLDER 'InBox' SENDER 'desantis';\n" +
 //				"	WRITE XLSX 'email.xlsx' 'Attachment Names' FROM EMAIL SENDER, RECEIVED, SUBJECT, BODY, ATTACHMENT NAME WHERE FOLDER 'InBox' SENDER 'desantis';\n" +
 //				"	WRITE XLSX 'email.xlsx' 'Filtered Attachments' FROM EMAIL SENDER, RECEIVED, SUBJECT, BODY, ATTACHMENT NAME WHERE FOLDER 'InBox' ATTACHMENT NAME 'bage.xlsx';\n" +
-//				"	WRITE XLSX 'email.xlsx' 'Detached' FROM EMAIL SENDER, RECEIVED, SUBJECT, ATTACHMENT NAME WHERE FOLDER 'InBox' ATTACHMENT NAME 'garbage' DETACH MARK READ;\n" +
+				"	WRITE XLSX 'email.xlsx' 'Detached' FROM EMAIL SENDER, RECEIVED, SUBJECT, ATTACHMENT NAME WHERE FOLDER 'InBox' ATTACHMENT NAME 'garbage' DETACH MARK READ;\n" +
+				"	WRITE XLSX 'email.xlsx' 'Detached Elsewhere' FROM EMAIL SENDER, RECEIVED, SUBJECT, ATTACHMENT NAME WHERE FOLDER 'InBox' ATTACHMENT NAME 'garbage' DETACH TO 'Attachments';\n" +
 //				"	WRITE XLSX 'email.xlsx' 'Unread' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT WHERE UNREAD FOLDER 'InBox' MARK READ;\n" +
 //				"	WRITE XLSX 'email.xlsx' 'Received After' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' RECEIVED AFTER '8/13/2020 3:00 PM';\n" +
 //				"	WRITE XLSX 'email.xlsx' 'Received Before' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' RECEIVED BEFORE '8/13/2020 3:03 PM';\n" +
@@ -52,7 +53,7 @@ public class EmailSourceTest extends TaskTest {
 //				"	WRITE XLSX 'email.xlsx' 'Multi Filter' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT, ATTACHMENT NAME WHERE FOLDER 'InBox' SENDER 'desantis' SUBJECT 'testing' AND 'also' ATTACHMENT NAME 'bag' AND '.xlsx';\n" +
 //				"	WRITE XLSX 'email.xlsx' 'Another World' FROM EMAIL SELECT SENDER, RECEIVED, SUBJECT WHERE FOLDER 'Another World';\n" +
 //				"	WRITE XLSX 'deleted.xlsx' 'Deleted' FROM EMAIL SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' SUBJECT 'delete me' DELETE;\n" +
-				"	WRITE XLSX 'moved.xlsx' 'Moved' FROM EMAIL SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' SUBJECT 'move me' MOVE TO 'Somewhere Else';\n" +
+				"	WRITE XLSX 'moved.xlsx' 'Moved' FROM EMAIL SENDER, RECEIVED, SUBJECT WHERE FOLDER 'InBox' SUBJECT 'move me' DETACH MOVE TO 'Somewhere Else';\n" +
 				"END PROCESS\n" +
 				"";
 

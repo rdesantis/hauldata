@@ -376,6 +376,10 @@ public class EmailSource implements Source {
 	class AttachmentProcessingIterator extends SimpleIterator implements AttachmentCountingIterator {
 		private ArrayList<String> attachmentNames;
 
+		public AttachmentProcessingIterator() {
+			attachmentNames = new ArrayList<String>();
+		}
+
 		public ArrayList<String> getAttachmentNames() { return attachmentNames; }
 
 		@Override
@@ -383,20 +387,15 @@ public class EmailSource implements Source {
 
 		@Override
 		protected void processAttachments() {
-			attachmentNames = new ArrayList<String>();
+			attachmentNames.clear();
 			try {
 				Object content = message.getContent();
 				if (content instanceof Multipart) {
 					Multipart multipart = (Multipart)content;
 					for (int i = 0; i < multipart.getCount(); ++i) {
 						BodyPart bodyPart = multipart.getBodyPart(i);
-						if (
-								bodyPart instanceof MimeBodyPart &&
-								Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) &&
-								attachmentNameMatch(bodyPart.getFileName())) {
-
+						if (isMatchingAttachment(bodyPart)) {
 							attachmentNames.add(bodyPart.getFileName());
-
 							if (detach) {
 								String filePath = attachmentTargetDirectory + "/" + bodyPart.getFileName();
 								((MimeBodyPart)bodyPart).saveFile(filePath);
@@ -410,6 +409,13 @@ public class EmailSource implements Source {
 			}
 		}
 
+		protected boolean isMatchingAttachment(BodyPart bodyPart) throws MessagingException {
+			return
+					bodyPart instanceof MimeBodyPart &&
+					Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) &&
+					attachmentNameMatch(bodyPart.getFileName());
+		}
+
 		private boolean attachmentNameMatch(String fileName) {
 			for (String term : attachmentNameSearchTerms) {
 				if (!fileName.contains(term)) {
@@ -420,28 +426,12 @@ public class EmailSource implements Source {
 		}
 	}
 
-	class AttachmentFilterIterator implements Iterator, AttachmentCountingIterator {
-		private AttachmentProcessingIterator iterator;
-		private boolean last;
-		private Message message;
-		private int attachmentCount;
-		private ArrayList<String> attachmentNames;
+	class AttachmentFilterIterator extends AttachmentProcessingIterator {
 
-		public AttachmentFilterIterator() {
-			iterator = new AttachmentProcessingIterator() {
-				@Override
-				protected boolean isMessageActionable() {
-					return (0 < getAttachmentCount());
-				}
-			};
-
-			last = !lookAhead();
-			attachmentCount = 0;
-		}
-
-		private boolean lookAhead() {
-			while (iterator.next()) {
-				if (iterator.isMessageActionable()) {
+		@Override
+		public boolean next() {
+			while (super.next()) {
+				if (0 < getAttachmentCount()) {
 					return true;
 				}
 			}
@@ -449,31 +439,33 @@ public class EmailSource implements Source {
 		}
 
 		@Override
-		public Message getMessage() { return message; }
-
-		@Override
-		public int getAttachmentCount() { return attachmentCount; }
-
-		public ArrayList<String> getAttachmentNames() { return attachmentNames; }
-
-		@Override
-		public boolean next() {
-			if (last) {
-				return false;
+		public boolean isLast() {
+			for (int nextIndex = messageIndex + 1; nextIndex < messages.length; ++nextIndex) {
+				if (hasMatchingAttachment(messages[nextIndex])) {
+					return false;
+				}
 			}
-			else {
-				message = iterator.getMessage();
-				attachmentCount = iterator.getAttachmentCount();
-				attachmentNames = iterator.getAttachmentNames();
-
-				last = !lookAhead();
-
-				return true;
-			}
+			return true;
 		}
 
-		@Override
-		public boolean isLast() { return last; }
+		private boolean hasMatchingAttachment(Message message) {
+			try {
+				Object content = message.getContent();
+				if (content instanceof Multipart) {
+					Multipart multipart = (Multipart)content;
+					for (int i = 0; i < multipart.getCount(); ++i) {
+						BodyPart bodyPart = multipart.getBodyPart(i);
+						if (isMatchingAttachment(bodyPart)) {
+							return true;
+						}
+					}
+				}
+			}
+			catch (IOException | MessagingException ex) {
+				throw new RuntimeException("Error looking for attachment: " + ex.toString());
+			}
+			return false;
+		}
 	}
 
 	class AttachmentNameIterator implements Iterator, AttachmentCountingIterator {
