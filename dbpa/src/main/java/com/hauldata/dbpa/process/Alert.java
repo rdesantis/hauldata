@@ -45,7 +45,7 @@ public class Alert {
 			processID = "[name omitted]";
 		}
 
-		Properties properties = contextProps.getProperties("mail");
+		Properties properties = contextProps.getProperties(ContextProperties.Type.mail);
 		String from = properties.getProperty("alertFrom");
 		String to = properties.getProperty("alertTo");
 		String subject = properties.getProperty("alertSubject", "DBPA job failure: %s");

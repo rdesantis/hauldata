@@ -36,29 +36,26 @@ import com.hauldata.dbpa.log.TableAppender;
 
 public class ContextProperties {
 
-	private String contextName;
+	public enum Type { jdbc, mail, ftp, path, log, statsd };
 
-	private Properties connectionProps;
-	private Properties sessionProps;
-	private Properties ftpProps;
-	private Properties pathProps;
-	private Properties logProps;
+	private Map<Type, Properties> propertiesMap;
 
-	private Map<String, Properties> properties;
+	/**
+	 * Collect properties for the indicated program(s).  Properties for programNames[0] have LEAST precedence.
+	 */
+	public ContextProperties(String... programNames) {
+		propertiesMap = new HashMap<Type, Properties>();
 
-	private ContextProperties() {
+		propertiesMap.put(Type.path, getDefaultPathsProperties());
 
-		contextName = null;
-
-		connectionProps = null;
-		sessionProps = null;
-		ftpProps = null;
-		pathProps = getDefaultPathsProperties();
-		logProps = null;
+		for (String programName : programNames) {
+			for (Type type : Type.values()) {
+				propertiesMap.put(type, getProperties(programName, type.name(), propertiesMap.get(type)));
+			}
+		}
 	}
 
 	private Properties getDefaultPathsProperties() {
-
 		Properties props = new Properties();
 		// Don't set "read" or "write" defaults.  If either of these is missing, the "data" default will be used.
 		props.setProperty("data", DBPA.home);
@@ -69,34 +66,30 @@ public class ContextProperties {
 		return props;
 	}
 
-	private static final ContextProperties nullContextProperties = new ContextProperties();
+	private Properties getProperties(String programName, String usage, Properties defaults) {
+		Properties properties = (defaults != null) ? new Properties(defaults) : new Properties();
 
-	public ContextProperties(String contextName) {
-		this(contextName, nullContextProperties);
-	}
+		String fileName = programName + "." + usage + ".properties";
+		Path path = Files.getPath(DBPA.home, fileName);
 
-	public ContextProperties(String contextName, ContextProperties defaults) {
-		this(contextName, defaults, true);
-	}
+		FileInputStream in = null;
+		try {
+			in = new FileInputStream(path.toString());
+			properties.load(in);
+		}
+		catch (FileNotFoundException ex) {
+			// Ignore this; default properties will be used.
+		}
+		catch (Exception ex) {
+			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
+			throw new RuntimeException("Error reading " + usage + " properties from file \"" + fileName + "\": " + message, ex);
+		}
+		finally {
+			try { if (in != null) in.close(); }
+			catch (Exception ex) {}
+		}
 
-	public ContextProperties(String contextName, ContextProperties defaults, boolean respectLogDefaults) {
-
-		this.contextName = contextName;
-		properties = new HashMap<String, Properties>();
-
-		connectionProps = putProperties(properties, "jdbc", defaults.connectionProps);
-		sessionProps = putProperties(properties, "mail", defaults.sessionProps);
-		ftpProps = putProperties(properties, "ftp", defaults.ftpProps);
-		pathProps = putProperties(properties, "path", defaults.pathProps);
-		logProps = putProperties(properties, "log", respectLogDefaults ? defaults.logProps : null);
-
-		putProperties(properties, "statsd", null);
-	}
-
-	private Properties putProperties(Map<String, Properties> properties, String usage, Properties defaults) {
-		Properties result = getProperties(usage, defaults);
-		properties.put(usage, result);
-		return result;
+		return properties;
 	}
 
 	public Context createContext(String processId) {
@@ -112,7 +105,7 @@ public class ContextProperties {
 
 			Loader loader = (parentContext == null) ? new FileLoader(getPathname("process")) : parentContext.loader;
 
-			context = new Context(connectionProps, sessionProps, ftpProps, pathProps, loader);
+			context = new Context(propertiesMap.get(Type.jdbc), propertiesMap.get(Type.mail), propertiesMap.get(Type.ftp), propertiesMap.get(Type.path), loader);
 
 			context.logger = (parentContext == null) ? setupLog(processId, context) : parentContext.logger.nestProcess(parentTaskId, processId);
 		}
@@ -127,57 +120,30 @@ public class ContextProperties {
 	}
 
 	/**
-	 * Return properties that apply to the indicated usage in this context.
+	 * Return properties of the indicated type in this context.
 	 *
-	 * @param usage is the usage for the properties
+	 * @param type is the type of properties
 	 * @return the properties
 	 */
 
-	public Properties getProperties(String usage) {
-		return properties.get(usage);
-	}
-
-	private Properties getProperties(String usage, Properties defaults) {
-
-		Properties props = (defaults != null) ? new Properties(defaults) : new Properties();
-
-		String fileName = contextName + "." + usage + ".properties";
-		Path path = Files.getPath(DBPA.home, fileName);
-
-		FileInputStream in = null;
-		try {
-			in = new FileInputStream(path.toString());
-			props.load(in);
-		}
-		catch (FileNotFoundException ex) {
-			// Ignore this; default properties will be used.
-		}
-		catch (Exception ex) {
-			String message = (ex.getMessage() != null) ? ex.getMessage() : ex.getClass().getName();
-			throw new RuntimeException("Error reading " + usage + " properties from file \"" + fileName + "\": " + message, ex);
-		}
-		finally {
-			try { if (in != null) in.close(); }
-			catch (Exception ex) {}
-		}
-
-		return props;
+	public Properties getProperties(Type type) {
+		return propertiesMap.get(type);
 	}
 
 	private String getPathname(String usage) {
-		// Defensive: The == null path should never execute because of how ContextProperties() default constructor is defined.
-		return (pathProps != null) ? pathProps.getProperty(usage, ".") : DBPA.home;
+		return propertiesMap.get(Type.path).getProperty(usage, ".");
 	}
 
 	private Logger setupLog(String processID, Context context) {
+		Properties logProps = propertiesMap.get(Type.log);
 
-		String logTypeList = (logProps != null) ? logProps.getProperty("type") : null;
+		String logTypeList = logProps.getProperty("type");
 		if ((logTypeList == null) || logTypeList.equals("null")) {
 			return NullLogger.logger;
 		}
 
 		try {
-			Level defaultLevel = getLoggerLevel("level", Level.info);
+			Level defaultLevel = getLoggerLevel(logProps, "level", Level.info);
 
 			RootLogger log = new RootLogger(processID);
 
@@ -187,18 +153,18 @@ public class ContextProperties {
 					// Do nothing.
 				}
 				else if (logType.equals("console")) {
-					Level level = getLoggerLevel("consoleLevel", defaultLevel);
+					Level level = getLoggerLevel(logProps, "consoleLevel", defaultLevel);
 					log.add(new ConsoleAppender(level));
 				}
 				else if (logType.equals("file")) {
 					String fileName = Files.getPath(getPathname("log"), logProps.getProperty("fileName")).toString();
 					String rolloverSchedule = logProps.getProperty("fileRollover");
-					Level level = getLoggerLevel("fileLevel", defaultLevel);
+					Level level = getLoggerLevel(logProps, "fileLevel", defaultLevel);
 
 					log.add(new FileAppender(fileName, rolloverSchedule, level));
 				}
 				else if (logType.equals("table")) {
-					Level level = getLoggerLevel("tableLevel", defaultLevel);
+					Level level = getLoggerLevel(logProps, "tableLevel", defaultLevel);
 					log.add(new TableAppender(context, logProps.getProperty("tableName"), level));
 				}
 				else {
@@ -214,9 +180,8 @@ public class ContextProperties {
 		}
 	}
 
-	private Logger.Level getLoggerLevel(String propertyName, Logger.Level defaultLevel) {
-
-		String loggerLevelName = (logProps != null) ? logProps.getProperty(propertyName) : null;
+	private Logger.Level getLoggerLevel(Properties logProps, String propertyName, Logger.Level defaultLevel) {
+		String loggerLevelName = logProps.getProperty(propertyName);
 		Logger.Level level = (loggerLevelName != null) ? Logger.Level.valueOf(loggerLevelName) : defaultLevel;
 		return level;
 	}

@@ -49,7 +49,7 @@ public class CheckDbp {
 		String fileNamePattern = parentAndFileName[1] + '.' + FileLoader.processFileExt;
 
 		ContextProperties contextProps = new ContextProperties(DBPA.runProgramName);
-		String processPathName = contextProps.getProperties("path").getProperty("process");
+		String processPathName = contextProps.getProperties(ContextProperties.Type.path).getProperty("process");
 		Path processPath = Paths.get(processPathName);
 
 		Path searchPath = processPath.resolve(searchPathName).toAbsolutePath().normalize();

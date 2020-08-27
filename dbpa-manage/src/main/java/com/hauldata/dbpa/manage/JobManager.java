@@ -67,7 +67,6 @@ public class JobManager {
 
 	private Analyzer analyzer;
 
-	private ContextProperties contextProps;
 	private Context context;
 	private StatsDClient statsd;
 
@@ -142,16 +141,13 @@ public class JobManager {
 
 		this.analyzer = withLogAnalyzer ? new Analyzer(Logger.Level.info) : null;
 
-		// Job default context properties.
-
-		jobContextProps = new ContextProperties(DBPA.runProgramName);
+		jobContextProps = new ContextProperties(DBPA.runProgramName, managerProgramName);
 
 		// Manager context.
 
-		contextProps = new ContextProperties(managerProgramName, jobContextProps, false);
-		context = contextProps.createContext(null);
+		context = jobContextProps.createContext(null);
 
-		JobStatisticsCollector.WithWarning statsdWithWarning = JobStatisticsCollector.create(contextProps.getProperties("statsd"));
+		JobStatisticsCollector.WithWarning statsdWithWarning = JobStatisticsCollector.create(jobContextProps.getProperties(ContextProperties.Type.statsd));
 		statsd = statsdWithWarning.statsd;
 		if (statsdWithWarning.warning != null) {
 			LOGGER.warn("Not collecting statistics: " + statsdWithWarning.warning);
@@ -435,7 +431,7 @@ public class JobManager {
 		LOGGER.warn(logIntroMessage, processID, message);
 
 		try {
-			Alert.send(processID, contextProps, message);
+			Alert.send(processID, jobContextProps, message);
 		}
 		catch (Exception ex) {
 			LOGGER.error("Cannot send alerts: {}", Optional.ofNullable(ex.getMessage()).orElse(ex.getClass().getName()));
