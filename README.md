@@ -3,7 +3,7 @@ DBPA - Database Process Automation
 
 *DBPA lets you easily automate database workflow tasks.  It's like SSIS but much easier.*
 
-Java-based, it works with any database that has a JDBC driver.  Used extensively with MS SQL Server.  Tested with MySQL.
+Java-based, it works with any database that has a JDBC driver.  All functionality is in extensive daily production use with MS SQL Server and Redshift.  Also tested extensively with MySQL and H2.
 
 What's It Do?
 -------------
@@ -15,14 +15,17 @@ Easily automates common integration, transformation, and migration tasks:
 - generating reports
 - zipping and unzipping files
 - sending email notifications including attachments
+- reading email including attachments
 - sending and receiving files via FTP
 - calling web services
 - file system operations (creating directories, copying and renaming files, deleting files)
+- flow data between disparate database systems without the need for intermediary files
 
 Writes and reads common file formats:
 
 - CSV (write and read)
 - XLSX (write and read)
+- XLS (write and read)
 - TXT plain text (write and read)
 - Tab separated values (write only)
 
