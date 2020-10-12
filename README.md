@@ -5,8 +5,6 @@ DBPA - Database Process Automation
 
 Java-based, it works with any database that has a JDBC driver.  Used extensively with MS SQL Server.  Tested with MySQL.
 
-Full documentation coming soon at [hauldata.com](http://www.hauldata.com).
-
 What's It Do?
 -------------
 
