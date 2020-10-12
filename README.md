@@ -54,7 +54,7 @@ It's also very task oriented making it easy to migrate SSIS tasks to DBPA tasks.
 Here's a DBPA script to save the contents of a table to CSV file:
 
 ```
-Process
+PROCESS
 	WRITE CSV 'mytable.csv' FROM TABLE 'mytable';
 END PROCESS
 ```
