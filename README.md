@@ -28,6 +28,7 @@ Writes and reads common file formats:
 - XLS (write and read)
 - TXT plain text (write and read)
 - Tab separated values (write only)
+- Text files with fixed field lengths, including mixed and hierarchical record formats
 
 Easily runs multiple tasks in parallel.
 
@@ -36,6 +37,8 @@ Sensible, flexible error handling.
 Straightforward handling of loops.
 
 Built in scheduling.
+
+Easily embeds tables into an email body.  Full HTML formatting is available for tables.  HTML formatting is automcailly converted to Excel formatting when writing XLSX or XLS files.
 
 Designed to allow easy migration of existing SSIS packages.
 
