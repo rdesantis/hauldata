@@ -48,45 +48,35 @@ It's also very task oriented making it easy to migrate SSIS tasks to DBPA tasks.
 Here's a DBPA script to save the contents of a table to CSV file:
 
 ```
-TASK SaveTable
-	WRITE CSV 'mytable.csv' FROM TABLE 'mytable'
-END TASK
+Process
+	WRITE CSV 'mytable.csv' FROM TABLE 'mytable';
+END PROCESS
 ```
 
 Here's a script to run two stored procedures every Tuesday morning and Thursday evening, save the output to files with a date stamp in the file names, and then email them:
 
 ```
-VARIABLES
-	suffix VARCHAR, filename1 VARCHAR, filename2 VARCHAR
-END VARIABLES
-
-TASK WeeklyReport
+PROCESS
 	ON TUESDAY AT '6:00 AM', THURSDAY AT '6:00 PM'
+		DECLARE
+			suffix VARCHAR = '_'+ FORMAT(GETDATE(), 'yyMMdd'),
+			filename1 VARCHAR = 'report1' + suffix + '.csv',
+			filename2 VARCHAR = 'report2' + suffix + '.csv';
 
-	TASK SetFileNames
-		SET
-			suffix = '_'+ FORMAT(GETDATE(), 'yyMMdd'),
-			filename1 = 'report1' + suffix + '.csv',
-			filename2 = 'report2' + suffix + '.csv'
-	END TASK
+	WriteFile1:
+		WRITE CSV filename1 FROM PROCEDURE 'proc1';
 
-	TASK WriteFile1
-		AFTER SetFileNames
-		WRITE CSV filename1 FROM PROCEDURE 'proc1'
-	END TASK
+	WriteFile2:
+		CONCURRENTLY
+		WRITE CSV filename2 FROM PROCEDURE 'proc2';
 
-	TASK WriteFile2
-		AFTER SetFileNames
-		WRITE CSV filename2 FROM PROCEDURE 'proc2'
-	END TASK
-
-	TASK EmailThem
-		AFTER WriteFile1 AND WriteFile2
+	AFTER WriteFile1 AND WriteFile2
 		EMAIL FROM 'reports@yourcompany.com' TO 'report_recipients@yourcompany.com'
 		SUBJECT 'Awesome Reports' BODY 'Please find the awesome reports attached'
-		ATTACH filename1, filename2
-	END TASK
-END TASK
+		ATTACH filename1, filename2;
+
+	END ON
+END PROCESS
 ```
 
 If you've written SSIS packages, think about the amount of work that would be required to build, deploy,
