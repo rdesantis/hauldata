@@ -19,7 +19,7 @@ Easily automates common integration, transformation, and migration tasks:
 - sending and receiving files via FTP
 - calling web services
 - file system operations (creating directories, copying and renaming files, deleting files)
-- flow data between disparate database systems without the need for intermediary files
+- flowing data between disparate database systems without the need for intermediary files
 
 Writes and reads common file formats:
 
@@ -38,6 +38,8 @@ Straightforward handling of loops.
 Built in scheduling.
 
 Designed to allow easy migration of existing SSIS packages.
+
+The tool chain includes a separate job scheduling engine that neatly replaces SQL Server Agent, allowing you to move workloads entirely off SSIS / SQL Server Agent.
 
 How Does It Work?
 -----------------
