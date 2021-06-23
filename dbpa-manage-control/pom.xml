@@ -14,7 +14,7 @@
 	<description>DBPA script manager APIs produced for remote controller client consumption</description>
 
 	<properties>
-		<jackson-annotations.version>2.9.3</jackson-annotations.version>
+		<jackson-annotations.version>2.9.8</jackson-annotations.version>
 	</properties>
 
 	<dependencies>
