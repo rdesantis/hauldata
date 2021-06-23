@@ -38,7 +38,7 @@ Straightforward handling of loops.
 
 Built in scheduling.
 
-Easily embeds tables into an email body.  Full HTML formatting is available for tables.  HTML formatting is automcailly converted to Excel formatting when writing XLSX or XLS files.
+Easily embeds tables into an email body.  Full HTML formatting is available for tables.  HTML formatting is automatically converted to Excel formatting when writing XLSX or XLS files.
 
 Designed to allow easy migration of existing SSIS packages.
 
